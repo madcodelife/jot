@@ -1,89 +1,41 @@
 //! The app's Rust code: what `App.tsx` imports from `jot/native`. Their
 //! TypeScript declarations are generated from these types into
 //! `.nsh/types/jot/native.d.ts`.
+//!
+//! - [`Notes`]: the notes folder (`jot_store::Store`) as a class, with its
+//!   to-dos and a listener for changes made outside the app.
+//! - [`When`]: the time phrases of a to-do line.
+//! - [`Reminders`]: fires at the to-dos' due times while the app runs.
+//! - [`Summon`]: a system-wide double tap of a modifier key.
+//!
+//! Platform code lives in `platform/<os>.rs` behind one interface, so
+//! `App.tsx` never checks the platform for these.
 
-use nsh_base::theme;
+mod notes;
+#[cfg(target_os = "macos")]
+#[path = "platform/macos.rs"]
+mod platform;
+#[cfg(not(target_os = "macos"))]
+#[path = "platform/other.rs"]
+mod platform;
+mod relay;
+mod reminders;
+mod summon;
+mod when;
+
 use nsh_core::prelude::*;
+
+pub use notes::{Note, NoteMeta, NoteSource, Notes, SearchHit, Todo};
+pub use reminders::{DueEvent, Reminders};
+pub use summon::{Summon, SummonKey};
+pub use when::{When, WhenMatch};
 
 /// The crate's UI set (`nsh.json` `"rust"`).
 #[native_module("jot/native")]
 fn native(registry: &mut Registry) {
     registry
-        .register::<Badge>()
-        .module::<Format>()
-        .class::<Counter>();
-}
-
-// A component: `<Badge label="…" onPress={…} />`. The function's doc comment
-// is the component's in TS, the fields' its props'.
-/// The props of [`Badge`].
-#[derive(Debug, Clone, PartialEq, Props)]
-pub struct BadgeProps {
-    /// The text.
-    pub label: Prop<SharedString>,
-}
-
-/// The events of a [`Badge`].
-#[derive(Debug, Clone, PartialEq, Event)]
-pub enum BadgeEvent {
-    /// The badge was pressed.
-    Press,
-}
-
-/// A pill with a label; pressing it reports `onPress`.
-#[component]
-pub fn Badge(props: BadgeProps, cx: Scope<BadgeEvent>) -> impl IntoElement {
-    view()
-        .px_4()
-        .py_2()
-        .rounded_full()
-        .bg(move || theme().primary)
-        .active(|s| s.bg(move || theme().primary.opacity(0.9)))
-        .on_press(move || cx.emit(BadgeEvent::Press))
-        .child(text(props.label).text_color(move || theme().primary_foreground))
-}
-
-/// Text helpers.
-#[module]
-pub struct Format;
-
-// A module: `Format.times(3)`. The struct's doc comment is the module's in
-// TS (`#[module]` on it and on this block).
-#[module]
-impl Format {
-    /// "once", "twice", "3 times".
-    pub fn times(count: u32) -> String {
-        match count {
-            1 => "once".to_owned(),
-            2 => "twice".to_owned(),
-            n => format!("{n} times"),
-        }
-    }
-}
-
-/// A count kept in Rust.
-#[class]
-pub struct Counter {
-    count: u32,
-}
-
-// A class: `new Counter()`, `counter.increment()`, `counter.count`.
-#[class]
-impl Counter {
-    /// A counter at 0.
-    pub fn new() -> Self {
-        Counter { count: 0 }
-    }
-
-    /// Adds one; the new count.
-    pub fn increment(&mut self) -> u32 {
-        self.count += 1;
-        self.count
-    }
-
-    /// The count.
-    #[getter]
-    pub fn count(&self) -> u32 {
-        self.count
-    }
+        .class::<Notes>()
+        .class::<Reminders>()
+        .module::<When>()
+        .module::<Summon>();
 }

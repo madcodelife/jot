@@ -11,3 +11,26 @@ members = ["store", "mcp"]
 nsh-core = { path = "/Users/madcodelife/Workspace/longbridge/nsh.worktrees/jot-nsh/crates/nsh-core" }
 nsh-base = { path = "/Users/madcodelife/Workspace/longbridge/nsh.worktrees/jot-nsh/crates/nsh-base" }
 jot-store = { path = "store" }
+jiff = "0.2.43"
+# Channels from other threads (the folder watcher, the reminders' thread,
+# AppKit's monitors) to tasks on the engine thread.
+tokio = { version = "1", default-features = false, features = ["sync"] }
+
+# The versions NSH's workspace uses, default features off as there.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6.5"
+block2 = "0.6.2"
+objc2-foundation = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "NSDictionary",
+  "NSObject",
+  "NSString",
+  "NSURL",
+  "NSValue",
+] }
+objc2-app-kit = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "block2",
+  "NSEvent",
+  "NSWorkspace",
+] }
