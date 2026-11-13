@@ -99,6 +99,11 @@
   --sel-bg:var(--accent); --sel-fg:#ffffff; --sel-sub:rgba(255,255,255,.78); --sel-ic:rgba(255,255,255,.22); --sel-ic-fg:#ffffff; --sel-ind:transparent;
   --sel-mark-bg:rgba(255,255,255,.92); --sel-mark-fg:var(--accent);
   --menu-fg:var(--mac-menu-fg); --menu-hl:var(--accent); --menu-hl-fg:#ffffff;
+  /* to-dos: the checkbox's shape per platform (a circle on Apple platforms), the time chip, the overdue color */
+  --cb-rad:50%; --cb-bw:1.5px; --chip-rad:999px;
+  --due-fg:var(--accent); --due-bg:color-mix(in srgb,var(--accent) 13%,transparent);
+  --late-fg:var(--danger); --late-bg:color-mix(in srgb,var(--danger) 13%,transparent);
+  --sel-chip-bg:rgba(255,255,255,.22); --sel-chip-fg:#ffffff; --sel-cb-on-bg:#ffffff; --sel-cb-on-fg:var(--accent);
 }
 :root[data-platform="windows"]{
   --accent:var(--win-acc); --accent-fg:var(--win-acc-fg);
@@ -114,6 +119,8 @@
   --sel-bg:var(--win-sel); --sel-fg:var(--g-fg); --sel-sub:var(--g-muted); --sel-ic:var(--g-hover); --sel-ic-fg:var(--claude); --sel-ind:var(--accent);
   --sel-mark-bg:var(--mark); --sel-mark-fg:var(--mark-fg);
   --menu-fg:var(--g-fg); --menu-hl:var(--win-sel); --menu-hl-fg:var(--g-fg);
+  --cb-rad:.22em; --cb-bw:1px; --chip-rad:4px;
+  --sel-chip-bg:var(--due-bg); --sel-chip-fg:var(--due-fg); --sel-cb-on-bg:var(--accent); --sel-cb-on-fg:var(--accent-fg);
 }
 :root[data-platform="linux"]{
   --accent:var(--adw-acc); --accent-fg:#ffffff;
@@ -129,6 +136,8 @@
   --sel-bg:var(--adw-sel); --sel-fg:var(--g-fg); --sel-sub:var(--g-muted); --sel-ic:var(--g-hover); --sel-ic-fg:var(--claude); --sel-ind:transparent;
   --sel-mark-bg:var(--mark); --sel-mark-fg:var(--mark-fg);
   --menu-fg:var(--g-fg); --menu-hl:var(--adw-sel); --menu-hl-fg:var(--g-fg);
+  --cb-rad:.3em; --cb-bw:2px; --chip-rad:999px;
+  --sel-chip-bg:var(--due-bg); --sel-chip-fg:var(--due-fg); --sel-cb-on-bg:var(--accent); --sel-cb-on-fg:var(--accent-fg);
 }
 :root[data-platform="iphone"]{ --accent:var(--ios-acc); --sw-off:var(--ios-sw-off); }
 
@@ -300,6 +309,7 @@ mark{background:var(--mark);color:var(--mark-fg);border-radius:.25em;padding:0 .
 .island{position:absolute;top:0;left:50%;transform:translateX(-50%);width:12.5cqw;height:2.7cqw;background:var(--isl-bg);border-radius:0 0 1.2cqw 1.2cqw;z-index:6;color:#fff;overflow:hidden;
   transition:width var(--sp-isl-d) var(--sp-isl),height var(--sp-isl-d) var(--sp-isl),border-radius var(--sp-isl-d) var(--sp-isl),transform var(--sp-isl-d) var(--sp-isl),opacity 180ms ease}
 .island.open{width:38cqw;height:8cqw;border-radius:0 0 3.4cqw 3.4cqw}
+.island.open[data-mode="remind"]{width:32cqw}
 :root[data-notch="no"] .island:not(.open){width:9cqw;height:0}
 :root[data-platform="windows"] .island{top:.9cqw;width:16cqw;height:4cqw;border-radius:2cqw;background:var(--isl-acr);-webkit-backdrop-filter:blur(2.4cqw) saturate(140%);backdrop-filter:blur(2.4cqw) saturate(140%);box-shadow:0 .7cqw 2.4cqw rgba(0,0,0,.32),inset 0 0 0 1px rgba(255,255,255,.1);opacity:0;transform:translateX(-50%) translateY(-5cqw) scale(.92)}
 :root[data-platform="windows"] .island.open{width:36cqw;height:6.6cqw;border-radius:3.3cqw;opacity:1;transform:translateX(-50%)}
@@ -326,6 +336,82 @@ mark{background:var(--mark);color:var(--mark-fg);border-radius:.25em;padding:0 .
 .island.reading .scan{opacity:1;animation:sweep 1s ease-in-out infinite}
 @keyframes sweep{from{background-position:-40% 0}to{background-position:140% 0}}
 @keyframes pop{from{transform:scale(.2)}to{transform:scale(1)}}
+/* the island as a reminder (macOS): a bell instead of Claude, a checkbox to tick it off */
+.island .av.rem{background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--accent) 55%,#fff),var(--accent) 65%)}
+.island .itm{font-weight:500;color:rgba(255,255,255,.62);margin-left:.7cqw;font-size:1.25cqw}
+.icb{width:2.6cqw;height:2.6cqw;border-radius:50%;border:.2cqw solid rgba(255,255,255,.55);display:grid;place-items:center;color:#fff;cursor:pointer;transition:background .15s,border-color .15s}
+.icb svg{width:1.6cqw;height:1.6cqw;overflow:visible}
+.icb svg path{stroke-dasharray:16;stroke-dashoffset:16;transition:stroke-dashoffset 220ms ease-out 40ms}
+.icb.on{background:var(--ok);border-color:var(--ok)}
+.icb.on svg path{stroke-dashoffset:0}
+
+/* ───────── to-dos on the stage ───────── */
+.row.tdsum .ic{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+.row.sel.tdsum .ic{background:var(--sel-ic);color:var(--sel-fg)}
+.row.sel .dots i.on{background:var(--sel-cb-on-bg)}
+.list.tdv{overflow-y:auto;scrollbar-width:none}
+.list.tdv::-webkit-scrollbar{display:none}
+.gh{height:2.4cqw;display:flex;align-items:flex-end;gap:.6cqw;padding:0 1.2cqw .4cqw;font-size:1.02cqw;font-weight:650;color:var(--g-muted);opacity:0;transition:opacity 220ms ease calc(var(--i)*28ms)}
+.gh span{font-weight:500;opacity:.8;font-variant-numeric:tabular-nums}
+.gh.late{color:var(--late-fg)}
+:root[data-platform="linux"] .gh:not(.late){color:var(--g-fg)}
+.list.in .gh{opacity:1}
+.row.td{height:3.6cqw;grid-template-columns:1.7cqw 1fr auto;gap:1cqw;transition:opacity 220ms ease calc(var(--i)*28ms),transform var(--sp-drop-d) var(--sp-drop) calc(var(--i)*28ms),background .12s}
+.row.td .cb{font-size:1.55cqw;cursor:pointer}
+.row.td .t{font-size:1.32cqw;font-weight:500;display:flex;align-items:baseline;min-width:0}
+.row.td .t b{font-weight:inherit;overflow:hidden;text-overflow:ellipsis}
+.row.td .nt{font-size:1.02cqw;color:var(--g-muted);margin-left:.8cqw;font-weight:400;flex:none}
+.row.td .due{font-size:1.04cqw}
+.row.sel .nt{color:var(--sel-sub)}
+.row.sel .due,.row.sel .due.late{background:var(--sel-chip-bg);color:var(--sel-chip-fg)}
+.row.sel .cb.on{background:var(--sel-cb-on-bg);border-color:var(--sel-cb-on-bg);color:var(--sel-cb-on-fg)}
+.row.td.checking .t b{text-decoration:line-through;opacity:.6}
+.list.in .row.leaving{opacity:0;height:0;transform:none;transition:opacity 180ms ease,height 300ms var(--sp-snap)}
+.tdempty{height:8cqw;display:grid;place-items:center;font-size:1.25cqw;color:var(--g-muted)}
+
+/* the demo's pointer and the fast-forward tag */
+.ptr{position:absolute;left:60%;top:60%;width:1.9cqw;height:1.9cqw;margin:-.25cqw 0 0 -.45cqw;z-index:12;pointer-events:none;opacity:0;transition:left .6s cubic-bezier(.3,.8,.3,1),top .6s cubic-bezier(.3,.8,.3,1),opacity .2s,transform .12s;filter:drop-shadow(0 .15cqw .3cqw rgba(0,0,0,.3))}
+.ptr.on{opacity:1}.ptr.down{transform:scale(.82)}
+.ptr svg{width:100%;height:100%}
+.ff{position:absolute;left:50%;bottom:7cqw;transform:translateX(-50%) translateY(1cqw);opacity:0;padding:.8cqw 1.6cqw;border-radius:calc(var(--r-cap) * var(--pt));font-size:1.25cqw;white-space:nowrap;display:flex;gap:.6cqw;align-items:center;z-index:5;transition:opacity .25s,transform var(--sp-snap-d) var(--sp-snap)}
+.ff.on{opacity:1;transform:translateX(-50%)}
+.ff svg{width:1.3cqw;height:1.3cqw}
+
+/* ───────── system notifications: sized in points, so the stage and the gallery share them ───────── */
+.ntf{position:absolute;z-index:8;right:calc(12 * var(--pt));top:calc(38 * var(--pt));width:calc(344 * var(--pt));border-radius:calc(22 * var(--pt));padding:calc(11 * var(--pt)) calc(13 * var(--pt)) calc(12 * var(--pt));
+  font-family:var(--os-font);color:var(--g-fg);font-size:calc(13 * var(--pt));line-height:1.32;text-align:left;
+  display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"ic t tm" "ic s s" "a a a";column-gap:calc(10 * var(--pt));row-gap:calc(1 * var(--pt));align-items:center}
+.n-ic{grid-area:ic;align-self:start;width:calc(34 * var(--pt));height:calc(34 * var(--pt));border-radius:calc(8 * var(--pt));display:grid;place-items:center;color:#fff;background:linear-gradient(150deg,color-mix(in srgb,var(--claude) 70%,#ffb183),var(--claude))}
+.n-ic svg{width:55%;height:55%}
+.n-hd{display:none}
+.n-t{grid-area:t;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.n-tm{grid-area:tm;font-size:calc(11.5 * var(--pt));color:var(--g-muted);white-space:nowrap}
+.n-app{display:none}
+.n-s{grid-area:s;min-width:0}
+.n-acts{grid-area:a;display:flex;gap:calc(6 * var(--pt));margin-top:calc(10 * var(--pt))}
+.na{flex:1;min-width:0;font:inherit;font-size:calc(12.5 * var(--pt));font-weight:500;height:calc(28 * var(--pt));padding:0 calc(8 * var(--pt));border-radius:calc(var(--r-btn) * var(--pt));background:var(--ctl-bg);border:0;color:var(--g-fg);white-space:nowrap;cursor:pointer;transition:background .12s,transform .12s}
+.na.down{transform:scale(.96);background:var(--g-line)}
+:root[data-platform="windows"] .ntf{top:auto;bottom:calc(60 * var(--pt));width:calc(364 * var(--pt));border-radius:calc(8 * var(--pt));padding:calc(12 * var(--pt)) calc(16 * var(--pt)) calc(16 * var(--pt));grid-template-columns:1fr;grid-template-areas:"hd" "t" "s" "a";row-gap:calc(2 * var(--pt))}
+:root[data-platform="windows"] .n-ic,:root[data-platform="windows"] .n-tm{display:none}
+:root[data-platform="windows"] .n-hd{grid-area:hd;display:flex;align-items:center;gap:calc(8 * var(--pt));font-size:calc(12 * var(--pt));color:var(--g-muted);margin-bottom:calc(10 * var(--pt))}
+.n-hd .mi-ic{width:calc(16 * var(--pt));height:calc(16 * var(--pt));border-radius:calc(4 * var(--pt));display:grid;place-items:center;color:#fff;background:var(--claude)}
+.n-hd .mi-ic svg{width:70%;height:70%}
+.n-hd .sp{flex:1}
+.n-hd svg.x{width:calc(10 * var(--pt));height:calc(10 * var(--pt));margin-left:calc(10 * var(--pt))}
+.n-hd .more{display:flex}.n-hd .more svg{width:calc(14 * var(--pt));height:calc(14 * var(--pt))}
+:root[data-platform="windows"] .n-t{font-size:calc(14 * var(--pt));font-weight:600}
+:root[data-platform="windows"] .n-s{font-size:calc(14 * var(--pt));color:var(--g-muted)}
+:root[data-platform="windows"] .n-acts{gap:calc(8 * var(--pt));margin-top:calc(14 * var(--pt))}
+:root[data-platform="windows"] .na{height:calc(32 * var(--pt));font-size:calc(13 * var(--pt));border:1px solid var(--grp-edge)}
+:root[data-platform="linux"] .ntf{right:auto;left:50%;transform:translateX(-50%);width:calc(400 * var(--pt));border-radius:calc(14 * var(--pt));padding:calc(12 * var(--pt)) calc(14 * var(--pt))}
+:root[data-platform="linux"] .n-app{display:inline}
+:root[data-platform="linux"] .n-t{font-weight:700}
+:root[data-platform="linux"] .n-s{color:var(--g-muted)}
+:root[data-platform="linux"] .na{border-radius:999px;height:calc(32 * var(--pt));font-weight:600}
+#ntf{opacity:0;pointer-events:none;transform:translateX(calc(100% + 24 * var(--pt)));transition:transform var(--sp-snap-d) var(--sp-snap),opacity 180ms ease}
+#ntf.open{opacity:1;pointer-events:auto;transform:none}
+:root[data-platform="linux"] #ntf{transform:translateX(-50%) translateY(calc(-14 * var(--pt)))}
+:root[data-platform="linux"] #ntf.open{transform:translateX(-50%)}
 
 /* ───────── iPhone stage ───────── */
 .phonestage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:3.5cqw}
@@ -370,6 +456,7 @@ mark{background:var(--mark);color:var(--mark-fg);border-radius:.25em;padding:0 .
 .pplus{width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;flex:none}
 .pplus svg{width:16px;height:16px}
 .prow.arrive{animation:parrive 1.8s ease-out}
+.ptd.arrive .ptd-in{animation:parrive 1.8s ease-out}
 @keyframes parrive{10%{background:color-mix(in srgb,var(--claude) 16%,transparent)}100%{background:transparent}}
 .ios-g{background:var(--ios-glass);-webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);border:1px solid var(--ios-glass-edge);box-shadow:0 6px 20px rgba(0,0,0,.12)}
 .gb{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;color:var(--ios-fg);padding:0;font:inherit;cursor:default;flex:none}
@@ -443,6 +530,40 @@ mark{background:var(--mark);color:var(--mark-fg);border-radius:.25em;padding:0 .
 .ios-sheet{position:absolute;left:0;right:0;top:64px;bottom:0;background:var(--ios-grouped);border-radius:36px 36px 0 0;box-shadow:0 -6px 30px rgba(0,0,0,.18);padding-top:16px;overflow:hidden}
 .ios-sheet .hd{display:flex;align-items:center;justify-content:space-between;padding:0 16px 14px;font-size:17px;font-weight:600}
 .ios-dim{position:absolute;inset:0;background:rgba(0,0,0,.25)}
+/* iOS to-dos: the summary row, the grouped view, swipe to complete, the banner, the time callout */
+.prow.tdsum{display:flex;gap:12px;align-items:center}
+.prow.tdsum .pplus{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+.prow.tdsum .pplus svg{width:18px;height:18px}
+.prow.tdsum .dots{font-size:15px;color:var(--ios-2);flex:none}
+.ios-tdh{font-size:20px;font-weight:700;padding:16px 20px 4px 0;display:flex;gap:8px;align-items:baseline}
+.ios-tdh span{font-size:15px;font-weight:500;color:var(--ios-2)}
+.ios-tdh.late{color:var(--late-fg)}
+.ptd{position:relative;overflow:hidden;max-height:120px;transition:max-height 320ms cubic-bezier(.32,.72,0,1),opacity 200ms ease}
+.ptd-in{position:relative;z-index:1;display:flex;gap:12px;align-items:flex-start;padding:11px 20px 11px 0;background:var(--ios-bg);border-bottom:1px solid var(--ios-sep);transition:transform 320ms cubic-bezier(.32,.72,0,1);touch-action:pan-y}
+.ptd-in .cb{font-size:22px;margin-top:0;cursor:pointer}
+.ptd-in .tx{flex:1;min-width:0}
+.ptd-in .tt{font-size:17px;line-height:22px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptd-in .sub{display:flex;gap:8px;align-items:center;margin-top:4px;font-size:13px;color:var(--ios-2);white-space:nowrap}
+.ptd-in .due{font-size:13px}
+.ptd-act{position:absolute;right:0;top:0;bottom:0;width:88px;background:var(--ok);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:14px;font-weight:600;cursor:pointer}
+.ptd-act svg{width:20px;height:20px}
+.ptd.open .ptd-in{transform:translateX(-88px)}
+.ptd.checking .tt{text-decoration:line-through;color:var(--ios-2)}
+.ptd.leaving{max-height:0;opacity:0}
+.ios-ntf{position:absolute;left:10px;right:10px;top:58px;z-index:11;border-radius:26px;padding:13px 15px;display:grid;grid-template-columns:38px 1fr auto;grid-template-areas:"ic t tm" "ic s s";column-gap:11px;row-gap:1px;font-size:15px;line-height:1.3;transform:translateY(-140%);transition:transform 480ms cubic-bezier(.32,.72,0,1)}
+.ios-ntf.on{transform:none}
+.ios-ntf .n-ic{width:38px;height:38px;border-radius:9px;--pt:1px}
+.ios-ntf .n-t{font-weight:600}
+.ios-ntf .n-tm{font-size:13px;color:var(--ios-2)}
+.need{outline:1.5px dashed color-mix(in srgb,var(--warn) 75%,transparent);outline-offset:4px}
+.need-tag{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:12.5px;font-weight:600;color:var(--warn);padding:3px 10px;border-radius:99px;background:var(--ios-cell);box-shadow:0 2px 10px rgba(0,0,0,.12);z-index:11}
+.ios-call{position:absolute;z-index:8;transform:translateX(-50%);padding:9px 14px;border-radius:14px;font-size:15px;line-height:1.3;white-space:nowrap;text-align:center;animation:fadein .2s ease}
+.ios-call small{display:block;font-size:13px;color:var(--ios-2)}
+.ios-lock{position:absolute;inset:0;background:linear-gradient(165deg,var(--mac-wall-a),var(--mac-wall-b) 55%,var(--mac-wall-c));color:#fff}
+.ios-lock .lk-d{position:absolute;top:96px;left:0;right:0;text-align:center;font-size:20px;font-weight:600;text-shadow:0 1px 8px rgba(0,0,0,.18)}
+.ios-lock .lk-t{position:absolute;top:120px;left:0;right:0;text-align:center;font-size:96px;font-weight:700;letter-spacing:-2px;line-height:1.1;text-shadow:0 2px 14px rgba(0,0,0,.15)}
+.ios-lock .ios-ntf{top:auto;bottom:118px;transform:none;color:var(--ios-fg)}
+.ios-lock .stk{position:absolute;left:22px;right:22px;height:20px;border-radius:0 0 20px 20px;bottom:104px;background:var(--ios-glass);border:1px solid var(--ios-glass-edge);border-top:0;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 
 /* ───────── gallery ───────── */
 .sec-h h2{font-family:var(--font-d);font-size:24px;letter-spacing:-.015em;margin:0 0 4px}
@@ -507,11 +628,33 @@ mark{background:var(--mark);color:var(--mark-fg);border-radius:.25em;padding:0 .
 .bd p{margin:0 0 6px}
 .bd .h{font:700 18px/1.3 var(--os-font-d);margin:2px 0 6px}
 .md{color:var(--paper-muted);opacity:.75;font-weight:400}
-.todo{display:flex;gap:8px;align-items:center;margin:0 0 4px}
-.cb{width:15px;height:15px;border-radius:calc(min(var(--r-ctl),4) * 1px);border:1.5px solid var(--paper-muted);display:grid;place-items:center;flex:none}
-.cb.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
-.cb svg{width:11px;height:11px}
-.dn{text-decoration:line-through;color:var(--paper-muted)}
+/* to-dos (stage, gallery and phone alike: sized in em, so they follow the text they sit in) */
+.todo{display:flex;gap:.55em;align-items:center;margin:0 0 .3em;position:relative;transition:opacity .25s}
+.cb{width:1.08em;height:1.08em;border-radius:var(--cb-rad);border:var(--cb-bw) solid color-mix(in srgb,currentColor 42%,transparent);display:grid;place-items:center;flex:none;color:var(--accent-fg);cursor:default;transition:background .15s,border-color .15s}
+.cb svg{width:.8em;height:.8em;overflow:visible}
+.cb svg path{stroke-dasharray:16;stroke-dashoffset:16;transition:stroke-dashoffset 220ms ease-out 40ms}
+.cb.on{background:var(--accent);border-color:var(--accent)}
+.cb.on svg path{stroke-dashoffset:0}
+.todo .tt{text-decoration:line-through;text-decoration-color:transparent;transition:text-decoration-color .2s,color .25s;min-width:0}
+.todo.done .tt{text-decoration-color:currentColor;color:var(--paper-muted)}
+.todo.done{opacity:.72}
+.todo.done .due{background:transparent;color:var(--paper-muted);padding-inline:0}
+.done-at{font-size:.78em;color:var(--paper-muted);white-space:nowrap;animation:fadein .3s ease}
+@keyframes fadein{from{opacity:0}}
+.due{display:inline-flex;align-items:center;gap:.28em;font-size:.8em;font-weight:600;line-height:1;padding:.3em .55em;border-radius:var(--chip-rad);background:var(--due-bg);color:var(--due-fg);white-space:nowrap;position:relative;font-variant-numeric:tabular-nums;flex:none;transition:background .2s,color .2s}
+.due svg{width:1.05em;height:1.05em;flex:none}
+.due.late{background:var(--late-bg);color:var(--late-fg)}
+.due.pop{animation:duepop var(--sp-drop-d) var(--sp-drop)}
+@keyframes duepop{from{transform:scale(.82);opacity:.2}}
+.due .tip{position:absolute;left:50%;top:calc(100% + .7em);transform:translateX(-50%) translateY(-.2em);opacity:0;pointer-events:none;padding:.45em .7em;border-radius:calc(min(var(--r-menu),8) * var(--pt,1px));font-size:1.05em;font-weight:500;color:var(--g-fg);white-space:nowrap;z-index:3;transition:opacity .15s,transform .15s}
+.due:hover .tip,.due.hover .tip{opacity:1;transform:translateX(-50%)}
+.due .tip small{display:block;font-size:.86em;font-weight:400;color:var(--g-muted);margin-top:.15em}
+:root[data-platform="linux"] .due .tip{background:#2b2b30;color:#fff;border-color:transparent}
+:root[data-platform="linux"] .due .tip small{color:rgba(255,255,255,.65)}
+.dots{display:inline-flex;gap:.32em;align-items:center}
+.dots i{width:.55em;height:.55em;border-radius:50%;box-shadow:inset 0 0 0 1.4px currentColor;opacity:.45}
+.dots i.on{background:var(--accent);box-shadow:none;opacity:1}
+.raw{color:var(--paper-muted)}
 .bd pre,.bd .pre{font:12.5px/1.55 var(--os-mono);background:var(--code);border-radius:calc(var(--r-paper) * .5px);padding:9px 12px;margin:4px 0 8px;white-space:pre-wrap}
 .lnk{color:var(--accent);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent) 45%,transparent);text-underline-offset:2px}
 .app{border-left:3px solid var(--claude);padding:1px 0 1px 12px;margin:10px 0 4px}
@@ -519,6 +662,33 @@ mark{background:var(--mark);color:var(--mark-fg);border-radius:.25em;padding:0 .
 .mtoast{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 6px 6px 14px;border-radius:calc(var(--r-toast) * 1px);font-size:12.5px;white-space:nowrap;color:var(--g-fg)}
 .mtoast svg{width:12px;height:12px;color:var(--claude)}
 :root[data-platform="linux"] .mtoast{background:#2b2b30;color:#fff;border-color:transparent}
+/* gallery to-do view rows and the mini island (px = pt) */
+.mgh{height:24px;display:flex;align-items:flex-end;gap:6px;padding:0 14px 4px;font-size:11.5px;font-weight:650;color:var(--g-muted)}
+.mgh span{font-weight:500;opacity:.8}
+:root[data-platform="linux"] .mgh{font-size:12.5px;font-weight:700;color:var(--g-fg)}
+.mgh.late,:root[data-platform="linux"] .mgh.late{color:var(--late-fg)}
+.mtd{height:35px;display:grid;grid-template-columns:18px 1fr auto;gap:11px;align-items:center;padding:0 14px;border-radius:calc(var(--r-row) * 1px);position:relative;font-size:14.5px}
+.mtd .cb{font-size:17px}
+.mtd .t{display:flex;align-items:baseline;min-width:0;font-weight:500}
+.mtd .t b{font-weight:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mtd .nt{font-size:12px;color:var(--g-muted);margin-left:8px;font-weight:400;white-space:nowrap;flex:none}
+.mtd .due{font-size:12px}
+.mtd.sel{background:var(--sel-bg);color:var(--sel-fg)}
+.mtd.sel .nt{color:var(--sel-sub)}
+.mtd.sel .due{background:var(--sel-chip-bg);color:var(--sel-chip-fg)}
+.mtd .ind{position:absolute;left:2px;top:50%;width:3px;height:16px;margin-top:-8px;border-radius:2px;background:var(--sel-ind);display:none}
+.mtd.sel .ind{display:block}
+.mtd.checking{opacity:.5}
+.mtd.checking .t b{text-decoration:line-through}
+.misl{position:absolute;left:50%;top:0;transform:translateX(-50%);width:260px;height:66px;border-radius:0 0 30px 30px;background:var(--isl-bg);color:#fff;display:flex;align-items:center;gap:12px;padding:12px 18px 10px;z-index:3}
+:root[data-notch="no"] .misl{top:26px;border-radius:0 0 30px 30px}
+.misl .av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--accent) 55%,#fff),var(--accent) 65%);flex:none}
+.misl .av svg{width:21px;height:21px}
+.misl .tx{flex:1;min-width:0;line-height:1.25}
+.misl .lb{font-size:11.5px;color:rgba(255,255,255,.58)}
+.misl .tt{font-size:16px;font-weight:600}
+.misl .icb{width:28px;height:28px;border-width:2px}
+.misl .icb svg{width:17px;height:17px}
 /* windows, menus, controls */
 .mw{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--win-bg);border-radius:calc(var(--r-win) * 1px);box-shadow:0 18px 50px rgba(0,0,0,.28),0 0 0 1px var(--grp-edge);overflow:hidden;color:var(--g-fg)}
 .tbar{height:44px;display:flex;align-items:center;justify-content:center;position:relative;font-weight:600;font-size:13px;flex:none}
@@ -610,7 +780,7 @@ mark{background:var(--mark);color:var(--mark-fg);border-radius:.25em;padding:0 .
 .steps{list-style:none;margin:0 20px;padding:0;display:flex;flex-direction:column;gap:8px}
 .steps li{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:calc(var(--r-grp) * 1px);background:var(--grp-bg);border:1px solid var(--grp-edge)}
 .steps li.cur{border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
-.steps li.todo{opacity:.62}
+.steps li.later{opacity:.62}
 .steps .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--ctl-bg);flex:none;margin-top:1px}
 .steps li.done .n{background:var(--ok);color:#fff}
 .steps li.cur .n{background:var(--accent);color:var(--accent-fg)}
@@ -691,6 +861,17 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   .ios-kb{transform:none;opacity:0}
   .ios[data-kb="1"] .ios-kb{opacity:1}
   .touch.on{animation:none}
+  /* to-dos: a ticked row only fades out; nothing draws, pops or slides */
+  .cb svg path,.icb svg path{transition:none}
+  .due.pop,.done-at{animation:none}
+  .list.in .row.leaving{height:3.6cqw;transition:opacity 200ms ease}
+  .ptd.leaving{max-height:120px}
+  .ptd-in{transition:none}
+  .ios-ntf{transform:none;opacity:0;transition:opacity 200ms ease}
+  .ios-ntf.on,.ios-lock .ios-ntf{opacity:1}
+  #ntf,:root[data-platform="linux"] #ntf{transform:none;transition:opacity 200ms ease}
+  :root[data-platform="linux"] #ntf,:root[data-platform="linux"] #ntf.open{transform:translateX(-50%)}
+  .ptr{transition:opacity .2s}
 }
 </style>
 
@@ -725,12 +906,12 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
         <div class="l"><b>终端</b><span>Shell</span><span>编辑</span><span>显示</span><span>窗口</span></div>
         <div class="r">
           <span class="tray" title="Jot"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15.5 13.8 5.7a1.6 1.6 0 0 1 2.3 2.3L6.3 17.8 3 18.5z"/><path d="M12.4 7.1l2.3 2.3"/></svg></span>
-          <span>周四 11月13日</span><span class="clock">21:42</span>
+          <span class="date" data-fri="周五 11月14日">周四 11月13日</span><span class="clock">09:41</span>
         </div>
       </div>
       <div class="gbar only-linux" aria-hidden="true">
         <div class="ws"><i></i><i></i><i></i></div>
-        <span class="clk">11月13日 <span class="clock">21:42</span></span>
+        <span class="clk"><span class="date" data-fri="11月14日">11月13日</span> <span class="clock">09:41</span></span>
         <div class="sys">
           <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 15.5a1.5 1.5 0 1 0 0 .01zM3 8.4a10 10 0 0 1 14 0l-1.4 1.4a8 8 0 0 0-11.2 0zm2.8 2.8a6 6 0 0 1 8.4 0l-1.4 1.4a4 4 0 0 0-5.6 0z"/></svg>
           <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 7.5h3l4-3.5v12l-4-3.5H3z"/><path d="M13 6.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
@@ -750,7 +931,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
           <span class="tray" title="Jot"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15.5 13.8 5.7a1.6 1.6 0 0 1 2.3 2.3L6.3 17.8 3 18.5z"/><path d="M12.4 7.1l2.3 2.3"/></svg></span>
           <span class="ti"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 15.5a1.5 1.5 0 1 0 0 .01zM3 8.4a10 10 0 0 1 14 0l-1.4 1.4a8 8 0 0 0-11.2 0zm2.8 2.8a6 6 0 0 1 8.4 0l-1.4 1.4a4 4 0 0 0-5.6 0z"/></svg></span>
           <span class="ti"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 7.5h3l4-3.5v12l-4-3.5H3z"/><path d="M13 6.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
-          <span class="tb-clock"><span class="clock">21:42</span><span>2026/11/13</span></span>
+          <span class="tb-clock"><span class="clock">09:41</span><span class="date" data-fri="2026/11/14">2026/11/13</span></span>
         </div>
       </div>
 
@@ -792,7 +973,10 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
         </div>
         <div class="scan"></div>
       </div>
+      <div class="ntf glass" id="ntf" role="status" aria-live="polite"></div>
+      <div class="ff glass" id="ff" aria-hidden="true"></div>
     </div>
+    <div class="ptr" id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5.5 2.8 19 12.6l-6.3.9-3.4 5.9z" fill="#000" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg></div>
 
     <div class="phonestage only-iphone">
       <div class="ext">
@@ -811,7 +995,10 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     <button class="btn primary" id="demoBtn" type="button">▶ 自动演示</button>
     <button class="btn" id="openBtn" type="button">呼出 / 收起</button>
     <button class="btn" id="writeBtn" type="button">让 Claude 记一条</button>
+    <button class="btn" id="ctodoBtn" type="button">让 Claude 加提醒</button>
     <button class="btn" id="readBtn" type="button">让 Claude 读一条</button>
+    <button class="btn" id="remindBtn" type="button">写一条提醒</button>
+    <button class="btn" id="alarmBtn" type="button">到点提醒</button>
     <span class="note" id="pnote"></span>
   </div>
 
@@ -982,6 +1169,10 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   const ICON_BATT='<svg viewBox="0 0 24 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="5" width="17" height="10" rx="2.5"/><rect x="4" y="7" width="11" height="6" rx="1" fill="currentColor" stroke="none"/><path d="M21 8.5v3"/></svg>';
   const ICON_UP='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5-5 5 5"/></svg>';
   const ICON_DOWN='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 7.5 5 5 5-5"/></svg>';
+  const ICON_ALARM='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="11" r="6"/><path d="M10 8v3.2l2 1.3M3.5 4.5 5.5 3M16.5 4.5 14.5 3"/></svg>';
+  const ICON_BELL='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13.5V9a5 5 0 0 1 10 0v4.5l1.5 1.5h-13z"/><path d="M8.3 17.2a1.9 1.9 0 0 0 3.4 0"/></svg>';
+  const ICON_LIST='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 5.5 1.5 1.5L7 4.5M3 12.5 4.5 14 7 11.5M10 6h7M10 13h7"/></svg>';
+  const ICON_FF='<svg viewBox="0 0 20 20" fill="currentColor"><path d="M2.5 5v10l7-5zM10.5 5v10l7-5z"/></svg>';
 
   /* ── per-platform words, keys and places ── */
   const PL={
@@ -1005,14 +1196,61 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   // Sample notes (examples, not real data).
   let notes=[
     {t:'办公室 wifi',b:'SSID：Studio-5G\n密码贴在前台白板上，每季度换一次。\n访客网络：Studio-Guest，不用密码。',m:'10 分钟前',src:'user'},
-    {t:'周会要点 · 11月13日',b:'- 发布窗口改到下周二\n- 设计稿周五前定稿\n- 图标三套方案，投票选一套',m:'今天 09:40',src:'user'},
+    {t:'周会要点 · 11月13日',b:'- 发布窗口改到下周二\n- 设计稿周五前定稿\n- 图标三套方案，投票选一套\n- [x] 把纪要发到群里 ⏰ 2026-11-13 09:30 ✅ 2026-11-13\n- [ ] 交设计稿反馈 ⏰ 2026-11-13 14:00',m:'今天 09:40',src:'user'},
     {t:'常用 SQL：按天统计',b:'```\nSELECT date(created_at) AS day, count(*)\nFROM orders\nGROUP BY day\nORDER BY day DESC;\n```',m:'昨天',src:'claude'},
-    {t:'护照到期',b:'2027 年 3 月 18 日到期。提前半年续，记得带旧护照和两张白底照片。',m:'昨天',src:'user'},
+    {t:'生活杂事',b:'- [ ] 续健身卡 ⏰ 2026-11-12 18:00\n- [ ] 给猫喂药 ⏰ 2026-11-13 21:00\n- [ ] 买咖啡豆\n快递柜的取件码在手机短信里。',m:'昨天',src:'user'},
+    {t:'护照到期',b:'2027 年 3 月 18 日到期。提前半年续，记得带旧护照和两张白底照片。\n- [ ] 准备续签材料 ⏰ 2026-11-20 09:00',m:'昨天',src:'user'},
     {t:'咖啡豆比例',b:'15 g 豆 : 250 g 水，92 °C，总时长 2 分 30 秒。\n浅烘的豆子水温再高 2 度。',m:'11月8日',src:'user'},
-    {t:'租房合同要点',b:'- 押一付三\n- 退租提前 30 天书面通知\n- 空调维修归房东',m:'11月2日',src:'user'},
+    {t:'租房合同要点',b:'- 押一付三\n- 退租提前 30 天书面通知\n- 空调维修归房东\n- [ ] 给房东回电话 ⏰ 2026-11-13 10:30',m:'11月2日',src:'user'},
     {t:'想读的书',b:'- 《设计心理学》\n- 《人月神话》\n- The Art of Doing Science and Engineering',m:'10月28日',src:'claude'},
   ];
   const NOTES0=notes.map(n=>({...n}));
+
+  /* ── to-dos live in notes: "- [ ] text ⏰ 2026-11-14 09:00", ticked "- [x] … ✅ 2026-11-13" ── */
+  const pad=n=>String(n).padStart(2,'0');
+  const NOW=new Date(2026,10,13,9,41);   // the story's clock: Thursday 13 November 2026, 09:41
+  const TODAY_ISO='2026-11-13';
+  const WK='日一二三四五六';
+  const dayOf=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();
+  const dDays=d=>Math.round((dayOf(d)-dayOf(NOW))/864e5);
+  const hm=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const absDue=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${hm(d)}`;
+  function relDay(d){ const n=dDays(d); return n===0?'今天':n===1?'明天':n===2?'后天':n===-1?'昨天':(n>0&&n<7)?'周'+WK[d.getDay()]:`${d.getMonth()+1}月${d.getDate()}日`; }
+  // In the "today" and "tomorrow" groups the header already says the day, so the chip shows the time alone.
+  const dueLabel=(d,grp)=>grp==='today'||grp==='tom'?hm(d):`${relDay(d)} ${hm(d)}`;
+  const isoDay=s=>{ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); };
+  const doneLabel=s=>{ const n=dDays(isoDay(s)); return n===0?'今天完成':n===-1?'昨天完成':`${isoDay(s).getMonth()+1}月${isoDay(s).getDate()}日完成`; };
+  function parseLine(l){
+    const m=/^- \[( |x)\] (.*)$/.exec(l); if(!m) return null;
+    let rest=m[2], due=null, doneAt=null;
+    rest=rest.replace(/\s*✅ (\d{4}-\d\d-\d\d)\s*$/,(_,d)=>{doneAt=d;return '';});
+    rest=rest.replace(/\s*⏰ (\d{4})-(\d\d)-(\d\d) (\d\d):(\d\d)/,(_,y,mo,d,h,mi)=>{due=new Date(+y,mo-1,+d,+h,+mi);return '';});
+    return {done:m[1]==='x', text:rest.trim(), due, doneAt};
+  }
+  const lineOf=t=>`- [${t.done?'x':' '}] ${t.text}${t.due?' ⏰ '+absDue(t.due):''}${t.done&&t.doneAt?' ✅ '+t.doneAt:''}`;
+  function allTodos(){ const out=[]; for(const n of notes) n.b.split('\n').forEach((l,li)=>{ const t=parseLine(l); if(t) out.push({...t,n,li}); }); return out; }
+  const grpOf=t=>!t.due?'none':t.due<NOW?'late':dDays(t.due)===0?'today':dDays(t.due)===1?'tom':'later';
+  const GROUPS=[['late','已过期'],['today','今天'],['tom','明天'],['later','以后'],['none','没有时间']];
+  function todoGroups(){
+    const g={}; for(const t of allTodos()) if(!t.done) (g[grpOf(t)]??=[]).push(t);
+    for(const k in g) g[k].sort((a,b)=>(a.due||0)-(b.due||0));
+    return GROUPS.filter(([k])=>g[k]).map(([k,l])=>({k,l,items:g[k]}));
+  }
+  function setDone(t,done){ const ls=t.n.b.split('\n'); ls[t.li]=lineOf({...t,done,doneAt:done?TODAY_ISO:null}); t.n.b=ls.join('\n'); }
+  function addTodo(title,text,due,src){
+    let n=notes.find(n=>n.t===title);
+    if(!n){ n={t:title,b:'',m:'刚刚',src}; notes.unshift(n); }
+    if(!n.b.split('\n').some(l=>{const t=parseLine(l); return t&&t.text===text;})) n.b=(n.b?n.b+'\n':'')+lineOf({done:false,text,due});
+    n.m='刚刚'; return n;
+  }
+  function todaySummary(){
+    const ts=allTodos().filter(t=>t.due&&dDays(t.due)===0), open=ts.filter(t=>!t.done);
+    const late=allTodos().filter(t=>!t.done&&t.due&&t.due<NOW).length;
+    const next=open.filter(t=>t.due>=NOW).sort((a,b)=>a.due-b.due)[0];
+    return {total:ts.length, left:open.length, late, next, dots:ts.sort((a,b)=>(b.done?1:0)-(a.done?1:0)).map(t=>t.done)};
+  }
+  const TODO_Q=/^(待办|\/todo)$/i;
+  const isTodoQ=v=>TODO_Q.test(String(v).trim());
 
   const panel=$('#panel'), list=$('#list'), q=$('#q'), hint=$('#hint');
   let sel=0, rows=[], openTitle=null, arriving=null, readingTitle=null;
@@ -1024,7 +1262,8 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     return out;
   }
   function snippet(n,terms){
-    const flat=n.b.replace(/```/g,'').replace(/\n+/g,' · ').replace(/^- /,'').replace(/· - /g,'· ').replace(/^ · /,'').trim();
+    const body=n.b.replace(/^- \[ \] /gm,'○ ').replace(/^- \[x\] /gm,'✓ ').replace(/ ?⏰ \d{4}-\d\d-\d\d \d\d:\d\d/g,'').replace(/ ?✅ \S+/g,'');
+    const flat=body.replace(/```/g,'').replace(/\n+/g,' · ').replace(/^- /,'').replace(/· - /g,'· ').replace(/^ · /,'').trim();
     const low=flat.toLowerCase(); const t=terms.find(t=>t&&low.includes(t.toLowerCase()));
     if(!t) return flat;
     const i=low.indexOf(t.toLowerCase()); return (i>16?'…'+flat.slice(i-12):flat);
@@ -1040,21 +1279,66 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     if(query && !notes.some(n=>n.t.toLowerCase()===query.toLowerCase())) out.push({create:query});
     return out;
   }
+  const cbH=(on,label)=>`<span class="cb${on?' on':''}" role="checkbox" aria-checked="${on}" aria-label="勾掉「${esc(label)}」" contenteditable="false">${ICON_CHECK}</span>`;
+  const chipH=(t,grp,{pop,tip}={})=>t.due?`<span class="due${!t.done&&t.due<NOW?' late':''}${pop?' pop':''}${tip?' hover':''}" data-abs="${absDue(t.due)}" contenteditable="false">${ICON_ALARM}${dueLabel(t.due,grp)}<span class="tip glass">${absDue(t.due)}<small>周${WK[t.due.getDay()]} · 到点提醒</small></span></span>`:'';
+  function sumRow(i,isSel){
+    const s=sumInfo();
+    return `<div class="row tdsum${isSel?' sel':''}" data-i="${i}" style="--i:${i}"><i class="ind"></i><div class="ic">${ICON_LIST}</div><div class="tx"><span class="t">${s.title}</span><span class="s">${esc(s.sub)}</span></div><span class="m">${s.dots}</span></div>`;
+  }
+  function footHTML(todo){
+    const k=L();
+    return todo
+      ? `<span><b>${kx('↑↓')}</b> 选择</span><span><b>${kx(k.create)}</b> 勾掉</span><span><b>${kx(k.enter)}</b> 打开笔记</span><span><b>${kx(k.esc)}</b> 返回</span><span class="cnt">${allTodos().filter(t=>!t.done).length} 件没勾掉</span>`
+      : `<span><b>${kx('↑↓')}</b> 选择</span><span><b>${kx(k.enter)}</b> 打开</span><span><b>${kx(k.create)}</b> 新建</span><span><b>${kx(k.esc)}</b> 收起</span><span class="cnt">${notes.length} 条笔记 · ${esc(k.folder)}</span>`;
+  }
+  function renderTodos(){
+    const gs=todoGroups(); rows=[]; let h='', i=0, height=.6;
+    for(const g of gs){
+      h+=`<div class="gh${g.k==='late'?' late':''}" style="--i:${i++}">${g.l}<span>${g.items.length}</span></div>`; height+=2.4;
+      for(const t of g.items){
+        const ri=rows.length; rows.push({todo:t});
+        const key=t.n.t+'|'+t.text;
+        h+=`<div class="row td${key===arriving?' arrive':''}" data-i="${ri}" style="--i:${i++}"><i class="ind"></i>${cbH(false,t.text)}<span class="t"><b>${esc(t.text)}</b><span class="nt">${esc(t.n.t)}</span></span>${chipH(t,g.k)}</div>`; height+=3.6;
+      }
+    }
+    if(!rows.length){ h='<div class="tdempty">没有没勾掉的待办</div>'; height=8; }
+    if(sel>=rows.length) sel=Math.max(0,rows.length-1);
+    list.innerHTML=h; list.classList.add('tdv');
+    list.querySelectorAll('.row.td').forEach(r=>r.classList.toggle('sel',+r.dataset.i===sel));
+    panel.style.setProperty('--rows',(Math.min(height,33.4)/4.5).toFixed(3));
+    $('#foot').innerHTML=footHTML(true);
+  }
   function render(stagger){
-    rows=filter(q.value); if(sel>=rows.length) sel=Math.max(0,rows.length-1);
-    panel.style.setProperty('--rows',Math.max(1,rows.length));
-    list.innerHTML=rows.map((r,i)=>{
-      if(r.create) return `<div class="row new${i===sel?' sel':''}" data-i="${i}" style="--i:${i}"><i class="ind"></i><div class="ic">${ICON_PLUS}</div><div class="tx"><span class="t">新建「${esc(r.create)}」</span><span class="s">回车直接开始写</span></div><span class="m">${kx(L().create)}</span></div>`;
-      const n=r.n, cl=n.src==='claude';
-      const cls=['row',i===sel?'sel':'',n.t===arriving?'arrive':'',n.t===readingTitle?'reading':''].join(' ');
-      return `<div class="${cls}" data-i="${i}" style="--i:${i}"><i class="ind"></i><div class="ic${cl?' cl':''}">${cl?ICON_SPARK:ICON_DOC}</div><div class="tx"><span class="t">${hl(n.t,r.terms)}</span><span class="s">${hl(snippet(n,r.terms),r.terms)}</span></div><span class="m">${esc(n.m)}</span></div>`;
-    }).join('');
-    $('#foot .cnt')&&($('#foot .cnt').textContent=`${notes.length} 条笔记 · ${L().folder}`);
+    list.classList.remove('tdv');
+    if(isTodoQ(q.value)) renderTodos();
+    else {
+      rows=filter(q.value);
+      if(!q.value.trim()) rows.unshift({sum:true});
+      if(sel>=rows.length) sel=Math.max(0,rows.length-1);
+      panel.style.setProperty('--rows',Math.max(1,rows.length));
+      list.innerHTML=rows.map((r,i)=>{
+        if(r.sum) return sumRow(i,i===sel);
+        if(r.create) return `<div class="row new${i===sel?' sel':''}" data-i="${i}" style="--i:${i}"><i class="ind"></i><div class="ic">${ICON_PLUS}</div><div class="tx"><span class="t">新建「${esc(r.create)}」</span><span class="s">回车直接开始写</span></div><span class="m">${kx(L().create)}</span></div>`;
+        const n=r.n, cl=n.src==='claude';
+        const cls=['row',i===sel?'sel':'',n.t===arriving?'arrive':'',n.t===readingTitle?'reading':''].join(' ');
+        return `<div class="${cls}" data-i="${i}" style="--i:${i}"><i class="ind"></i><div class="ic${cl?' cl':''}">${cl?ICON_SPARK:ICON_DOC}</div><div class="tx"><span class="t">${hl(n.t,r.terms)}</span><span class="s">${hl(snippet(n,r.terms),r.terms)}</span></div><span class="m">${esc(n.m)}</span></div>`;
+      }).join('');
+      $('#foot').innerHTML=footHTML(false);
+    }
     if(stagger){ list.classList.remove('in'); requestAnimationFrame(()=>requestAnimationFrame(()=>list.classList.add('in'))); }
     else list.classList.add('in');
   }
-  list.addEventListener('mousemove',e=>{const r=e.target.closest('.row'); if(r&&+r.dataset.i!==sel){sel=+r.dataset.i; list.querySelectorAll('.row').forEach((el,i)=>el.classList.toggle('sel',i===sel));}});
-  list.addEventListener('click',e=>{const r=e.target.closest('.row'); if(r){sel=+r.dataset.i; openSel();}});
+  // Ticking a to-do: the check draws, then the row folds away; with reduced motion it only fades.
+  function completeTodo(i){
+    const r=rows[i]; if(!r||!r.todo) return;
+    const el=list.querySelector(`.row.td[data-i="${i}"]`); if(!el||el.classList.contains('checking')) return;
+    const cb=el.querySelector('.cb'); cb.classList.add('on'); cb.setAttribute('aria-checked','true'); el.classList.add('checking');
+    setDone(r.todo,true);
+    setTimeout(()=>el.classList.add('leaving'), reduce?0:280);
+    setTimeout(()=>{ if(isTodoQ(q.value)&&panel.dataset.state!=='hidden') render(false); }, reduce?240:620);
+  }
+  list.addEventListener('mousemove',e=>{const r=e.target.closest('.row'); if(r&&+r.dataset.i!==sel){sel=+r.dataset.i; list.querySelectorAll('.row').forEach(el=>el.classList.toggle('sel',+el.dataset.i===sel));}});
+  list.addEventListener('click',e=>{const r=e.target.closest('.row'); if(!r) return; sel=+r.dataset.i; if(e.target.closest('.cb')){ completeTodo(sel); return; } openSel();});
 
   function md(b){
     const parts=b.split(/```\n?/); let h='';
@@ -1062,10 +1346,36 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
       if(i%2){ h+=`<pre>${esc(p.replace(/\n$/,''))}</pre>`; return; }
       const lines=p.split('\n'); let ul=[];
       const flush=()=>{ if(ul.length){h+='<ul>'+ul.map(l=>`<li>${esc(l)}</li>`).join('')+'</ul>'; ul=[];} };
-      for(const l of lines){ if(/^- /.test(l)) ul.push(l.slice(2)); else { flush(); if(l.trim()) h+=`<p>${esc(l)}</p>`; } }
+      for(const l of lines){ const t=parseLine(l); if(t){ flush(); h+=todoLineH(t); } else if(/^- /.test(l)) ul.push(l.slice(2)); else { flush(); if(l.trim()) h+=`<p>${esc(l)}</p>`; } }
       flush();
     });
     return h||'<p><br></p>';
+  }
+  // A to-do line in the editor: the "- [ ]" becomes a checkbox, the "⏰ …" a time chip, the "✅ …" a done stamp.
+  const todoLineH=(t,o={})=>`<div class="todo${t.done?' done':''}">${cbH(t.done,t.text)}<span class="tt">${esc(t.text)}</span>${chipH(t,'',o)}${t.done&&t.doneAt?`<span class="done-at" data-d="${t.doneAt}" contenteditable="false">${doneLabel(t.doneAt)}</span>`:''}</div>`;
+  // Back to Markdown: what the editor shows is what the file stores, so this is the save.
+  function serialize(box){
+    if(!box.querySelector('.todo')) return box.innerText.replace(/\n+$/,'');
+    const out=[];
+    for(const el of box.childNodes){
+      if(el.nodeType===3){ if(el.textContent.trim()) out.push(el.textContent.trim()); continue; }
+      if(el.nodeType!==1) continue;
+      if(el.classList.contains('todo')){ const due=el.querySelector('.due'), da=el.querySelector('.done-at'); const tt=el.querySelector('.tt');
+        out.push(`- [${el.classList.contains('done')?'x':' '}] ${(tt?tt.textContent:'').trim()}${due?' ⏰ '+due.dataset.abs:''}${da?' ✅ '+da.dataset.d:''}`); }
+      else if(el.tagName==='UL') el.querySelectorAll('li').forEach(li=>out.push('- '+li.textContent));
+      else if(el.tagName==='PRE') out.push('```\n'+el.textContent+'\n```');
+      else if(el.textContent.trim()) out.push(el.innerText.replace(/\n+$/,''));
+    }
+    return out.join('\n');
+  }
+  function toggleLine(line){
+    const box=line.closest('[contenteditable="true"]'), title=box.id==='pb'?openTitle:phOpenTitle;
+    const on=!line.classList.contains('done'), cb=line.querySelector('.cb');
+    line.classList.toggle('done',on); cb.classList.toggle('on',on); cb.setAttribute('aria-checked',String(on));
+    const da=line.querySelector('.done-at'); if(da) da.remove();
+    const due=line.querySelector('.due'); if(due) due.classList.toggle('late',!on&&new Date(due.dataset.abs.replace(' ','T'))<NOW);
+    if(on) line.insertAdjacentHTML('beforeend',`<span class="done-at" data-d="${TODAY_ISO}" contenteditable="false">${doneLabel(TODAY_ISO)}</span>`);
+    const n=notes.find(n=>n.t===title); if(n){ n.b=serialize(box); n.m='刚刚'; }
   }
 
   function setState(s){
@@ -1090,11 +1400,15 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   }
   function openSel(){
     const r=rows[sel]; if(!r) return;
+    if(r.sum){ q.value='待办'; sel=0; setState('list'); render(true); return; }
+    if(r.todo){ const n=r.todo.n; q.value=n.t; sel=0; render(false); openNote(n); return; }
     if(r.create){ const n={t:r.create,b:'',m:'刚刚',src:'user'}; notes.unshift(n); q.value=''; sel=0; render(false); openNote(n); setTimeout(()=>{ $('#pb').focus(); },reduce?0:300); return; }
     openNote(r.n);
   }
   q.addEventListener('input',()=>{ sel=0; if(panel.dataset.state==='capsule') setState('list'); if(panel.dataset.state==='editor') setState('list'); render(false); });
-  let saveT; $('#pb').addEventListener('input',()=>{ const s=$('#saved'); s.classList.remove('on'); clearTimeout(saveT); saveT=setTimeout(()=>{ const n=notes.find(n=>n.t===openTitle); if(n){ n.b=$('#pb').innerText; n.m='刚刚'; } s.classList.add('on'); setTimeout(()=>s.classList.remove('on'),1400); },300); });
+  let saveT; $('#pb').addEventListener('input',()=>{ const s=$('#saved'); s.classList.remove('on'); clearTimeout(saveT); saveT=setTimeout(()=>{ const n=notes.find(n=>n.t===openTitle); if(n){ n.b=serialize($('#pb')); n.m='刚刚'; } s.classList.add('on'); setTimeout(()=>s.classList.remove('on'),1400); },300); });
+  $('#pb').addEventListener('mousedown',e=>{ if(e.target.closest('.cb')) e.preventDefault(); });
+  $('#pb').addEventListener('click',e=>{ const cb=e.target.closest('.cb'); if(cb) toggleLine(cb.closest('.todo')); });
 
   // Summon: double ⌥ on macOS (also Alt here), double Ctrl on Windows, Super+J on Linux (Ctrl+J in a browser).
   let lastMod=0, lastKey='';
@@ -1104,10 +1418,13 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     if(dbl){ if(!e.repeat){ const now=performance.now(); if(now-lastMod<350&&lastKey===e.key){ lastMod=0; e.preventDefault(); toggle(); return; } lastMod=now; lastKey=e.key; } return; } else lastMod=0;
     if(P==='linux' && (e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='j'){ e.preventDefault(); toggle(); return; }
     const st=panel.dataset.state; if(st==='hidden') return;
-    if(e.key==='Escape'){ e.preventDefault(); if(st==='editor'){ setState('list'); render(false); q.focus(); } else hide(); return; }
-    if(document.activeElement===$('#pb')) return;
-    if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); if(st==='capsule') setState('list'); sel=(sel+(e.key==='ArrowDown'?1:-1)+rows.length)%Math.max(1,rows.length); render(false); if(st==='editor'&&rows[sel]&&!rows[sel].create) openNote(rows[sel].n); }
-    if(e.key==='Enter'){ e.preventDefault(); if((e.metaKey||e.ctrlKey)&&q.value.trim()){ sel=rows.length-1; } openSel(); }
+    if(e.key==='Escape'){ e.preventDefault(); if(st==='editor'){ setState('list'); render(false); q.focus(); } else if(isTodoQ(q.value)){ q.value=''; sel=0; render(false); } else hide(); return; }
+    if(document.activeElement===$('#pb')){
+      if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){ const a=getSelection().anchorNode, line=a&&(a.nodeType===1?a:a.parentElement).closest('.todo'); if(line){ e.preventDefault(); toggleLine(line); } }
+      return;
+    }
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); if(st==='capsule') setState('list'); sel=(sel+(e.key==='ArrowDown'?1:-1)+rows.length)%Math.max(1,rows.length); render(false); if(st==='editor'&&rows[sel]&&rows[sel].n) openNote(rows[sel].n); }
+    if(e.key==='Enter'){ e.preventDefault(); if((e.metaKey||e.ctrlKey)&&isTodoQ(q.value)){ completeTodo(sel); return; } if((e.metaKey||e.ctrlKey)&&q.value.trim()){ sel=rows.length-1; } openSel(); }
   });
 
   /* ── cancellable timing: switching platforms stops a running demo ── */
@@ -1126,11 +1443,50 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   async function itype(text){ const tt=$('#itt'); tt.textContent=''; for(const ch of text){ tt.textContent+=ch; await sleep(70);} }
   function islandOpen(mode,label){
     $('#ilb').textContent=label; $('#itt').textContent='';
-    $('#iav').classList.toggle('spin',mode==='write');
+    const av=$('#iav'); av.className='av'+(mode==='write'?' spin':''); av.innerHTML=ICON_SPARK; island.dataset.mode=mode;
     $('#ist').innerHTML=mode==='write'?'<div class="ring"></div>':`<div class="eye">${ICON_EYE}</div>`;
     island.classList.toggle('reading',mode==='read'); island.classList.add('open');
   }
-  function islandClose(){ island.classList.remove('open','reading'); $('#iav').classList.remove('spin'); }
+  function islandClose(){ island.classList.remove('open','reading'); $('#iav').classList.remove('spin'); island.dataset.mode=''; }
+  // A reminder in the island (macOS): a bell, the to-do, and a checkbox that ticks it off.
+  function islandRemind(t){
+    const av=$('#iav'); av.className='av rem'; av.innerHTML=ICON_BELL; island.dataset.mode='remind';
+    $('#ilb').textContent=`提醒 · ${hm(t.due)} · ${t.note}`; $('#itt').textContent=t.text;
+    $('#ist').innerHTML=`<span class="icb" role="button" aria-label="勾掉「${esc(t.text)}」">${ICON_CHECK}</span>`;
+    island.classList.remove('reading'); island.classList.add('open');
+  }
+  async function islandTick(){
+    const b=island.querySelector('.icb'); if(!b||b.classList.contains('on')) return;
+    b.classList.add('on'); $('#ilb').textContent='已完成'; ntfClose();
+    await sleep(900); if(island.dataset.mode==='remind') islandClose();
+  }
+  island.addEventListener('click',()=>{ if(island.dataset.mode==='remind') islandTick().catch(()=>{}); });
+
+  /* system notification on the stage (and the gallery shares the markup) */
+  const ntfIn=({title,body,time='现在',acts=[]})=>`<div class="n-hd"><span class="mi-ic">${ICON_PEN}</span><span>Jot</span><span class="sp"></span><span class="more">${ICON_MORE}</span>${ICON_X.replace('<svg','<svg class="x"')}</div>
+    <span class="n-ic">${ICON_PEN}</span><b class="n-t">${esc(title)}</b><span class="n-tm"><span class="n-app">Jot · </span>${esc(time)}</span><span class="n-s">${body}</span>
+    ${acts.length?`<div class="n-acts">${acts.map(a=>`<button type="button" class="na">${a}</button>`).join('')}</div>`:''}`;
+  const ntfH=(o,style='')=>`<div class="ntf glass" style="${style}">${ntfIn(o)}</div>`;
+  const ntf=$('#ntf');
+  function ntfOpen(o){ ntf.innerHTML=ntfIn(o); ntf.classList.add('open'); }
+  function ntfClose(){ ntf.classList.remove('open'); }
+  ntf.addEventListener('click',e=>{ if(e.target.closest('.na')||e.target.closest('.x')) ntfClose(); });
+
+  /* the demo's pointer */
+  const stage=$('#stage'), ptr=$('#ptr');
+  async function point(el,fx=.5,fy=.5){
+    if(!el) return; const s=stage.getBoundingClientRect(), b=el.getBoundingClientRect();
+    ptr.style.left=(b.left+b.width*fx-s.left)+'px'; ptr.style.top=(b.top+b.height*fy-s.top)+'px';
+    ptr.classList.add('on'); await sleep(650);
+  }
+  async function click(){ ptr.classList.add('down'); await sleep(120); ptr.classList.remove('down'); }
+  const ptrOff=()=>ptr.classList.remove('on');
+
+  /* the story's clock: the reminder demo fast-forwards to Friday 09:00 and back */
+  function clockTo(fri){
+    $$('.desk .clock').forEach(c=>c.textContent=fri?'09:00':'09:41');
+    $$('.desk .date').forEach(d=>{ d.dataset.thu??=d.textContent; d.textContent=fri?d.dataset.fri:d.dataset.thu; });
+  }
   let busy=false;
   const DEPLOY={t:'部署命令',b:'```\ncargo build --release -p jot-mcp\nclaude mcp add jot -- ./target/release/jot-mcp\n```\n发布前先在 staging 跑一遍。',m:'刚刚',src:'claude'};
   async function claudeWrite(){
@@ -1168,13 +1524,93 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   }
 
   async function typeQuery(text){ q.value=''; for(const ch of text){ q.value+=ch; q.dispatchEvent(new Event('input')); await sleep(110);} }
+
+  /* ── to-do demos ── */
+  const RENT={text:'交房租',due:new Date(2026,10,14,9,0),note:'生活杂事'};
+  const REPORT={text:'交周报',due:new Date(2026,10,14,15,0),note:'待办'};
+  // The reminder demo starts from the sample note each time, so it can be replayed.
+  function resetNote(t){ const n=notes.find(n=>n.t===t), n0=NOTES0.find(n=>n.t===t); if(n&&n0) n.b=n0.b; }
+  // Types "- [ ] 交房租 明天 9:00" under the last to-do of `box`: the prefix turns into a checkbox as soon as it's
+  // complete, and after a pause the time words turn into a chip in place (the caret doesn't move).
+  async function typeReminder(box){
+    const todos=box.querySelectorAll('.todo'), after=todos[todos.length-1];
+    const line=document.createElement('div'); line.className='todo'; line.innerHTML='<span class="raw"></span><i class="icar"></i>';
+    after?after.after(line):box.appendChild(line);
+    for(const ch of '- [ ] '){ line.firstChild.textContent+=ch; await sleep(75); }
+    line.innerHTML=`${cbH(false,RENT.text)}<span class="tt"></span><i class="icar"></i>`;
+    const tt=line.querySelector('.tt');
+    for(const ch of `${RENT.text} 明天 9:00`){ tt.textContent+=ch; await sleep(95); }
+    await sleep(850);
+    tt.textContent=RENT.text; line.querySelector('.icar').remove();
+    tt.insertAdjacentHTML('afterend',chipH({...RENT,done:false},'',{pop:true})+'<i class="icar"></i>');
+    const n=notes.find(n=>n.t===RENT.note); if(n){ n.b=serialize(box); n.m='刚刚'; }
+    return line;
+  }
+  async function remindDemo(){
+    if(busy) return; busy=true;
+    try{
+      if(P==='iphone'){ await phoneRemind(); return; }
+      if(panel.dataset.state==='hidden'){ show(); await sleep(900); }
+      resetNote(RENT.note);
+      await typeQuery('生活'); await sleep(500);
+      sel=rows.findIndex(r=>r.n&&r.n.t===RENT.note); openSel(); await sleep(1000);
+      const pb=$('#pb');
+      const line=await typeReminder(pb);
+      const s=$('#saved'); s.classList.add('on'); setTimeout(()=>s.classList.remove('on'),1400);
+      await sleep(500);
+      const chip=line.querySelector('.due'); await point(chip,.5,.7); chip.classList.add('hover'); await sleep(1900); chip.classList.remove('hover');
+      line.querySelector('.icar')?.remove();
+      const gym=[...pb.querySelectorAll('.todo')].find(l=>l.querySelector('.tt')?.textContent==='续健身卡');
+      if(gym&&!gym.classList.contains('done')){ await point(gym.querySelector('.cb')); await click(); toggleLine(gym); }
+      await sleep(1400); ptrOff();
+    }catch(e){ if(e!=='cancel') throw e; }
+    finally{ busy=false; ptrOff(); }
+  }
+  // A preview of what happens when the time comes: the clock jumps to Friday 09:00 and back; nothing is changed.
+  async function alarmDemo(){
+    if(busy) return; busy=true;
+    try{
+      if(P==='iphone'){ await phoneAlarm(); return; }
+      hide(); await sleep(400);
+      const ff=$('#ff'); ff.innerHTML=`${ICON_FF}快进到 周五 09:00`; ff.classList.add('on'); clockTo(true); await sleep(1300); ff.classList.remove('on');
+      ntfOpen({title:RENT.text, body:RENT.note, acts:['完成','10 分钟后','打开']});
+      if(P==='macos') islandRemind(RENT);
+      await sleep(2300);
+      if(P==='macos'){ await point(island.querySelector('.icb')); await click(); await islandTick(); }
+      else { const b=ntf.querySelector('.na'); await point(b); await click(); b.classList.add('down'); await sleep(160); ntfClose(); }
+      await sleep(1000);
+    }catch(e){ if(e!=='cancel') throw e; }
+    finally{ busy=false; ptrOff(); clockTo(false); }
+  }
+  async function claudeTodo(){
+    if(busy) return; busy=true;
+    try{
+      if(P==='iphone'){ await phoneClaudeTodo(); return; }
+      await ttype('› ','提醒我周五下午交周报','me');
+      await sleep(350);
+      tline(`<span class="tool">⏺ jot · add_todo</span><span class="dim">(「${REPORT.text}」, due: 2026-11-14T15:00)</span>`);
+      islandOpen('write','Claude · 正在加提醒');
+      await sleep(240); await itype(REPORT.text); await sleep(450);
+      addTodo(REPORT.note,REPORT.text,REPORT.due,'claude');
+      $('#ilb').textContent='Claude · 加了提醒'; $('#iav').classList.remove('spin');
+      $('#itt').innerHTML=`${esc(REPORT.text)}<span class="itm">周五 15:00</span>`;
+      $('#ist').innerHTML=`<div class="ok">${ICON_OK}</div>`;
+      arriving=REPORT.note+'|'+REPORT.text;
+      if(panel.dataset.state==='list'&&isTodoQ(q.value)) render(false);
+      tline(`<span class="dim">  ⎿ 写进「${REPORT.note}」：- [ ] ${REPORT.text} ⏰ 2026-11-14 15:00</span>`);
+      tline('好，明天（周五）15:00 提醒你交周报。你没说几点，先按下午 3 点记的。');
+      await sleep(1600); islandClose(); setTimeout(()=>{arriving=null;},1600);
+    }finally{ busy=false; }
+  }
   let demoing=false;
   async function demo(){
     if(demoing) return; demoing=true;
     try{
       if(P==='iphone'){ await phoneDemo(); return; }
       hide(); await sleep(400);
-      show(); await sleep(1100);
+      show(); await sleep(1300);
+      sel=0; openSel(); await sleep(2000);          // the "today" row: Enter opens the to-do view
+      q.value=''; sel=0; render(false); await sleep(500);
       await typeQuery('wifi'); await sleep(700);
       sel=0; openSel(); await sleep(1800);
       setState('list'); q.value=''; render(false); await sleep(700);
@@ -1186,7 +1622,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   }
 
   /* ───────── iPhone ───────── */
-  const iosStatus=()=>`<div class="ios-sb"><span class="clock">21:42</span><span class="ic"><svg viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg viewBox="0 0 16 12" fill="currentColor"><path d="M8 11.5 5.6 9a3.4 3.4 0 0 1 4.8 0zM3.3 6.7a6.6 6.6 0 0 1 9.4 0l-1.5 1.5a4.5 4.5 0 0 0-6.4 0zM1 4.4a9.9 9.9 0 0 1 14 0l-1.5 1.5a7.8 7.8 0 0 0-11 0z"/></svg><svg viewBox="0 0 27 13" fill="none"><rect x=".5" y=".5" width="23" height="12" rx="3.8" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="17" height="9" rx="2.4" fill="currentColor"/><path d="M25 4.5v4" stroke="currentColor" stroke-width="1.5" opacity=".4" stroke-linecap="round"/></svg></span></div><div class="ios-di"></div>`;
+  const iosStatus=()=>`<div class="ios-sb"><span class="clock">09:41</span><span class="ic"><svg viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg viewBox="0 0 16 12" fill="currentColor"><path d="M8 11.5 5.6 9a3.4 3.4 0 0 1 4.8 0zM3.3 6.7a6.6 6.6 0 0 1 9.4 0l-1.5 1.5a4.5 4.5 0 0 0-6.4 0zM1 4.4a9.9 9.9 0 0 1 14 0l-1.5 1.5a7.8 7.8 0 0 0-11 0z"/></svg><svg viewBox="0 0 27 13" fill="none"><rect x=".5" y=".5" width="23" height="12" rx="3.8" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="17" height="9" rx="2.4" fill="currentColor"/><path d="M25 4.5v4" stroke="currentColor" stroke-width="1.5" opacity=".4" stroke-linecap="round"/></svg></span></div><div class="ios-di"></div>`;
   function iosKb(ret,pri){
     const k=c=>`<span class="ky">${c}</span>`;
     return `<div class="ios-kb" aria-hidden="true"><div class="kr">${[...'qwertyuiop'].map(k).join('')}</div><div class="kr r2">${[...'asdfghjkl'].map(k).join('')}</div><div class="kr"><span class="ky s">⇧</span><span class="gap"></span>${[...'zxcvbnm'].map(k).join('')}<span class="gap"></span><span class="ky s">⌫</span></div><div class="kr"><span class="ky s w2">123</span><span class="ky sp">空格</span><span class="ky s w2${pri?' pri':''}">${ret}</span></div><div class="kb-ex">${ICON_GLOBE}${ICON_MIC}</div></div>`;
@@ -1198,29 +1634,70 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
 
   function buildPhone(){
     $('#phoneFit').innerHTML=`<div class="ios" id="ph" data-scr="list">${iosStatus()}
-      <div class="ios-v ios-lv"><div class="ios-top"><button type="button" class="gb ios-g" aria-label="更多">${ICON_MORE}</button></div><div class="ios-h1">Jot</div><div class="ios-sub" id="phcount"></div><div class="ios-list" id="phl"></div><div class="ios-fade"></div></div>
+      <div class="ios-v ios-lv"><div class="ios-top"><button type="button" class="gb ios-g" aria-label="更多">${ICON_MORE}</button></div><div class="ios-h1" id="phh1">Jot</div><div class="ios-sub" id="phcount"></div><div class="ios-list" id="phl"></div><div class="ios-fade"></div></div>
       <div class="ios-v ios-ed" id="phe"><div class="ed-bar"><button type="button" class="gb ios-g" id="phback" aria-label="返回">${ICON_BACK}</button><div class="ed-r"><span class="ed-grp ios-g"><span>${ICON_SHARE}</span><span>${ICON_MORE}</span></span><button type="button" class="gb pri" id="phdone" aria-label="完成" style="display:none">${ICON_CHECK}</button></div></div>
         <div class="saved" id="phsaved"><i></i>已保存</div>
         <div class="ed-sc"><div class="ed-h" id="pht"></div><div class="ed-meta" id="phm"></div><div class="ed-body" id="phb" contenteditable="true" spellcheck="false"></div></div></div>
       <div class="ios-bar" id="phbar"><label class="ios-search ios-g">${ICON_SEARCH}<input id="phq" placeholder="搜索或新建" autocomplete="off" spellcheck="false" aria-label="搜索或新建笔记"><span id="phmic">${ICON_MIC}</span></label><button type="button" class="gb big ios-g" id="phnew" aria-label="新建">${ICON_COMPOSE}</button></div>
-      ${iosKb('搜索',true)}<div class="ios-home"></div><div class="touch" id="phtouch"></div></div>`;
+      ${iosKb('搜索',true)}<div class="ios-home"></div><div class="touch" id="phtouch"></div>
+      <div class="ios-ntf ios-g need" id="phntf" aria-hidden="true"><span class="n-ic">${ICON_PEN}</span><b class="n-t">${RENT.text}</b><span class="n-tm">现在</span><span class="n-s">${RENT.note}</span></div>
+      <span class="need-tag" id="phneed" style="top:150px;display:none">要等 NSH 支持定时通知</span></div>`;
     const ph=$('#ph'), pq=$('#phq');
     pq.addEventListener('focus',()=>{ ph.dataset.kb='1'; phNewIcon(); });
     pq.addEventListener('input',()=>{ phRender(); phNewIcon(); });
     $('#phnew').addEventListener('click',()=>{ if(ph.dataset.kb==='1'&&ph.dataset.scr==='list'){ pq.value=''; pq.blur(); ph.dataset.kb=''; phRender(); phNewIcon(); } else { phOpen({t:'新笔记',b:'',m:'刚刚',src:'user',fresh:true}); } });
-    $('#phl').addEventListener('click',e=>{ const r=e.target.closest('.prow'); if(!r) return; const it=phRows[+r.dataset.i]; if(!it) return; if(it.create){ const n={t:it.create,b:'',m:'刚刚',src:'user'}; notes.unshift(n); phOpen(n); } else phOpen(it.n); });
+    $('#phl').addEventListener('click',e=>{
+      if(phSwiped){ phSwiped=false; return; }
+      const td=e.target.closest('.ptd');
+      if(td){ const i=+td.dataset.i, t=phTodos[i]; if(!t) return; if(e.target.closest('.cb,.ptd-act')){ phComplete(i); return; } if(td.classList.contains('open')){ td.classList.remove('open'); return; } phOpen(t.n); return; }
+      const r=e.target.closest('.prow'); if(!r) return;
+      if(r.classList.contains('tdsum')){ $('#phq').value='待办'; phRender(); phNewIcon(); return; }
+      const it=phRows[+r.dataset.i]; if(!it) return; if(it.create){ const n={t:it.create,b:'',m:'刚刚',src:'user'}; notes.unshift(n); phOpen(n); } else phOpen(it.n); });
+    // Swipe a to-do left to reveal "完成": the row follows the finger 1:1 and snaps open or shut on release.
+    $('#phl').addEventListener('pointerdown',e=>{ const r=e.target.closest('.ptd'); if(!r||e.target.closest('.cb,.ptd-act')) return; const inn=r.querySelector('.ptd-in'); sw={r,inn,x:e.clientX,dx:0,base:r.classList.contains('open')?-88:0,z:parseFloat(getComputedStyle($('#phoneFit')).zoom)||1}; inn.style.transition='none'; });
+    addEventListener('pointermove',e=>{ if(!sw) return; sw.dx=(e.clientX-sw.x)/sw.z; if(Math.abs(sw.dx)>4) phSwiped=true; sw.inn.style.transform=`translateX(${Math.min(0,Math.max(-130,sw.base+sw.dx))}px)`; });
+    addEventListener('pointerup',()=>{ if(!sw) return; const {r,inn,base,dx}=sw; sw=null; inn.style.transition=''; inn.style.transform=''; if(Math.abs(dx)>4){ r.classList.toggle('open',base+dx<-44); setTimeout(()=>{phSwiped=false;},0); } });
+    $('#phb').addEventListener('mousedown',e=>{ if(e.target.closest('.cb')) e.preventDefault(); });
+    $('#phb').addEventListener('click',e=>{ const cb=e.target.closest('.cb'); if(cb) toggleLine(cb.closest('.todo')); });
     $('#phback').addEventListener('click',phBack);
     $('#phdone').addEventListener('click',()=>{ $('#phb').blur(); phEditEnd(); });
     $('#phb').addEventListener('focus',()=>{ ph.dataset.kb='1'; $('#phdone').style.display=''; $$('#ph .kr .ky.w2')[1].textContent='换行'; $$('#ph .kr .ky.w2')[1].classList.remove('pri'); });
-    $('#phb').addEventListener('input',()=>{ const n=notes.find(n=>n.t===phOpenTitle); if(n){ n.b=$('#phb').innerText; n.m='刚刚'; } });
+    $('#phb').addEventListener('input',()=>{ const n=notes.find(n=>n.t===phOpenTitle); if(n){ n.b=serialize($('#phb')); n.m='刚刚'; } });
     phRender();
   }
-  let phRows=[], phOpenTitle=null;
+  let phRows=[], phOpenTitle=null, phTodos=[], sw=null, phSwiped=false;
   function phNewIcon(){ const ph=$('#ph'); $('#phnew').innerHTML=(ph.dataset.kb==='1'&&ph.dataset.scr==='list')?ICON_X:ICON_COMPOSE; $('#phmic').style.display=$('#phq').value?'none':''; }
+  function sumInfo(){
+    const s=todaySummary();
+    return {title:s.left?`今天 ${s.left} 件待办`:'今天没有待办',
+      sub:s.left?`${s.late?s.late+' 件已过期 · ':''}${s.next?`下一件 ${hm(s.next.due)} ${s.next.text}`:''}`:(s.late?`${s.late} 件已过期`:'今天的都做完了'),
+      dots:`<span class="dots" aria-label="今天 ${s.total} 件，做完 ${s.total-s.left} 件">${s.dots.map(d=>`<i${d?' class="on"':''}></i>`).join('')}</span>`};
+  }
+  const iosSum=()=>{ const s=sumInfo(); return `<div class="prow tdsum"><span class="pplus">${ICON_LIST}</span><div style="flex:1;min-width:0"><div class="pr-t">${s.title}</div><div class="pr-s">${esc(s.sub)}</div></div>${s.dots}</div>`; };
+  const iosTodo=(t,grp,i,extra='')=>`<div class="ptd${extra}" data-i="${i}"><div class="ptd-act">${ICON_CHECK}完成</div><div class="ptd-in">${cbH(false,t.text)}<div class="tx"><span class="tt">${esc(t.text)}</span><div class="sub">${chipH(t,grp)}<span>${esc(t.n.t)}</span></div></div></div></div>`;
+  function phTodoView(arrive){
+    $('#phh1').textContent='待办'; phTodos=[]; let h='';
+    for(const g of todoGroups()){
+      h+=`<div class="ios-tdh${g.k==='late'?' late':''}">${g.l}<span>${g.items.length}</span></div>`;
+      for(const t of g.items){ h+=iosTodo(t,g.k,phTodos.length,(t.n.t+'|'+t.text)===arrive?' arrive':''); phTodos.push(t); }
+    }
+    $('#phl').innerHTML=h||'<div class="ios-sub" style="padding-left:0">没有没勾掉的待办</div>';
+    $('#phcount').textContent=`${phTodos.length} 件没勾掉 · 左滑或点圆圈完成`;
+  }
+  function phComplete(i){
+    const t=phTodos[i], r=$(`#phl .ptd[data-i="${i}"]`); if(!t||!r||r.classList.contains('checking')) return;
+    const cb=r.querySelector('.cb'); cb.classList.add('on'); cb.setAttribute('aria-checked','true'); r.classList.add('checking');
+    setDone(t,true);
+    setTimeout(()=>r.classList.add('leaving'),reduce?0:280);
+    setTimeout(()=>{ if(isTodoQ($('#phq').value)) phRender(); },reduce?240:660);
+  }
   function phRender(arrive){
-    const query=$('#phq').value; phRows=filter(query);
+    const query=$('#phq').value;
+    if(isTodoQ(query)){ phTodoView(arrive); return; }
+    $('#phh1').textContent='Jot';
+    phRows=filter(query);
     if(query.trim()) phRows.sort((a,b)=>(a.create?0:1)-(b.create?0:1));   // on a phone, "create" leads: it's the thumb's first target
-    $('#phl').innerHTML=phRows.map((r,i)=>r.create?iosCreate(r.create).replace('class="prow new"',`class="prow new" data-i="${i}"`):iosRow(r.n,r.terms,r.n.t===arrive?' arrive':'').replace('<div class="prow',`<div data-i="${i}" class="prow`)).join('');
+    $('#phl').innerHTML=(query.trim()?'':iosSum())+phRows.map((r,i)=>r.create?iosCreate(r.create).replace('class="prow new"',`class="prow new" data-i="${i}"`):iosRow(r.n,r.terms,r.n.t===arrive?' arrive':'').replace('<div class="prow',`<div data-i="${i}" class="prow`)).join('');
     $('#phcount').textContent=`${notes.length} 条笔记 · ${PL.iphone.folder}`;
   }
   function phOpen(n){
@@ -1232,7 +1709,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   }
   function phEditEnd(){ const ph=$('#ph'); ph.dataset.kb=''; $('#phdone').style.display='none'; const k=$$('#ph .kr .ky.w2')[1]; k.textContent='搜索'; k.classList.add('pri'); const s=$('#phsaved'); s.classList.add('on'); setTimeout(()=>s.classList.remove('on'),1400); }
   function phBack(){ const ph=$('#ph'); $('#phb').blur(); ph.dataset.kb=''; ph.dataset.scr='list'; $('#phq').value=''; phRender(); phNewIcon(); }
-  function phReset(){ const ph=$('#ph'); if(!ph) return; $('#phb').blur(); $('#phq').blur(); $('#phq').value=''; ph.dataset.kb=''; ph.dataset.scr='list'; phRender(); phNewIcon(); }
+  function phReset(){ const ph=$('#ph'); if(!ph) return; $('#phb').blur(); $('#phq').blur(); $('#phq').value=''; ph.dataset.kb=''; ph.dataset.scr='list'; $('#phntf').classList.remove('on'); $('#phneed').style.display='none'; phCalloutOff(); phRender(); phNewIcon(); }
   async function tap(el){
     const ph=$('#ph'), t=$('#phtouch'); if(!el) return;
     const z=parseFloat(getComputedStyle($('#phoneFit')).zoom)||1;
@@ -1262,6 +1739,40 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     if(!notes.some(n=>n.t===DEPLOY.t)) notes.unshift({...DEPLOY});
     phBack(); phRender(DEPLOY.t); await sleep(1800);
   }
+  function phEditStart(){ const ph=$('#ph'); ph.dataset.kb='1'; $('#phdone').style.display=''; const rk=$$('#ph .kr .ky.w2')[1]; rk.textContent='换行'; rk.classList.remove('pri'); }
+  // No hover on a phone: tapping the chip shows the absolute time in a callout.
+  function phCallout(chip){
+    const ph=$('#ph'), a=ph.getBoundingClientRect(), b=chip.getBoundingClientRect(), z=a.width/390||1;
+    phCalloutOff();
+    ph.insertAdjacentHTML('beforeend',`<div class="ios-call ios-g" id="phcall" style="left:${Math.min(300,Math.max(90,(b.left+b.width/2-a.left)/z))}px;top:${(b.bottom-a.top)/z+10}px">${absDue(RENT.due)}<small>周五 · 点一下改时间</small></div>`);
+  }
+  const phCalloutOff=()=>$('#phcall')?.remove();
+  async function phoneRemind(){
+    const ph=$('#ph'); phReset(); resetNote(RENT.note); await sleep(600);
+    await tap($('#phbar .ios-search')); ph.dataset.kb='1'; phNewIcon(); await sleep(500);
+    for(const ch of '生活'){ $('#phq').value+=ch; phRender(); phNewIcon(); await sleep(160); }
+    await sleep(500);
+    const n=notes.find(n=>n.t===RENT.note);
+    await tap($$('#phl .prow').find(r=>r.dataset.i!==undefined&&phRows[+r.dataset.i]?.n===n)); phOpen(n); await sleep(1200);
+    const body=$('#phb'), todos=body.querySelectorAll('.todo');
+    await tap(todos[todos.length-1]); phEditStart(); await sleep(500);
+    const line=await typeReminder(body);
+    await sleep(600);
+    const chip=line.querySelector('.due'); await tap(chip); phCallout(chip); await sleep(2000); phCalloutOff();
+    line.querySelector('.icar')?.remove();
+    const gym=[...body.querySelectorAll('.todo')].find(l=>l.querySelector('.tt')?.textContent==='续健身卡');
+    if(gym&&!gym.classList.contains('done')){ await tap(gym.querySelector('.cb')); toggleLine(gym); }
+    await sleep(1300); await tap($('#phdone')); phEditEnd(); await sleep(600);
+  }
+  async function phoneAlarm(){
+    phReset(); await sleep(400);
+    const b=$('#phntf'), tag=$('#phneed'); b.classList.add('on'); await sleep(450); tag.style.display='';
+    await sleep(3000); tag.style.display='none'; b.classList.remove('on'); await sleep(500);
+  }
+  async function phoneClaudeTodo(){
+    addTodo(REPORT.note,REPORT.text,REPORT.due,'claude');
+    phBack(); $('#phq').value='待办'; phRender(REPORT.note+'|'+REPORT.text); phNewIcon(); await sleep(1800);
+  }
   $('#extWidget').innerHTML=`<div class="ios" style="width:300px;height:250px;background:linear-gradient(150deg,var(--mac-wall-a),var(--mac-wall-b) 60%,var(--mac-wall-c))">
     <div class="ios-g" style="position:absolute;left:18px;top:20px;width:264px;height:126px;border-radius:24px;padding:14px 16px;display:flex;gap:14px">
       <div style="display:flex;flex-direction:column;justify-content:space-between;width:70px"><b style="font-size:15px;display:flex;gap:5px;align-items:center">${ICON_PEN.replace('<svg','<svg style="width:15px;height:15px;color:var(--claude)"')}Jot</b><span class="gb pri" style="width:40px;height:40px">${ICON_PLUS}</span></div>
@@ -1285,6 +1796,15 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     return `<div class="tbar mac"><span class="tls"><i></i><i></i><i></i></span><span>${title}</span></div>`;
   }
   const sideWith=(top)=>`<div class="mside">${[top,...['办公室 wifi','周会要点 · 11月13日','常用 SQL：按天统计','护照到期'].map(N)].map((n,i)=>mrow(n,{sub:false,sel:i===0})).join('')}</div>`;
+  // A desktop at Friday's given time with a system notification; on a Mac with a reminder, the island too.
+  function deskNtf(o,island,time){
+    const ch = P==='windows' ? `<div class="mtb"><span class="ti">${ICON_UP}</span><span class="ti">${ICON_PEN}</span><span class="ti">${ICON_WIFI}</span><span class="ti">${ICON_VOL}</span><span class="clk"><span>${time}</span><span>2026/11/14</span></span></div>`
+      : P==='linux' ? `<div class="mgb"><span class="ws"><i></i><i></i><i></i></span><span class="clk">11月14日 ${time}</span><span>${ICON_WIFI}</span><span>${ICON_VOL}</span><span>${ICON_BATT}</span></div>`
+      : `<div class="mbar"><span class="ti">${ICON_PEN}</span><span>${ICON_WIFI}</span><span>${ICON_BATT}</span><span>周五 ${time}</span></div>`;
+    // The frame is a crop of the right half of the screen, so the notch sits left of center.
+    const isl = island&&P==='macos' ? `<div class="misl" style="left:170px"><span class="av">${ICON_BELL}</span><div class="tx"><div class="lb">提醒 · 09:00 · 生活杂事</div><div class="tt">${RENT.text}</div></div><span class="icb">${ICON_CHECK}</span></div>` : '';
+    return `<div class="mf">${ch}${isl}${ntfH(o)}</div>`;
+  }
 
   const D={
     onboard(){
@@ -1297,7 +1817,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
         <ol class="steps">
           <li class="done"><span class="n">${ICON_CHECK}</span><div class="l"><b>选笔记文件夹</b><span>${esc(L().folder)}。笔记是普通的 .md 文件，放进 iCloud 云盘、Dropbox 就能同步。</span></div><div class="ri"><button class="b">更改…</button></div></li>
           ${s2}
-          <li class="todo"><span class="n">3</span><div class="l"><b>连接 Claude</b><span>把 jot-mcp 登记到 Claude Code，Claude 就能读写这个本子。</span></div><div class="ri"><button class="b">连接</button></div></li>
+          <li class="later"><span class="n">3</span><div class="l"><b>连接 Claude</b><span>把 jot-mcp 登记到 Claude Code，Claude 就能读写这个本子。</span></div><div class="ri"><button class="b">连接</button></div></li>
         </ol><div class="ob-ft"><span>这些都能在设置里改。</span><button class="b">稍后</button></div></div></div>`;
     },
     empty(){
@@ -1310,19 +1830,19 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     markdown(){
       const top={t:'京都行程',m:'刚刚',src:'user'};
       return `<div class="mf"><div class="mp ed glass">${mfield('京都')}${sideWith(top)}<div class="mpp"><h3><span class="md"># </span>京都行程</h3><div class="meta">刚刚 · 京都行程.md</div><div class="bd">
-        <div class="todo"><span class="cb on">${ICON_CHECK}</span><span class="dn">订四条河原町的酒店</span></div>
-        <div class="todo"><span class="cb"></span><span>买 ICOCA 卡<i class="icar"></i></span></div>
+        <div class="todo done"><span class="cb on">${ICON_CHECK}</span><span class="tt">订四条河原町的酒店</span></div>
+        <div class="todo"><span class="cb">${ICON_CHECK}</span><span class="tt">买 ICOCA 卡<i class="icar"></i></span></div>
         <p class="h"><span class="md">## </span>第一天</p>
         <p><span class="md">- </span>伏见稻荷，早上 7 点前到人少</p>
         <div class="pre"><span class="md">\`\`\`</span>\n京都站 → 稻荷站  JR 奈良线 5 分钟\n<span class="md">\`\`\`</span></div>
         <p><span class="md">[</span><span class="lnk">岚山小火车时刻表</span><span class="md">](…)</span></p></div></div></div></div>`;
     },
     claude(){
-      const n={t:'部署命令',m:'今天 14:02',src:'claude'};
-      return `<div class="mf"><div class="mp ed glass">${mfield('部署')}${sideWith(n)}<div class="mpp"><h3>部署命令</h3><div class="meta"><span class="by">${ICON_SPARK}Claude 记的</span> · 今天 14:02 · 部署命令.md</div><div class="bd">
+      const n={t:'部署命令',m:'昨天 14:02',src:'claude'};
+      return `<div class="mf"><div class="mp ed glass">${mfield('部署')}${sideWith(n)}<div class="mpp"><h3>部署命令</h3><div class="meta"><span class="by">${ICON_SPARK}Claude 记的</span> · 昨天 14:02 · 部署命令.md</div><div class="bd">
         <div class="pre">cargo build --release -p jot-mcp\nclaude mcp add jot -- ./target/release/jot-mcp</div>
         <p>发布前先在 staging 跑一遍。</p>
-        <div class="app"><div class="app-l">${ICON_SPARK}Claude 追加 · 今天 16:40</div><p>staging 的地址换成了 staging-2.internal，旧地址月底下线。</p></div></div></div></div></div>`;
+        <div class="app"><div class="app-l">${ICON_SPARK}Claude 追加 · 今天 08:30</div><p>staging 的地址换成了 staging-2.internal，旧地址月底下线。</p></div></div></div></div></div>`;
     },
     append(){
       const n={t:'周会要点 · 11月13日',m:'刚刚',src:'user'};
@@ -1345,9 +1865,9 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
         <div class="mi">${ICON_FOLDER_P}在${k.files}中打开笔记文件夹</div>
         <div class="mi">${ICON_GEAR}设置…<span class="k">${kx(k.settings)}</span></div>
         <div class="msep"></div><div class="mi">${P==='windows'?ICON_X:'<svg viewBox="0 0 20 20"></svg>'}退出 Jot<span class="k">${kx(k.quit)}</span></div>`;
-      if(P==='windows') return `<div class="mf"><div class="mn glass" style="right:70px;bottom:58px">${items}</div><div class="mtb"><span class="ti">${ICON_UP}</span><span class="ti on">${ICON_PEN}</span><span class="ti">${ICON_WIFI}</span><span class="ti">${ICON_VOL}</span><span class="clk"><span>21:42</span><span>2026/11/13</span></span></div></div>`;
-      if(P==='linux') return `<div class="mf"><div class="mgb"><span class="ws"><i></i><i></i><i></i></span><span class="clk">11月13日 21:42</span><span class="ti on">${ICON_PEN}</span><span>${ICON_WIFI}</span><span>${ICON_VOL}</span><span>${ICON_BATT}</span></div><span class="mtag">装了 AppIndicator 扩展才有这个图标</span><div class="mn glass" style="right:60px;top:38px">${items}</div></div>`;
-      return `<div class="mf"><div class="mbar"><span class="ti on">${ICON_PEN}</span><span>${ICON_WIFI}</span><span>${ICON_BATT}</span><span>周四 11月13日</span><span>21:42</span></div><div class="mn glass" style="right:160px;top:30px">${items}</div></div>`;
+      if(P==='windows') return `<div class="mf"><div class="mn glass" style="right:70px;bottom:58px">${items}</div><div class="mtb"><span class="ti">${ICON_UP}</span><span class="ti on">${ICON_PEN}</span><span class="ti">${ICON_WIFI}</span><span class="ti">${ICON_VOL}</span><span class="clk"><span>09:41</span><span>2026/11/13</span></span></div></div>`;
+      if(P==='linux') return `<div class="mf"><div class="mgb"><span class="ws"><i></i><i></i><i></i></span><span class="clk">11月13日 09:41</span><span class="ti on">${ICON_PEN}</span><span>${ICON_WIFI}</span><span>${ICON_VOL}</span><span>${ICON_BATT}</span></div><span class="mtag">装了 AppIndicator 扩展才有这个图标</span><div class="mn glass" style="right:60px;top:38px">${items}</div></div>`;
+      return `<div class="mf"><div class="mbar"><span class="ti on">${ICON_PEN}</span><span>${ICON_WIFI}</span><span>${ICON_BATT}</span><span>周四 11月13日</span><span>09:41</span></div><div class="mn glass" style="right:160px;top:30px">${items}</div></div>`;
     },
     settings(){
       const k=L();
@@ -1364,6 +1884,27 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
         <div class="gt">通用</div><div class="grp"><div class="sr"><div class="l"><b>外观</b></div><div class="ri">${appearance}</div></div><div class="sr"><div class="l"><b>${k.login}</b></div><div class="ri"><span class="sw on"></span></div></div></div>
       </div></div></div>`;
     },
+    todoedit(){
+      const n=N('生活杂事');
+      return `<div class="mf"><div class="mp ed glass">${mfield('生活')}${sideWith({...n,m:'刚刚'})}<div class="mpp"><h3>生活杂事</h3><div class="meta">刚刚 · 生活杂事.md</div><div class="bd">
+        ${todoLineH({done:true,text:'续健身卡',due:new Date(2026,10,12,18,0),doneAt:TODAY_ISO})}
+        ${todoLineH({done:false,text:'给猫喂药',due:new Date(2026,10,13,21,0)})}
+        <div class="todo">${cbH(false,RENT.text)}<span class="tt">${RENT.text}</span>${chipH({...RENT,done:false},'',{tip:true})}<i class="icar"></i></div>
+        ${todoLineH({done:false,text:'买咖啡豆'})}
+        <p>快递柜的取件码在手机短信里。</p></div></div></div></div>`;
+    },
+    todoview(){
+      const k=L(), T=(text,note,due)=>({text,due,n:{t:note},done:false});
+      const gs=[['late','已过期',[T('续健身卡','生活杂事',new Date(2026,10,12,18,0))]],
+        ['today','今天',[T('给房东回电话','租房合同要点',new Date(2026,10,13,10,30)),T('交设计稿反馈','周会要点 · 11月13日',new Date(2026,10,13,14,0)),T('给猫喂药','生活杂事',new Date(2026,10,13,21,0))]],
+        ['tom','明天',[T(RENT.text,RENT.note,RENT.due)]],['later','以后',[T('准备续签材料','护照到期',new Date(2026,10,20,9,0))]],['none','没有时间',[T('买咖啡豆','生活杂事',null)]]];
+      let h='', i=0;
+      for(const [g,l,items] of gs){ h+=`<div class="mgh${g==='late'?' late':''}">${l}<span>${items.length}</span></div>`;
+        for(const t of items){ const s=i===1, c=i===2; i++; h+=`<div class="mtd${s?' sel':''}${c?' checking':''}"><i class="ind"></i>${cbH(c,t.text)}<span class="t"><b>${esc(t.text)}</b><span class="nt">${esc(t.n.t)}</span></span>${chipH(t,g)}</div>`; } }
+      return `<div class="mf"><div class="mp glass" style="top:18px">${mfield('待办')}<div class="mls">${h}</div><div class="mft"><span><b>${kx('↑↓')}</b> 选择</span><span><b>${kx(k.create)}</b> 勾掉</span><span><b>${kx(k.enter)}</b> 打开笔记</span><span class="cnt">7 件没勾掉</span></div></div></div>`;
+    },
+    notify(){ return deskNtf({title:RENT.text,body:RENT.note,acts:['完成','10 分钟后','打开']},true,'09:00'); },
+    missed(){ return deskNtf({title:'错过了 2 个提醒',body:'给猫喂药（昨天 21:00）、交房租（09:00）'},false,'11:05'); },
     error(){
       const k=L();
       return `<div class="mf"><div class="mp glass">${mfield('',{ph:'笔记文件夹不可用'})}<div class="merr"><span class="eic">${ICON_FOLDER}</span><b>找不到笔记文件夹</b><p><code>${esc(k.folder)}</code> 不在原来的位置。它可能被移走、改了名，或者在一块没接上的${P==='windows'?'移动硬盘':'外置硬盘'}上。</p><div class="acts"><button class="b pri">重新选择文件夹…</button><button class="b">在原位置新建</button></div><small>Claude 那边会收到同样的错误；修好后两边一起恢复。</small></div></div></div>`;
@@ -1386,15 +1927,15 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     edBar(done){ return `<div class="ed-bar"><span class="gb ios-g">${ICON_BACK}</span><div class="ed-r"><span class="ed-grp ios-g"><span>${ICON_SHARE}</span><span>${ICON_MORE}</span></span>${done?`<span class="gb pri">${ICON_CHECK}</span>`:''}</div></div>`; },
     markdown(){
       return `<div class="ios" data-kb="1">${iosStatus()}${I.edBar(true)}<div class="ed-sc"><div class="ed-h"><span class="md"># </span>京都行程</div><div class="ed-meta">刚刚</div><div class="ed-body bd" style="font-size:17px">
-        <div class="todo"><span class="cb on">${ICON_CHECK}</span><span class="dn">订四条河原町的酒店</span></div>
-        <div class="todo"><span class="cb"></span><span>买 ICOCA 卡<i class="icar"></i></span></div>
+        <div class="todo done"><span class="cb on">${ICON_CHECK}</span><span class="tt">订四条河原町的酒店</span></div>
+        <div class="todo"><span class="cb">${ICON_CHECK}</span><span class="tt">买 ICOCA 卡<i class="icar"></i></span></div>
         <p class="h" style="font-size:20px"><span class="md">## </span>第一天</p><p><span class="md">- </span>伏见稻荷，早上 7 点前到</p>
         <div class="pre" style="font-size:14px">京都站 → 稻荷站\nJR 奈良线 5 分钟</div></div></div>${iosKb('换行')}<div class="ios-home"></div></div>`;
     },
     claude(){
-      return `<div class="ios">${iosStatus()}${I.edBar(false)}<div class="ed-sc"><div class="ed-h">部署命令</div><div class="ed-meta"><span class="by">${ICON_SPARK}Claude 记的</span>· 今天 14:02</div><div class="ed-body bd" style="font-size:17px">
+      return `<div class="ios">${iosStatus()}${I.edBar(false)}<div class="ed-sc"><div class="ed-h">部署命令</div><div class="ed-meta"><span class="by">${ICON_SPARK}Claude 记的</span>· 昨天 14:02</div><div class="ed-body bd" style="font-size:17px">
         <div class="pre" style="font-size:13.5px">cargo build --release -p jot-mcp\nclaude mcp add jot -- ./target/release/jot-mcp</div><p>发布前先在 staging 跑一遍。</p>
-        <div class="app"><div class="app-l" style="font-size:13px">${ICON_SPARK}Claude 追加 · 今天 16:40</div><p>staging 的地址换成了 staging-2.internal，旧地址月底下线。</p></div></div></div><div class="ios-home"></div></div>`;
+        <div class="app"><div class="app-l" style="font-size:13px">${ICON_SPARK}Claude 追加 · 今天 08:30</div><p>staging 的地址换成了 staging-2.internal，旧地址月底下线。</p></div></div></div><div class="ios-home"></div></div>`;
     },
     append(){
       return `<div class="ios" data-kb="1">${iosStatus()}${I.edBar(true)}<div class="ios-pill ios-g">${ICON_SPARK}Claude 在末尾加了一段<span class="u">查看</span></div><div class="ed-sc" style="top:162px"><div class="ed-h">周会要点 · 11月13日</div><div class="ed-meta">刚刚</div><div class="ed-body bd" style="font-size:17px"><p><span class="md">- </span>发布窗口改到下周二</p><p><span class="md">- </span>设计稿周五前定稿，先给<i class="icar"></i></p><p><span class="md">- </span>图标三套方案，投票选一套</p></div></div>${iosKb('换行')}<div class="ios-home"></div></div>`;
@@ -1415,6 +1956,32 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
         <div class="ios-gt">外观</div><div class="ios-grp"><div class="ios-cell">外观<span class="v">跟随系统 ${ICON_CHEV}</span></div></div>
         <div class="ios-gt">Claude</div><div class="ios-grp"><div class="ios-cell"><div>在电脑上连接<span class="d">在 Mac 或 PC 的 Jot 设置里点「连接 Claude」。Claude 记下的笔记会经 iCloud 同步到这里。</span></div></div></div>
         <div class="ios-grp"><div class="ios-cell">关于 Jot<span class="v">${ICON_CHEV}</span></div></div></div><div class="ios-home"></div></div>`;
+    },
+    todoedit(){
+      return `<div class="ios" data-kb="1">${iosStatus()}${I.edBar(true)}<div class="ed-sc"><div class="ed-h">生活杂事</div><div class="ed-meta">刚刚</div><div class="ed-body bd" style="font-size:17px">
+        ${todoLineH({done:true,text:'续健身卡',due:new Date(2026,10,12,18,0),doneAt:TODAY_ISO})}
+        ${todoLineH({done:false,text:'给猫喂药',due:new Date(2026,10,13,21,0)})}
+        <div class="todo">${cbH(false,RENT.text)}<span class="tt">${RENT.text}</span>${chipH({...RENT,done:false},'')}<i class="icar"></i></div>
+        ${todoLineH({done:false,text:'买咖啡豆'})}<p>快递柜的取件码在手机短信里。</p></div></div>
+        <div class="ios-call ios-g" style="left:165px;top:300px;animation:none">${absDue(RENT.due)}<small>周五 · 点一下改时间</small></div>${iosKb('换行')}<div class="ios-home"></div></div>`;
+    },
+    todoview(){
+      const T=(text,note,due)=>({text,due,n:{t:note},done:false});
+      const gs=[['late','已过期',[T('续健身卡','生活杂事',new Date(2026,10,12,18,0))]],
+        ['today','今天',[T('给房东回电话','租房合同要点',new Date(2026,10,13,10,30)),T('交设计稿反馈','周会要点 · 11月13日',new Date(2026,10,13,14,0)),T('给猫喂药','生活杂事',new Date(2026,10,13,21,0))]],
+        ['tom','明天',[T(RENT.text,RENT.note,RENT.due)]],['later','以后',[T('准备续签材料','护照到期',new Date(2026,10,20,9,0))]],['none','没有时间',[T('买咖啡豆','生活杂事',null)]]];
+      let h='', i=0;
+      for(const [g,l,items] of gs){ h+=`<div class="ios-tdh${g==='late'?' late':''}">${l}<span>${items.length}</span></div>`; for(const t of items){ h+=iosTodo(t,g,i,i===1?' open':''); i++; } }
+      return `<div class="ios">${iosStatus()}<div class="ios-v ios-lv">${iosTop().replace('>Jot<','>待办<')}<div class="ios-sub">7 件没勾掉 · 左滑或点圆圈完成</div><div class="ios-list">${h}</div><div class="ios-fade"></div></div>${iosBar('待办')}<div class="ios-home"></div></div>`;
+    },
+    lock(date,time,card){
+      return `<div class="ios ios-lockw">${iosStatus()}<div class="ios-lock"><div class="lk-d">${date}</div><div class="lk-t">${time}</div>${card}</div><div class="ios-home" style="background:#fff"></div></div>`;
+    },
+    notify(){
+      return I.lock('11月14日 星期五','9:00',`<div class="ios-ntf ios-g need"><span class="n-ic">${ICON_PEN}</span><b class="n-t">${RENT.text}</b><span class="n-tm">现在</span><span class="n-s">${RENT.note}</span></div><span class="need-tag" style="bottom:78px">要等 NSH 支持定时通知</span>`);
+    },
+    missed(){
+      return I.lock('11月14日 星期五','11:05',`<div class="stk"></div><div class="ios-ntf ios-g need"><span class="n-ic">${ICON_PEN}</span><b class="n-t">${RENT.text}</b><span class="n-tm">09:00</span><span class="n-s">${RENT.note} · 还有 1 条</span></div><span class="need-tag" style="bottom:66px">要等 NSH 支持定时通知</span>`);
     },
     error(){
       return `<div class="ios">${iosStatus()}<div class="ios-v ios-lv">${iosTop()}</div><div class="ios-empty" style="top:250px"><span style="width:72px;height:72px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn);margin-bottom:6px">${ICON_FOLDER.replace('<svg','<svg style="width:36px;height:36px;color:var(--warn);margin:0"')}</span><b>打不开笔记文件夹</b><span>iCloud 云盘已关闭，或者没有登录 Apple 账户，Jot 读不到「iCloud 云盘 › Jot」。</span></div>

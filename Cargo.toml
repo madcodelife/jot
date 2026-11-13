@@ -8,6 +8,6 @@ publish = false
 members = ["store", "mcp"]
 
 [dependencies]
-nsh-core = { path = "/Users/madcodelife/Workspace/longbridge/nsh/crates/nsh-core" }
-nsh-base = { path = "/Users/madcodelife/Workspace/longbridge/nsh/crates/nsh-base" }
+nsh-core = { path = "/Users/madcodelife/Workspace/longbridge/nsh.worktrees/jot-nsh/crates/nsh-core" }
+nsh-base = { path = "/Users/madcodelife/Workspace/longbridge/nsh.worktrees/jot-nsh/crates/nsh-base" }
 jot-store = { path = "store" }
