@@ -1,0 +1,11 @@
+[package]
+name = "nsh-app-jot"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+nsh-core = { path = "/Users/madcodelife/Workspace/longbridge/nsh/crates/nsh-core" }
+nsh-base = { path = "/Users/madcodelife/Workspace/longbridge/nsh/crates/nsh-base" }
