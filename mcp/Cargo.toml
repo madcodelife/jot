@@ -6,6 +6,7 @@ publish = false
 description = "A stdio MCP server that lets Claude search, read and add to a Jot notes folder"
 
 [dependencies]
+jiff = "0.2.43"
 jot-store = { path = "../store" }
 rmcp = { version = "3.10", features = ["server", "macros", "transport-io"] }
 schemars = "1"

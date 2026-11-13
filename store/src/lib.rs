@@ -15,6 +15,12 @@ use std::time::{Duration, SystemTime};
 use notify_debouncer_mini::notify::{self, RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{DebounceEventResult, Debouncer, new_debouncer};
 
+mod todo;
+pub mod when;
+
+pub use jiff::civil::DateTime;
+pub use todo::{DEFAULT_TODO_NOTE, Todo};
+
 /// How many characters of a note's body `NoteMeta::preview` and `SearchHit::snippet` hold.
 const PREVIEW_CHARS: usize = 120;
 /// How many characters of context a snippet shows before the match.
@@ -83,6 +89,8 @@ pub enum StoreError {
     NotFound,
     /// A note with this title (compared case-insensitively) already exists.
     AlreadyExists,
+    /// The line a to-do was at no longer holds that to-do: the note changed since it was read.
+    Changed,
     /// The file system failed.
     Io(io::Error),
 }
@@ -93,6 +101,7 @@ impl fmt::Display for StoreError {
             StoreError::InvalidTitle => f.write_str("invalid note title"),
             StoreError::NotFound => f.write_str("note not found"),
             StoreError::AlreadyExists => f.write_str("a note with this title already exists"),
+            StoreError::Changed => f.write_str("the note changed since it was read"),
             StoreError::Io(error) => write!(f, "{error}"),
         }
     }
@@ -380,6 +389,16 @@ impl Store {
         entry: Entry,
         edit: impl FnOnce(&str) -> String,
     ) -> Result<NoteMeta, StoreError> {
+        self.try_rewrite(entry, |body| Ok(Some(edit(body))))
+    }
+
+    /// Rewrites a note's body with `edit`, keeping its frontmatter; leaves the file untouched when `edit`
+    /// returns `None` or fails.
+    fn try_rewrite(
+        &self,
+        entry: Entry,
+        edit: impl FnOnce(&str) -> Result<Option<String>, StoreError>,
+    ) -> Result<NoteMeta, StoreError> {
         let content = match fs::read_to_string(&entry.path) {
             Ok(content) => content,
             Err(error) if error.kind() == io::ErrorKind::NotFound => {
@@ -388,7 +407,10 @@ impl Store {
             Err(error) => return Err(error.into()),
         };
         let parts = split(&content);
-        let body = edit(parts.body);
+        let Some(body) = edit(parts.body)? else {
+            let (meta, _) = load(&entry)?;
+            return Ok(meta);
+        };
         let permissions = fs::metadata(&entry.path)?.permissions();
         self.write_file(
             &entry.path,

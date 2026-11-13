@@ -39,7 +39,8 @@ curl -fsSL https://huacnlee.github.io/cargo/install.sh | sh     # Windows: irm h
 ## 连接 Claude
 
 `jot-mcp` is a stdio MCP server over the notes folder: Claude can search and read your notes, create notes (marked
-`source: claude`) and append to them, whether the app is running or not. It never deletes or overwrites a note.
+`source: claude`) and append to them, and keep your to-dos, whether the app is running or not. It never deletes or
+overwrites a note.
 
 ```sh
 cargo build --release -p jot-mcp
@@ -65,4 +66,13 @@ Developer → Edit Config) with the binary's absolute path, then restart Claude 
 ```
 
 Tools: `search_notes(query, limit?)`, `read_note(title)`, `recent_notes(limit?)`, `create_note(title, body)` and
-`append_note(title, text)`.
+`append_note(title, text)` for notes, and for to-dos:
+
+- `add_todo(text, due?, note?)`: "提醒我周五交周报". Writes `- [ ] 交周报 ⏰ 2026-11-20 09:00` to the note `待办` (or
+  `note`). `due` is ISO local time (`2026-11-14T09:00`; a date alone is 09:00) or a phrase such as `明天 9点`,
+  `周五`, `下午3点` or `半小时后`; a phrase in `text` itself becomes the time too.
+- `list_todos(range?)`: "我今天有什么要做的". Open to-dos from every note with their times and notes, grouped as
+  overdue, today, upcoming and without a time; `range` is `overdue`, `today`, `upcoming` or `all`, by default today's
+  and overdue ones.
+- `complete_todo(note, text)`: "交周报做完了". Checks the to-do off (`- [x] … ✅ <date>`) and changes nothing else; a
+  unique part of the text is enough, and when none or several match, the error lists them.
