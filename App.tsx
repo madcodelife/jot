@@ -5,7 +5,7 @@
 // The main window stays hidden (nsh.json `window.defaultVisible`): the app
 // lives in the menu bar, and its UI is the panel's popup window and, on
 // macOS, the island's overlay.
-import { effect, mount, Notifications, platform, signal, untracked } from "nsh";
+import { effect, mount, Notifications, platform, untracked } from "nsh";
 import { GlobalShortcut, Tray } from "nsh/desktop";
 import { Reminders, Summon, type DueEvent } from "jot/native";
 import {
@@ -21,6 +21,7 @@ import {
   openFolder,
   summon,
   toggle,
+  trusted,
 } from "./app/store";
 import { IslandWindow, showClaudeWrite, showReminder } from "./ui/Island";
 import { PanelWindow } from "./ui/Panel";
@@ -29,9 +30,6 @@ import trayIcon from "./ui/tray.svg";
 
 /** The island lives at the notch or under the menu bar: macOS's. */
 const hasIsland = platform.os === "macos";
-
-/** Whether the double press works (macOS asks for the Accessibility permission). */
-const trusted = signal(Summon.isTrusted());
 
 /** Listens to the double press; again after the user grants the permission, so the system's monitor takes it. */
 function listenToDoubleTap() {

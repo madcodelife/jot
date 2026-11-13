@@ -123,17 +123,12 @@ export function TodoCheck(props: { checked: boolean; label: string; onCheck: () 
   );
 }
 
-/** A small pill with the summon keys, at the field's end. */
-export function KeyChip(props: { keys: string }) {
+/** The summon keys at the field's end, as keycaps like the footer's: the double press, or the fallback shortcut while the permission is missing. */
+export function SummonKeys(props: { trusted: boolean }) {
+  const keys = () => (props.trusted ? T.keys.summonCaps : T.keys.fallbackCaps);
   return (
-    <View
-      class="border border-glass-line px-[7px] py-[2px]"
-      style={{ borderRadius: T.radius.chip }}
-      accessibilityLabel={`连按两下呼出：${props.keys}`}
-    >
-      <Text class="text-glass-muted" style={{ fontSize: 11.5 }}>
-        {props.keys}
-      </Text>
+    <View accessibilityLabel={props.trusted ? `连按两下 ${T.keys.summonCaps[0]} 呼出` : `${T.keys.fallback} 呼出`}>
+      <Keycaps keys={keys()} />
     </View>
   );
 }

@@ -127,11 +127,13 @@ export interface PlatformTokens {
     enter: readonly string[];
     create: readonly string[];
     esc: readonly string[];
-    /** The double tap that summons Jot, and the modifier `Summon` listens for. */
+    /** The double tap that summons Jot (in menus, and as keycaps at the field's end), and the modifier `Summon` listens for. */
     summon: string;
+    summonCaps: readonly string[];
     doubleTap: "option" | "control";
-    /** The fallback shortcut, as shown and as `GlobalShortcut` takes it. */
+    /** The fallback shortcut: in menus, as keycaps, and as `GlobalShortcut` takes it. */
     fallback: string;
+    fallbackCaps: readonly string[];
     fallbackShortcut: string;
   };
   /** Where notes live by default, relative to the home directory, and how the folder is shown. */
@@ -213,8 +215,10 @@ const macos: PlatformTokens = {
     create: ["⌘", "↩"],
     esc: ["esc"],
     summon: "⌥ ⌥",
+    summonCaps: ["⌥", "⌥"],
     doubleTap: "option",
     fallback: "⌃⌥J",
+    fallbackCaps: ["⌃", "⌥", "J"],
     fallbackShortcut: "ctrl+alt+j",
   },
   folder: { path: "Documents/Jot", shown: "~/Documents/Jot" },
@@ -234,8 +238,10 @@ const windows: PlatformTokens = {
     create: ["Ctrl", "Enter"],
     esc: ["Esc"],
     summon: "Ctrl Ctrl",
+    summonCaps: ["Ctrl", "Ctrl"],
     doubleTap: "control",
     fallback: "Ctrl+Alt+J",
+    fallbackCaps: ["Ctrl", "Alt", "J"],
     fallbackShortcut: "ctrl+alt+j",
   },
   folder: { path: "Documents\\Jot", shown: "Documents\\Jot" },
@@ -255,8 +261,10 @@ const linux: PlatformTokens = {
     create: ["Ctrl", "Enter"],
     esc: ["Esc"],
     summon: "Super+J",
+    summonCaps: ["Super", "J"],
     doubleTap: "control",
     fallback: "Super+J",
+    fallbackCaps: ["Super", "J"],
     fallbackShortcut: "super+j",
   },
   folder: { path: "Documents/Jot", shown: "~/Documents/Jot" },

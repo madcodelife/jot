@@ -58,14 +58,36 @@ export function toggledLine(text: string, done: boolean, today: Date): string {
   return done ? `${box}${body} ✅ ${isoDay(today)}` : `${box}${body}`;
 }
 
-/** The note's body as the list's snippet shows it: boxes as ○ and ✓, no reminders or stamps, one line. */
+/**
+ * A note's preview or search snippet as the list shows it: its words alone.
+ * The store's preview is the body on one line (whitespace collapsed), so the
+ * Markdown is found by what precedes it: a marker counts at the start, after
+ * a space or after the snippet's leading `…`. Task boxes stay, as ○ and ✓;
+ * list, quote and heading markers, code fences with their language, inline
+ * code's backticks, emphasis, links' targets, reminders and done stamps go.
+ */
 export function plainSnippet(text: string): string {
-  return text
-    .replace(/(^|\s)[-*] \[ \] /g, "$1○ ")
-    .replace(/(^|\s)[-*] \[[xX]\] /g, "$1✓ ")
-    .replace(/ ?⏰ \d{4}-\d\d-\d\d \d\d:\d\d/g, "")
-    .replace(/ ?✅ \d{4}-\d\d-\d\d/g, "")
-    .replace(/```/g, "")
-    .replace(/\s*\n+\s*/g, " · ")
-    .trim();
+  return (
+    text
+      // Lines (a body not yet on one line) are joined as the list shows them.
+      .replace(/[ \t]*\n+[ \t]*/g, " · ")
+      // A fence, and the language right after an opening one (```sh).
+      .replace(/(`{3,}|~{3,})[\w+#.-]*/g, " ")
+      .replace(/(^|[\s…])[-*+] \[ \](?=\s|$)/g, "$1○")
+      .replace(/(^|[\s…])[-*+] \[[xX]\](?=\s|$)/g, "$1✓")
+      // Reminders and stamps, also when the snippet's end cuts into one.
+      .replace(/⏰ ?\d{0,4}(?:-\d{0,2}){0,2}(?: \d{0,2}(?::\d{0,2})?)?/g, " ")
+      .replace(/✅ ?\d{0,4}(?:-\d{0,2}){0,2}/g, " ")
+      // List, quote and heading markers at a line's start, nested ones too (`> - `).
+      .replace(/(^|[\s…])(?:(?:#{1,6}|>+|[-*+])(?: +|$))+/g, "$1")
+      .replace(/!?\[([^\]]*)\]\(([^)\s]*)\)/g, "$1")
+      .replace(/`+/g, "")
+      .replace(/\*\*|~~/g, "")
+      // What the removals leave: runs of spaces, empty lines, a cut mark apart from its text.
+      .replace(/\s+/g, " ")
+      .replace(/·(?: ·)+/g, "·")
+      .replace(/^[\s·]+|[\s·]+$/g, "")
+      .replace(/ …$/, "…")
+      .trim()
+  );
 }

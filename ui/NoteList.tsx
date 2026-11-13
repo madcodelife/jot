@@ -157,13 +157,17 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
         </If>
         <If when={note()}>
           {(row: () => NoteRow) => (
-            <View class="flex-row items-center" style={{ gap: 6 }}>
+            // The mark and the time keep their widths and the design's gap; the title and snippet give way.
+            <View class="flex-row items-center" style={{ gap: 10, flexShrink: 0, marginLeft: 4 }}>
               <If when={row().meta.source === "claude"}>
-                <Text class={onAccent() ? "text-on-accent-muted" : "text-claude"} style={{ fontSize: T.type.meta }}>
+                <Text
+                  class={`font-medium ${onAccent() ? "text-on-accent-muted" : "text-claude"}`}
+                  style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 0 }}
+                >
                   Claude
                 </Text>
               </If>
-              <Text class={sub()} style={{ fontSize: T.type.meta, fontVariant: ["tabular-nums"] }}>
+              <Text class={sub()} style={{ numberOfLines: 1, fontSize: T.type.meta, fontVariant: ["tabular-nums"], flexShrink: 0 }}>
                 {age(row().meta.modified, now())}
               </Text>
             </View>

@@ -3,7 +3,7 @@
 // with them. Components read these signals; only the functions below write
 // them, so every change goes through one place.
 import { batch, computed, reduceMotion, signal, Storage, untracked } from "nsh";
-import { Notes, type NoteMeta, type Todo } from "jot/native";
+import { Notes, Summon, type NoteMeta, type Todo } from "jot/native";
 import { morphNext } from "../ui/motion";
 import { T } from "../ui/tokens";
 import { groupOf, parseDue, type TodoGroup } from "./time";
@@ -37,6 +37,9 @@ export const folderError = signal<string | null>(null);
 export const revision = signal(0);
 /** The time, a tick a minute: relative times and due groups follow it. */
 export const now = signal(Date.now());
+
+/** Whether the double press works (macOS asks for the Accessibility permission); without it the fallback shortcut summons Jot. */
+export const trusted = signal(Summon.isTrusted());
 
 export const stage = signal<Stage>("hidden");
 export const query = signal("");

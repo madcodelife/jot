@@ -41,6 +41,10 @@ export function Paper() {
   );
 }
 
+/** The paper's margins (the design's 30 / 37 points): the title and the body share the side ones. */
+const PAPER_X = 37;
+const PAPER_BOTTOM = 30;
+
 /** A line of `text`, by index. */
 const lineAt = (text: string, line: number) => text.split("\n")[line] ?? "";
 
@@ -231,7 +235,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
 
   return (
     <View testID="paper" class="flex-1 bg-paper" style={{ borderRadius: T.radius.paper, borderCurve: "continuous", overflow: "hidden" }}>
-      <View style={{ paddingTop: 30, paddingHorizontal: 37 }}>
+      <View style={{ paddingTop: 30, paddingHorizontal: PAPER_X }}>
         <Text testID="paper-title" class="font-bold text-paper-fg" style={{ numberOfLines: 2, fontSize: T.type.title, letterSpacing: -0.6, lineHeight: 33 }}>
           {title}
         </Text>
@@ -264,7 +268,6 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
           editor = r;
         }}
         class="flex-1"
-        style={{ paddingHorizontal: 37 }}
         defaultValue={text()}
         language="markdown"
         placeholder="写点什么…"
@@ -281,6 +284,8 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
         lineHeight={T.type.bodyLine}
         decorations={decorations()}
         classes={{ content: "text-paper-fg", caret: "bg-primary", selection: "bg-primary/25", placeholder: "text-paper-muted" }}
+        // The text area's padding is the paper's margins: the body starts where the title does and keeps the same room on the right.
+        styles={{ content: { paddingLeft: PAPER_X, paddingRight: PAPER_X, paddingTop: 2, paddingBottom: PAPER_BOTTOM } }}
         onChange={({ value }) => changed(value)}
         onSelectionChange={({ selections }) => selectionChanged(selections)}
         onBlur={() => {

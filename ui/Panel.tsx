@@ -23,12 +23,13 @@ import {
   stage,
   todoItems,
   todoMode,
+  trusted,
 } from "../app/store";
 import { Icon } from "./icons";
 import { fadeTo, springConfig } from "./motion";
 import { NoteList } from "./NoteList";
 import { Paper, toggleTaskAtCaret } from "./Paper";
-import { HintDivider, KeyChip, KeyHint } from "./parts";
+import { HintDivider, KeyHint, SummonKeys } from "./parts";
 import { T, materialFill, materialStyle } from "./tokens";
 import { TodoView, todoViewHeight } from "./TodoView";
 
@@ -240,7 +241,7 @@ function Field(props: { onFocusChange: (focused: boolean) => void }) {
         onBlur={() => props.onFocusChange(false)}
       />
       <If when={!query()}>
-        <KeyChip keys={T.keys.summon} />
+        <SummonKeys trusted={trusted()} />
       </If>
     </View>
   );
