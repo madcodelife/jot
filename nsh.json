@@ -3,5 +3,17 @@
   "id": "com.madcodelife.jot",
   "version": "1.0.0",
   "build": 1,
-  "rust": "."
+  "rust": ".",
+  "theme": "ui/theme.json",
+  "window": {
+    "title": "Jot",
+    "defaultVisible": false,
+    "defaultSize": { "width": 420, "height": 300 }
+  },
+  "macos": { "activationPolicy": "accessory" },
+  "capabilities": {
+    "application": true,
+    "notifications": true,
+    "windows": { "kinds": ["popup", "overlay"], "overlay": true }
+  }
 }

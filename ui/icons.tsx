@@ -1,0 +1,53 @@
+// Line icons from the design draft, drawn as SVG in one color and tinted
+// natively (`tintColor`), so they follow the theme's tokens and the
+// appearance. Each is a 20 × 20 box.
+import { Image, type JSX } from "nsh";
+
+const STROKE = 'fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round"';
+
+const PATHS = {
+  search: `<g ${STROKE} stroke-width="2"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></g>`,
+  doc: `<g ${STROKE} stroke-width="1.7"><path d="M5 2.5h6.5L15 6v11.5H5z"/><path d="M11.5 2.5V6H15M7.5 10h5M7.5 13h3.5"/></g>`,
+  spark: `<path fill="#000" d="M10 1.5l1.6 5.3 5.4-1.9-3.6 4.4 3.6 4.4-5.4-1.9L10 17.1l-1.6-5.3-5.4 1.9 3.6-4.4L3 4.9l5.4 1.9z"/>`,
+  plus: `<g ${STROKE} stroke-width="2"><path d="M10 4v12M4 10h12"/></g>`,
+  list: `<g ${STROKE} stroke-width="1.7"><path d="m3 5.5 1.5 1.5L7 4.5M3 12.5 4.5 14 7 11.5M10 6h7M10 13h7"/></g>`,
+  check: `<g ${STROKE} stroke-width="2.6"><path d="m5 10.5 3.2 3L15 6.5"/></g>`,
+  bell: `<g ${STROKE} stroke-width="1.8"><path d="M5 13.5V9a5 5 0 0 1 10 0v4.5l1.5 1.5h-13z"/><path d="M8.3 17.2a1.9 1.9 0 0 0 3.4 0"/></g>`,
+  alarm: `<g ${STROKE} stroke-width="1.8"><circle cx="10" cy="11" r="6"/><path d="M10 8v3.2l2 1.3M3.5 4.5 5.5 3M16.5 4.5 14.5 3"/></g>`,
+  pen: `<g ${STROKE} stroke-width="1.7"><path d="M4 15.5 13.8 5.7a1.6 1.6 0 0 1 2.3 2.3L6.3 17.8 3 18.5z"/><path d="M12.4 7.1l2.3 2.3"/></g>`,
+  eye: `<g ${STROKE} stroke-width="1.8"><path d="M1.8 10S5 4.5 10 4.5 18.2 10 18.2 10 15 15.5 10 15.5 1.8 10 1.8 10z"/><circle cx="10" cy="10" r="2.6"/></g>`,
+} as const;
+
+/** The icons Jot draws. */
+export type IconName = keyof typeof PATHS;
+
+const sources = new Map<IconName, string>();
+
+/** The icon as a `data:` URL (a template: only its shape counts). */
+export function iconSource(name: IconName): string {
+  let src = sources.get(name);
+  if (!src) {
+    src = `data:image/svg+xml,${encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">${PATHS[name]}</svg>`,
+    )}`;
+    sources.set(name, src);
+  }
+  return src;
+}
+
+/** An icon `size` points square in `tint` (a color, as `token()` gives it). */
+export function Icon(props: { name: IconName; size?: number; tint: string; opacity?: number }): JSX.Element {
+  return (
+    <Image
+      src={iconSource(props.name)}
+      accessible={false}
+      style={{
+        pointerEvents: "none",
+        width: props.size ?? 16,
+        height: props.size ?? 16,
+        tintColor: props.tint,
+        opacity: props.opacity ?? 1,
+      }}
+    />
+  );
+}
