@@ -5,7 +5,9 @@ edition = "2024"
 publish = false
 
 [workspace]
+members = ["store", "mcp"]
 
 [dependencies]
 nsh-core = { path = "/Users/madcodelife/Workspace/longbridge/nsh/crates/nsh-core" }
 nsh-base = { path = "/Users/madcodelife/Workspace/longbridge/nsh/crates/nsh-base" }
+jot-store = { path = "store" }

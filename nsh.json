@@ -1,6 +1,6 @@
 {
   "name": "Jot",
-  "id": "com.example.jot",
+  "id": "com.madcodelife.jot",
   "version": "1.0.0",
   "build": 1,
   "rust": "."
