@@ -35,3 +35,34 @@ binaries in `target/`; it replaces `~/.cargo/bin/cargo`, and its README says how
 ```sh
 curl -fsSL https://huacnlee.github.io/cargo/install.sh | sh     # Windows: irm https://huacnlee.github.io/cargo/install.ps1 | iex
 ```
+
+## 连接 Claude
+
+`jot-mcp` is a stdio MCP server over the notes folder: Claude can search and read your notes, create notes (marked
+`source: claude`) and append to them, whether the app is running or not. It never deletes or overwrites a note.
+
+```sh
+cargo build --release -p jot-mcp
+claude mcp add jot -- "$PWD/target/release/jot-mcp" --dir ~/Documents/Jot
+```
+
+The folder is `--dir`, else the `JOT_DIR` environment variable, else `~/Documents/Jot`; a leading `~` is expanded by
+`jot-mcp` itself, since MCP clients start it without a shell. Add `--scope user` to `claude mcp add` to use Jot in every
+project.
+
+Claude Desktop: add the server to `~/Library/Application Support/Claude/claude_desktop_config.json` (Settings →
+Developer → Edit Config) with the binary's absolute path, then restart Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "jot": {
+      "command": "/absolute/path/to/jot/target/release/jot-mcp",
+      "args": ["--dir", "~/Documents/Jot"]
+    }
+  }
+}
+```
+
+Tools: `search_notes(query, limit?)`, `read_note(title)`, `recent_notes(limit?)`, `create_note(title, body)` and
+`append_note(title, text)`.

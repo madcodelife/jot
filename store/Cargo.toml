@@ -1,0 +1,13 @@
+[package]
+name = "jot-store"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Jot's notes folder: format, listing, search, atomic writes and folder watching"
+
+[dependencies]
+notify-debouncer-mini = "0.7"
+tempfile = "3"
+
+[dev-dependencies]
+tempfile = "3"
