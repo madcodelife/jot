@@ -239,13 +239,13 @@ code{font-family:var(--mono);font-size:.88em;background:var(--bg);border:1px sol
 </pre>
     </div>
 
-    <div class="hint glass" id="hint">按 <kbd>⌥</kbd> <kbd>Space</kbd> 呼出 Jot</div>
+    <div class="hint glass" id="hint">连按两下 <kbd>⌥</kbd> 呼出 Jot</div>
 
     <div class="panel glass" id="panel" data-state="hidden">
       <div class="field">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>
         <input id="q" placeholder="搜索或新建…" autocomplete="off" spellcheck="false" aria-label="搜索或新建笔记">
-        <span class="chip">⌥ Space</span>
+        <span class="chip">⌥ ⌥</span>
       </div>
       <div class="list" id="list"></div>
       <div class="foot"><span><b>↑↓</b> 选择</span><span><b>↩</b> 打开</span><span><b>⌘↩</b> 新建</span><span><b>esc</b> 收起</span><span style="margin-left:auto" id="count"></span></div>
@@ -272,7 +272,7 @@ code{font-family:var(--mono);font-size:.88em;background:var(--bg);border:1px sol
     <button class="btn" id="openBtn" type="button">呼出 / 收起</button>
     <button class="btn" id="writeBtn" type="button">让 Claude 记一条</button>
     <button class="btn" id="readBtn" type="button">让 Claude 读一条</button>
-    <span class="note">浮窗里可以直接打字：<kbd>↑</kbd><kbd>↓</kbd> 选择，<kbd>↩</kbd> 打开，<kbd>esc</kbd> 返回。在桌面浏览器里看效果最好。</span>
+    <span class="note">连按两下 <kbd>⌥</kbd> 呼出；浮窗里可以直接打字：<kbd>↑</kbd><kbd>↓</kbd> 选择，<kbd>↩</kbd> 打开，<kbd>esc</kbd> 返回。在桌面浏览器里看效果最好。</span>
   </div>
 
   <section class="spec">
@@ -314,16 +314,18 @@ code{font-family:var(--mono);font-size:.88em;background:var(--bg);border:1px sol
 
     <div class="card wide">
       <h3>在 NSH 里怎么做</h3>
-      <p class="sub">大部分 NSH 现在就有；灵动岛需要给 NSH 补两个小能力。</p>
+      <p class="sub">大部分 NSH 现在就有；双击 ⌥ 和刘海位置先在 Jot 自己的 Rust crate 里做。</p>
       <div class="tbl"><table>
         <thead><tr><th>要做的</th><th>NSH 的做法</th><th>状态</th></tr></thead>
         <tbody>
           <tr><td>无边框、透明的浮窗</td><td>窗口 <code>frame: "none"</code>、透明窗口、<code>level: "floating"</code></td><td><span class="st ok">已有</span></td></tr>
           <tr><td>Liquid Glass</td><td><code>glassEffect: "regular"</code>（macOS 26），更早的系统退回 <code>backdropFilter</code> 模糊</td><td><span class="st ok">已有</span></td></tr>
           <tr><td>弹簧形变</td><td>原生动画图的 spring driver，跑在主线程，不经过 JS</td><td><span class="st ok">已有</span></td></tr>
-          <tr><td>全局快捷键、托盘</td><td><code>nsh/desktop</code> 的 GlobalShortcut、Tray</td><td><span class="st ok">已有</span></td></tr>
+          <tr><td>托盘、备用快捷键</td><td><code>nsh/desktop</code> 的 Tray、GlobalShortcut</td><td><span class="st ok">已有</span></td></tr>
+          <tr><td>双击 ⌥ 呼出</td><td>Jot 自己的 Rust crate 监听修饰键（需要辅助功能权限）；没授权时退回备用快捷键</td><td><span class="st todo">Jot 里做</span></td></tr>
           <tr><td>正文编辑、Markdown 高亮</td><td><code>nsh/base</code> 的 Editor</td><td><span class="st ok">已有</span></td></tr>
-          <tr><td>刘海灵动岛</td><td>需要「菜单栏之上」的窗口层级，以及读出刘海的位置和大小</td><td><span class="st warn">要给 NSH 补</span></td></tr>
+          <tr><td>灵动岛窗口</td><td><code>level: "aboveDock"</code>（在菜单栏之上）、所有桌面空间都显示、点击穿透、无阴影</td><td><span class="st ok">已有</span></td></tr>
+          <tr><td>刘海的位置和大小</td><td>先在 Jot 的 Rust crate 里读 NSScreen；之后可以提给 NSH，作为 <code>displays()</code> 的一个字段</td><td><span class="st warn">Jot 先做，再提 NSH</span></td></tr>
           <tr><td>减弱透明度 / 动态效果</td><td>读系统设置，退回不透明底和淡入淡出</td><td><span class="st todo">实现时确认</span></td></tr>
         </tbody>
       </table></div>
@@ -333,8 +335,7 @@ code{font-family:var(--mono);font-size:.88em;background:var(--bg);border:1px sol
       <h3>需要你定的</h3>
       <ul>
         <li>名字：Jot 只是代号。</li>
-        <li>呼出方式：<kbd>⌥</kbd> <kbd>Space</kbd>，还是双击 <kbd>⌥</kbd>。</li>
-        <li>灵动岛除了 Claude，要不要也给自己用：比如把文字拖到刘海上直接记一条。</li>
+                <li>灵动岛除了 Claude，要不要也给自己用：比如把文字拖到刘海上直接记一条。</li>
       </ul>
     </div>
   </section>
@@ -460,8 +461,9 @@ code{font-family:var(--mono);font-size:.88em;background:var(--bg);border:1px sol
   q.addEventListener('input',()=>{ sel=0; if(panel.dataset.state==='capsule') setState('list'); if(panel.dataset.state==='editor') setState('list'); render(false); });
   let saveT; $('#pb').addEventListener('input',()=>{ const s=$('#saved'); s.classList.remove('on'); clearTimeout(saveT); saveT=setTimeout(()=>{ const n=notes.find(n=>n.t===openTitle); if(n){ n.b=$('#pb').innerText; n.m='刚刚'; } s.classList.add('on'); setTimeout(()=>s.classList.remove('on'),1400); },300); });
 
+  let lastAlt=0;
   document.addEventListener('keydown',e=>{
-    if(e.altKey && e.code==='Space'){ e.preventDefault(); toggle(); return; }
+    if(e.key==='Alt'){ if(!e.repeat){ const now=performance.now(); if(now-lastAlt<350){ lastAlt=0; e.preventDefault(); toggle(); return; } lastAlt=now; } return; } else lastAlt=0;
     const st=panel.dataset.state; if(st==='hidden') return;
     if(e.key==='Escape'){ e.preventDefault(); if(st==='editor'){ setState('list'); render(false); q.focus(); } else hide(); return; }
     if(document.activeElement===$('#pb')) return;
