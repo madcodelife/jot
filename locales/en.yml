@@ -1,0 +1,176 @@
+# English. The voice is short and plain, as in Things and Raycast: sentence
+# case for hints, title case for menu items and buttons.
+
+language:
+  system: System
+
+tray:
+  new_note: New Note
+  summon: Open Jot (%{keys})
+  todos: To-Dos
+  enable_double_tap: Turn On Double-Press %{keys}…
+  settings: Settings…
+
+notify:
+  missed:
+    one: You missed a reminder
+    other: You missed %{count} reminders
+  list_separator: ", "
+  reminders_failed: "Reminders couldn’t start: %{error}"
+  shortcut_taken: "%{keys} is taken by another app. Open Jot from the menu bar."
+
+search:
+  placeholder: Search or create…
+  label: Search or create a note
+  summon_double: Double-press %{key} to open
+  summon_shortcut: "%{keys} to open"
+
+empty:
+  title: No notes yet
+  first: Type a title and press %{keys} to start your first.
+  claude: Or ask Claude to “jot this down.”
+
+keys:
+  open: Open
+  create: New
+  dismiss: Close
+  tick: Complete
+  open_note: Open Note
+  back: Back
+
+footer:
+  notes:
+    one: "1 note · %{folder}"
+    other: "%{count} notes · %{folder}"
+  open:
+    one: "1 open"
+    other: "%{count} open"
+
+list:
+  blank: Empty note
+  create: Create “%{title}”
+  create_hint: Press Return to start writing
+  today:
+    one: 1 to-do today
+    other: "%{count} to-dos today"
+  today_none: Nothing due today
+  late:
+    one: 1 overdue
+    other: "%{count} overdue"
+  all_done: All done for today
+  next: "Next: %{time} %{text}"
+  see_all: Press Return to see all to-dos
+  dots: "%{done} of %{total} done today"
+
+todo:
+  # Typed in the search field (or /todo), these open the to-do view; the first is the one the menu and notifications use.
+  keywords: todo|todos|to-dos|to-do
+  group:
+    late: Overdue
+    today: Today
+    tomorrow: Tomorrow
+    later: Upcoming
+    none: Anytime
+  empty: You’re all caught up
+  tick: Complete “%{text}”
+  row: "%{text}, %{note}"
+  due_tip: "%{when} · reminder"
+
+note:
+  invalid_title: "“%{title}” can’t be a title"
+  create_failed: "Couldn’t create “%{title}”: %{error}"
+
+paper:
+  by_claude: By Claude
+  saved: Saved
+  placeholder: Start writing…
+  label: Note “%{title}”
+  save_failed: "Couldn’t save: %{error}"
+  appended: Claude added to the end. Your cursor stayed put.
+  conflict: This note changed somewhere else
+  view_end: Show ↓
+  use_theirs: Use Theirs
+
+time:
+  just_now: Just now
+  minutes_ago:
+    one: 1 min ago
+    other: "%{count} min ago"
+  today_at: Today %{time}
+  today: Today
+  tomorrow: Tomorrow
+  day_after: In 2 days
+  yesterday: Yesterday
+
+island:
+  writing: Claude · Writing to Jot
+  written: Claude · Saved to Jot
+  done: Done
+  remind: Reminder · %{time} · %{note}
+  now: Now
+  writing_label: Writing
+
+settings:
+  title: Settings
+  tabs:
+    general: General
+    appearance: Appearance
+    reminders: Reminders
+    claude: Claude
+    about: About
+  folder:
+    label: Notes Folder
+    hint: Each note is a .md file in this folder
+    change: Change…
+    choose: Choose
+    reveal: Show in Finder
+    failed: "Couldn’t open that folder: %{error}"
+  summon:
+    label: Open With
+    double: Double-press %{key}
+    on: "On"
+    grant: Allow…
+    grant_hint: Jot needs Accessibility access
+    fallback: Fallback Shortcut
+    fallback_hint: Opens Jot when double-press isn’t available
+  login:
+    label: Open at Login
+    hint: Jot waits in the menu bar after you log in
+  language:
+    label: Language
+  appearance:
+    label: Appearance
+    system: Auto
+    light: Light
+    dark: Dark
+  theme:
+    label: Theme
+    selected: Selected
+  reminders:
+    notifications: Notifications
+    notifications_hint: Show a notification when a to-do is due
+    island: Notch Island
+    island_hint: Opens from the notch for reminders and Claude’s notes
+    island_no_notch: This display has no notch
+    default_time: Default Time
+    default_time_hint: Used when a reminder has a date but no time, like “pay rent tomorrow”
+  claude:
+    intro: Claude can read and write the notes in this folder.
+    how: "To connect Jot to Claude Code, run this in Terminal:"
+    copy: Copy
+    copied: Copied
+    placeholder: "<jot-mcp path>"
+    path_note: "<jot-mcp path> is a placeholder: the packaged app will fill in where jot-mcp lives."
+    then: Then ask Claude to “jot this down” or “what’s on my list today?”
+  about:
+    tagline: A notebook you share with Claude
+    version: Version %{version} (%{build})
+    built_with: Built with Native Shell
+
+theme:
+  default: Graphite
+  paper: Paper & Ink
+  moss: Moss
+  dusk: Dusk
+  coral: Coral
+  contrast: High Contrast

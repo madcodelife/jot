@@ -1,0 +1,176 @@
+# 简体中文。`zh`：zh-CN、zh-Hans-CN、zh-SG 都落到这里（繁体在 zh-Hant.yml）。
+# 一个数量的说法分 `one` / `other` 两个键（英文要分单复数），中文两个一样。
+
+language:
+  system: 跟随系统
+
+tray:
+  new_note: 新建笔记
+  summon: 呼出 Jot（%{keys}）
+  todos: 待办
+  enable_double_tap: 开启连按两下 %{keys}…
+  settings: 设置…
+
+notify:
+  missed:
+    one: 错过了 %{count} 个提醒
+    other: 错过了 %{count} 个提醒
+  list_separator: 、
+  reminders_failed: 提醒没能开始：%{error}
+  shortcut_taken: "%{keys} 已被别的 App 占用，从菜单栏的 Jot 呼出"
+
+search:
+  placeholder: 搜索或新建…
+  label: 搜索或新建笔记
+  summon_double: 连按两下 %{key} 呼出
+  summon_shortcut: "%{keys} 呼出"
+
+empty:
+  title: 还没有笔记
+  first: 输入一个标题，按 %{keys} 就是第一条。
+  claude: 也可以在 Claude 里说「记到 Jot」。
+
+keys:
+  open: 打开
+  create: 新建
+  dismiss: 收起
+  tick: 勾掉
+  open_note: 打开笔记
+  back: 返回
+
+footer:
+  notes:
+    one: "%{count} 条笔记 · %{folder}"
+    other: "%{count} 条笔记 · %{folder}"
+  open:
+    one: "%{count} 件没勾掉"
+    other: "%{count} 件没勾掉"
+
+list:
+  blank: 空白笔记
+  create: 新建「%{title}」
+  create_hint: 回车直接开始写
+  today:
+    one: 今天 %{count} 件待办
+    other: 今天 %{count} 件待办
+  today_none: 今天没有待办
+  late:
+    one: "%{count} 件已过期"
+    other: "%{count} 件已过期"
+  all_done: 今天的都做完了
+  next: 下一件 %{time} %{text}
+  see_all: 回车查看全部待办
+  dots: 今天 %{total} 件，做完 %{done} 件
+
+todo:
+  # 搜索框里输入这些词（或 /todo）进入待办视图；第一个是托盘和通知用的。
+  keywords: 待办
+  group:
+    late: 已过期
+    today: 今天
+    tomorrow: 明天
+    later: 以后
+    none: 没有时间
+  empty: 没有没勾掉的待办
+  tick: 勾掉「%{text}」
+  row: "%{text}，%{note}"
+  due_tip: "%{when} · 到点提醒"
+
+note:
+  invalid_title: 「%{title}」不能作标题
+  create_failed: 没能新建「%{title}」：%{error}
+
+paper:
+  by_claude: Claude 记的
+  saved: 已保存
+  placeholder: 写点什么…
+  label: 笔记「%{title}」
+  save_failed: 没能保存：%{error}
+  appended: Claude 在末尾加了一段，你的光标没动
+  conflict: 这条笔记在别处改过了
+  view_end: 查看 ↓
+  use_theirs: 用那边的
+
+time:
+  just_now: 刚刚
+  minutes_ago:
+    one: "%{count} 分钟前"
+    other: "%{count} 分钟前"
+  today_at: 今天 %{time}
+  today: 今天
+  tomorrow: 明天
+  day_after: 后天
+  yesterday: 昨天
+
+island:
+  writing: Claude · 正在记到 Jot
+  written: Claude · 已记下
+  done: 已完成
+  remind: 提醒 · %{time} · %{note}
+  now: 现在
+  writing_label: 正在写
+
+settings:
+  title: 设置
+  tabs:
+    general: 通用
+    appearance: 外观
+    reminders: 提醒
+    claude: Claude
+    about: 关于
+  folder:
+    label: 笔记文件夹
+    hint: 每条笔记是这里的一个 .md 文件
+    change: 更改…
+    choose: 选择
+    reveal: 在访达中显示
+    failed: 没能打开这个文件夹：%{error}
+  summon:
+    label: 呼出方式
+    double: 连按两下 %{key}
+    on: 已开启
+    grant: 去授权…
+    grant_hint: 需要在「辅助功能」里允许 Jot
+    fallback: 备用快捷键
+    fallback_hint: 连按两下不可用时，用它呼出
+  login:
+    label: 开机时启动
+    hint: 登录后 Jot 待在菜单栏里
+  language:
+    label: 语言
+  appearance:
+    label: 外观
+    system: 跟随系统
+    light: 浅色
+    dark: 深色
+  theme:
+    label: 主题
+    selected: 已选
+  reminders:
+    notifications: 桌面通知
+    notifications_hint: 到点时弹出系统通知
+    island: 刘海处的灵动岛
+    island_hint: 到点和 Claude 记笔记时，从刘海处展开
+    island_no_notch: 这块屏幕没有刘海
+    default_time: 默认提醒时间
+    default_time_hint: 只写日期时用这个时间，比如「明天交房租」
+  claude:
+    intro: Claude 能读写这个文件夹里的笔记。
+    how: 在终端里运行这条命令，把 Jot 接到 Claude Code：
+    copy: 复制
+    copied: 已复制
+    placeholder: "<jot-mcp 路径>"
+    path_note: "<jot-mcp 路径> 是占位：打包时会换成 App 里 jot-mcp 的位置。"
+    then: 之后在 Claude 里说「记到 Jot」或「我今天有什么要做的」。
+  about:
+    tagline: 你和 Claude 共用的速记本
+    version: 版本 %{version}（%{build}）
+    built_with: 用 Native Shell 构建
+
+theme:
+  default: 默认
+  paper: 纸墨
+  moss: 苔绿
+  dusk: 暮紫
+  coral: 珊瑚
+  contrast: 高对比

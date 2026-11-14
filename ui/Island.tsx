@@ -5,6 +5,7 @@
 // passes through it: its window takes no clicks unless a reminder shows.
 import { Animated, createAnimatedValue, effect, reduceMotion, signal, Text, token, untracked, View, type Bounds } from "nsh";
 import { displays, Window, type Display, type WindowRef } from "nsh/desktop";
+import { t } from "nsh/i18n";
 import type { Todo } from "jot/native";
 import { errorCode, notes, refresh } from "../app/store";
 import { hm, parseDue } from "../app/time";
@@ -243,11 +244,11 @@ function IslandContent(props: { event: IslandEvent }) {
         <Text class="text-island-muted" style={{ numberOfLines: 1, fontSize: T.type.islandLabel }}>
           {write()
             ? done()
-              ? "Claude · 已记下"
-              : "Claude · 正在记到 Jot"
+              ? t("island.written")
+              : t("island.writing")
             : done()
-              ? "已完成"
-              : `提醒 · ${due() ? hm(due()!) : "现在"} · ${remind()?.todo.note ?? ""}`}
+              ? t("island.done")
+              : t("island.remind", { time: due() ? hm(due()!) : t("island.now"), note: remind()?.todo.note ?? "" })}
         </Text>
         <Text class="font-semibold text-island-fg" style={{ numberOfLines: 1, fontSize: T.type.island }}>
           {write() ? write()!.title.slice(0, done() ? undefined : typed()) : remind()!.todo.text}
@@ -269,7 +270,7 @@ function IslandContent(props: { event: IslandEvent }) {
             <TodoCheck
               testID="island-check"
               checked={done()}
-              label={`勾掉「${r().todo.text}」`}
+              label={t("todo.tick", { text: r().todo.text })}
               onCheck={() => tick(r().todo)}
               size={26}
               onAccent
@@ -292,7 +293,7 @@ function Spinner() {
   });
   return (
     <View
-      accessibilityLabel="正在写"
+      accessibilityLabel={t("island.writing_label")}
       class="border-island-line"
       style={{ width: 25, height: 25, borderRadius: 12.5, borderWidth: 3, borderTopColor: token("island-fg"), transform: [{ rotate: turn }] }}
     />

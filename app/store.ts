@@ -3,9 +3,11 @@
 // with them. Components read these signals; only the functions below write
 // them, so every change goes through one place.
 import { batch, computed, reduceMotion, signal, Storage, untracked } from "nsh";
-import { Notes, Summon, type NoteMeta, type Todo } from "jot/native";
+import { t } from "nsh/i18n";
+import { Folder, Notes, Reminders, Summon, type DueEvent, type NoteMeta, type Todo } from "jot/native";
 import { morphNext } from "../ui/motion";
 import { T } from "../ui/tokens";
+import { todoKeyword, todoKeywords } from "./i18n";
 import { groupOf, parseDue, type TodoGroup } from "./time";
 
 /** Where the panel is: hidden, the summoned capsule, the list, or a note open beside the list. */
@@ -31,6 +33,9 @@ const WELCOMED_KEY = "jot.welcomed";
 
 /** The notes folder, once it is open. */
 export const notes = signal<Notes | null>(null);
+/** The folder's absolute path, and as people read it (`~/Documents/Jot`): the footer and the settings show it. */
+export const folderPath = signal<string | null>(null);
+export const folderShown = signal<string>(T.folder.shown);
 /** Why the folder could not be opened. */
 export const folderError = signal<string | null>(null);
 /** Bumped whenever the folder changes (on disk, or by Jot): what reads the notes reads it. */
@@ -74,8 +79,8 @@ export const errorCode = (error: unknown): string | undefined =>
 /** An error's message, for a notice. */
 export const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
-/** "待办" or "/todo": the to-do view. */
-export const isTodoQuery = (q: string) => /^(待办|\/todo)$/i.test(q.trim());
+/** The to-do view's word in the language shown ("待办", "todo", "やること"), or "/todo". */
+export const isTodoQuery = (q: string) => todoKeywords().includes(q.trim().toLowerCase());
 export const todoMode = computed(() => isTodoQuery(query()));
 
 /** Every note, newest first. */
@@ -137,21 +142,67 @@ const selectable = () => (todoMode() ? todoItems().filter((i) => i.kind === "tod
 
 /** Opens the notes folder (Storage's `jot.dir`, else ~/Documents/Jot) and watches it. */
 export async function openFolder(): Promise<Notes | null> {
-  let dir = await Storage.getItem(DIR_KEY);
+  // `Notes` expands a leading "~/" itself.
+  const dir = (await Storage.getItem(DIR_KEY)) ?? `~/${T.folder.path}`;
   try {
-    // `Notes` expands a leading "~/" itself.
-    dir ??= `~/${T.folder.path}`;
-    const n = new Notes(dir);
-    known = new Set(n.list().map((m) => m.title));
-    n.watch(folderChanged);
-    batch(() => {
-      notes.set(n);
-      folderError.set(null);
-    });
-    return n;
+    return useFolder(new Notes(dir));
   } catch (error) {
     folderError.set(errorMessage(error));
     return null;
+  }
+}
+
+/** Makes `n` the notes folder: watched, its reminders running; the folder before it lets go of its watchers. */
+function useFolder(n: Notes): Notes {
+  const before = untracked(notes);
+  known = new Set(n.list().map((m) => m.title));
+  createdHere.clear();
+  lastWritten.clear();
+  n.watch(folderChanged);
+  batch(() => {
+    notes.set(n);
+    folderPath.set(n.dir);
+    folderShown.set(Folder.shown(n.dir));
+    folderError.set(null);
+    opened.set(null);
+    if (untracked(stage) === "editor") stage.set("list");
+    selected.set(0);
+  });
+  if (before && before !== n) before.dispose();
+  restartReminders();
+  refresh();
+  return n;
+}
+
+/** Moves Jot to the folder at `dir` (the settings' "Change…"): opened, watched, remembered. Throws when it cannot be opened. */
+export function changeFolder(dir: string) {
+  const n = new Notes(dir);
+  useFolder(n);
+  void Storage.setItem(DIR_KEY, dir);
+}
+
+/** What fires when to-dos come due (App.tsx's), and the folder's reminders running it. */
+let onDue: ((event: DueEvent) => void) | null = null;
+let reminders: Reminders | null = null;
+
+/** Fires `listener` at the to-dos' due times, in whichever folder is open (again after the folder changes). */
+export function startReminders(listener: (event: DueEvent) => void) {
+  onDue = listener;
+  restartReminders();
+}
+
+function restartReminders() {
+  const n = untracked(notes);
+  const listener = onDue;
+  reminders?.dispose();
+  reminders = null;
+  if (!n || !listener) return;
+  try {
+    const next = new Reminders(n);
+    next.start(listener);
+    reminders = next;
+  } catch (error) {
+    folderError.set(t("notify.reminders_failed", { error: errorMessage(error) }));
   }
 }
 
@@ -295,7 +346,7 @@ export function activate(index = untracked(selected)) {
   selected.set(index);
   if (row.kind === "summary") {
     morphNext(T.spring.expand);
-    setQuery("待办");
+    setQuery(todoKeyword());
     listEntrance.update((n) => n + 1);
   } else if (row.kind === "note") open(row.meta.title);
   else create(row.title);
@@ -329,8 +380,8 @@ export function create(title: string) {
     const code = errorCode(error);
     const existing = code === "ERR_JOT_ALREADY_EXISTS" ? n.read(title) : null;
     if (existing) open(existing.meta.title);
-    else if (code === "ERR_JOT_INVALID_TITLE") notice.set(`「${title}」不能作标题`);
-    else notice.set(`没能新建「${title}」：${errorMessage(error)}`);
+    else if (code === "ERR_JOT_INVALID_TITLE") notice.set(t("note.invalid_title", { title }));
+    else notice.set(t("note.create_failed", { title, error: errorMessage(error) }));
   }
 }
 

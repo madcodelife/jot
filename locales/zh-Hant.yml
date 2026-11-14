@@ -1,0 +1,174 @@
+# 繁體中文（台灣用語）。zh-Hant-TW、zh-Hant-HK 都落到這裡。
+
+language:
+  system: 跟隨系統
+
+tray:
+  new_note: 新增筆記
+  summon: 叫出 Jot（%{keys}）
+  todos: 待辦
+  enable_double_tap: 開啟連按兩下 %{keys}…
+  settings: 設定…
+
+notify:
+  missed:
+    one: 錯過了 %{count} 個提醒
+    other: 錯過了 %{count} 個提醒
+  list_separator: 、
+  reminders_failed: 提醒無法啟動：%{error}
+  shortcut_taken: "%{keys} 已被其他 App 佔用，請從選單列的 Jot 叫出"
+
+search:
+  placeholder: 搜尋或新增…
+  label: 搜尋或新增筆記
+  summon_double: 連按兩下 %{key} 叫出
+  summon_shortcut: "%{keys} 叫出"
+
+empty:
+  title: 還沒有筆記
+  first: 輸入一個標題，按 %{keys} 就是第一則。
+  claude: 也可以在 Claude 裡說「記到 Jot」。
+
+keys:
+  open: 開啟
+  create: 新增
+  dismiss: 收起
+  tick: 勾選
+  open_note: 開啟筆記
+  back: 返回
+
+footer:
+  notes:
+    one: "%{count} 則筆記 · %{folder}"
+    other: "%{count} 則筆記 · %{folder}"
+  open:
+    one: "%{count} 件未完成"
+    other: "%{count} 件未完成"
+
+list:
+  blank: 空白筆記
+  create: 新增「%{title}」
+  create_hint: 按 Return 直接開始寫
+  today:
+    one: 今天 %{count} 件待辦
+    other: 今天 %{count} 件待辦
+  today_none: 今天沒有待辦
+  late:
+    one: "%{count} 件已過期"
+    other: "%{count} 件已過期"
+  all_done: 今天的都完成了
+  next: 下一件 %{time} %{text}
+  see_all: 按 Return 查看所有待辦
+  dots: 今天 %{total} 件，完成 %{done} 件
+
+todo:
+  keywords: 待辦
+  group:
+    late: 已過期
+    today: 今天
+    tomorrow: 明天
+    later: 之後
+    none: 沒有時間
+  empty: 沒有未完成的待辦
+  tick: 勾選「%{text}」
+  row: "%{text}，%{note}"
+  due_tip: "%{when} · 到時提醒"
+
+note:
+  invalid_title: 「%{title}」不能當標題
+  create_failed: 無法新增「%{title}」：%{error}
+
+paper:
+  by_claude: Claude 記的
+  saved: 已儲存
+  placeholder: 寫點什麼…
+  label: 筆記「%{title}」
+  save_failed: 無法儲存：%{error}
+  appended: Claude 在結尾加了一段，你的游標沒有動
+  conflict: 這則筆記在別處改過了
+  view_end: 查看 ↓
+  use_theirs: 用那邊的
+
+time:
+  just_now: 剛剛
+  minutes_ago:
+    one: "%{count} 分鐘前"
+    other: "%{count} 分鐘前"
+  today_at: 今天 %{time}
+  today: 今天
+  tomorrow: 明天
+  day_after: 後天
+  yesterday: 昨天
+
+island:
+  writing: Claude · 正在記到 Jot
+  written: Claude · 已記下
+  done: 已完成
+  remind: 提醒 · %{time} · %{note}
+  now: 現在
+  writing_label: 正在寫
+
+settings:
+  title: 設定
+  tabs:
+    general: 一般
+    appearance: 外觀
+    reminders: 提醒
+    claude: Claude
+    about: 關於
+  folder:
+    label: 筆記資料夾
+    hint: 每則筆記是這裡的一個 .md 檔案
+    change: 更改…
+    choose: 選擇
+    reveal: 在 Finder 中顯示
+    failed: 無法開啟這個資料夾：%{error}
+  summon:
+    label: 叫出方式
+    double: 連按兩下 %{key}
+    on: 已開啟
+    grant: 前往授權…
+    grant_hint: 需要在「輔助使用」裡允許 Jot
+    fallback: 備用快速鍵
+    fallback_hint: 無法連按兩下時，用它叫出
+  login:
+    label: 登入時開啟
+    hint: 登入後 Jot 會待在選單列
+  language:
+    label: 語言
+  appearance:
+    label: 外觀
+    system: 跟隨系統
+    light: 淺色
+    dark: 深色
+  theme:
+    label: 主題
+    selected: 已選
+  reminders:
+    notifications: 桌面通知
+    notifications_hint: 到時跳出系統通知
+    island: 瀏海處的動態島
+    island_hint: 到時和 Claude 記筆記時，從瀏海處展開
+    island_no_notch: 這個螢幕沒有瀏海
+    default_time: 預設提醒時間
+    default_time_hint: 只寫日期時用這個時間，例如「明天繳房租」
+  claude:
+    intro: Claude 能讀寫這個資料夾裡的筆記。
+    how: 在終端機執行這行指令，把 Jot 接到 Claude Code：
+    copy: 拷貝
+    copied: 已拷貝
+    placeholder: "<jot-mcp 路徑>"
+    path_note: "<jot-mcp 路徑> 是佔位：打包時會換成 App 裡 jot-mcp 的位置。"
+    then: 之後在 Claude 裡說「記到 Jot」或「我今天有什麼要做的」。
+  about:
+    tagline: 你和 Claude 共用的速記本
+    version: 版本 %{version}（%{build}）
+    built_with: 以 Native Shell 打造
+
+theme:
+  default: 預設
+  paper: 紙墨
+  moss: 苔綠
+  dusk: 暮紫
+  coral: 珊瑚
+  contrast: 高對比

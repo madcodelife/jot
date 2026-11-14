@@ -6,12 +6,15 @@
 // elsewhere (Claude appending to the note) come in without moving the caret.
 import { cleanup, computed, createAnimatedValue, effect, Notifications, signal, Text, token, untracked, View } from "nsh";
 import { Button, Editor, type EditorDecoration, type EditorRef, type EditorSelection } from "nsh/base";
+import { t } from "nsh/i18n";
 import { When } from "jot/native";
+import { whenOptions } from "../app/settings";
 import { allNotes, errorMessage, lastWritten, notes, now, opened, revision, save } from "../app/store";
 import { taskLine, toggledLine } from "../app/tasks";
 import { age, parseDue } from "../app/time";
 import { Icon } from "./icons";
 import { fadeTo } from "./motion";
+import { fade } from "./themes";
 import { T } from "./tokens";
 
 /** What the panel's keys ask of the open note (⌘↩ ticks the caret's task). */
@@ -98,7 +101,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
       clearTimeout(savedTimer);
       savedTimer = setTimeout(() => fadeTo(savedOpacity, 0, 300), T.timing.savedFor);
     } catch (error) {
-      showNotice("conflict", `没能保存：${errorMessage(error)}`);
+      showNotice("conflict", t("paper.save_failed", { error: errorMessage(error) }));
     }
   }
 
@@ -122,7 +125,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     const line = untracked(caretLine);
     const content = lineAt(untracked(text), line);
     if (/⏰ \d{4}-\d\d-\d\d \d\d:\d\d/.test(content)) return phrase.set(null);
-    const match = When.parse(content);
+    const match = When.parse(content, whenOptions());
     phrase.set(match ? { line, start: match.start, end: match.end } : null);
   }
 
@@ -130,7 +133,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   function normalize(line: number) {
     const before = lineAt(untracked(text), line);
     if (!before) return;
-    const after = When.normalizeLine(before);
+    const after = When.normalizeLine(before, whenOptions());
     if (after === null || after === before || !editor) return;
     editor.edit([{ range: { start: { line, column: 0 }, end: { line, column: before.length } }, text: after }]);
     if (after.includes("⏰")) askToNotify();
@@ -196,12 +199,12 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
           clearTimeout(saveTimer);
           saveTimer = setTimeout(saveNow, T.timing.saveAfter);
         }
-        showNotice("append", "Claude 在末尾加了一段，你的光标没动");
+        showNotice("append", t("paper.appended"));
       } else if (!dirty && editor) {
         editor.setValue(disk);
         onDisk = disk;
       } else {
-        showNotice("conflict", "这条笔记在别处改过了");
+        showNotice("conflict", t("paper.conflict"));
       }
     });
   });
@@ -215,13 +218,13 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
       const task = taskLine(content);
       if (!task) return;
       const span = (start: number, end: number) => ({ start: { line, column: start }, end: { line, column: end } });
-      out.push({ range: span(task.box.start, task.box.end), class: task.done ? "text-paper-muted font-semibold" : "text-primary font-semibold" });
+      out.push({ range: span(task.box.start, task.box.end), class: task.done ? "text-paper-muted font-semibold" : "text-accent-ink font-semibold" });
       if (task.done) out.push({ range: span(task.rest.start, task.stamp?.start ?? task.rest.end), class: "text-paper-muted line-through" });
       if (task.due) {
         const late = !task.done && (parseDue(task.due.at)?.getTime() ?? Infinity) < at;
         out.push({
           range: span(task.due.start, task.due.end),
-          class: task.done ? "text-paper-muted" : late ? "bg-danger/15 text-danger font-semibold" : "bg-primary/15 text-primary font-semibold",
+          class: task.done ? "text-paper-muted" : late ? "bg-late/13 text-late font-semibold" : "bg-due/13 text-due font-semibold",
         });
       }
       if (task.stamp) out.push({ range: span(task.stamp.start, task.stamp.end), class: "text-paper-muted" });
@@ -230,14 +233,14 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     if (p) {
       out.push({
         range: { start: { line: p.line, column: p.start }, end: { line: p.line, column: p.end } },
-        class: "bg-primary/15 text-primary font-semibold",
+        class: "bg-due/13 text-due font-semibold",
       });
     }
     return out;
   });
 
   return (
-    <View testID="paper" class="flex-1 bg-paper" style={{ borderRadius: T.radius.paper, borderCurve: "continuous", overflow: "hidden" }}>
+    <View testID="paper" class={`flex-1 bg-paper ${fade()}`} style={{ borderRadius: T.radius.paper, borderCurve: "continuous", overflow: "hidden" }}>
       <View style={{ paddingTop: 30, paddingHorizontal: PAPER_X }}>
         <Text testID="paper-title" class="font-bold text-paper-fg" style={{ numberOfLines: 2, fontSize: T.type.title, letterSpacing: -0.6, lineHeight: 33 }}>
           {title}
@@ -246,8 +249,8 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
           <If when={meta()?.source === "claude"}>
             <View class="flex-row items-center" style={{ gap: 4 }}>
               <Icon name="spark" size={12} tint={token("claude")} />
-              <Text class="font-semibold text-claude" style={{ fontSize: T.type.meta }}>
-                Claude 记的
+              <Text class="font-semibold text-claude-ink" style={{ fontSize: T.type.meta }}>
+                {t("paper.by_claude")}
               </Text>
             </View>
             <Text class="text-paper-muted" style={{ fontSize: T.type.meta }}>
@@ -255,13 +258,13 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
             </Text>
           </If>
           <Text testID="paper-meta" class="text-paper-muted" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
-            {`${meta() ? age(meta()!.modified, now()) : "刚刚"} · ${title}.md`}
+            {`${meta() ? age(meta()!.modified, now()) : t("time.just_now")} · ${title}.md`}
           </Text>
         </View>
         <View class="absolute flex-row items-center" style={{ right: 22, top: 22, gap: 5, opacity: savedOpacity }}>
           <View class="bg-ok" style={{ width: 7, height: 7, borderRadius: 3.5 }} />
           <Text class="text-paper-muted" style={{ fontSize: T.type.meta }}>
-            已保存
+            {t("paper.saved")}
           </Text>
         </View>
       </View>
@@ -273,8 +276,8 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
         class="flex-1"
         defaultValue={text()}
         language="markdown"
-        placeholder="写点什么…"
-        accessibilityLabel={`笔记「${title}」`}
+        placeholder={t("paper.placeholder")}
+        accessibilityLabel={t("paper.label", { title })}
         autoFocus={props.focus}
         lineNumbers={false}
         folding={false}
@@ -327,8 +330,8 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
                   notice.set(null);
                 }}
               >
-                <Text class="font-semibold text-primary" style={{ fontSize: 12.5 }}>
-                  {n().kind === "append" ? "查看 ↓" : "用那边的"}
+                <Text class="font-semibold text-accent-ink" style={{ fontSize: 12.5 }}>
+                  {n().kind === "append" ? t("paper.view_end") : t("paper.use_theirs")}
                 </Text>
               </Button>
             </View>

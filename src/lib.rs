@@ -7,10 +7,12 @@
 //! - [`When`]: the time phrases of a to-do line.
 //! - [`Reminders`]: fires at the to-dos' due times while the app runs.
 //! - [`Summon`]: a system-wide double tap of a modifier key.
+//! - [`Folder`]: the system's folder dialog, and a folder shown in Finder.
 //!
 //! Platform code lives in `platform/<os>.rs` behind one interface, so
 //! `App.tsx` never checks the platform for these.
 
+mod folder;
 mod notes;
 #[cfg(target_os = "macos")]
 #[path = "platform/macos.rs"]
@@ -25,6 +27,7 @@ mod when;
 
 use nsh_core::prelude::*;
 
+pub use folder::Folder;
 pub use notes::{Note, NoteMeta, NoteSource, Notes, SearchHit, Todo};
 pub use reminders::{DueEvent, Reminders};
 pub use summon::{Summon, SummonKey};
@@ -37,5 +40,6 @@ fn native(registry: &mut Registry) {
         .class::<Notes>()
         .class::<Reminders>()
         .module::<When>()
-        .module::<Summon>();
+        .module::<Summon>()
+        .module::<Folder>();
 }

@@ -6,7 +6,8 @@
 // macOS is implemented; Windows and Linux carry the design's values so the
 // same screens pick them up when those targets are built (their colors are
 // the theme's for now: see `colors` below).
-import { platform } from "nsh";
+import { platform, token } from "nsh";
+import { solidTheme, tintedGlass } from "./themes";
 
 /** A spring as SwiftUI states it: how long it takes and how much it bounces. */
 export interface Spring {
@@ -277,11 +278,13 @@ export const T: PlatformTokens = platform.os === "windows" ? windows : platform.
 /** Liquid Glass draws on macOS 26 and later; earlier systems get the blur and the translucent fill. */
 export const nativeGlass = platform.os === "macos" && Number.parseInt(platform.version, 10) >= 26;
 
-/** The floating layer's material as style keys: the glass (or its fallback), its edge. */
+/** The floating layer's material as style keys: the glass (or its fallback), tinted as the theme says; none for a solid theme (high contrast). Reactive. */
 export function materialStyle() {
+  if (solidTheme()) return { glassEffect: "none" as const, backdropFilter: "none" };
   if (T.material.kind === "glass") {
     return {
       glassEffect: "regular" as const,
+      ...(tintedGlass() ? { glassTintColor: token("glass-tint") } : {}),
       backdropFilter: `blur(${T.material.blur}px) saturate(${T.material.saturate}%)`,
     };
   }
@@ -291,5 +294,5 @@ export function materialStyle() {
   return {};
 }
 
-/** The fill drawn under the material: none over native glass (it hides the effect), the translucent tint elsewhere. */
-export const materialFill = nativeGlass ? "bg-transparent" : "bg-glass-fill";
+/** The fill drawn under the material: none over native glass (it hides the effect), the translucent tint elsewhere, the opaque surface of a solid theme. Reactive. */
+export const materialFill = () => (nativeGlass && !solidTheme() ? "bg-transparent" : "bg-glass-fill");

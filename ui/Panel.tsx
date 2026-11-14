@@ -4,6 +4,7 @@
 // to-do view, and a note open beside the list, each change a spring.
 import { Animated, computed, createAnimatedValue, effect, keymap, reduceMotion, signal, Text, token, untracked, View, type AnimatedValue, type InputRef } from "nsh";
 import { Input } from "nsh/base";
+import { t } from "nsh/i18n";
 import { displays, Window, type Display, type WindowRef } from "nsh/desktop";
 import {
   activate,
@@ -15,6 +16,7 @@ import {
   dismiss,
   focusRequest,
   folderError,
+  folderShown,
   move,
   notice,
   query,
@@ -30,6 +32,9 @@ import { fadeTo, springConfig } from "./motion";
 import { NoteList } from "./NoteList";
 import { Paper, toggleTaskAtCaret } from "./Paper";
 import { HintDivider, KeyHint, SummonKeys } from "./parts";
+import { openSettings } from "./Settings";
+import { fade } from "./themes";
+import { tn } from "../app/i18n";
 import { T, materialFill, materialStyle } from "./tokens";
 import { TodoView, todoViewHeight } from "./TodoView";
 
@@ -153,6 +158,8 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
   keymap.bind(
     {
       escape: () => back(),
+      // ⌘,: the settings, as in every Mac app (the panel hides as the settings window takes the focus).
+      "mod+,": () => openSettings(),
       "mod+enter": () => {
         if (untracked(stage) === "editor" && !untracked(fieldFocused)) toggleTaskAtCaret();
         else if (untracked(todoMode)) checkSelected();
@@ -171,7 +178,7 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
   return (
     <View
       testID="panel"
-      class={`${materialFill} border border-glass-edge`}
+      class={`${materialFill()} border border-glass-edge ${fade()}`}
       style={{
         ...materialStyle(),
         width: panelSize().width,
@@ -233,8 +240,8 @@ function Field(props: { onFocusChange: (focused: boolean) => void }) {
         class="flex-1 text-glass-fg"
         style={{ fontSize: T.type.field, backgroundColor: "transparent" }}
         value={query()}
-        placeholder="搜索或新建…"
-        accessibilityLabel="搜索或新建笔记"
+        placeholder={t("search.placeholder")}
+        accessibilityLabel={t("search.label")}
         autoFocus
         autoCorrect={false}
         autoCapitalize="none"
@@ -256,13 +263,13 @@ function EmptyNotes() {
   return (
     <View testID="empty" class="items-center justify-center" style={{ height: emptyHeight, gap: 6, paddingHorizontal: 32 }}>
       <Text class="font-semibold text-glass-fg" style={{ fontSize: T.type.row }}>
-        还没有笔记
+        {t("empty.title")}
       </Text>
       <Text class="text-glass-muted text-center" style={{ fontSize: T.type.snippet }}>
-        {`输入一个标题，按 ${T.keys.enter.join(" ")} 就是第一条。`}
+        {t("empty.first", { keys: T.keys.enter.join(" ") })}
       </Text>
       <Text class="text-glass-muted text-center" style={{ fontSize: T.type.snippet }}>
-        也可以在 Claude 里说「记到 Jot」。
+        {t("empty.claude")}
       </Text>
     </View>
   );
@@ -275,7 +282,7 @@ function Footer() {
   return (
     <View
       testID="footer"
-      class="flex-row items-center border-t border-glass-line"
+      class={`flex-row items-center border-t border-glass-line ${fade()}`}
       style={{ height: T.size.footer, gap: 12, paddingHorizontal: 18 }}
     >
       <If
@@ -286,29 +293,29 @@ function Footer() {
               when={todoMode()}
               else={
                 <>
-                  <KeyHint label="打开" keys={T.keys.enter} main />
+                  <KeyHint label={t("keys.open")} keys={T.keys.enter} main />
                   <HintDivider />
-                  <KeyHint label="新建" keys={T.keys.create} />
+                  <KeyHint label={t("keys.create")} keys={T.keys.create} />
                   <HintDivider />
-                  <KeyHint label="收起" keys={T.keys.esc} />
+                  <KeyHint label={t("keys.dismiss")} keys={T.keys.esc} />
                 </>
               }
             >
-              <KeyHint label="勾掉" keys={T.keys.create} main />
+              <KeyHint label={t("keys.tick")} keys={T.keys.create} main />
               <HintDivider />
-              <KeyHint label="打开笔记" keys={T.keys.enter} />
+              <KeyHint label={t("keys.open_note")} keys={T.keys.enter} />
               <HintDivider />
-              <KeyHint label="返回" keys={T.keys.esc} />
+              <KeyHint label={t("keys.back")} keys={T.keys.esc} />
             </If>
             <View class="flex-1" />
             <Text class="text-glass-muted" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
-              {todoMode() ? `${left()} 件没勾掉` : `${allNotes().length} 条笔记 · ${T.folder.shown}`}
+              {todoMode() ? tn("footer.open", left()) : tn("footer.notes", allNotes().length, { folder: folderShown() })}
             </Text>
           </>
         }
       >
         {(m) => (
-          <Text testID="notice" class="text-danger" style={{ numberOfLines: 1, fontSize: T.type.meta }}>
+          <Text testID="notice" class="text-late" style={{ numberOfLines: 1, fontSize: T.type.meta }}>
             {m()}
           </Text>
         )}

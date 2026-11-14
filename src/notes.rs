@@ -288,7 +288,7 @@ pub(crate) fn format_due(due: jiff::civil::DateTime) -> String {
 }
 
 /// `dir` with a leading `~` replaced by the home folder.
-fn expand_home(dir: &str) -> PathBuf {
+pub(crate) fn expand_home(dir: &str) -> PathBuf {
     let home = || std::env::var_os("HOME").map(PathBuf::from);
     if dir == "~" {
         if let Some(home) = home() {

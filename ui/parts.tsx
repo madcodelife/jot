@@ -5,6 +5,7 @@ import { Checkbox } from "nsh/base";
 import { Icon } from "./icons";
 import { T } from "./tokens";
 import { token } from "nsh";
+import { t } from "nsh/i18n";
 
 interface Segment {
   text: string;
@@ -127,7 +128,7 @@ export function TodoCheck(props: { checked: boolean; label: string; onCheck: () 
 export function SummonKeys(props: { trusted: boolean }) {
   const keys = () => (props.trusted ? T.keys.summonCaps : T.keys.fallbackCaps);
   return (
-    <View accessibilityLabel={props.trusted ? `连按两下 ${T.keys.summonCaps[0]} 呼出` : `${T.keys.fallback} 呼出`}>
+    <View accessibilityLabel={props.trusted ? t("search.summon_double", { key: T.keys.summonCaps[0] }) : t("search.summon_shortcut", { keys: T.keys.fallback })}>
       <Keycaps keys={keys()} />
     </View>
   );

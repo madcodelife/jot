@@ -3,28 +3,31 @@
 // writes to the same folder (through `jot-mcp`); the island shows it.
 //
 // The main window stays hidden (nsh.json `window.defaultVisible`): the app
-// lives in the menu bar, and its UI is the panel's popup window and, on
-// macOS, the island's overlay.
+// lives in the menu bar, and its UI is the panel's popup window, the
+// settings window and, on macOS, the island's overlay.
 import { effect, mount, Notifications, platform, untracked } from "nsh";
+import { t } from "nsh/i18n";
 import { GlobalShortcut, Tray } from "nsh/desktop";
-import { Reminders, Summon, type DueEvent } from "jot/native";
+import { Summon, type DueEvent } from "jot/native";
+import { tn, todoKeyword } from "./app/i18n";
+import { islandOn, loadSettings, notificationsOn } from "./app/settings";
 import {
   allNotes,
   clampSelection,
-  errorMessage,
   firstRun,
-  folderError,
   notice,
   now,
   onClaudeNote,
   open,
   openFolder,
+  startReminders,
   summon,
   toggle,
   trusted,
 } from "./app/store";
 import { IslandWindow, showClaudeWrite, showReminder } from "./ui/Island";
 import { PanelWindow } from "./ui/Panel";
+import { openSettings, SettingsWindow } from "./ui/Settings";
 import { T } from "./ui/tokens";
 import trayIcon from "./ui/tray.svg";
 
@@ -39,37 +42,40 @@ function listenToDoubleTap() {
 /** Without the permission, the fallback shortcut summons Jot; it goes once the double press works. */
 async function useFallbackShortcut() {
   const ok = await GlobalShortcut.register(T.keys.fallbackShortcut, toggle);
-  if (!ok) notice.set(`${T.keys.fallback} 已被别的 App 占用，从菜单栏的 Jot 呼出`);
+  if (!ok) notice.set(t("notify.shortcut_taken", { keys: T.keys.fallback }));
 }
 
-/** To-dos came due: a notification each (one for several missed while the Mac slept), and the island. */
+/** To-dos came due: a notification each (one for several missed while the Mac slept), and the island, as the settings allow. */
 function remind(event: DueEvent) {
+  const notify = untracked(notificationsOn);
+  const island = hasIsland && untracked(islandOn);
   if (event.missed && event.todos.length > 1) {
-    void Notifications.show({ id: "missed", title: `错过了 ${event.todos.length} 个提醒`, body: event.todos.map((t) => t.text).join("、") });
+    if (notify) {
+      void Notifications.show({
+        id: "missed",
+        title: tn("notify.missed", event.todos.length),
+        body: event.todos.map((todo) => todo.text).join(t("notify.list_separator")),
+      });
+    }
     return;
   }
   for (const todo of event.todos) {
-    void Notifications.show({ id: `todo:${todo.note}:${todo.line}`, title: todo.text, body: todo.note });
-    if (hasIsland && !event.missed) showReminder(todo);
+    if (notify) void Notifications.show({ id: `todo:${todo.note}:${todo.line}`, title: todo.text, body: todo.note });
+    if (island && !event.missed) showReminder(todo);
   }
 }
 
 function App() {
-  // The notes folder, its reminders, and the first run's welcome.
+  // The settings first (language, theme), then the notes folder, its reminders, and the first run's welcome.
   void (async () => {
-    const folder = await openFolder();
-    if (folder) {
-      try {
-        new Reminders(folder).start(remind);
-      } catch (error) {
-        folderError.set(`提醒没能开始：${errorMessage(error)}`);
-      }
-    }
+    await loadSettings();
+    await openFolder();
+    startReminders(remind);
     if (await firstRun()) summon();
   })();
 
   // Pressing a reminder's notification opens the to-do view.
-  Notifications.on("press", () => summon({ query: "待办" }));
+  Notifications.on("press", () => summon({ query: todoKeyword() }));
 
   // The summon keys.
   listenToDoubleTap();
@@ -84,14 +90,19 @@ function App() {
   }, 3000);
   if (untracked(trusted)) clearInterval(trustPoll);
 
-  // Notes Claude writes: the island says so.
-  if (hasIsland) onClaudeNote(showClaudeWrite);
+  // Notes Claude writes: the island says so, while the settings keep it on.
+  if (hasIsland) {
+    onClaudeNote((title) => {
+      if (untracked(islandOn)) showClaudeWrite(title);
+    });
+  }
 
   // Relative times and due groups follow the clock.
   setInterval(() => now.set(Date.now()), 30_000);
   effect(() => clampSelection());
 
-  // The tray: new note, summon, the latest notes, the to-dos, the permission while it is missing, quit.
+  // The tray: new note, summon, the latest notes, the to-dos, the permission while it is missing, settings, quit.
+  // It reads `t`, so the menu is made again in the new language when the language changes.
   effect(() => {
     const recent = allNotes().slice(0, 3);
     Tray.set({
@@ -99,8 +110,8 @@ function App() {
       tooltip: "Jot",
       onClick: () => toggle(),
       menu: [
-        { label: "新建笔记", onSelect: () => summon() },
-        { label: `呼出 Jot（${trusted() ? T.keys.summon : T.keys.fallback}）`, onSelect: () => summon() },
+        { label: t("tray.new_note"), onSelect: () => summon() },
+        { label: t("tray.summon", { keys: trusted() ? T.keys.summon : T.keys.fallback }), onSelect: () => summon() },
         { type: "separator" },
         ...recent.map((meta) => ({
           label: meta.title,
@@ -110,9 +121,10 @@ function App() {
           },
         })),
         recent.length > 0 && { type: "separator" as const },
-        { label: "待办", onSelect: () => summon({ query: "待办" }) },
-        !trusted() && { label: `开启连按两下 ${T.keys.summon}…`, onSelect: () => Summon.requestTrust() },
+        { label: t("tray.todos"), onSelect: () => summon({ query: todoKeyword() }) },
+        !trusted() && { label: t("tray.enable_double_tap", { keys: T.keys.summon }), onSelect: () => Summon.requestTrust() },
         { type: "separator" },
+        { label: t("tray.settings"), shortcut: "mod+,", onSelect: () => openSettings() },
         { role: "quit" },
       ],
     });
@@ -121,6 +133,7 @@ function App() {
   return (
     <>
       <PanelWindow />
+      <SettingsWindow />
       <If when={hasIsland}>
         <IslandWindow />
       </If>

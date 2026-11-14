@@ -1,0 +1,175 @@
+# 日本語。macOS の用語に合わせる（設定、一般、Finder、ログイン時に開く）。
+
+language:
+  system: システムに合わせる
+
+tray:
+  new_note: 新規メモ
+  summon: Jot を開く（%{keys}）
+  todos: やること
+  enable_double_tap: "%{keys} の 2 回押しをオンにする…"
+  settings: 設定…
+
+notify:
+  missed:
+    one: リマインダーを %{count} 件見逃しました
+    other: リマインダーを %{count} 件見逃しました
+  list_separator: 、
+  reminders_failed: リマインダーを開始できませんでした：%{error}
+  shortcut_taken: "%{keys} はほかのアプリが使用中です。メニューバーの Jot から開いてください"
+
+search:
+  placeholder: 検索または新規作成…
+  label: メモを検索または新規作成
+  summon_double: "%{key} を 2 回押して開く"
+  summon_shortcut: "%{keys} で開く"
+
+empty:
+  title: メモはまだありません
+  first: タイトルを入力して %{keys} を押すと、最初のメモができます。
+  claude: Claude に「Jot にメモして」と頼むこともできます。
+
+keys:
+  open: 開く
+  create: 新規
+  dismiss: 閉じる
+  tick: 完了
+  open_note: メモを開く
+  back: 戻る
+
+footer:
+  notes:
+    one: "メモ %{count} 件 · %{folder}"
+    other: "メモ %{count} 件 · %{folder}"
+  open:
+    one: "未完了 %{count} 件"
+    other: "未完了 %{count} 件"
+
+list:
+  blank: 空のメモ
+  create: 「%{title}」を作成
+  create_hint: Return ですぐに書き始められます
+  today:
+    one: 今日のやること %{count} 件
+    other: 今日のやること %{count} 件
+  today_none: 今日のやることはありません
+  late:
+    one: "期限切れ %{count} 件"
+    other: "期限切れ %{count} 件"
+  all_done: 今日の分はすべて完了
+  next: 次は %{time} %{text}
+  see_all: Return ですべてのやることを表示
+  dots: 今日 %{total} 件中 %{done} 件完了
+
+todo:
+  # 検索フィールドにこれ（または /todo）を入力すると、やることの一覧になります。最初の語はメニューと通知で使います。
+  keywords: やること|todo
+  group:
+    late: 期限切れ
+    today: 今日
+    tomorrow: 明日
+    later: 今後
+    none: 日時なし
+  empty: 未完了のやることはありません
+  tick: 「%{text}」を完了
+  row: "%{text}、%{note}"
+  due_tip: "%{when} · リマインダー"
+
+note:
+  invalid_title: 「%{title}」はタイトルに使えません
+  create_failed: 「%{title}」を作成できませんでした：%{error}
+
+paper:
+  by_claude: Claude が作成
+  saved: 保存済み
+  placeholder: 書き始める…
+  label: メモ「%{title}」
+  save_failed: 保存できませんでした：%{error}
+  appended: Claude が末尾に追記しました。カーソルはそのままです
+  conflict: このメモはほかの場所で変更されました
+  view_end: 表示 ↓
+  use_theirs: あちらを使う
+
+time:
+  just_now: たった今
+  minutes_ago:
+    one: "%{count} 分前"
+    other: "%{count} 分前"
+  today_at: 今日 %{time}
+  today: 今日
+  tomorrow: 明日
+  day_after: 明後日
+  yesterday: 昨日
+
+island:
+  writing: Claude · Jot に書き込み中
+  written: Claude · 保存しました
+  done: 完了
+  remind: リマインダー · %{time} · %{note}
+  now: 今
+  writing_label: 書き込み中
+
+settings:
+  title: 設定
+  tabs:
+    general: 一般
+    appearance: 外観
+    reminders: リマインダー
+    claude: Claude
+    about: 情報
+  folder:
+    label: メモのフォルダ
+    hint: メモは 1 件ずつ、このフォルダの .md ファイルになります
+    change: 変更…
+    choose: 選択
+    reveal: Finder に表示
+    failed: このフォルダを開けませんでした：%{error}
+  summon:
+    label: 開き方
+    double: "%{key} を 2 回押す"
+    on: オン
+    grant: 許可…
+    grant_hint: 「アクセシビリティ」で Jot を許可してください
+    fallback: 予備のショートカット
+    fallback_hint: 2 回押しが使えないときに Jot を開きます
+  login:
+    label: ログイン時に開く
+    hint: ログイン後、Jot はメニューバーで待機します
+  language:
+    label: 言語
+  appearance:
+    label: 外観
+    system: 自動
+    light: ライト
+    dark: ダーク
+  theme:
+    label: テーマ
+    selected: 選択中
+  reminders:
+    notifications: 通知
+    notifications_hint: 期限が来たらシステムの通知を表示します
+    island: ノッチのアイランド
+    island_hint: リマインダーや Claude のメモをノッチから表示します
+    island_no_notch: このディスプレイにはノッチがありません
+    default_time: デフォルトの時刻
+    default_time_hint: 「明日 家賃」のように日付だけのときに使う時刻
+  claude:
+    intro: Claude はこのフォルダのメモを読み書きできます。
+    how: Jot を Claude Code につなぐには、ターミナルでこのコマンドを実行します：
+    copy: コピー
+    copied: コピーしました
+    placeholder: "<jot-mcp のパス>"
+    path_note: "<jot-mcp のパス> は仮の値です。パッケージ化のときにアプリ内の jot-mcp の場所に置き換わります。"
+    then: あとは Claude に「Jot にメモして」「今日やることは？」と話しかけるだけです。
+  about:
+    tagline: Claude と共有するメモ帳
+    version: バージョン %{version}（%{build}）
+    built_with: Native Shell で構築
+
+theme:
+  default: グラファイト
+  paper: 紙と墨
+  moss: モス
+  dusk: 夕暮れ
+  coral: コーラル
+  contrast: ハイコントラスト

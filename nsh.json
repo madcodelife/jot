@@ -8,12 +8,30 @@
   "window": {
     "title": "Jot",
     "defaultVisible": false,
-    "defaultSize": { "width": 420, "height": 300 }
+    "defaultSize": {
+      "width": 420,
+      "height": 300
+    }
   },
-  "macos": { "activationPolicy": "accessory" },
+  "macos": {
+    "activationPolicy": "accessory"
+  },
   "capabilities": {
     "application": true,
     "notifications": true,
-    "windows": { "kinds": ["popup", "overlay"], "overlay": true }
+    "windows": {
+      "kinds": [
+        "normal",
+        "popup",
+        "overlay"
+      ],
+      "overlay": true
+    },
+    "clipboard": true,
+    "openUrl": {
+      "schemes": [
+        "https"
+      ]
+    }
   }
 }

@@ -15,6 +15,8 @@ const openJot = (dir: string) =>
     width: 1200,
     height: 800,
     reducedMotion: true,
+    // Jot's reference copy is Simplified Chinese; the tests read it.
+    locale: "zh-CN",
     storage: { "jot.dir": dir },
     modules: {
       "jot/native": {

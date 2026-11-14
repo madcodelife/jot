@@ -1,21 +1,58 @@
-// Times as Jot shows them: a note's age in the list ("10 分钟前", "昨天"),
+// Times as Jot shows them: a note's age in the list ("10 分钟前", "Yesterday"),
 // a to-do's due time as a chip, and the to-do view's groups. Due times are
-// local wall-clock times, as the notes store them ("2026-11-14T09:00").
+// local wall-clock times, as the notes store them ("2026-11-14T09:00"); what
+// the files hold (`absolute`, `isoDay`) never depends on the language.
+//
+// Words come from the translations, weekdays, months and clock times from
+// `Intl` in the language shown, on the user's 12- or 24-hour clock.
+import { localeSettings } from "nsh";
+import { t } from "nsh/i18n";
 import type { Todo } from "jot/native";
+import { shownLanguage, tn, type Language } from "./i18n";
 
-const WEEKDAYS = "日一二三四五六";
 const DAY = 86_400_000;
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** `HH:mm`. */
-export const hm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+/** `HH:mm`, as files write it. */
+const hm24 = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
 /** `YYYY-MM-DD HH:mm`, as the file writes it after ⏰. */
-export const absolute = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${hm(d)}`;
+export const absolute = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${hm24(d)}`;
 
 /** Today's date as the file writes it after ✅. */
 export const isoDay = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+const formats = new Map<string, Intl.DateTimeFormat>();
+
+/** A formatter per language and options, made once: `Intl` objects are costly to make, cheap to reuse. */
+function format(language: Language, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = `${language}|${JSON.stringify(options)}`;
+  let f = formats.get(key);
+  if (!f) {
+    f = new Intl.DateTimeFormat(language, options);
+    formats.set(key, f);
+  }
+  return f;
+}
+
+/** The time of day as the user reads it: `09:00` in Chinese, `9:00` in Japanese, `9:00 AM` in English on a 12-hour clock. */
+export function hm(d: Date): string {
+  const language = shownLanguage();
+  const hourCycle = localeSettings().hourCycle;
+  const twelve = hourCycle === "h12" || hourCycle === "h11";
+  const twoDigits = !twelve && (language === "zh-Hans" || language === "zh-Hant");
+  return format(language, { hour: twoDigits ? "2-digit" : "numeric", minute: "2-digit", hourCycle: twelve ? "h12" : "h23" }).format(d);
+}
+
+/** The weekday: `周五`, `週五`, `Fri`, `金曜日`. */
+export const weekday = (d: Date) => format(shownLanguage(), { weekday: shownLanguage() === "ja" ? "long" : "short" }).format(d);
+
+/** The month and day: `11月20日`, `Nov 20`. */
+const monthDay = (d: Date) => format(shownLanguage(), { month: "short", day: "numeric" }).format(d);
+
+/** The date with its year: `2025年3月2日`, `Mar 2, 2025`. */
+const fullDate = (d: Date) => format(shownLanguage(), { year: "numeric", month: "short", day: "numeric" }).format(d);
 
 /** A due time from the store (`"2026-11-14T09:00"`, or with a space), as a local date. */
 export function parseDue(due: string | null | undefined): Date | null {
@@ -30,45 +67,36 @@ const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDat
 /** Whole days from `now`'s day to `d`'s. */
 export const daysFrom = (d: Date, now: Date) => Math.round((startOfDay(d) - startOfDay(now)) / DAY);
 
-/** A day said the way people say it: 今天, 明天, 后天, 昨天, 周五 within the week, else 11月20日. */
+/** A day said the way people say it: today, tomorrow, the day after, yesterday, the weekday within the week, else the month and day. */
 export function relativeDay(d: Date, now: Date): string {
   const n = daysFrom(d, now);
-  if (n === 0) return "今天";
-  if (n === 1) return "明天";
-  if (n === 2) return "后天";
-  if (n === -1) return "昨天";
-  if (n > 0 && n < 7) return `周${WEEKDAYS[d.getDay()]}`;
-  return `${d.getMonth() + 1}月${d.getDate()}日`;
+  if (n === 0) return t("time.today");
+  if (n === 1) return t("time.tomorrow");
+  if (n === 2) return t("time.day_after");
+  if (n === -1) return t("time.yesterday");
+  if (n > 0 && n < 7) return weekday(d);
+  return monthDay(d);
 }
 
-/** The weekday, `周五`. */
-export const weekday = (d: Date) => `周${WEEKDAYS[d.getDay()]}`;
-
-/** A note's age in the list: 刚刚, 10 分钟前, 今天 09:40, 昨天, 11月8日, 2025年3月2日. */
+/** A note's age in the list: just now, 10 minutes ago, today at 09:40, yesterday, the month and day, the date with its year. */
 export function age(modified: number, now: number): string {
   const diff = now - modified;
-  if (diff < 60_000) return "刚刚";
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} 分钟前`;
+  if (diff < 60_000) return t("time.just_now");
+  if (diff < 3_600_000) return tn("time.minutes_ago", Math.floor(diff / 60_000));
   const d = new Date(modified);
   const today = new Date(now);
   const n = daysFrom(d, today);
-  if (n === 0) return `今天 ${hm(d)}`;
-  if (n === -1) return "昨天";
-  if (d.getFullYear() === today.getFullYear()) return `${d.getMonth() + 1}月${d.getDate()}日`;
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+  if (n === 0) return t("time.today_at", { time: hm(d) });
+  if (n === -1) return t("time.yesterday");
+  if (d.getFullYear() === today.getFullYear()) return monthDay(d);
+  return fullDate(d);
 }
 
 /** The to-do view's groups, in order. */
 export type TodoGroup = "late" | "today" | "tomorrow" | "later" | "none";
 
-/** The groups' headers. */
-export const GROUP_LABELS: Record<TodoGroup, string> = {
-  late: "已过期",
-  today: "今天",
-  tomorrow: "明天",
-  later: "以后",
-  none: "没有时间",
-};
+/** A group's header. */
+export const groupLabel = (group: TodoGroup) => t(`todo.group.${group}`);
 
 /** Which group an open to-do goes in. */
 export function groupOf(due: Date | null, now: Date): TodoGroup {

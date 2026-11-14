@@ -5,7 +5,8 @@
 import { Scroll, Text, token, View } from "nsh";
 import type { Todo } from "jot/native";
 import { activate, checking, checkTodo, now, selected, todoItems, type TodoItem } from "../app/store";
-import { dueLabel, GROUP_LABELS, parseDue, type TodoGroup } from "../app/time";
+import { t } from "nsh/i18n";
+import { dueLabel, groupLabel, parseDue, type TodoGroup } from "../app/time";
 import { Icon } from "./icons";
 import { TodoCheck } from "./parts";
 import { T } from "./tokens";
@@ -28,7 +29,7 @@ export function TodoView() {
       else={
         <View testID="todos-empty" class="items-center justify-center" style={{ height: 93 }}>
           <Text class="text-glass-muted" style={{ fontSize: 14.5 }}>
-            没有没勾掉的待办
+            {t("todo.empty")}
           </Text>
         </View>
       }
@@ -59,11 +60,11 @@ function GroupHeader(props: { group: TodoGroup; count: number }) {
       class="flex-row items-end"
       style={{ height: T.size.groupHeader, gap: 7, paddingHorizontal: 14, paddingBottom: 4 }}
     >
-      <Text class={`font-semibold ${props.group === "late" ? "text-danger" : "text-glass-muted"}`} style={{ fontSize: 12 }}>
-        {GROUP_LABELS[props.group]}
+      <Text class={`font-semibold ${props.group === "late" ? "text-late" : "text-glass-muted"}`} style={{ fontSize: 12 }}>
+        {groupLabel(props.group)}
       </Text>
       <Text
-        class={props.group === "late" ? "text-danger/80" : "text-glass-muted/80"}
+        class={props.group === "late" ? "text-late" : "text-glass-muted"}
         style={{ fontSize: 12, fontVariant: ["tabular-nums"] }}
       >
         {String(props.count)}
@@ -81,7 +82,7 @@ function TodoRow(props: { item: TodoRowItem }) {
     <View
       testID={`todo:${todo().text}`}
       role="button"
-      accessibilityLabel={`${todo().text}，${todo().note}`}
+      accessibilityLabel={t("todo.row", { text: todo().text, note: todo().note })}
       accessibilityState={{ selected: isSelected() }}
       onPress={() => activate(props.item.index)}
       onMouseEnter={() => selected.set(props.item.index)}
@@ -98,7 +99,7 @@ function TodoRow(props: { item: TodoRowItem }) {
       <TodoCheck
         testID={`check:${todo().text}`}
         checked={ticking() || todo().done}
-        label={`勾掉「${todo().text}」`}
+        label={t("todo.tick", { text: todo().text })}
         onCheck={() => checkTodo(todo())}
         size={18}
         onAccent={onAccent()}
@@ -128,9 +129,9 @@ function TodoRow(props: { item: TodoRowItem }) {
 export function DueChip(props: { todo: Todo; group: TodoGroup | null; onAccent: boolean; size?: number }) {
   const due = () => parseDue(props.todo.due);
   const late = () => !props.todo.done && (due()?.getTime() ?? Infinity) < now();
-  const fill = () => (props.onAccent ? "bg-on-accent-fill" : late() ? "bg-danger/15" : "bg-primary/15");
-  const ink = () => (props.onAccent ? "text-on-accent" : late() ? "text-danger" : "text-primary");
-  const tint = () => (props.onAccent ? token("on-accent") : late() ? token("danger") : token("primary"));
+  const fill = () => (props.onAccent ? "bg-on-accent-fill" : late() ? "bg-late/13" : "bg-due/13");
+  const ink = () => (props.onAccent ? "text-on-accent" : late() ? "text-late" : "text-due");
+  const tint = () => (props.onAccent ? token("on-accent") : late() ? token("late") : token("due"));
   const size = () => props.size ?? 12;
   return (
     <If when={due()}>
@@ -144,7 +145,7 @@ export function DueChip(props: { todo: Todo; group: TodoGroup | null; onAccent: 
             borderRadius: T.radius.chip,
             borderCurve: "continuous",
           }}
-          tooltip={`${dueLabel(d(), null, new Date(now()))} · 到点提醒`}
+          tooltip={t("todo.due_tip", { when: dueLabel(d(), null, new Date(now())) })}
         >
           <Icon name="alarm" size={size() * 1.05} tint={tint()} />
           <Text class={`font-semibold ${ink()}`} style={{ fontSize: size(), fontVariant: ["tabular-nums"] }}>

@@ -3,6 +3,8 @@
 // narrow into a sidebar of titles. Rows drop in one after another as the
 // list opens; filtering and the arrow keys change it without motion.
 import { Animated, computed, createAnimatedValue, effect, reduceMotion, Text, token, untracked, View } from "nsh";
+import { t } from "nsh/i18n";
+import { tn } from "../app/i18n";
 import { activate, allTodos, arriving, listEntrance, now, rows, selected, stage, type Row } from "../app/store";
 import { plainSnippet } from "../app/tasks";
 import { age, hm, todaySummary, type TodaySummary } from "../app/time";
@@ -110,7 +112,7 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
       <View class="flex-1" style={{ minWidth: 0 }}>
         <If when={props.row.kind === "summary"}>
           <Text class={`font-semibold ${title()}`} style={{ numberOfLines: 1, fontSize: T.type.row }}>
-            {summary().left ? `今天 ${summary().left} 件待办` : "今天没有待办"}
+            {summary().left ? tn("list.today", summary().left) : t("list.today_none")}
           </Text>
           <If when={!props.compact}>
             <Text class={sub()} style={{ numberOfLines: 1, fontSize: T.type.snippet }}>
@@ -130,7 +132,7 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
               />
               <If when={!props.compact}>
                 <Highlight
-                  text={plainSnippet(row().snippet) || "空白笔记"}
+                  text={plainSnippet(row().snippet) || t("list.blank")}
                   terms={row().terms}
                   selected={onAccent()}
                   size={T.type.snippet}
@@ -144,11 +146,11 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
           {(row: () => CreateRow) => (
             <>
               <Text class={`font-medium ${title()}`} style={{ numberOfLines: 1, fontSize: T.type.row }}>
-                {`新建「${row().title}」`}
+                {t("list.create", { title: row().title })}
               </Text>
               <If when={!props.compact}>
                 <Text class={sub()} style={{ numberOfLines: 1, fontSize: T.type.snippet }}>
-                  回车直接开始写
+                  {t("list.create_hint")}
                 </Text>
               </If>
             </>
@@ -165,7 +167,7 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
             <View class="flex-row items-center" style={{ gap: 10, flexShrink: 0, marginLeft: 4 }}>
               <If when={row().meta.source === "claude"}>
                 <Text
-                  class={`font-medium ${onAccent() ? "text-on-accent-muted" : "text-claude"}`}
+                  class={`font-medium ${onAccent() ? "text-on-accent-muted" : "text-claude-ink"}`}
                   style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 0 }}
                 >
                   Claude
@@ -202,7 +204,7 @@ function RowIcon(props: { row: Row; onAccent: boolean }) {
       : claude()
         ? token("claude")
         : props.row.kind === "summary"
-          ? token("primary")
+          ? token("accent-ink")
           : token("glass-fg");
   const name = (): IconName =>
     props.row.kind === "summary" ? "list" : props.row.kind === "create" ? "plus" : claude() ? "spark" : "doc";
@@ -218,11 +220,11 @@ function RowIcon(props: { row: Row; onAccent: boolean }) {
 
 /** The summary row's second line: what is overdue, and what comes next. */
 function summaryLine(s: TodaySummary): string {
-  if (!s.left) return s.late ? `${s.late} 件已过期` : "今天的都做完了";
+  if (!s.left) return s.late ? tn("list.late", s.late) : t("list.all_done");
   const parts: string[] = [];
-  if (s.late) parts.push(`${s.late} 件已过期`);
-  if (s.next) parts.push(`下一件 ${hm(s.next.due)} ${s.next.text}`);
-  return parts.join(" · ") || `回车查看全部待办`;
+  if (s.late) parts.push(tn("list.late", s.late));
+  if (s.next) parts.push(t("list.next", { time: hm(s.next.due), text: s.next.text }));
+  return parts.join(" · ") || t("list.see_all");
 }
 
 /** Today's to-dos as dots: filled for the done ones. */
@@ -233,7 +235,7 @@ function Dots(props: { done: boolean[]; onAccent: boolean }) {
     <View
       class="flex-row items-center"
       style={{ gap: 4 }}
-      accessibilityLabel={`今天 ${props.done.length} 件，做完 ${props.done.filter(Boolean).length} 件`}
+      accessibilityLabel={t("list.dots", { total: props.done.length, done: props.done.filter(Boolean).length })}
     >
       <Each of={props.done} key="index">
         {(done) => <View class={done() ? filled() : empty()} style={{ width: 7, height: 7, borderRadius: 3.5 }} />}
