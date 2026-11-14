@@ -49,17 +49,24 @@ function placement(list: readonly Display[]) {
 
 /** How tall the panel is in each stage (the list grows with its rows; filtering does not animate). */
 const emptyHeight = 150;
+let shownSize = { width: T.size.panelWidth, height: T.size.field };
 const panelSize = computed(() => {
   const s = stage();
+  // Hiding keeps the size it had: the panel fades out as it was, never snapping to another shape on the way.
+  if (s === "hidden") return shownSize;
+  shownSize = visibleSize(s);
+  return shownSize;
+});
+function visibleSize(s: Exclude<ReturnType<typeof stage>, "hidden">) {
   if (s === "editor") return { width: T.size.editorWidth, height: T.size.editorHeight };
-  if (s === "hidden" || s === "capsule") return { width: T.size.panelWidth, height: T.size.field };
+  if (s === "capsule") return { width: T.size.panelWidth, height: T.size.field };
   const body = todoMode()
     ? todoViewHeight(todoItems())
     : rows().length
       ? T.size.listTop + rows().length * T.size.row
       : emptyHeight;
   return { width: T.size.panelWidth, height: T.size.field + body + T.size.footer };
-});
+}
 
 /** The panel's window. It stays open once summoned and shows or hides, so the next summon is instant. */
 export function PanelWindow() {
@@ -75,13 +82,14 @@ export function PanelWindow() {
     untracked(() => {
       if (showing) {
         everShown.set(true);
+        // Invisible first, then shown: the window's first frame is never last time's panel.
+        opacity.set(0);
         const at = placement(displays());
         if (win) {
           if (at) win.setBounds({ origin: at });
           win.show();
           win.focus();
         }
-        opacity.set(0);
         if (reduceMotion()) {
           lift.set(0);
           scale.set(1);
@@ -138,7 +146,7 @@ export function PanelWindow() {
 function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: AnimatedValue }) {
   const editing = () => stage() === "editor";
   const expanded = () => stage() === "list" || stage() === "editor";
-  const radius = () => (stage() === "capsule" || stage() === "hidden" ? T.radius.capsule : T.radius.panel);
+  const radius = () => (stage() === "capsule" ? T.radius.capsule : T.radius.panel);
   const fieldFocused = signal(true);
 
   // Escape: one step back. ⌘↩: tick the caret's task, tick the selected to-do, or make a note of the query.
@@ -213,10 +221,6 @@ function Field(props: { onFocusChange: (focused: boolean) => void }) {
   effect(() => {
     const request = focusRequest();
     if (request.target === "field") input?.focus();
-  });
-  // Shown again: the field takes the keys.
-  effect(() => {
-    if (stage() === "capsule") input?.focus();
   });
   return (
     <View class="flex-row items-center" style={{ height: T.size.field, gap: 12, paddingHorizontal: 22 }}>

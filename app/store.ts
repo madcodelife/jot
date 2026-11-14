@@ -190,7 +190,7 @@ export function refresh() {
   revision.update((r) => r + 1);
 }
 
-/** Shows the panel: the capsule first, which grows into the list. */
+/** Shows the panel: one motion, the glass and its rows together (no capsule step). */
 export function summon(start: { query?: string } = {}) {
   if (untracked(stage) !== "hidden") {
     if (start.query !== undefined) setQuery(start.query);
@@ -202,19 +202,10 @@ export function summon(start: { query?: string } = {}) {
     selected.set(0);
     opened.set(null);
     notice.set(null);
-    stage.set("capsule");
+    listEntrance.update((n) => n + 1);
+    stage.set("list");
   });
-  setTimeout(
-    () => {
-      if (untracked(stage) !== "capsule") return;
-      morphNext(T.spring.expand);
-      batch(() => {
-        listEntrance.update((n) => n + 1);
-        stage.set("list");
-      });
-    },
-    reduceMotion() ? 0 : T.timing.expandAfter,
-  );
+  focusRequest.set({ target: "field" });
 }
 
 /** Hides the panel. */

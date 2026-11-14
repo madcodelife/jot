@@ -37,6 +37,10 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
   const offset = createAnimatedValue(0);
   const glow = createAnimatedValue(0);
 
+  // Hidden: the rows wait invisible, so the next summon never shows last time's rows for a frame before they drop in.
+  effect(() => {
+    if (stage() === "hidden") opacity.set(0);
+  });
   // The list opening: each row drops in 28 ms after the one above it.
   effect(() => {
     if (!listEntrance()) return;
