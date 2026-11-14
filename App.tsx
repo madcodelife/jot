@@ -5,12 +5,18 @@
 // The main window stays hidden (nsh.json `window.defaultVisible`): the app
 // lives in the menu bar, and its UI is the panel's popup window, the
 // settings window and, on macOS, the island's overlay.
+//
+// Dictation: ⌥ held in the panel (or its microphones) types into the field
+// or the open note (ui/Panel.tsx, ui/Paper.tsx); the double press of ⌥ held
+// anywhere says a quick note, which the island shows and files (below).
 import { effect, mount, Notifications, platform, untracked } from "nsh";
 import { t } from "nsh/i18n";
 import { GlobalShortcut, Tray } from "nsh/desktop";
 import { Summon, type DueEvent } from "jot/native";
 import { tn, todoKeyword } from "./app/i18n";
-import { islandOn, loadSettings, notificationsOn } from "./app/settings";
+import { holdToTalk, islandOn, loadSettings, notificationsOn, whenOptions } from "./app/settings";
+import { fileQuickNote } from "./app/quicknote";
+import { cancelVoice, detectSpeech, listening, speechAvailable, startVoice, stopVoice, type VoiceSink } from "./app/voice";
 import {
   allNotes,
   clampSelection,
@@ -18,14 +24,17 @@ import {
   notice,
   now,
   onClaudeNote,
+  notes,
   open,
   openFolder,
+  refresh,
+  stage,
   startReminders,
   summon,
   toggle,
   trusted,
 } from "./app/store";
-import { IslandWindow, showClaudeWrite, showReminder } from "./ui/Island";
+import { dismissDictation, IslandWindow, settleDictation, showClaudeWrite, showDictation, showReminder, updateDictation } from "./ui/Island";
 import { PanelWindow } from "./ui/Panel";
 import { openSettings, SettingsWindow } from "./ui/Settings";
 import { T } from "./ui/tokens";
@@ -65,11 +74,58 @@ function remind(event: DueEvent) {
   }
 }
 
+/** Files a quick note's words (a to-do when they say a time, else the inbox) and has the island say where. */
+function fileQuick(text: string) {
+  const n = untracked(notes);
+  if (!text.trim()) return settleDictation({ phase: "failed", error: "empty" });
+  if (!n) return settleDictation({ phase: "failed", error: "failed" });
+  try {
+    const filed = fileQuickNote(n, text, { inbox: t("voice.inbox"), when: whenOptions(), now: new Date(untracked(now)) });
+    refresh();
+    settleDictation(
+      filed.kind === "todo"
+        ? { phase: "filed", text: filed.text, where: "todo", label: filed.label }
+        : { phase: "filed", text: filed.text, where: "inbox", note: filed.note },
+    );
+  } catch {
+    settleDictation({ phase: "failed", error: "failed" });
+  }
+}
+
+/** The quick note's session: the words go to the island as they come, and are filed when it ends. */
+const quickSink: VoiceSink = {
+  update: (text) => updateDictation(text),
+  finish: fileQuick,
+  // Words heard before a failure are kept; with none, the island says what went wrong.
+  fail: (error, text) => (text.trim() ? fileQuick(text) : settleDictation({ phase: "failed", error })),
+  cancel: () => dismissDictation(),
+};
+
+/** The double press of ⌥ held, anywhere: a quick note. With the panel showing, its own ⌥ hold dictates into it instead. */
+function startQuickNote() {
+  if (!untracked(holdToTalk) || !untracked(speechAvailable) || untracked(listening)) return;
+  if (untracked(stage) !== "hidden") return;
+  showDictation();
+  if (!startVoice("quick", quickSink, { byHold: true }) && !untracked(listening)) settleDictation({ phase: "failed", error: "failed" });
+}
+
+/** ⌥ let go: the note is filed. Another key pressed while it was held made it a shortcut: the words are dropped. */
+function endQuickNote(event: { cancelled: boolean }) {
+  if (untracked(listening) !== "quick") return;
+  if (event.cancelled) cancelVoice("quick");
+  else stopVoice();
+}
+
 function App() {
   // The settings first (language, theme), then the notes folder, its reminders, and the first run's welcome.
   void (async () => {
     await loadSettings();
     await openFolder();
+    await detectSpeech();
+    // The quick note needs the island to show it (macOS) and the platform to recognize speech.
+    if (hasIsland && untracked(speechAvailable)) {
+      Summon.onDoubleTapHold(T.keys.doubleTap, { start: startQuickNote, end: endQuickNote });
+    }
     startReminders(remind);
     if (await firstRun()) summon();
   })();

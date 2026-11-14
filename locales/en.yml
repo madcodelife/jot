@@ -133,6 +133,16 @@ settings:
     grant_hint: Jot needs Accessibility access
     fallback: Fallback Shortcut
     fallback_hint: Opens Jot when double-press isn’t available
+  voice:
+    label: Voice
+    hold: Hold %{key} to Talk
+    hold_hint: Hold %{key} in Jot to dictate; double-press and hold %{key} in any app for a quick note
+    language: Recognition Language
+    language_auto: Same as Jot
+    permission: Microphone & Speech Recognition
+    permission_hint: macOS asks for both the first time you talk
+    denied_hint: Not allowed. Turn them on in System Settings › Privacy & Security
+    grant: Allow…
   login:
     label: Open at Login
     hint: Jot waits in the menu bar after you log in
@@ -174,3 +184,29 @@ theme:
   dusk: Dusk
   coral: Coral
   contrast: High Contrast
+
+voice:
+  listening: Listening…
+  start: Dictate
+  start_note: Dictate at the Cursor
+  stop: Done
+  cancel: Cancel
+  finish_release: Release
+  finish_press: Click the microphone to finish
+  # Where a quick note without a time goes.
+  inbox: Inbox
+  island:
+    listening: Listening · release to save
+    inbox: Saved · %{note}
+    todo: Reminder added
+    open_settings: Click to open System Settings
+    try_again: Try saying it again
+  error:
+    empty: Didn’t catch that
+    not-allowed: No access to the microphone or speech recognition
+    no-speech: Didn’t hear anything
+    audio-capture: The microphone isn’t available
+    network: Speech recognition needs the internet
+    language-not-supported: This language can’t be recognized yet
+    unavailable: Speech recognition isn’t available on this device
+    failed: Couldn’t recognize that

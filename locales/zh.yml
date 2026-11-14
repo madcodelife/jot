@@ -133,6 +133,16 @@ settings:
     grant_hint: 需要在「辅助功能」里允许 Jot
     fallback: 备用快捷键
     fallback_hint: 连按两下不可用时，用它呼出
+  voice:
+    label: 语音
+    hold: 按住 %{key} 说话
+    hold_hint: 浮窗里按住 %{key} 输入；在别的 App 里连按两下 %{key} 并按住，随手记一句
+    language: 识别语言
+    language_auto: 跟随 Jot 的语言
+    permission: 麦克风与语音识别
+    permission_hint: 第一次说话时 macOS 会请求这两个权限
+    denied_hint: 没有授权，到系统设置的「隐私与安全性」里打开
+    grant: 去授权…
   login:
     label: 开机时启动
     hint: 登录后 Jot 待在菜单栏里
@@ -174,3 +184,29 @@ theme:
   dusk: 暮紫
   coral: 珊瑚
   contrast: 高对比
+
+voice:
+  listening: 正在听…
+  start: 语音输入
+  start_note: 在光标处说话
+  stop: 说完了
+  cancel: 取消
+  finish_release: 松开
+  finish_press: 再点麦克风结束
+  # 随手一句没带时间时，记进这条笔记。
+  inbox: 收件箱
+  island:
+    listening: 正在听 · 松开就记下
+    inbox: 已记下 · %{note}
+    todo: 已加提醒
+    open_settings: 点这里打开系统设置
+    try_again: 再说一次试试
+  error:
+    empty: 没听清
+    not-allowed: 没有麦克风或语音识别权限
+    no-speech: 没听到声音
+    audio-capture: 麦克风用不了
+    network: 语音识别要联网
+    language-not-supported: 还不能识别这种语言
+    unavailable: 这台设备上用不了语音识别
+    failed: 没能识别出来

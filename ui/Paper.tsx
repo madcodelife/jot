@@ -4,22 +4,27 @@
 // click or ⌘↩; a time phrase being typed ("明天 9 点") lights up as a chip
 // and becomes an absolute time when the caret leaves the line. Changes made
 // elsewhere (Claude appending to the note) come in without moving the caret.
+// Dictation (⌥ held, or the microphone at the top right) types at the caret:
+// the words still being recognized show faint, and turn to ink when final.
 import { cleanup, computed, createAnimatedValue, effect, Notifications, signal, Text, token, untracked, View } from "nsh";
-import { Button, Editor, type EditorDecoration, type EditorRef, type EditorSelection } from "nsh/base";
+import { Button, Editor, type EditorDecoration, type EditorPosition, type EditorRef, type EditorSelection } from "nsh/base";
 import { t } from "nsh/i18n";
 import { When } from "jot/native";
 import { whenOptions } from "../app/settings";
 import { allNotes, errorMessage, lastWritten, notes, now, opened, revision, save } from "../app/store";
 import { taskLine, toggledLine } from "../app/tasks";
 import { age, parseDue } from "../app/time";
+import { cancelVoice, joinSpoken, listening, speechAvailable, startVoice, stopVoice, voiceError } from "../app/voice";
 import { Icon } from "./icons";
 import { fadeTo } from "./motion";
 import { fade } from "./themes";
 import { T } from "./tokens";
+import { Breathing, MicButton } from "./Voice";
 
 /** What the panel's keys ask of the open note (⌘↩ ticks the caret's task). */
 interface PaperActions {
   toggleTaskAtCaret(): void;
+  dictate(options: { byHold?: boolean }): boolean;
 }
 
 let current: PaperActions | null = null;
@@ -29,6 +34,11 @@ export function toggleTaskAtCaret(): boolean {
   if (!current) return false;
   current.toggleTaskAtCaret();
   return true;
+}
+
+/** Holding ⌥ with the note's text focused: dictates at its caret. Returns whether it started. */
+export function dictateIntoNote(options: { byHold?: boolean } = {}): boolean {
+  return current?.dictate(options) ?? false;
 }
 
 /** The note `opened` names; a new opening makes a new editor (its own undo history and caret). */
@@ -57,6 +67,23 @@ function endOf(text: string) {
   return { line: lines.length - 1, column: lines[lines.length - 1].length };
 }
 
+/** `a` comes before `b`. */
+const before = (a: EditorPosition, b: EditorPosition) => a.line < b.line || (a.line === b.line && a.column <= b.column);
+
+/** The text between two positions. */
+function between(text: string, from: EditorPosition, to: EditorPosition): string {
+  const lines = text.split("\n");
+  if (from.line === to.line) return (lines[from.line] ?? "").slice(from.column, to.column);
+  const out = [(lines[from.line] ?? "").slice(from.column), ...lines.slice(from.line + 1, to.line), (lines[to.line] ?? "").slice(0, to.column)];
+  return out.join("\n");
+}
+
+/** Where `inserted` ends when it starts at `at`. */
+function after(at: EditorPosition, inserted: string): EditorPosition {
+  const lines = inserted.split("\n");
+  return lines.length === 1 ? { line: at.line, column: at.column + inserted.length } : { line: at.line + lines.length - 1, column: lines[lines.length - 1].length };
+}
+
 /** Asks for the permission to notify once, when the first reminder is written. */
 let askedToNotify = false;
 function askToNotify() {
@@ -81,6 +108,12 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   /** A notice over the note's foot: Claude added to it, or it changed in a way Jot could not merge. */
   const notice = signal<{ kind: "append" | "conflict"; text: string } | null>(null);
   const savedOpacity = createAnimatedValue(0);
+  /** The words of a dictation still being recognized: drawn faint. */
+  const interim = signal<{ line: number; start: number; end: number } | null>(null);
+  /** The primary selection, as the editor last reported it. */
+  let selection: EditorSelection | null = null;
+  /** A dictation is typing: its interim words are not saved, the final ones are. */
+  let dictating = false;
   let editor: EditorRef | undefined;
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   let phraseTimer: ReturnType<typeof setTimeout> | undefined;
@@ -114,7 +147,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   function changed(value: string) {
     text.set(value);
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveNow, T.timing.saveAfter);
+    if (!dictating) saveTimer = setTimeout(saveNow, T.timing.saveAfter);
     // The live chip waits for a pause, so it does not flicker under typing.
     phrase.set(null);
     clearTimeout(phraseTimer);
@@ -147,10 +180,64 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     editor.edit([{ range: { start: { line, column: 0 }, end: { line, column: content.length } }, text: next }]);
   }
 
-  const actions: PaperActions = { toggleTaskAtCaret: () => toggleLine(untracked(caretLine)) };
+  /**
+   * Dictates at the caret (over the selection, which comes back on Escape):
+   * each result replaces the words the last one typed, faint until the final
+   * one, which is saved. A space keeps two Latin words apart; CJK takes none.
+   */
+  function dictate(options: { byHold?: boolean }): boolean {
+    if (!editor) return false;
+    const body = untracked(text);
+    const sel = selection ?? { anchor: endOf(body), head: endOf(body) };
+    const [from, to] = before(sel.anchor, sel.head) ? [sel.anchor, sel.head] : [sel.head, sel.anchor];
+    const replaced = between(body, from, to);
+    const prev = (lineAt(body, from.line)[from.column - 1] ?? "").trim();
+    const next = (lineAt(body, to.line)[to.column] ?? "").trim();
+    let end = to;
+    const put = (words: string, faint: boolean) => {
+      if (!editor) return;
+      let typed = words;
+      if (words) {
+        typed = joinSpoken(prev, words).slice(prev.length);
+        if (next) typed = joinSpoken(typed, next).slice(0, -next.length);
+      }
+      editor.edit([{ range: { start: from, end }, text: typed }]);
+      end = after(from, typed);
+      interim.set(faint && typed ? { line: from.line, start: from.column, end: end.column } : null);
+    };
+    const finish = (words: string) => {
+      dictating = false;
+      interim.set(null);
+      put(words || replaced, false);
+      editor?.setSelections([{ anchor: end, head: end }]);
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveNow, T.timing.saveAfter);
+    };
+    dictating = true;
+    const started = startVoice(
+      "editor",
+      {
+        update: (words) => put(words, true),
+        finish,
+        fail: (error, words) => {
+          finish(words);
+          showNotice("conflict", voiceError(error));
+        },
+        cancel: () => finish(""),
+      },
+      options,
+    );
+    if (!started) dictating = false;
+    else editor.focus();
+    return started;
+  }
+
+  const actions: PaperActions = { toggleTaskAtCaret: () => toggleLine(untracked(caretLine)), dictate };
   current = actions;
   cleanup(() => {
     if (current === actions) current = null;
+    // The note closes while dictating into it: the words go with it.
+    cancelVoice("editor");
     // Leaving the note (Escape, another note): what was typed is saved now.
     saveNow();
     clearTimeout(phraseTimer);
@@ -171,6 +258,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   // The caret moved to another line: the line it left gets its absolute time.
   let lastLine = untracked(caretLine);
   function selectionChanged(selections: EditorSelection[]) {
+    selection = selections[selections.length - 1] ?? null;
     const line = selections[0]?.head.line ?? 0;
     if (line === lastLine) return;
     const left = lastLine;
@@ -229,6 +317,10 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
       }
       if (task.stamp) out.push({ range: span(task.stamp.start, task.stamp.end), class: "text-paper-muted" });
     });
+    const words = interim();
+    if (words) {
+      out.push({ range: { start: { line: words.line, column: words.start }, end: { line: words.line, column: words.end } }, class: "text-paper-muted" });
+    }
     const p = phrase();
     if (p) {
       out.push({
@@ -241,7 +333,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
 
   return (
     <View testID="paper" class={`flex-1 bg-paper ${fade()}`} style={{ borderRadius: T.radius.paper, borderCurve: "continuous", overflow: "hidden" }}>
-      <View style={{ paddingTop: 30, paddingHorizontal: PAPER_X }}>
+      <View style={{ paddingTop: 30, paddingLeft: PAPER_X, paddingRight: speechAvailable() ? PAPER_X + 30 : PAPER_X }}>
         <Text testID="paper-title" class="font-bold text-paper-fg" style={{ numberOfLines: 2, fontSize: T.type.title, letterSpacing: -0.6, lineHeight: 33 }}>
           {title}
         </Text>
@@ -261,11 +353,39 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
             {`${meta() ? age(meta()!.modified, now()) : t("time.just_now")} · ${title}.md`}
           </Text>
         </View>
-        <View class="absolute flex-row items-center" style={{ right: 22, top: 22, gap: 5, opacity: savedOpacity }}>
-          <View class="bg-ok" style={{ width: 7, height: 7, borderRadius: 3.5 }} />
-          <Text class="text-paper-muted" style={{ fontSize: T.type.meta }}>
-            {t("paper.saved")}
-          </Text>
+        <View class="absolute flex-row items-center" style={{ right: speechAvailable() ? 14 : 22, top: speechAvailable() ? 15 : 22, gap: 8 }}>
+          <If
+            when={listening() === "editor"}
+            else={
+              <View class="flex-row items-center" style={{ gap: 5, opacity: savedOpacity }}>
+                <View class="bg-ok" style={{ width: 7, height: 7, borderRadius: 3.5 }} />
+                <Text class="text-paper-muted" style={{ fontSize: T.type.meta }}>
+                  {t("paper.saved")}
+                </Text>
+              </View>
+            }
+          >
+            <View testID="paper-listening" class="flex-row items-center" style={{ gap: 4 }}>
+              <Breathing size={14} color={token("primary")} />
+              <Text class="text-paper-muted" style={{ fontSize: T.type.meta }}>
+                {t("voice.listening")}
+              </Text>
+            </View>
+          </If>
+          <If when={speechAvailable()}>
+            <MicButton
+              testID="paper-mic"
+              size={28}
+              active={listening() === "editor"}
+              label={listening() === "editor" ? t("voice.stop") : t("voice.start_note")}
+              tint={token("paper-muted")}
+              hoverClass="hover:bg-paper-fg/7"
+              onPress={() => {
+                if (untracked(listening) === "editor") stopVoice();
+                else dictate({});
+              }}
+            />
+          </If>
         </View>
       </View>
       <Editor

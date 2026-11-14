@@ -31,18 +31,25 @@ import { LANGUAGES } from "../app/i18n";
 import {
   appearance,
   defaultTime,
+  holdToTalk,
   islandOn,
   language,
   notificationsOn,
   setAppearance,
   setDefaultTime,
+  setHoldToTalk,
   setIsland,
   setLanguage,
   setNotifications,
+  setSpeechLanguage,
   setThemeName,
+  SPEECH_LANGUAGES,
+  speechLanguage,
   theme,
   type LanguageChoice,
+  type SpeechLanguageChoice,
 } from "../app/settings";
+import { PRIVACY_URL, speechAvailable, speechDenied } from "../app/voice";
 import { changeFolder, errorMessage, folderPath, folderShown, trusted } from "../app/store";
 import { FORM, Hint, MacSwitch, PopupButton, PushButton, Segmented, TimeInput } from "./controls";
 import { Icon, type IconName } from "./icons";
@@ -67,7 +74,7 @@ const WIDTH = 600;
 const TITLE_BAR = 30;
 const TOOLBAR = TITLE_BAR + 56;
 /** A pane's height before it was measured: the window opens near its size. */
-const GUESS: Record<SettingsTab, number> = { general: 330, appearance: 320, reminders: 220, claude: 300, about: 260 };
+const GUESS: Record<SettingsTab, number> = { general: 470, appearance: 320, reminders: 220, claude: 300, about: 260 };
 
 /** The window is open, and the pane it shows. */
 export const settingsOpen = signal(false);
@@ -326,6 +333,10 @@ function GeneralPane() {
         </Row>
       </Group>
 
+      <If when={speechAvailable()}>
+        <VoiceSettings />
+      </If>
+
       <Group>
         <Row label={t("settings.login.label")} hint={t("settings.login.hint")}>
           <MacSwitch testID="settings-login" label={t("settings.login.label")} checked={atLogin()} onChange={(on) => void setAtLogin(on)} />
@@ -338,6 +349,55 @@ function GeneralPane() {
             value={language()}
             onChange={setLanguage}
           />
+        </Row>
+      </Group>
+    </>
+  );
+}
+
+/** Dictation: holding ⌥ to talk, the language listened for, and the permission while it is refused. */
+function VoiceSettings() {
+  const languages = (): { value: SpeechLanguageChoice; title: string }[] => [
+    { value: "auto", title: t("settings.voice.language_auto") },
+    ...SPEECH_LANGUAGES.map((l) => ({ value: l.value, title: l.name })),
+  ];
+  return (
+    <>
+      <SectionTitle>{t("settings.voice.label")}</SectionTitle>
+      <Group testID="settings-voice">
+        <Row
+          label={t("settings.voice.hold", { key: T.keys.summonCaps[0] })}
+          hint={t("settings.voice.hold_hint", { key: T.keys.summonCaps[0] })}
+        >
+          <MacSwitch
+            testID="settings-voice-hold"
+            label={t("settings.voice.hold", { key: T.keys.summonCaps[0] })}
+            checked={holdToTalk()}
+            onChange={setHoldToTalk}
+          />
+        </Row>
+        <Row divider label={t("settings.voice.language")}>
+          <PopupButton
+            testID="settings-voice-language"
+            label={t("settings.voice.language")}
+            items={languages()}
+            value={speechLanguage()}
+            onChange={setSpeechLanguage}
+          />
+        </Row>
+        <Row
+          divider
+          label={t("settings.voice.permission")}
+          hint={speechDenied() ? t("settings.voice.denied_hint") : t("settings.voice.permission_hint")}
+          hintTone={speechDenied() ? "late" : "muted"}
+        >
+          <If when={speechDenied()}>
+            <PushButton
+              testID="settings-voice-grant"
+              label={t("settings.voice.grant")}
+              onPress={() => void openUrl(PRIVACY_URL.speech).catch(() => openUrl(PRIVACY_URL.microphone).catch(() => {}))}
+            />
+          </If>
         </Row>
       </Group>
     </>

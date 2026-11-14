@@ -14,7 +14,11 @@
     }
   },
   "macos": {
-    "activationPolicy": "accessory"
+    "activationPolicy": "accessory",
+    "infoPlist": {
+      "NSMicrophoneUsageDescription": "Jot listens while you hold ⌥ and writes what you say into your notes. 按住 ⌥ 说话时，Jot 用麦克风把你说的话记进笔记。",
+      "NSSpeechRecognitionUsageDescription": "Jot turns what you say into text for your notes. Jot 把你说的话转成笔记里的文字。"
+    }
   },
   "capabilities": {
     "application": true,
@@ -30,8 +34,10 @@
     "clipboard": true,
     "openUrl": {
       "schemes": [
-        "https"
+        "https",
+        "x-apple.systempreferences"
       ]
-    }
+    },
+    "speech": true
   }
 }

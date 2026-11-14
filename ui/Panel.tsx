@@ -2,6 +2,8 @@
 // desktop, below the top of the screen. It is one glass surface that morphs
 // between the summoned capsule (the field alone), the list under it, the
 // to-do view, and a note open beside the list, each change a spring.
+// Holding ⌥ (or the field's microphone) dictates into the field, or into
+// the open note when it has the focus.
 import { Animated, computed, createAnimatedValue, effect, keymap, reduceMotion, signal, Text, token, untracked, View, type AnimatedValue, type InputRef } from "nsh";
 import { Input } from "nsh/base";
 import { t } from "nsh/i18n";
@@ -30,8 +32,21 @@ import {
 import { Icon } from "./icons";
 import { fadeTo, springConfig } from "./motion";
 import { NoteList } from "./NoteList";
-import { Paper, toggleTaskAtCaret } from "./Paper";
+import { dictateIntoNote, Paper, toggleTaskAtCaret } from "./Paper";
 import { HintDivider, KeyHint, SummonKeys } from "./parts";
+import {
+  cancelVoice,
+  fieldSink,
+  forgetHold,
+  holdKeyDown,
+  holdKeyUp,
+  listening,
+  listeningByHold,
+  speechAvailable,
+  startVoice,
+  toggleVoice,
+} from "../app/voice";
+import { Breathing, MicButton } from "./Voice";
 import { openSettings } from "./Settings";
 import { fade } from "./themes";
 import { tn } from "../app/i18n";
@@ -109,6 +124,9 @@ export function PanelWindow() {
           ]).start();
         }
       } else if (win) {
+        // Hidden while dictating into the field or a note: what was said goes with it.
+        if (!cancelVoice("field")) cancelVoice("editor");
+        forgetHold();
         const closing = win;
         void Animated.timing(opacity, { toValue: 0, duration: 120, easing: "easeIn" })
           .start()
@@ -137,7 +155,10 @@ export function PanelWindow() {
         closeOnEscape={false}
         closeOnBlur={false}
         onFocusChange={({ focused }) => {
-          if (!focused) dismiss();
+          if (focused) return;
+          forgetHold();
+          // The system's microphone prompt takes the focus the first time: the panel stays for it.
+          if (!untracked(listening)) dismiss();
         }}
       >
         <View class="flex-1 items-center" style={{ paddingTop: T.size.windowMargin, backgroundColor: "transparent" }}>
@@ -157,7 +178,10 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
   // Escape: one step back. ⌘↩: tick the caret's task, tick the selected to-do, or make a note of the query.
   keymap.bind(
     {
-      escape: () => back(),
+      // Escape while dictating takes back what was said; otherwise one step back.
+      escape: () => {
+        if (!cancelVoice("field") && !cancelVoice("editor")) back();
+      },
       // ⌘,: the settings, as in every Mac app (the panel hides as the settings window takes the focus).
       "mod+,": () => openSettings(),
       "mod+enter": () => {
@@ -175,9 +199,17 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
     return stop;
   });
 
+  // Holding ⌥: into the open note when it has the focus, else into the field.
+  const beginHold = () =>
+    untracked(stage) === "editor" && !untracked(fieldFocused)
+      ? dictateIntoNote({ byHold: true })
+      : startVoice("field", fieldSink(), { byHold: true });
+
   return (
     <View
       testID="panel"
+      onKeyDown={(e) => holdKeyDown(e, beginHold)}
+      onKeyUp={(e) => holdKeyUp(e)}
       class={`${materialFill()} border border-glass-edge ${fade()}`}
       style={{
         ...materialStyle(),
@@ -229,9 +261,14 @@ function Field(props: { onFocusChange: (focused: boolean) => void }) {
     const request = focusRequest();
     if (request.target === "field") input?.focus();
   });
+  const hearing = () => listening() === "field";
   return (
-    <View class="flex-row items-center" style={{ height: T.size.field, gap: 12, paddingHorizontal: 22 }}>
-      <Icon name="search" size={20} tint={token("glass-muted")} />
+    <View class="flex-row items-center" style={{ height: T.size.field, gap: 12, paddingLeft: 22, paddingRight: speechAvailable() ? 16 : 22 }}>
+      <View class="items-center justify-center" style={{ width: 20, height: 20 }}>
+        <If when={hearing()} else={<Icon name="search" size={20} tint={token("glass-muted")} />}>
+          <Breathing testID="voice-pulse" size={22} color={token("primary")} accessibilityLabel={t("voice.listening")} />
+        </If>
+      </View>
       <Input
         testID="search"
         ref={(r) => {
@@ -240,7 +277,7 @@ function Field(props: { onFocusChange: (focused: boolean) => void }) {
         class="flex-1 text-glass-fg"
         style={{ fontSize: T.type.field, backgroundColor: "transparent" }}
         value={query()}
-        placeholder={t("search.placeholder")}
+        placeholder={hearing() ? t("voice.listening") : t("search.placeholder")}
         accessibilityLabel={t("search.label")}
         autoFocus
         autoCorrect={false}
@@ -251,8 +288,28 @@ function Field(props: { onFocusChange: (focused: boolean) => void }) {
         onFocus={() => props.onFocusChange(true)}
         onBlur={() => props.onFocusChange(false)}
       />
-      <If when={!query()}>
-        <SummonKeys trusted={trusted()} />
+      <If
+        when={hearing()}
+        else={
+          <If when={!query()}>
+            <SummonKeys trusted={trusted()} />
+          </If>
+        }
+      >
+        <KeyHint label={t("voice.cancel")} keys={T.keys.esc} />
+      </If>
+      <If when={speechAvailable()}>
+        <MicButton
+          testID="voice-mic"
+          active={hearing()}
+          label={hearing() ? t("voice.stop") : t("voice.start")}
+          tint={token("glass-muted")}
+          hoverClass="hover:bg-glass-hover"
+          onPress={() => {
+            toggleVoice("field", fieldSink);
+            input?.focus();
+          }}
+        />
       </If>
     </View>
   );
@@ -290,22 +347,41 @@ function Footer() {
         else={
           <>
             <If
-              when={todoMode()}
+              when={listening()}
               else={
-                <>
-                  <KeyHint label={t("keys.open")} keys={T.keys.enter} main />
+                <If
+                  when={todoMode()}
+                  else={
+                    <>
+                      <KeyHint label={t("keys.open")} keys={T.keys.enter} main />
+                      <HintDivider />
+                      <KeyHint label={t("keys.create")} keys={T.keys.create} />
+                      <HintDivider />
+                      <KeyHint label={t("keys.dismiss")} keys={T.keys.esc} />
+                    </>
+                  }
+                >
+                  <KeyHint label={t("keys.tick")} keys={T.keys.create} main />
                   <HintDivider />
-                  <KeyHint label={t("keys.create")} keys={T.keys.create} />
+                  <KeyHint label={t("keys.open_note")} keys={T.keys.enter} />
                   <HintDivider />
-                  <KeyHint label={t("keys.dismiss")} keys={T.keys.esc} />
-                </>
+                  <KeyHint label={t("keys.back")} keys={T.keys.esc} />
+                </If>
               }
             >
-              <KeyHint label={t("keys.tick")} keys={T.keys.create} main />
+              {/* Dictating: how it ends (let go of ⌥, or press the microphone again), and how it is taken back. */}
+              <If
+                when={listeningByHold()}
+                else={
+                  <Text class="text-glass-fg" style={{ fontSize: T.type.meta }}>
+                    {t("voice.finish_press")}
+                  </Text>
+                }
+              >
+                <KeyHint label={t("voice.finish_release")} keys={[T.keys.summonCaps[0]]} main />
+              </If>
               <HintDivider />
-              <KeyHint label={t("keys.open_note")} keys={T.keys.enter} />
-              <HintDivider />
-              <KeyHint label={t("keys.back")} keys={T.keys.esc} />
+              <KeyHint label={t("voice.cancel")} keys={T.keys.esc} />
             </If>
             <View class="flex-1" />
             <Text class="text-glass-muted" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>

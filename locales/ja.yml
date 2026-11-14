@@ -132,6 +132,16 @@ settings:
     grant_hint: 「アクセシビリティ」で Jot を許可してください
     fallback: 予備のショートカット
     fallback_hint: 2 回押しが使えないときに Jot を開きます
+  voice:
+    label: 音声
+    hold: "%{key} 長押しで話す"
+    hold_hint: Jot で %{key} を長押しして入力。ほかの App では %{key} を 2 回押して長押しすると、ひとことメモ
+    language: 認識する言語
+    language_auto: Jot の言語と同じ
+    permission: マイクと音声認識
+    permission_hint: 初めて話すときに macOS が両方の許可を求めます
+    denied_hint: 許可されていません。システム設定の「プライバシーとセキュリティ」でオンにしてください
+    grant: 許可…
   login:
     label: ログイン時に開く
     hint: ログイン後、Jot はメニューバーで待機します
@@ -173,3 +183,29 @@ theme:
   dusk: 夕暮れ
   coral: コーラル
   contrast: ハイコントラスト
+
+voice:
+  listening: 聞いています…
+  start: 音声入力
+  start_note: カーソル位置に音声入力
+  stop: 終了
+  cancel: キャンセル
+  finish_release: 離す
+  finish_press: もう一度マイクを押して終了
+  # 時間のないひとことはこのノートに入ります。
+  inbox: 受信箱
+  island:
+    listening: 聞いています · 離すと保存
+    inbox: 保存しました · %{note}
+    todo: リマインダーを追加
+    open_settings: クリックしてシステム設定を開く
+    try_again: もう一度話してください
+  error:
+    empty: 聞き取れませんでした
+    not-allowed: マイクまたは音声認識が許可されていません
+    no-speech: 声が聞こえませんでした
+    audio-capture: マイクを使用できません
+    network: 音声認識にはインターネット接続が必要です
+    language-not-supported: この言語はまだ認識できません
+    unavailable: このデバイスでは音声認識を使用できません
+    failed: 認識できませんでした
