@@ -160,6 +160,9 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     untracked(() => {
       if (editor && props.line !== null) placeCaret(editor, props.line, text());
     });
+    // Return in the search field opens the note: the caret moves here once the field's submit is done
+    // (`autoFocus` alone loses to the field, which still has the keys while Return is handled).
+    if (props.focus) setTimeout(() => editor?.focus(), 0);
   });
 
   // The caret moved to another line: the line it left gets its absolute time.
