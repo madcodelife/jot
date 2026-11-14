@@ -1,7 +1,8 @@
 //! Japanese phrases: `今日` / `明日` / `明後日`, `今夜`, `金曜` / `金曜日`, `来週の金曜`, `11月20日`, `20日`,
 //! `9時` / `9時半` / `午後3時` / `正午`, `30分後` / `2時間後` / `1時間半後`.
 //!
-//! As in Chinese, hours written in kanji (`三時`) count only after a date or a part of the day.
+//! Hours in kanji (`九時`, `三時半`, as speech-to-text writes them) count on their own too, except `一時` without
+//! minutes, which usually means "for a while" (`一時停止`, `一時的`).
 
 use jiff::ToSpan as _;
 use jiff::civil::{Date, Weekday};
@@ -161,8 +162,9 @@ pub(super) fn period(text: &str, start: usize) -> Option<(usize, Period)> {
         .find_map(|(word, period)| Some((eat(text, start, word)?, *period)))
 }
 
-/// `9時`, `9時半`, `9時30分`, `正午`; kanji (`三時`) only when `numerals` allows them.
-pub(super) fn clock(text: &str, start: usize, numerals: bool) -> Option<Clock> {
+/// `9時`, `9時半`, `9時30分`, `正午`, `三時半`, `十一時十五分`. With `dated` (after a date or a part of the day)
+/// any hour in kanji counts; on its own `一時` needs its minutes.
+pub(super) fn clock(text: &str, start: usize, dated: bool) -> Option<Clock> {
     if let Some(end) = eat(text, start, "正午") {
         return Some(Clock {
             end,
@@ -171,27 +173,31 @@ pub(super) fn clock(text: &str, start: usize, numerals: bool) -> Option<Clock> {
             fixed: true,
         });
     }
-    let (after, hour) = number(text, start, numerals)?;
+    let (after, hour) = number(text, start, true)?;
+    let spoken = digits(text, start).is_none();
     let mut end = eat(text, skip_spaces(text, after), "時")?;
     // `2時間` is a length.
     if hour > 23 || eat_any(text, end, &["間", "间"]).is_some() {
         return None;
     }
-    let mut minute = 0;
+    let mut minute = None;
     if let Some(after) = eat(text, end, "半") {
-        minute = 30;
+        minute = Some(30);
         end = after;
-    } else if let Some((after, value)) = digits(text, end)
+    } else if let Some((after, value)) = number(text, end, true)
         && value <= 59
         && let Some(after) = eat(text, after, "分")
     {
-        minute = value;
+        minute = Some(value);
         end = after;
+    }
+    if spoken && !dated && minute.is_none() && hour == 1 {
+        return None;
     }
     Some(Clock {
         end,
         hour: hour as i8,
-        minute: minute as i8,
+        minute: minute.unwrap_or(0) as i8,
         fixed: false,
     })
 }

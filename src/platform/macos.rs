@@ -1,4 +1,5 @@
-//! macOS: the Accessibility permission and AppKit's event monitors.
+//! macOS: the Accessibility permission, AppKit's event monitors, and the
+//! main dispatch queue for the hold's timer.
 
 use std::cell::{Cell, RefCell};
 use std::ffi::c_void;
@@ -11,7 +12,7 @@ use objc2::runtime::AnyObject;
 use objc2_app_kit::{NSEvent, NSEventMask, NSEventModifierFlags, NSEventType, NSWorkspace};
 use objc2_foundation::{NSDictionary, NSNumber, NSString, NSURL};
 
-use crate::summon::{DoubleTap, Modifiers, SummonKey};
+use crate::summon::{HOLD, Modifiers, SummonKey, Summoner};
 
 #[link(name = "ApplicationServices", kind = "framework")]
 unsafe extern "C" {
@@ -20,13 +21,33 @@ unsafe extern "C" {
     static kAXTrustedCheckOptionPrompt: *const c_void;
 }
 
+// libdispatch, part of libSystem.
+unsafe extern "C" {
+    /// The main queue (`dispatch_get_main_queue()` is a macro for its
+    /// address).
+    static _dispatch_main_q: c_void;
+    fn dispatch_time(when: u64, delta: i64) -> u64;
+    fn dispatch_after_f(
+        when: u64,
+        queue: *const c_void,
+        context: *mut c_void,
+        work: extern "C" fn(*mut c_void),
+    );
+}
+
+/// `DISPATCH_TIME_NOW`.
+const DISPATCH_TIME_NOW: u64 = 0;
+
 /// The Accessibility pane of System Settings.
 const ACCESSIBILITY_PANE: &str =
     "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility";
 
 thread_local! {
-    /// The event monitors `watch_double_tap` installed (main thread).
+    /// The event monitors, installed by the first listener and kept (main
+    /// thread).
     static MONITORS: RefCell<Vec<Retained<AnyObject>>> = const { RefCell::new(Vec::new()) };
+    /// The gestures' recognizers and listeners (main thread).
+    static SUMMONER: RefCell<Option<Summoner>> = const { RefCell::new(None) };
     /// Whether this run asked for the permission already (main thread).
     static PROMPTED: Cell<bool> = const { Cell::new(false) };
 }
@@ -66,29 +87,53 @@ fn open_accessibility_pane() {
 }
 
 /// Calls `on_tap` (on the main thread) when `key` is tapped twice, in any
-/// app; replaces what an earlier call installed. Main thread only.
+/// app; replaces the earlier listener. Main thread only.
+pub(crate) fn watch_double_tap(key: SummonKey, on_tap: Box<dyn Fn() + Send>) {
+    with_summoner(|summoner| summoner.set_tap(key, on_tap));
+}
+
+/// Calls `on_start` (on the main thread) when `key` is tapped, then pressed
+/// again and held, in any app, and `on_end` when the hold ends (cancelled
+/// or not); replaces the earlier listeners. Main thread only.
+pub(crate) fn watch_double_tap_hold(
+    key: SummonKey,
+    on_start: Box<dyn Fn() + Send>,
+    on_end: Box<dyn Fn(bool) + Send>,
+) {
+    with_summoner(|summoner| summoner.set_hold(key, on_start, on_end));
+}
+
+/// Runs `f` on the summoner, installing the event monitors the first time.
+fn with_summoner(f: impl FnOnce(&mut Summoner)) {
+    SUMMONER.with_borrow_mut(|summoner| f(summoner.get_or_insert_with(Summoner::new)));
+    if MONITORS.with_borrow(Vec::is_empty) {
+        install_monitors();
+    }
+}
+
+/// Feeds the keyboard's and mouse's events to the summoner.
 ///
 /// A global monitor hears the events sent to other apps (with the
 /// Accessibility permission), a local one those sent to this app's own
-/// windows, which the global one never gets.
-pub(crate) fn watch_double_tap(key: SummonKey, on_tap: Box<dyn Fn() + Send>) {
-    MONITORS.with_borrow_mut(|monitors| {
-        for monitor in monitors.drain(..) {
-            // SAFETY: `monitor` is what `add…Monitor…` returned, removed once.
-            unsafe { NSEvent::removeMonitor(&monitor) };
-        }
-    });
-    let tap = RefCell::new(DoubleTap::new(key));
-    let handle: Rc<dyn Fn(&NSEvent)> = Rc::new(move |event: &NSEvent| {
-        let fired = if event.r#type() == NSEventType::FlagsChanged {
-            tap.borrow_mut()
-                .modifiers(modifiers(event.modifierFlags()), event.timestamp())
-        } else {
-            tap.borrow_mut().other_input();
-            false
-        };
-        if fired {
-            on_tap();
+/// windows, which the global one never gets. A modifier's release is a
+/// `FlagsChanged` event like its press, so no key-up events are needed.
+fn install_monitors() {
+    let handle: Rc<dyn Fn(&NSEvent)> = Rc::new(|event: &NSEvent| {
+        let kind = event.r#type();
+        let armed = SUMMONER.with_borrow_mut(|summoner| {
+            let summoner = summoner.as_mut()?;
+            if kind == NSEventType::FlagsChanged {
+                summoner.modifiers(modifiers(event.modifierFlags()), event.timestamp())
+            } else if kind == NSEventType::KeyDown {
+                summoner.key_down();
+                None
+            } else {
+                summoner.button_down();
+                None
+            }
+        });
+        if let Some(press) = armed {
+            after_hold(press);
         }
     });
     let mask = NSEventMask::FlagsChanged
@@ -121,6 +166,30 @@ pub(crate) fn watch_double_tap(key: SummonKey, on_tap: Box<dyn Fn() + Send>) {
         installed.push(monitor);
     }
     MONITORS.with_borrow_mut(|monitors| *monitors = installed);
+}
+
+/// Calls the summoner's `tick` with `press` on the main thread `HOLD`
+/// later. The press's time travels as the context pointer's bits, so
+/// nothing is allocated; a timer whose press was released or followed by
+/// other input finds nothing to start.
+fn after_hold(press: f64) {
+    extern "C" fn fire(context: *mut c_void) {
+        let press = f64::from_bits(context as usize as u64);
+        SUMMONER.with_borrow_mut(|summoner| {
+            if let Some(summoner) = summoner {
+                summoner.tick(press);
+            }
+        });
+    }
+    // Pointers are 64 bits on every Mac.
+    let context = press.to_bits() as usize as *mut c_void;
+    // SAFETY: plain libdispatch calls: `dispatch_time` takes any values;
+    // `_dispatch_main_q` is the main queue, which lives as long as the
+    // process; `fire` takes the context as a number and never dereferences it.
+    unsafe {
+        let when = dispatch_time(DISPATCH_TIME_NOW, (HOLD * 1e9) as i64);
+        dispatch_after_f(when, &raw const _dispatch_main_q, context, fire);
+    }
 }
 
 fn modifiers(flags: NSEventModifierFlags) -> Modifiers {

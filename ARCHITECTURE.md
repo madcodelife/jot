@@ -93,7 +93,12 @@ pub mod when {                   // store/src/when/: mod.rs (driver, labels), zh
     /// en: today / tomorrow / the day after tomorrow, mon…sun / monday…sunday, next friday, nov 20 / 20 nov / 11/20,
     /// 9am / 3:30 pm / 15:00 / noon, tonight, this afternoon, in 30 min / in half an hour / in 2 hours; ja: 今日 /
     /// 明日 / 明後日, 月曜…日曜 / 月曜日, 来週の金曜, 11月20日, 20日, 9時 / 9時半 / 午後3時, 30分後 / 2時間後),
-    /// as a byte range, the time, and a short label in `options.lang`.
+    /// numbers in Chinese numerals / kanji as speech-to-text writes them (九点, 三点半, 十一点四十五, 十二点零五,
+    /// 三点一刻, 十一月二十号, 二十号, 半个小时后, 九時, 三時半; a numeral hour on its own is no time when it reads as
+    /// something else: 一点 without minutes, 第三点, 三点意见, 一時停止), as a byte range, the time, and a short
+    /// label in `options.lang`. An hour without a part of the day or am / pm (九点, 3点, 3:30, 三時, `at 4`):
+    /// 1–6 is the afternoon's (13:00–18:00), 7–12, 0 and 13–23 as written (`03:00` with its leading zero too); then
+    /// the next one from `now` (tomorrow once past), with or without a date.
     pub fn parse_with(text: &str, now: DateTime, options: &Options) -> Option<When>;
     /// `parse_with` with `Options::default()` (a date alone is 09:00, the label zh-Hans).
     pub fn parse(text: &str, now: DateTime) -> Option<When>;
@@ -131,11 +136,13 @@ class Notes {                                   // wraps jot_store::Store
   read(title: string): Note | null;
   write(title: string, body: string): NoteMeta; // the editor's autosave
   create(title: string, body: string): NoteMeta;
+  append(title: string, text: string): NoteMeta;   // after one blank line; creates the note (source "user") if missing
   rename(from: string, to: string): NoteMeta;
   delete(title: string): void;
   watch(onChange: () => void): void;            // folder changed (debounced); replaces the previous listener
   todos(): Todo[];
   setTodoDone(note: string, line: number, text: string, done: boolean): NoteMeta;
+  addTodo(text: string, due?: string | null /* "YYYY-MM-DDTHH:mm", else TypeError */, note?: string | null /* "待办" */): Todo;
 }
 interface NoteMeta { title: string; modified: number /* ms since epoch */; source: "user" | "claude"; preview: string }
 interface Note { meta: NoteMeta; body: string }
@@ -157,10 +164,14 @@ class Reminders {                               // fires at due times while the 
   snooze(note: string, line: number, minutes: number): void;               // in memory: fires again later
 }
 
-module Summon {                                 // double-tap of a modifier, system-wide
+module Summon {                                 // gestures of a modifier, system-wide
   isTrusted(): boolean;                         // macOS: Accessibility granted
   requestTrust(): void;                         // shows the system prompt / opens the pane
   onDoubleTap(key: "option" | "control", listener: () => void): void;      // replaces the previous listener
+  // Tap, then press again and hold 250 ms: start; released: end. Another key or modifier pressed meanwhile ends it
+  // with cancelled: true (mouse buttons do not). A second press released sooner is a double tap, never both.
+  // Replaces the previous handlers; the key may differ from onDoubleTap's.
+  onDoubleTapHold(key: "option" | "control", handlers: { start: () => void; end: (event: { cancelled: boolean }) => void }): void;
 }
 ```
 The notch comes from NSH: `displays()` → `cutouts` (`nsh/desktop`).

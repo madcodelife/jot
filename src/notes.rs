@@ -91,6 +91,49 @@ impl Notes {
         Ok(meta.into())
     }
 
+    /// Appends `text` to the note titled `title` after one blank line, or
+    /// creates the note with it when there is none.
+    pub fn append(&mut self, title: String, text: String) -> Result<NoteMeta, JsError> {
+        let failed = |e| store_error(e, format_args!("cannot append to the note {title:?}"));
+        // A note made in between (by Claude, a sync client) is appended to.
+        for _ in 0..3 {
+            match self.store.append(&title, &text) {
+                Err(StoreError::NotFound) => {}
+                done => return done.map(NoteMeta::from).map_err(failed),
+            }
+            let body = format!("{}\n", text.trim_end_matches(['\n', '\r']));
+            match self.store.create(&title, &body, Source::User) {
+                Err(StoreError::AlreadyExists) => continue,
+                done => return done.map(NoteMeta::from).map_err(failed),
+            }
+        }
+        Err(failed(StoreError::AlreadyExists))
+    }
+
+    /// Adds the to-do `- [ ] text` (with ` ⏰ due` when `due` is given,
+    /// `"YYYY-MM-DDTHH:mm"` local time) at the end of the note titled
+    /// `note`, `"待办"` when not given, creating the note as needed.
+    /// Throws a `TypeError` for another form of `due`.
+    pub fn add_todo(
+        &mut self,
+        text: String,
+        due: Option<String>,
+        note: Option<String>,
+    ) -> Result<Todo, JsError> {
+        let due = due
+            .map(|due| {
+                parse_due(&due).ok_or_else(|| {
+                    JsError::Type(format!("due must be \"YYYY-MM-DDTHH:mm\", got {due:?}"))
+                })
+            })
+            .transpose()?;
+        let todo = self
+            .store
+            .add_todo(note.as_deref(), &text, due, Source::User)
+            .map_err(|e| store_error(e, format_args!("cannot add the to-do {text:?}")))?;
+        Ok(todo.into())
+    }
+
     /// Renames the note `from` to `to`; throws `ERR_JOT_NOT_FOUND` or
     /// `ERR_JOT_ALREADY_EXISTS`.
     pub fn rename(&mut self, from: String, to: String) -> Result<NoteMeta, JsError> {
@@ -287,6 +330,33 @@ pub(crate) fn format_due(due: jiff::civil::DateTime) -> String {
     due.strftime("%Y-%m-%dT%H:%M").to_string()
 }
 
+/// A due time as TS gives it, `"2026-11-14T09:00"` (what [`format_due`]
+/// writes), or `None` for any other form.
+pub(crate) fn parse_due(due: &str) -> Option<jiff::civil::DateTime> {
+    let (date, time) = due.split_once('T')?;
+    let (hour, minute) = time.split_once(':')?;
+    let mut parts = date.split('-');
+    let (year, month, day) = (parts.next()?, parts.next()?, parts.next()?);
+    let fields = [(year, 4), (month, 2), (day, 2), (hour, 2), (minute, 2)];
+    if parts.next().is_some()
+        || fields
+            .iter()
+            .any(|(field, len)| field.len() != *len || !field.bytes().all(|b| b.is_ascii_digit()))
+    {
+        return None;
+    }
+    jiff::civil::DateTime::new(
+        year.parse().ok()?,
+        month.parse().ok()?,
+        day.parse().ok()?,
+        hour.parse().ok()?,
+        minute.parse().ok()?,
+        0,
+        0,
+    )
+    .ok()
+}
+
 /// `dir` with a leading `~` replaced by the home folder.
 pub(crate) fn expand_home(dir: &str) -> PathBuf {
     let home = || std::env::var_os("HOME").map(PathBuf::from);
@@ -328,5 +398,36 @@ pub(crate) fn store_error(error: StoreError, doing: impl Display) -> JsError {
     match code {
         Some(code) => error.with_code(code),
         None => error,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{format_due, parse_due};
+
+    #[test]
+    fn due_times() {
+        let due = parse_due("2026-11-14T09:00").unwrap();
+        assert_eq!(due, jiff::civil::date(2026, 11, 14).at(9, 0, 0, 0));
+        assert_eq!(format_due(due), "2026-11-14T09:00");
+        assert_eq!(
+            parse_due("2026-02-28T23:59"),
+            Some(jiff::civil::date(2026, 2, 28).at(23, 59, 0, 0))
+        );
+        for wrong in [
+            "",
+            "2026-11-14",
+            "2026-11-14 09:00",
+            "2026-11-14T9:00",
+            "2026-11-14T09:00:00",
+            "2026-11-14T24:00",
+            "2026-02-30T09:00",
+            "26-11-14T09:00",
+            "2026-11-14T09:0a",
+            "+026-11-14T09:00",
+            "明天 9点",
+        ] {
+            assert_eq!(parse_due(wrong), None, "{wrong:?}");
+        }
     }
 }

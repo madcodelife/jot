@@ -22,12 +22,19 @@
 //!   [`Options::default_time`]; a date with only a part of the day takes that part's usual hour (`明天下午` and
 //!   `tomorrow afternoon` are 15:00).
 //! - A time from now: `半小时后`, `2小時後`, `in 30 min`, `in half an hour`, `in 2 hours`, `30分後`, `1時間半後`.
+//! - Numbers in Chinese numerals or kanji, as speech-to-text writes them: `九点`, `十一点四十五`, `三点一刻`,
+//!   `十一月二十号`, `半个小时后`, `九時`, `三時半`.
 //!
 //! Dates look forward from `now`: a weekday is this week's, or next week's once this week's is past; `下周五`,
 //! `next friday` and `来週の金曜` are always next week's (weeks start on Monday, so on a Friday they are a week
 //! away); `11月20日` is next year's once this year's is past; `20号` next month's once this month's is past. A day
 //! is not past while it is today. A time with no date is today, or tomorrow once it is past; an explicit `今天`
 //! keeps today even when the time is past.
+//!
+//! An hour without a part of the day or a meridiem is read as calendar apps read it: 1 to 6 o'clock is the
+//! afternoon's (`三点开会`, `3点`, `3:30`, `三時`, `tomorrow at 4` are 15:00 / 15:30 / 16:00), 7 to 12, 0 and 13 to
+//! 23 are as written (`9点` is 09:00), in every language and with or without a date; `03:00`, with a leading zero,
+//! is a 24-hour clock's and stays 03:00.
 //!
 //! `12am` is 00:00 and `12pm` 12:00; `午前12時` is 00:00 and `午後12時` 12:00, as 12-hour clocks show them.
 //! `midnight` and `晚上12点` are the end of the day: the next day's 00:00.
@@ -420,14 +427,15 @@ fn period_at(input: &Input<'_>, start: usize) -> Option<(usize, Period)> {
     )
 }
 
-/// The time of day the languages read at `start`. Hours in Chinese numerals (`三点`) count only when
-/// `numerals`; a bare hour (`tomorrow at 9`) only when `bare`.
-fn clock_at(input: &Input<'_>, start: usize, numerals: bool, bare: bool) -> Option<Clock> {
+/// The time of day the languages read at `start`. `dated`: after a date or a part of the day, where every hour in
+/// Chinese numerals or kanji counts (`明天一点`; on its own `一点` is "a little"); a bare hour (`tomorrow at 9`)
+/// only when `bare`.
+fn clock_at(input: &Input<'_>, start: usize, dated: bool, bare: bool) -> Option<Clock> {
     longest(
         [
             colon_clock(input.text, start),
-            zh::clock(&input.folded, start, numerals),
-            ja::clock(input.text, start, numerals),
+            zh::clock(&input.folded, start, dated),
+            ja::clock(input.text, start, dated),
             en::clock(input.text, start, bare),
         ],
         |found| found.end,
@@ -488,13 +496,15 @@ impl Period {
 }
 
 /// The hour on a 24-hour clock, and how many days later, that `clock` in `period` is: `下午3点` is 15:00,
-/// `晚上12点` the next day's 00:00.
+/// `晚上12点` the next day's 00:00. Without a part of the day, 1 to 6 o'clock is the afternoon's, as calendar apps
+/// read it (`三点开会` is 15:00); 7 to 12, 0 and 13 to 23 are as written.
 fn resolve(clock: Clock, period: Option<Period>) -> (i64, i8) {
     if clock.fixed {
         return (i64::from(clock.hour / 24), clock.hour % 24);
     }
     let hour = clock.hour;
     match period {
+        None if (1..=6).contains(&hour) => (0, hour + 12),
         Some(Period::Afternoon | Period::Evening) if hour < 12 => (0, hour + 12),
         Some(Period::Evening) if hour == 12 => (1, 0),
         Some(Period::Noon) if hour < 6 => (0, hour + 12),
@@ -515,7 +525,8 @@ fn colon_clock(text: &str, start: usize) -> Option<Clock> {
         end,
         hour: hour as i8,
         minute: minute as i8,
-        fixed: false,
+        // `03:00` with its leading zero is a 24-hour clock's: no afternoon.
+        fixed: text[start..after].chars().count() == 2,
     })
 }
 
