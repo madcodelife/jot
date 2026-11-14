@@ -87,18 +87,34 @@ impl Store {
     pub fn add_todo(&self, note: Option<&str>, text: &str, due: Option<DateTime>, source: Source) -> Result<Todo, StoreError>;
 }
 
-pub mod when {
-    /// The first time phrase in `text` (今天 / 明天 / 后天, 周一…周日, 下周五, 11月20日, 20号, 9点, 9:30, 下午3点,
-    /// 半小时后, 2小时后, …; a date alone means 09:00), as a byte range, the time, and a short label ("明天 09:00").
+pub mod when {                   // store/src/when/: mod.rs (driver, labels), zh.rs, en.rs, ja.rs
+    /// The first time phrase in `text`, in any of the languages, mixed or not (zh-Hans / zh-Hant: 今天 / 明天 /
+    /// 后天 / 後天, 周一…周日 / 週一, 下周五 / 下週五, 11月20日, 20号 / 20號, 9点 / 9點, 下午3点, 半小时后 / 半小時後;
+    /// en: today / tomorrow / the day after tomorrow, mon…sun / monday…sunday, next friday, nov 20 / 20 nov / 11/20,
+    /// 9am / 3:30 pm / 15:00 / noon, tonight, this afternoon, in 30 min / in half an hour / in 2 hours; ja: 今日 /
+    /// 明日 / 明後日, 月曜…日曜 / 月曜日, 来週の金曜, 11月20日, 20日, 9時 / 9時半 / 午後3時, 30分後 / 2時間後),
+    /// as a byte range, the time, and a short label in `options.lang`.
+    pub fn parse_with(text: &str, now: DateTime, options: &Options) -> Option<When>;
+    /// `parse_with` with `Options::default()` (a date alone is 09:00, the label zh-Hans).
     pub fn parse(text: &str, now: DateTime) -> Option<When>;
     pub struct When { pub range: std::ops::Range<usize>, pub at: DateTime, pub label: String }
-    /// A to-do line with its phrase replaced by ` ⏰ …`, or None when it has none / is not an open to-do.
-    pub fn normalize_line(line: &str, now: DateTime) -> Option<String>;
+    pub struct Options { pub default_time: jiff::civil::Time /* a date alone; 09:00 */, pub lang: Lang /* ZhHans */ }
+    /// The label's language: zh-Hans "明天 09:00" / "周五 15:00" / "11月20日 09:00", zh-Hant "後天 09:00" /
+    /// "週五 15:00", en "Tomorrow 9:00 AM" / "Fri 3:00 PM" / "Nov 20 9:00 AM", ja "明日 9:00" / "金曜 15:00" /
+    /// "11月20日 9:00". Today / tomorrow / (the day after, where the language has a word) / the weekday within the
+    /// coming week / the month and day.
+    pub enum Lang { ZhHans, ZhHant, En, Ja }
+    impl Lang { pub fn from_locale(locale: &str) -> Lang; }  // "zh-TW" / "zh-Hant" → ZhHant, other zh → ZhHans, ja, else En
+    /// A to-do line with its phrase replaced by ` ⏰ YYYY-MM-DD HH:mm` (whatever the language), or None when it
+    /// has none / is not an open to-do.
+    pub fn normalize_line_with(line: &str, now: DateTime, options: &Options) -> Option<String>;
+    pub fn normalize_line(line: &str, now: DateTime) -> Option<String>;   // with Options::default()
 }
 ```
 `StoreError` gains `Changed`.
 
-MCP tools (mcp/): `add_todo(text, due?, note?)` (`due`: ISO `2026-11-14T09:00` or a phrase `when::parse` reads),
+MCP tools (mcp/): `add_todo(text, due?, note?)` (`due`: ISO `2026-11-14T09:00` or a phrase `when::parse` reads, in
+Chinese, English or Japanese; without `due`, a phrase in `text` becomes the time),
 `list_todos(range?)` (`overdue` | `today` | `upcoming` | `all`, default `today`+`overdue`), `complete_todo(note, text)`.
 
 ## The app's Rust face (`jot/native`, src/)
@@ -126,9 +142,13 @@ interface Note { meta: NoteMeta; body: string }
 interface SearchHit { meta: NoteMeta; snippet: string; titleMatch: boolean }
 interface Todo { note: string; line: number; text: string; done: boolean; due: string | null /* "2026-11-14T09:00" */; doneOn: string | null }
 
-module When {
-  parse(text: string): { start: number; end: number; due: string; label: string } | null;   // start/end: UTF-16 offsets
-  normalizeLine(line: string): string | null;
+module When {                                   // phrases of every language are read whatever the locale
+  parse(text: string, options?: WhenOptions): { start: number; end: number; due: string; label: string } | null;   // start/end: UTF-16 offsets
+  normalizeLine(line: string, options?: WhenOptions): string | null;
+}
+interface WhenOptions {
+  locale?: string;       // the label's language: "zh-Hans" (default), "zh-Hant", "en", "ja"; others label in English
+  defaultTime?: string;  // "HH:mm" a date alone means, default "09:00"; anything else throws a TypeError
 }
 
 class Reminders {                               // fires at due times while the app runs

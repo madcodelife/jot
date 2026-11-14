@@ -381,6 +381,45 @@ async fn add_list_complete_todos() {
     assert!(is_error);
     assert!(text.contains("list_todos"), "{text}");
 
+    // Phrases in English, traditional Chinese and Japanese, as `due` or in the text.
+    for (args, task, due) in [
+        (
+            serde_json::json!({ "text": "Pay rent", "due": "tomorrow 3pm", "note": "Trips" }),
+            "Pay rent",
+            "Sat 2026-11-14 15:00",
+        ),
+        (
+            serde_json::json!({ "text": "Call mom in 30 min", "note": "Trips" }),
+            "Call mom",
+            "Fri 2026-11-13 11:00",
+        ),
+        (
+            serde_json::json!({ "text": "繳費", "due": "下週五 下午3點", "note": "Trips" }),
+            "繳費",
+            "Fri 2026-11-20 15:00",
+        ),
+        (
+            serde_json::json!({ "text": "家賃", "due": "来週の金曜 15時", "note": "Trips" }),
+            "家賃",
+            "Fri 2026-11-20 15:00",
+        ),
+        (
+            serde_json::json!({ "text": "会議 明日の午後3時", "note": "Trips" }),
+            "会議",
+            "Sat 2026-11-14 15:00",
+        ),
+    ] {
+        let (is_error, text) = call(&client, "add_todo", args).await;
+        assert!(!is_error, "{text}");
+        assert!(text.contains(&format!("\"{task}\"")), "{text}");
+        assert!(text.contains(&format!("due {due}")), "{text}");
+    }
+    assert_eq!(
+        fs::read_to_string(dir.path().join("Trips.md")).unwrap(),
+        "---\nsource: claude\n---\n- [ ] Pay rent ⏰ 2026-11-14 15:00\n- [ ] Call mom ⏰ 2026-11-13 11:00\n\
+         - [ ] 繳費 ⏰ 2026-11-20 15:00\n- [ ] 家賃 ⏰ 2026-11-20 15:00\n- [ ] 会議 ⏰ 2026-11-14 15:00\n"
+    );
+
     client.cancel().await.unwrap();
     server.await.unwrap();
 }

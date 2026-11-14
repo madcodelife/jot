@@ -96,7 +96,8 @@ pub struct AddTodoParams {
     /// What to do, short and in the user's words, such as "交周报". Leave the time out of it when you pass `due`.
     pub text: String,
     /// When to remind the user, in their local time: ISO such as "2026-11-14T09:00" (a date alone means 09:00),
-    /// or a Chinese phrase such as "明天 9点", "周五", "下午3点" or "半小时后". Omit it for a to-do without a time.
+    /// or a phrase in Chinese, English or Japanese, such as "明天 9点", "下週五", "tomorrow 3pm", "next friday",
+    /// "in 30 min", "明日の午後3時" or "30分後". Omit it for a to-do without a time.
     #[serde(default)]
     pub due: Option<String>,
     /// The note to add it to (case-insensitive); created if missing. Defaults to the note "待办".
@@ -280,9 +281,9 @@ impl JotServer {
         description = "Add a to-do to the user's Jot, optionally with a reminder time; the Jot app notifies the \
             user when it comes due. Use it when the user asks to be reminded of something (\"提醒我周五交周报\", \
             \"remind me to call mom at 8\") or to put something on their to-do list. Pass the task as `text` and \
-            the time as `due` (ISO local time such as 2026-11-14T09:00, or a Chinese phrase such as 明天 9点 / \
-            周五 / 半小时后). The to-do goes to the note \"待办\" unless the user names another note. Confirm the \
-            resolved time back to the user.",
+            the time as `due` (ISO local time such as 2026-11-14T09:00, or a phrase in Chinese, English or Japanese \
+            (支持中英日) such as 明天 9点 / 下週五 / tomorrow 3pm / in 30 min / 明日の午後3時). The to-do goes \
+            to the note \"待办\" unless the user names another note. Confirm the resolved time back to the user.",
         annotations(
             title = "Add to-do",
             read_only_hint = false,
@@ -305,7 +306,7 @@ impl JotServer {
                 None => {
                     return error(format!(
                         "Jot cannot read the time \"{due}\". Pass ISO local time such as \
-                         \"{}\", or a phrase such as \"明天 9点\", \"周五\" or \"半小时后\".",
+                         \"{}\", or a phrase such as \"明天 9点\", \"tomorrow 3pm\" or \"30分後\".",
                         format_iso(now)
                     ));
                 }
