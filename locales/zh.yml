@@ -22,8 +22,6 @@ notify:
 search:
   placeholder: 搜索或新建…
   label: 搜索或新建笔记
-  summon_double: 连按两下 %{key} 呼出
-  summon_shortcut: "%{keys} 呼出"
 
 empty:
   title: 还没有笔记

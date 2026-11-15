@@ -29,7 +29,6 @@ import {
   todoMode,
   trashCountdown,
   trashed,
-  trusted,
   flash,
   renaming,
   undoTrash,
@@ -41,7 +40,7 @@ import { Icon } from "./icons";
 import { fadeTo, springConfig } from "./motion";
 import { NoteList } from "./NoteList";
 import { dictateIntoNote, Paper, toggleTaskAtCaret } from "./Paper";
-import { HintDivider, KeyHint, Keycaps, SummonKeys } from "./parts";
+import { HintDivider, KeyHint, Keycaps } from "./parts";
 import { PushButton } from "./controls";
 import {
   cancelVoice,
@@ -344,14 +343,7 @@ function Field(props: { onFocusChange: (focused: boolean) => void }) {
         onFocus={() => props.onFocusChange(true)}
         onBlur={() => props.onFocusChange(false)}
       />
-      <If
-        when={hearing()}
-        else={
-          <If when={!query()}>
-            <SummonKeys trusted={trusted()} />
-          </If>
-        }
-      >
+      <If when={hearing()}>
         <View class="flex-row items-center" style={{ gap: 12 }}>
           <If when={listeningLang()}>{(lang) => <LanguageTag testID="voice-lang" lang={lang()} surface="glass" />}</If>
           <KeyHint label={t("voice.cancel")} keys={T.keys.esc} />

@@ -22,8 +22,6 @@ notify:
 search:
   placeholder: Search or create…
   label: Search or create a note
-  summon_double: Double-press %{key} to open
-  summon_shortcut: "%{keys} to open"
 
 empty:
   title: No notes yet

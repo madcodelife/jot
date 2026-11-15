@@ -21,8 +21,6 @@ notify:
 search:
   placeholder: 搜尋或新增…
   label: 搜尋或新增筆記
-  summon_double: 連按兩下 %{key} 叫出
-  summon_shortcut: "%{keys} 叫出"
 
 empty:
   title: 還沒有筆記

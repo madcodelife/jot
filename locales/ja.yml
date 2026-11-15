@@ -21,8 +21,6 @@ notify:
 search:
   placeholder: 検索または新規作成…
   label: メモを検索または新規作成
-  summon_double: "%{key} を 2 回押して開く"
-  summon_shortcut: "%{keys} で開く"
 
 empty:
   title: メモはまだありません
