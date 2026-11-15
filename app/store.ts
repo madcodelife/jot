@@ -347,6 +347,9 @@ export function setQuery(value: string) {
 }
 
 /** The arrow keys: the next or previous row (wrapping); with a note open, that row's note opens. */
+/** Bumped by every arrow-key step, so a scrolling list brings the selected row into view (a hover does not scroll). */
+export const keySteps = signal(0);
+
 export function move(delta: number) {
   const count = untracked(selectable);
   if (!count) return;
@@ -354,6 +357,7 @@ export function move(delta: number) {
   if (s === "capsule") stage.set("list");
   const next = (untracked(selected) + delta + count) % count;
   selected.set(next);
+  keySteps.update((n) => n + 1);
   if (s === "editor") {
     const row = untracked(rows)[next];
     if (row?.kind === "note") open(row.meta.title, { focus: false });

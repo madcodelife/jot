@@ -2,9 +2,9 @@
 // group (overdue, today, tomorrow, later, no time), each with its note and
 // its due time. Ticking one shows it checked for a moment, then its row
 // folds away (the store animates the fold).
-import { Scroll, Text, token, View } from "nsh";
+import { effect, Scroll, Text, token, untracked, View, type ScrollRef } from "nsh";
 import type { Todo } from "jot/native";
-import { activate, checking, checkTodo, now, selected, todoItems, type TodoItem } from "../app/store";
+import { activate, checking, checkTodo, keySteps, now, selected, todoItems, type TodoItem } from "../app/store";
 import { t } from "nsh/i18n";
 import { dueLabel, groupLabel, parseDue, type TodoGroup } from "../app/time";
 import { Icon } from "./icons";
@@ -21,8 +21,40 @@ export function todoViewHeight(items: readonly TodoItem[]): number {
   return Math.min(content, T.size.todoMaxHeight);
 }
 
+/** Where the to-do with `index` starts in the scroll's content, and whether its group's header sits right above it. */
+function rowTop(items: readonly TodoItem[], index: number): { top: number; header: boolean } | null {
+  let top = 7;
+  let header = false;
+  for (const item of items) {
+    if (item.kind === "todo" && item.index === index) return { top, header };
+    header = item.kind === "header";
+    top += header ? T.size.groupHeader : T.size.todoRow;
+  }
+  return null;
+}
+
 /** The view. */
 export function TodoView() {
+  let scroll: ScrollRef | undefined;
+  let offset = 0;
+  let viewport = 0;
+  // An arrow-key step keeps the selected row in view (with its group's header when it is the group's first),
+  // set at once as Raycast's and Spotlight's lists do: a held key steps faster than a scroll animation.
+  effect(() => {
+    keySteps();
+    const items = untracked(todoItems);
+    const row = rowTop(items, untracked(selected));
+    if (!row || !scroll) return;
+    const height = viewport || todoViewHeight(items);
+    const top = row.header ? row.top - T.size.groupHeader : row.top;
+    const bottom = row.top + T.size.todoRow;
+    let next = offset;
+    if (top < offset) next = top <= 7 + T.size.groupHeader ? 0 : top;
+    else if (bottom > offset + height) next = bottom - height;
+    if (next === offset) return;
+    offset = next;
+    scroll.scrollTo({ y: next, animated: false });
+  });
   return (
     <If
       when={todoItems().length > 0}
@@ -34,7 +66,17 @@ export function TodoView() {
         </View>
       }
     >
-      <Scroll testID="todos" class="flex-1">
+      <Scroll
+        testID="todos"
+        class="flex-1"
+        ref={(r) => {
+          scroll = r;
+        }}
+        onScroll={({ offset: at, size }) => {
+          offset = at.y;
+          viewport = size.height;
+        }}
+      >
         <View style={{ paddingTop: 7, paddingHorizontal: 8 }}>
           <Each of={todoItems()} key={(i) => (i.kind === "header" ? `h:${i.group}` : i.key)}>
             {(item) => (
