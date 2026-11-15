@@ -565,3 +565,25 @@ fn watch_reports_note_changes() {
 
     drop(watcher);
 }
+
+#[test]
+fn interrupted_calls_run_again() {
+    let mut calls = 0;
+    let result = retry(|| {
+        calls += 1;
+        if calls < 3 {
+            Err(io::Error::from(io::ErrorKind::Interrupted))
+        } else {
+            Ok(calls)
+        }
+    });
+    assert_eq!(result.unwrap(), 3);
+
+    let mut calls = 0;
+    let result: io::Result<()> = retry(|| {
+        calls += 1;
+        Err(io::Error::from(io::ErrorKind::Interrupted))
+    });
+    assert_eq!(result.unwrap_err().kind(), io::ErrorKind::Interrupted);
+    assert_eq!(calls, 17);
+}

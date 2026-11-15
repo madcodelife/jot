@@ -343,6 +343,10 @@ impl Store {
 
     /// Every note file in the folder.
     fn entries(&self) -> Result<Vec<Entry>, StoreError> {
+        Ok(retry(|| self.entries_once())?)
+    }
+
+    fn entries_once(&self) -> io::Result<Vec<Entry>> {
         let mut entries = Vec::new();
         for dir_entry in fs::read_dir(&self.root)? {
             let dir_entry = dir_entry?;
@@ -353,6 +357,7 @@ impl Store {
             // `fs::metadata` follows symlinks, so a linked note counts.
             match fs::metadata(&path) {
                 Ok(metadata) if metadata.is_file() => {}
+                Err(error) if error.kind() == io::ErrorKind::Interrupted => return Err(error),
                 _ => continue,
             }
             let Some(title) = path.file_stem().and_then(|stem| stem.to_str()) else {
@@ -401,7 +406,7 @@ impl Store {
         entry: Entry,
         edit: impl FnOnce(&str) -> Result<Option<String>, StoreError>,
     ) -> Result<NoteMeta, StoreError> {
-        let content = match fs::read_to_string(&entry.path) {
+        let content = match retry(|| fs::read_to_string(&entry.path)) {
             Ok(content) => content,
             Err(error) if error.kind() == io::ErrorKind::NotFound => {
                 return Err(StoreError::NotFound);
@@ -413,7 +418,7 @@ impl Store {
             let (meta, _) = load(&entry)?;
             return Ok(meta);
         };
-        let permissions = fs::metadata(&entry.path)?.permissions();
+        let permissions = retry(|| fs::metadata(&entry.path))?.permissions();
         self.write_file(
             &entry.path,
             &compose(parts.header, &body),
@@ -493,10 +498,24 @@ fn is_note_path(path: &Path) -> bool {
             .is_some_and(|extension| extension.eq_ignore_ascii_case(EXTENSION))
 }
 
+/// Runs `call` again while a signal interrupts it (`EINTR`): the system frameworks a desktop app loads (audio,
+/// speech, input monitoring) deliver signals to its threads, and `stat` and directory reads are not restarted.
+fn retry<T>(mut call: impl FnMut() -> io::Result<T>) -> io::Result<T> {
+    let mut attempts = 0;
+    loop {
+        match call() {
+            Err(error) if error.kind() == io::ErrorKind::Interrupted && attempts < 16 => {
+                attempts += 1
+            }
+            result => return result,
+        }
+    }
+}
+
 /// Reads a note file into its metadata and body.
 fn load(entry: &Entry) -> Result<(NoteMeta, String), StoreError> {
-    let content = fs::read_to_string(&entry.path)?;
-    let modified = fs::metadata(&entry.path)?.modified()?;
+    let content = retry(|| fs::read_to_string(&entry.path))?;
+    let modified = retry(|| fs::metadata(&entry.path))?.modified()?;
     let parts = split(&content);
     let source = parts.frontmatter.map(source_of).unwrap_or_default();
     let meta = NoteMeta {

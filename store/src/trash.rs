@@ -32,8 +32,8 @@ impl Store {
         let entry = self
             .find(&clean_title(title)?)?
             .ok_or(StoreError::NotFound)?;
-        let content = fs::read_to_string(&entry.path).map_err(not_found)?;
-        let modified = fs::metadata(&entry.path)?.modified()?;
+        let content = crate::retry(|| fs::read_to_string(&entry.path)).map_err(not_found)?;
+        let modified = crate::retry(|| fs::metadata(&entry.path))?.modified()?;
         let in_trash = move_to_trash(&entry.path)?;
         Ok(Trashed {
             title: entry.title,
