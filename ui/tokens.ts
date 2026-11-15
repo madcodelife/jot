@@ -33,6 +33,9 @@ export interface PlatformTokens {
     chip: number;
     /** A to-do's checkbox: `null` is a circle (Apple), a number a rounded square. */
     checkbox: number | null;
+    /** The action panel (⌘K) and one of its items. */
+    actions: number;
+    action: number;
   };
   /** Sizes, in points (the design's stage at 1160 points wide). */
   size: {
@@ -57,6 +60,11 @@ export interface PlatformTokens {
     todoMaxHeight: number;
     /** The key hints along the bottom. */
     footer: number;
+    /** The action panel (⌘K): its width, its filter field, an item, a separator. */
+    actionsWidth: number;
+    actionsField: number;
+    actionRow: number;
+    actionSeparator: number;
     /** The paper's inset from the panel's edges. */
     inset: number;
     /** A row's icon tile. */
@@ -121,6 +129,8 @@ export interface PlatformTokens {
     islandHold: number;
     /** The append notice goes away on its own. */
     noticeFor: number;
+    /** "Moved to the trash" stays this long, and the undo key with it. */
+    undoFor: number;
   };
   /** How keys are written (symbols on Apple platforms, words elsewhere), and the summon keys. */
   /** Keys as keycaps: one string per key, a combination as several (shown side by side, no "+"). */
@@ -136,6 +146,23 @@ export interface PlatformTokens {
     fallback: string;
     fallbackCaps: readonly string[];
     fallbackShortcut: string;
+    /**
+     * Moves the selected note to the trash: Raycast's ⌃X on macOS (no text key there), Ctrl+D on Windows and
+     * Linux (File Explorer's, and no text key in an input); as keycaps and as `keymap` takes it.
+     */
+    trash: readonly string[];
+    trashShortcut: string;
+    /** Whether the trash key also works with the note's text focused: Ctrl+D there selects the next occurrence. */
+    trashInText: boolean;
+    /** Takes the last note back from the trash while "Moved to the trash" shows (else the field's own undo). */
+    undo: readonly string[];
+    undoShortcut: string;
+    /** The action panel's key, and the actions' own keys, which work with the panel closed too (`keymap` keystrokes). */
+    actions: string;
+    reveal: string;
+    rename: string;
+    copyTitle: string;
+    copyBody: string;
   };
   /** Where notes live by default, relative to the home directory, and how the folder is shown. */
   folder: { path: string; shown: string };
@@ -169,6 +196,10 @@ const SIZE = {
   groupHeader: 26,
   todoMaxHeight: 387,
   footer: 39,
+  actionsWidth: 300,
+  actionsField: 42,
+  actionRow: 32,
+  actionSeparator: 9,
   inset: 8,
   rowIcon: 28,
   windowMargin: 24,
@@ -188,6 +219,7 @@ const TIMING = {
   savedFor: 1400,
   islandHold: 1600,
   noticeFor: 5000,
+  undoFor: 5000,
 };
 
 /** Fluent and libadwaita do not overshoot: the same responses at damping 1. */
@@ -204,7 +236,7 @@ const SPRINGS: PlatformTokens["spring"] = {
 };
 
 const macos: PlatformTokens = {
-  radius: { capsule: 33, panel: 28, row: 14, paper: 20, chip: 999, checkbox: null },
+  radius: { capsule: 33, panel: 28, row: 14, paper: 20, chip: 999, checkbox: null, actions: 18, action: 9 },
   size: SIZE,
   type: APPLE_TYPE,
   material: { kind: "glass", blur: 28, saturate: 175 },
@@ -221,13 +253,23 @@ const macos: PlatformTokens = {
     fallback: "⌃⌥J",
     fallbackCaps: ["⌃", "⌥", "J"],
     fallbackShortcut: "ctrl+alt+j",
+    trash: ["⌃", "X"],
+    trashShortcut: "ctrl+x",
+    trashInText: true,
+    undo: ["⌘", "Z"],
+    undoShortcut: "mod+z",
+    actions: "mod+k",
+    reveal: "mod+shift+f",
+    rename: "mod+r",
+    copyTitle: "mod+shift+c",
+    copyBody: "mod+shift+a",
   },
   folder: { path: "Documents/Jot", shown: "~/Documents/Jot" },
   colors: null,
 };
 
 const windows: PlatformTokens = {
-  radius: { capsule: 8, panel: 8, row: 4, paper: 4, chip: 4, checkbox: 4 },
+  radius: { capsule: 8, panel: 8, row: 4, paper: 4, chip: 4, checkbox: 4, actions: 8, action: 4 },
   size: SIZE,
   type: APPLE_TYPE,
   material: { kind: "acrylic", blur: 30, saturate: 125 },
@@ -244,13 +286,23 @@ const windows: PlatformTokens = {
     fallback: "Ctrl+Alt+J",
     fallbackCaps: ["Ctrl", "Alt", "J"],
     fallbackShortcut: "ctrl+alt+j",
+    trash: ["Ctrl", "D"],
+    trashShortcut: "ctrl+d",
+    trashInText: false,
+    undo: ["Ctrl", "Z"],
+    undoShortcut: "mod+z",
+    actions: "mod+k",
+    reveal: "mod+shift+f",
+    rename: "mod+r",
+    copyTitle: "mod+shift+c",
+    copyBody: "mod+shift+a",
   },
   folder: { path: "Documents\\Jot", shown: "Documents\\Jot" },
   colors: null,
 };
 
 const linux: PlatformTokens = {
-  radius: { capsule: 12, panel: 12, row: 6, paper: 8, chip: 999, checkbox: 6 },
+  radius: { capsule: 12, panel: 12, row: 6, paper: 8, chip: 999, checkbox: 6, actions: 12, action: 6 },
   size: SIZE,
   type: APPLE_TYPE,
   material: { kind: "solid", blur: 0, saturate: 100 },
@@ -267,10 +319,40 @@ const linux: PlatformTokens = {
     fallback: "Super+J",
     fallbackCaps: ["Super", "J"],
     fallbackShortcut: "super+j",
+    trash: ["Ctrl", "D"],
+    trashShortcut: "ctrl+d",
+    trashInText: false,
+    undo: ["Ctrl", "Z"],
+    undoShortcut: "mod+z",
+    actions: "mod+k",
+    reveal: "mod+shift+f",
+    rename: "mod+r",
+    copyTitle: "mod+shift+c",
+    copyBody: "mod+shift+a",
   },
   folder: { path: "Documents/Jot", shown: "~/Documents/Jot" },
   colors: null,
 };
+
+/** The order Apple writes modifiers in (⌃⌥⇧⌘); elsewhere Ctrl, Alt, Shift. */
+const MODIFIERS = ["ctrl", "alt", "shift", "mod"] as const;
+
+/** A `keymap` keystroke as keycaps, one per key: `"mod+shift+f"` is ⇧ ⌘ F on Apple platforms, Ctrl Shift F elsewhere. */
+export function keyCaps(keystroke: string): string[] {
+  const parts = keystroke.toLowerCase().split("+");
+  const key = parts[parts.length - 1];
+  const apple = platform.os === "macos" || platform.os === "ios";
+  const names: Record<(typeof MODIFIERS)[number], string> = apple
+    ? { ctrl: "⌃", alt: "⌥", shift: "⇧", mod: "⌘" }
+    : { ctrl: "Ctrl", alt: "Alt", shift: "Shift", mod: "Ctrl" };
+  const keys: Record<string, string> = apple
+    ? { enter: "↩", escape: "esc", backspace: "⌫", delete: "⌦", up: "↑", down: "↓" }
+    : { enter: "Enter", escape: "Esc", backspace: "Backspace", delete: "Delete", up: "↑", down: "↓" };
+  const mods = MODIFIERS.filter((m) => parts.includes(m) || (m === "mod" && parts.includes("cmd")));
+  // Ctrl and mod are one key off Apple platforms.
+  const shown = [...new Set(mods.map((m) => names[m]))];
+  return [...shown, keys[key] ?? key.toUpperCase()];
+}
 
 /** The tokens of the platform Jot runs on (macOS's on any other). */
 export const T: PlatformTokens = platform.os === "windows" ? windows : platform.os === "linux" ? linux : macos;

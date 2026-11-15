@@ -27,13 +27,22 @@ import {
   stage,
   todoItems,
   todoMode,
+  trashCountdown,
+  trashed,
   trusted,
+  flash,
+  renaming,
+  undoTrash,
+  binName,
 } from "../app/store";
+import { actionShortcuts, actionsReturn, actionsTarget, filteredActions, primaryAction, runShortcut, toggleActions, type Action } from "../app/actions";
+import { ActionPanel, actionsHeight } from "./ActionPanel";
 import { Icon } from "./icons";
 import { fadeTo, springConfig } from "./motion";
 import { NoteList } from "./NoteList";
 import { dictateIntoNote, Paper, toggleTaskAtCaret } from "./Paper";
-import { HintDivider, KeyHint, SummonKeys } from "./parts";
+import { HintDivider, KeyHint, Keycaps, SummonKeys } from "./parts";
+import { PushButton } from "./controls";
 import {
   cancelVoice,
   fieldSink,
@@ -52,7 +61,7 @@ import { Breathing, LanguageTag, MicButton } from "./Voice";
 import { openSettings } from "./Settings";
 import { fade } from "./themes";
 import { tn } from "../app/i18n";
-import { T, materialFill, materialStyle } from "./tokens";
+import { keyCaps, T, materialFill, materialStyle } from "./tokens";
 import { TodoView, todoViewHeight } from "./TodoView";
 
 /** The window: as large as the panel grows (a note open), with room for its shadow. */
@@ -88,6 +97,20 @@ function visibleSize(s: Exclude<ReturnType<typeof stage>, "hidden">) {
       ? T.size.listTop + rows().length * T.size.row
       : emptyHeight;
   return { width: T.size.panelWidth, height: T.size.field + body + T.size.footer };
+}
+
+/**
+ * The action panel's place in the window: at the panel's bottom right, above the footer (Raycast's). Its top
+ * keeps clear of the window's edge, so a tall panel over a short list reaches below the list.
+ */
+function actionsPlace(all: readonly Action[]) {
+  const size = panelSize();
+  const panelLeft = (WINDOW.width - size.width) / 2;
+  const bottom = T.size.windowMargin + size.height - (stage() === "editor" ? T.size.inset : T.size.footer + 6);
+  return {
+    left: panelLeft + size.width - T.size.actionsWidth - 8,
+    top: Math.max(T.size.windowMargin + 8, bottom - actionsHeight(all)),
+  };
 }
 
 /** The panel's window. It stays open once summoned and shows or hides, so the next summon is instant. */
@@ -165,6 +188,9 @@ export function PanelWindow() {
       >
         <View class="flex-1 items-center" style={{ paddingTop: T.size.windowMargin, backgroundColor: "transparent" }}>
           <Panel opacity={opacity} lift={lift} scale={scale} />
+          <If when={actionsTarget()}>
+            {(target) => <ActionPanel {...actionsPlace(filteredActions(target(), ""))} returnFocus={actionsReturn()} />}
+          </If>
         </View>
       </Window>
     </If>
@@ -186,6 +212,11 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
       },
       // ⌘,: the settings, as in every Mac app (the panel hides as the settings window takes the focus).
       "mod+,": () => openSettings(),
+      // ⌘K: the row's actions (Raycast's action panel); again, it closes.
+      [T.keys.actions]: () => {
+        if (untracked(renaming) !== null) return;
+        toggleActions(untracked(stage) === "editor" && !untracked(fieldFocused) ? "editor" : "field");
+      },
       "mod+enter": () => {
         if (untracked(stage) === "editor" && !untracked(fieldFocused)) toggleTaskAtCaret();
         else if (untracked(todoMode)) checkSelected();
@@ -200,8 +231,25 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
     const stop = keymap.bind({ "mod+l": () => void switchVoiceLanguage() }, { when: "always" });
     return stop;
   });
-  // The arrow keys move the selection, except in the note's text, where they move the caret.
+  // The actions' own keys, with the action panel closed too. Ctrl+D (Windows, Linux) stays the note text's
+  // "select the next occurrence" while the text has the focus; macOS's ⌃X is no text key.
   effect(() => {
+    if (renaming() !== null) return;
+    const inText = editing() && !fieldFocused();
+    const keys = actionShortcuts().filter((k) => !(inText && k === T.keys.trashShortcut && !T.keys.trashInText));
+    const stop = keymap.bind(Object.fromEntries(keys.map((k) => [k, () => runShortcut(k)])), { when: "always" });
+    return stop;
+  });
+  // ⌘Z takes the last trashed note back while "Moved to the trash" shows; then it is the field's undo again.
+  effect(() => {
+    if (!trashed().length || editing() || renaming() !== null) return;
+    const stop = keymap.bind(T.keys.undoShortcut, () => undoTrash(), { when: "always" });
+    return stop;
+  });
+  // The arrow keys move the selection, except in the note's text, where they move the caret, a title being
+  // renamed, and the action panel's own list.
+  effect(() => {
+    if (renaming() !== null || actionsTarget()) return;
     if (editing() && !fieldFocused()) return;
     const stop = keymap.bind({ up: () => move(-1), down: () => move(1) }, { when: "always", repeat: true });
     return stop;
@@ -343,10 +391,15 @@ function EmptyNotes() {
   );
 }
 
-/** The keys, how many notes there are and where they live; a notice in their place when there is one. */
+/**
+ * Raycast's footer: on the left how many notes there are and where they live (a notice or "Copied" in their
+ * place), on the right what Return does to the row in focus and the action panel's key. While dictating, how it
+ * ends; after a note went to the trash, "Moved to the Trash" with Undo.
+ */
 function Footer() {
   const message = () => folderError() ?? notice();
   const left = computed(() => allTodos().filter((t) => !t.done).length);
+  const status = () => flash() ?? (todoMode() ? tn("footer.open", left()) : tn("footer.notes", allNotes().length, { folder: folderShown() }));
   return (
     <View
       testID="footer"
@@ -354,33 +407,50 @@ function Footer() {
       style={{ height: T.size.footer, gap: 12, paddingHorizontal: 18 }}
     >
       <If
-        when={message()}
+        when={listening()}
         else={
-          <>
-            <If
-              when={listening()}
-              else={
+          <If
+            when={trashed().length > 0}
+            else={
+              <>
                 <If
-                  when={todoMode()}
+                  when={message()}
                   else={
-                    <>
-                      <KeyHint label={t("keys.open")} keys={T.keys.enter} main />
-                      <HintDivider />
-                      <KeyHint label={t("keys.create")} keys={T.keys.create} />
-                      <HintDivider />
-                      <KeyHint label={t("keys.dismiss")} keys={T.keys.esc} />
-                    </>
+                    <Text testID="footer-status" class="text-glass-muted" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
+                      {status()}
+                    </Text>
                   }
                 >
-                  <KeyHint label={t("keys.tick")} keys={T.keys.create} main />
-                  <HintDivider />
-                  <KeyHint label={t("keys.open_note")} keys={T.keys.enter} />
-                  <HintDivider />
-                  <KeyHint label={t("keys.back")} keys={T.keys.esc} />
+                  {(m) => (
+                    <Text testID="notice" class="text-late" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
+                      {m()}
+                    </Text>
+                  )}
                 </If>
-              }
-            >
-              {/* Dictating: how it ends (let go of ⌥, or press the microphone again), and how it is taken back. */}
+                <View class="flex-1" />
+                <View class="flex-row items-center" style={{ gap: 12, flexShrink: 0 }}>
+                  <If when={primaryAction()}>
+                    {(primary) => (
+                      <>
+                        <KeyHint label={primary().label} keys={primary().keys} main />
+                        <HintDivider />
+                      </>
+                    )}
+                  </If>
+                  <KeyHint label={t("keys.actions")} keys={keyCaps(T.keys.actions)} />
+                </View>
+              </>
+            }
+          >
+            <TrashBar />
+          </If>
+        }
+      >
+        {/* Dictating: how it ends (let go of ⌥, or press the microphone again), and how it is taken back; a failure says why. */}
+        <If
+          when={message()}
+          else={
+            <>
               <If
                 when={listeningByHold()}
                 else={
@@ -393,20 +463,51 @@ function Footer() {
               </If>
               <HintDivider />
               <KeyHint label={t("voice.cancel")} keys={T.keys.esc} />
-            </If>
-            <View class="flex-1" />
-            <Text class="text-glass-muted" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
-              {todoMode() ? tn("footer.open", left()) : tn("footer.notes", allNotes().length, { folder: folderShown() })}
+              <View class="flex-1" />
+            </>
+          }
+        >
+          {(m) => (
+            <Text testID="notice" class="text-late" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
+              {m()}
             </Text>
-          </>
-        }
-      >
-        {(m) => (
-          <Text testID="notice" class="text-late" style={{ numberOfLines: 1, fontSize: T.type.meta }}>
-            {m()}
-          </Text>
-        )}
+          )}
+        </If>
       </If>
+    </View>
+  );
+}
+
+/**
+ * "Moved to the trash" in the footer's place (the design's undo state): the title, Undo with its keys, and a
+ * hairline along the bottom that runs out with the time left to undo.
+ */
+function TrashBar() {
+  const last = () => trashed()[trashed().length - 1];
+  const left = createAnimatedValue(0);
+  // The hairline runs out with the time left; with reduced motion it stays whole (no motion), and the app is
+  // quiet meanwhile.
+  effect(() => {
+    trashCountdown();
+    untracked(() => {
+      left.set(0);
+      if (reduceMotion()) return;
+      Animated.timing(left, { toValue: -T.size.panelWidth, duration: T.timing.undoFor, easing: "linear" }).start();
+    });
+  });
+  return (
+    <View testID="trash-bar" class="flex-1 flex-row items-center" style={{ gap: 10, height: "100%" }}>
+      <Icon name="trash" size={15} tint={token("glass-fg")} opacity={0.7} />
+      <Text testID="trash-message" class="text-glass-fg" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
+        {tn("trash.moved", trashed().length, { title: last()?.title ?? "", more: trashed().length - 1, bin: binName() })}
+      </Text>
+      <View class="flex-1" />
+      <PushButton testID="trash-undo" label={t("trash.undo")} primary onPress={() => undoTrash()} />
+      <Keycaps keys={T.keys.undo} />
+      <View
+        class="absolute bg-primary"
+        style={{ left: -18, bottom: 0, width: T.size.panelWidth, height: 2, transform: [{ translateX: left }], pointerEvents: "none" }}
+      />
     </View>
   );
 }

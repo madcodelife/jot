@@ -30,12 +30,7 @@ empty:
   claude: 也可以在 Claude 裡說「記到 Jot」。
 
 keys:
-  open: 開啟
-  create: 新增
-  dismiss: 收起
-  tick: 勾選
-  open_note: 開啟筆記
-  back: 返回
+  actions: 動作
 
 footer:
   notes:
@@ -77,6 +72,8 @@ todo:
 note:
   invalid_title: 「%{title}」不能當標題
   create_failed: 無法新增「%{title}」：%{error}
+  rename_taken: 已經有叫「%{title}」的筆記
+  rename_failed: 無法重新命名「%{title}」：%{error}
 
 paper:
   by_claude: Claude 記的
@@ -209,3 +206,36 @@ voice:
     language-not-supported: 還不能辨識這種語言
     unavailable: 這台裝置無法使用語音辨識
     failed: 沒能辨識出來
+
+actions:
+  label: 動作
+  filter: 搜尋動作…
+  none: 沒有符合的動作
+  open: 開啟
+  reveal:
+    macos: 在 Finder 中顯示
+    windows: 在檔案總管中顯示
+    linux: 在檔案管理員中顯示
+  rename: 重新命名
+  rename_label: 「%{title}」的新標題
+  copy_title: 拷貝標題
+  copy_body: 拷貝全文
+  trash: 丟到%{bin}
+  copied: 已拷貝
+  create: 新增
+  todos: 查看待辦
+  open_note: 開啟筆記
+  tick: 勾選
+
+trash:
+  bin:
+    macos: 垃圾桶
+    windows: 資源回收筒
+    linux: 垃圾桶
+  moved:
+    one: 已丟到%{bin}：「%{title}」
+    other: 已丟到%{bin}：「%{title}」等 %{count} 則
+  undo: 復原
+  failed: 無法把「%{title}」丟到%{bin}：%{error}
+  restore_taken: 已經有叫「%{title}」的筆記，原本那則還在%{bin}裡
+  restore_failed: 無法復原「%{title}」：%{error}

@@ -2,10 +2,12 @@
 // and "new note" for a title no note has. With a note open the same rows
 // narrow into a sidebar of titles. Rows drop in one after another as the
 // list opens; filtering and the arrow keys change it without motion.
-import { Animated, computed, createAnimatedValue, effect, reduceMotion, Text, token, untracked, View } from "nsh";
+import { Animated, computed, createAnimatedValue, effect, keymap, reduceMotion, signal, Text, token, untracked, View, type InputRef } from "nsh";
+import { Input } from "nsh/base";
 import { t } from "nsh/i18n";
+import { openActions, type ActionTarget } from "../app/actions";
 import { tn } from "../app/i18n";
-import { activate, allTodos, arriving, listEntrance, now, rows, selected, stage, type Row } from "../app/store";
+import { activate, allTodos, arriving, finishRename, focusRequest, listEntrance, now, renaming, rows, selected, stage, type Row } from "../app/store";
 import { plainSnippet } from "../app/tasks";
 import { age, hm, todaySummary, type TodaySummary } from "../app/time";
 import { Icon, type IconName } from "./icons";
@@ -17,6 +19,13 @@ type NoteRow = Extract<Row, { kind: "note" }>;
 type CreateRow = Extract<Row, { kind: "create" }>;
 
 const rowKey = (r: Row) => (r.kind === "note" ? `n:${r.meta.title}` : r.kind);
+
+/** What the action panel acts on for a row. */
+function targetOf(row: Row, index: number): ActionTarget {
+  if (row.kind === "note") return { kind: "note", title: row.meta.title, index };
+  if (row.kind === "create") return { kind: "create", title: row.title, index };
+  return { kind: "summary", index };
+}
 
 /** Today's to-dos at a glance, for the summary row. */
 const summary = computed(() => todaySummary(allTodos(), new Date(now())));
@@ -82,9 +91,15 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
       testID={note() ? `row:${note()!.meta.title}` : `row:${props.row.kind}`}
       role="button"
       accessibilityState={{ selected: isSelected() }}
-      onPress={() => activate(props.index)}
+      onPress={() => {
+        if (untracked(renaming) === null) activate(props.index);
+      }}
+      // A right click shows the row's actions: the same panel as ⌘K.
+      onContextMenu={() => {
+        if (untracked(renaming) === null) openActions(targetOf(props.row, props.index));
+      }}
       onMouseEnter={() => {
-        if (untracked(stage) !== "editor") selected.set(props.index);
+        if (untracked(stage) !== "editor" && untracked(renaming) === null) selected.set(props.index);
       }}
       class="flex-row items-center"
       classList={{
@@ -123,13 +138,20 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
         <If when={note()}>
           {(row: () => NoteRow) => (
             <>
-              <Highlight
-                text={row().meta.title}
-                terms={row().terms}
-                selected={onAccent()}
-                size={T.type.row}
-                class={`font-semibold ${title()}`}
-              />
+              <If
+                when={renaming() === row().meta.title}
+                else={
+                  <Highlight
+                    text={row().meta.title}
+                    terms={row().terms}
+                    selected={onAccent()}
+                    size={T.type.row}
+                    class={`font-semibold ${title()}`}
+                  />
+                }
+              >
+                <RenameField title={row().meta.title} class={`font-semibold ${title()}`} />
+              </If>
               <If when={!props.compact}>
                 <Highlight
                   text={plainSnippet(row().snippet) || t("list.blank")}
@@ -241,5 +263,38 @@ function Dots(props: { done: boolean[]; onAccent: boolean }) {
         {(done) => <View class={done() ? filled() : empty()} style={{ width: 7, height: 7, borderRadius: 3.5 }} />}
       </Each>
     </View>
+  );
+}
+
+/** The title being renamed, in place: Return or leaving the field renames, Escape keeps the old title. */
+function RenameField(props: { title: string; class: string }) {
+  const value = signal(props.title);
+  let finished = false;
+  const finish = (to: string | null) => {
+    if (finished) return;
+    finished = true;
+    finishRename(to);
+    focusRequest.set({ target: "field" });
+  };
+  // Newer than the panel's Escape (which steps back): this one only leaves the field.
+  keymap.bind("escape", () => finish(null), { when: "always" });
+  return (
+    <Input
+      testID="rename"
+      ref={(r: InputRef | undefined) => {
+        r?.focus();
+        r?.setSelection(0, props.title.length);
+      }}
+      class={props.class}
+      style={{ fontSize: T.type.row, backgroundColor: "transparent", padding: 0 }}
+      value={value()}
+      accessibilityLabel={t("actions.rename_label", { title: props.title })}
+      autoCorrect={false}
+      autoCapitalize="none"
+      submitBehavior="submit"
+      onChange={({ value: next }) => value.set(next)}
+      onSubmit={() => finish(untracked(value))}
+      onBlur={() => finish(untracked(value))}
+    />
   );
 }

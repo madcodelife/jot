@@ -43,8 +43,17 @@ impl Store {
     pub fn append(&self, title: &str, text: &str) -> Result<NoteMeta, StoreError>;
     /// Fails with `NotFound` / `AlreadyExists`.
     pub fn rename(&self, from: &str, to: &str) -> Result<NoteMeta, StoreError>;
-    /// Moves the note to the system trash is out of scope for v1: deletes the file. Only the app calls it.
+    /// Deletes the file for good. Only the app calls it (the app's own delete goes through `trash`).
     pub fn delete(&self, title: &str) -> Result<(), StoreError>;
+    /// Moves the note to the system trash (macOS: NSFileManager, remembering where it went; elsewhere the
+    /// `trash` crate). Fails with `NotFound`. The MCP server never calls it.
+    pub fn trash(&self, title: &str) -> Result<Trashed, StoreError>;
+    /// Moves it back out of the trash, or rebuilds it from `Trashed::content` (frontmatter included, mtime kept)
+    /// when the trash no longer has it or the platform did not say where it went. `AlreadyExists` when the
+    /// title is taken.
+    pub fn restore(&self, trashed: &Trashed) -> Result<NoteMeta, StoreError>;
+    /// The note's file, if any.
+    pub fn path(&self, title: &str) -> Result<Option<PathBuf>, StoreError>;
     /// Calls `on_change` (debounced ~150 ms) when `.md` files in the folder change. Dropping the `Watcher` stops it.
     pub fn watch(&self, on_change: impl Fn() + Send + 'static) -> Result<Watcher, StoreError>;
 }
@@ -52,6 +61,7 @@ impl Store {
 pub struct NoteMeta { pub title: String, pub modified: SystemTime, pub source: Source, pub preview: String /* first ~120 chars of the body, one line */ }
 pub struct Note { pub meta: NoteMeta, pub body: String }
 pub struct SearchHit { pub meta: NoteMeta, pub snippet: String /* ~120 chars around the first body match, or the preview */, pub title_match: bool }
+pub struct Trashed { pub title: String, pub in_trash: Option<PathBuf>, pub content: String, pub modified: SystemTime }  // non_exhaustive
 pub enum Source { User, Claude }
 pub enum StoreError { InvalidTitle, NotFound, AlreadyExists, Io(std::io::Error) }  // Display + std::error::Error
 pub struct Watcher { /* … */ }
@@ -138,7 +148,10 @@ class Notes {                                   // wraps jot_store::Store
   create(title: string, body: string): NoteMeta;
   append(title: string, text: string): NoteMeta;   // after one blank line; creates the note (source "user") if missing
   rename(from: string, to: string): NoteMeta;
-  delete(title: string): void;
+  delete(title: string): void;                  // for good; the app uses trash
+  trash(title: string): TrashedNote;            // to the system trash; ERR_JOT_NOT_FOUND
+  restore(token: number): NoteMeta;             // ERR_JOT_ALREADY_EXISTS (token stays good), ERR_JOT_NOT_FOUND (unknown / used token)
+  path(title: string): string | null;           // the note's file (Folder.reveal shows it)
   watch(onChange: () => void): void;            // folder changed (debounced); replaces the previous listener
   todos(): Todo[];
   setTodoDone(note: string, line: number, text: string, done: boolean): NoteMeta;
@@ -147,6 +160,7 @@ class Notes {                                   // wraps jot_store::Store
 interface NoteMeta { title: string; modified: number /* ms since epoch */; source: "user" | "claude"; preview: string }
 interface Note { meta: NoteMeta; body: string }
 interface SearchHit { meta: NoteMeta; snippet: string; titleMatch: boolean }
+interface TrashedNote { title: string; token: number }   // the last 64 trashed per folder can be restored
 interface Todo { note: string; line: number; text: string; done: boolean; due: string | null /* "2026-11-14T09:00" */; doneOn: string | null }
 
 module When {                                   // phrases of every language are read whatever the locale
@@ -184,3 +198,14 @@ Dictation's language (`app/speechlang.ts`, pure): switched to while listening (t
 繁, kept for the run) › chosen in the settings › on "auto", the input source's when it is Chinese or Japanese › the
 first of the user's languages that is Chinese, Japanese or English with a region › Jot's language in its usual region.
 The notch comes from NSH: `displays()` → `cutouts` (`nsh/desktop`).
+
+## Row actions (app/actions.ts)
+
+One list of actions per row kind drives the action panel (⌘K / Ctrl+K, and a right click on a row:
+`ui/ActionPanel.tsx`), the footer's primary action (what Return does) and the actions' own keys, which work with the
+panel closed. A note: open ↩, show in Finder ⇧⌘F, rename ⌘R (in place, in its row), copy title ⇧⌘C, copy text
+⇧⌘A, move to trash ⌃X (Windows / Linux Ctrl+D; keys in `ui/tokens.ts`). "New" row: create; today's row: show
+to-dos; a to-do: open its note, tick ⌘↩. Nothing but a note can be trashed. Moving to the trash folds the row away
+and turns the footer into "Moved to the Trash" with Undo for 5 s (`T.timing.undoFor`); while it shows, ⌘Z takes
+the trashed notes back one at a time, the last first (an undo stack); then ⌘Z is the search field's again. With the
+note's text focused, Ctrl+D stays the editor's (select the next occurrence); macOS's ⌃X is no text key.

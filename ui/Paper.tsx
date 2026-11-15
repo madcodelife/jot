@@ -11,7 +11,7 @@ import { Button, Editor, type EditorDecoration, type EditorPosition, type Editor
 import { t } from "nsh/i18n";
 import { When } from "jot/native";
 import { whenOptions } from "../app/settings";
-import { allNotes, errorMessage, lastWritten, notes, now, opened, revision, save } from "../app/store";
+import { allNotes, errorMessage, lastWritten, notes, now, opened, revision, save, setEditorFlush } from "../app/store";
 import { taskLine, toggledLine } from "../app/tasks";
 import { age, parseDue } from "../app/time";
 import { cancelVoice, joinSpoken, listening, listeningLang, speechAvailable, startVoice, stopVoice, voiceError } from "../app/voice";
@@ -234,8 +234,13 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
 
   const actions: PaperActions = { toggleTaskAtCaret: () => toggleLine(untracked(caretLine)), dictate };
   current = actions;
+  // Before the note goes to the trash or takes a new name, what was typed is saved.
+  setEditorFlush(saveNow);
   cleanup(() => {
-    if (current === actions) current = null;
+    if (current === actions) {
+      current = null;
+      setEditorFlush(null);
+    }
     // The note closes while dictating into it: the words go with it.
     cancelVoice("editor");
     // Leaving the note (Escape, another note): what was typed is saved now.

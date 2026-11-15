@@ -31,12 +31,7 @@ empty:
   claude: 也可以在 Claude 里说「记到 Jot」。
 
 keys:
-  open: 打开
-  create: 新建
-  dismiss: 收起
-  tick: 勾掉
-  open_note: 打开笔记
-  back: 返回
+  actions: 操作
 
 footer:
   notes:
@@ -79,6 +74,8 @@ todo:
 note:
   invalid_title: 「%{title}」不能作标题
   create_failed: 没能新建「%{title}」：%{error}
+  rename_taken: 已有叫「%{title}」的笔记
+  rename_failed: 没能重命名「%{title}」：%{error}
 
 paper:
   by_claude: Claude 记的
@@ -212,3 +209,36 @@ voice:
     language-not-supported: 还不能识别这种语言
     unavailable: 这台设备上用不了语音识别
     failed: 没能识别出来
+
+actions:
+  label: 操作
+  filter: 搜索操作…
+  none: 没有匹配的操作
+  open: 打开
+  reveal:
+    macos: 在访达中显示
+    windows: 在资源管理器中显示
+    linux: 在文件管理器中显示
+  rename: 重命名
+  rename_label: 「%{title}」的新标题
+  copy_title: 复制标题
+  copy_body: 复制全文
+  trash: 移到%{bin}
+  copied: 已复制
+  create: 新建
+  todos: 查看待办
+  open_note: 打开笔记
+  tick: 勾掉
+
+trash:
+  bin:
+    macos: 废纸篓
+    windows: 回收站
+    linux: 回收站
+  moved:
+    one: 已移到%{bin}：「%{title}」
+    other: 已移到%{bin}：「%{title}」等 %{count} 条
+  undo: 撤销
+  failed: 没能把「%{title}」移到%{bin}：%{error}
+  restore_taken: 已有叫「%{title}」的笔记，原来那条还在%{bin}里
+  restore_failed: 没能恢复「%{title}」：%{error}

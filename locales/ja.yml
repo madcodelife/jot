@@ -30,12 +30,7 @@ empty:
   claude: Claude に「Jot にメモして」と頼むこともできます。
 
 keys:
-  open: 開く
-  create: 新規
-  dismiss: 閉じる
-  tick: 完了
-  open_note: メモを開く
-  back: 戻る
+  actions: アクション
 
 footer:
   notes:
@@ -78,6 +73,8 @@ todo:
 note:
   invalid_title: 「%{title}」はタイトルに使えません
   create_failed: 「%{title}」を作成できませんでした：%{error}
+  rename_taken: 「%{title}」というメモはすでにあります
+  rename_failed: 「%{title}」の名前を変更できませんでした：%{error}
 
 paper:
   by_claude: Claude が作成
@@ -210,3 +207,36 @@ voice:
     language-not-supported: この言語はまだ認識できません
     unavailable: このデバイスでは音声認識を使用できません
     failed: 認識できませんでした
+
+actions:
+  label: アクション
+  filter: アクションを検索…
+  none: 一致するアクションはありません
+  open: 開く
+  reveal:
+    macos: Finderに表示
+    windows: エクスプローラーで表示
+    linux: ファイルで表示
+  rename: 名前を変更
+  rename_label: 「%{title}」の新しいタイトル
+  copy_title: タイトルをコピー
+  copy_body: 本文をコピー
+  trash: "%{bin}に入れる"
+  copied: コピーしました
+  create: 作成
+  todos: やることを表示
+  open_note: メモを開く
+  tick: 完了
+
+trash:
+  bin:
+    macos: ゴミ箱
+    windows: ごみ箱
+    linux: ゴミ箱
+  moved:
+    one: 「%{title}」を%{bin}に入れました
+    other: 「%{title}」ほか %{more} 件を%{bin}に入れました
+  undo: 取り消す
+  failed: 「%{title}」を%{bin}に入れられませんでした：%{error}
+  restore_taken: 「%{title}」というメモがあるため、元のメモは%{bin}に残っています
+  restore_failed: 「%{title}」を戻せませんでした：%{error}

@@ -31,12 +31,7 @@ empty:
   claude: Or ask Claude to “jot this down.”
 
 keys:
-  open: Open
-  create: New
-  dismiss: Close
-  tick: Complete
-  open_note: Open Note
-  back: Back
+  actions: Actions
 
 footer:
   notes:
@@ -79,6 +74,8 @@ todo:
 note:
   invalid_title: "“%{title}” can’t be a title"
   create_failed: "Couldn’t create “%{title}”: %{error}"
+  rename_taken: "A note named “%{title}” already exists"
+  rename_failed: "Couldn’t rename “%{title}”: %{error}"
 
 paper:
   by_claude: By Claude
@@ -211,3 +208,36 @@ voice:
     language-not-supported: This language can’t be recognized yet
     unavailable: Speech recognition isn’t available on this device
     failed: Couldn’t recognize that
+
+actions:
+  label: Actions
+  filter: Search actions…
+  none: No matching actions
+  open: Open
+  reveal:
+    macos: Show in Finder
+    windows: Show in File Explorer
+    linux: Show in Files
+  rename: Rename
+  rename_label: "New title for “%{title}”"
+  copy_title: Copy Title
+  copy_body: Copy Text
+  trash: Move to %{bin}
+  copied: Copied
+  create: Create
+  todos: Show To-dos
+  open_note: Open Note
+  tick: Complete
+
+trash:
+  bin:
+    macos: Trash
+    windows: Recycle Bin
+    linux: Trash
+  moved:
+    one: "Moved “%{title}” to the %{bin}"
+    other: "Moved “%{title}” and %{more} more to the %{bin}"
+  undo: Undo
+  failed: "Couldn’t move “%{title}” to the %{bin}: %{error}"
+  restore_taken: "A note named “%{title}” exists; the other one is still in the %{bin}"
+  restore_failed: "Couldn’t restore “%{title}”: %{error}"

@@ -7,6 +7,12 @@ publish = false
 [workspace]
 members = ["store", "mcp"]
 
+[workspace.dependencies]
+# Moving notes to the system trash: Foundation's file manager on macOS
+# (jot-store), the `trash` crate elsewhere.
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std"] }
+trash = "5"
+
 [dependencies]
 nsh-core = { path = "/Users/madcodelife/Workspace/longbridge/nsh.worktrees/jot-nsh/crates/nsh-core" }
 nsh-base = { path = "/Users/madcodelife/Workspace/longbridge/nsh.worktrees/jot-nsh/crates/nsh-base" }
@@ -20,8 +26,7 @@ tokio = { version = "1", default-features = false, features = ["sync"] }
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6.5"
 block2 = "0.6.2"
-objc2-foundation = { version = "0.3.2", default-features = false, features = [
-  "std",
+objc2-foundation = { workspace = true, features = [
   "NSDictionary",
   "NSObject",
   "NSString",

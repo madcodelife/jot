@@ -272,6 +272,107 @@ fn delete_removes_the_file() {
 }
 
 #[test]
+fn path_names_the_notes_file() {
+    let (_dir, store) = store();
+    store.create("Plan", "", Source::User).unwrap();
+    assert_eq!(
+        store.path("plan").unwrap(),
+        Some(store.root().join("Plan.md"))
+    );
+    assert_eq!(store.path("Other").unwrap(), None);
+    assert!(matches!(store.path(""), Err(StoreError::InvalidTitle)));
+}
+
+/// A note rebuilt from its text (the trash emptied, or a platform that does not say where the file went) keeps
+/// its frontmatter, body and place in the list, and never replaces a note that took its title.
+#[test]
+fn restore_rebuilds_a_note_from_its_text() {
+    let (_dir, store) = store();
+    let modified = SystemTime::UNIX_EPOCH + Duration::from_secs(1_700_000_000);
+    let trashed = Trashed {
+        title: "Kept".to_owned(),
+        in_trash: Some(store.root().join("no-such-trash").join("Kept.md")),
+        content: "---\nsource: claude\ncolor: red\n---\nThe body\n".to_owned(),
+        modified,
+    };
+    let meta = store.restore(&trashed).unwrap();
+    assert_eq!(meta.title, "Kept");
+    assert_eq!(meta.source, Source::Claude);
+    assert_eq!(meta.modified, modified);
+    assert_eq!(
+        fs::read_to_string(store.root().join("Kept.md")).unwrap(),
+        trashed.content
+    );
+
+    // Its title is taken now (in any case).
+    assert!(matches!(
+        store.restore(&Trashed {
+            title: "KEPT".to_owned(),
+            ..trashed.clone()
+        }),
+        Err(StoreError::AlreadyExists)
+    ));
+    assert_eq!(file_names(&store), ["Kept.md"]);
+}
+
+#[test]
+fn trash_fails_for_a_missing_note() {
+    let (_dir, store) = store();
+    assert!(matches!(store.trash("Nothing"), Err(StoreError::NotFound)));
+}
+
+/// The real trash: the note goes there and comes back as the same file. The test takes back what it put in the
+/// trash, so running it leaves nothing there.
+#[cfg(target_os = "macos")]
+#[test]
+fn trash_moves_a_note_to_the_trash_and_restore_brings_it_back() {
+    let (_dir, store) = store();
+    store
+        .create("Passport", "Expires in May", Source::Claude)
+        .unwrap();
+    touch(&store, "Passport", 1_700_000_000);
+
+    let trashed = store.trash("passport").unwrap();
+    assert_eq!(trashed.title, "Passport");
+    assert!(file_names(&store).is_empty());
+    let in_trash = trashed.in_trash.clone().expect("the trash says where");
+    assert!(in_trash.exists(), "{in_trash:?}");
+    assert_eq!(trashed.content, "---\nsource: claude\n---\nExpires in May");
+
+    // A note that took the title keeps it; the trashed one stays in the trash.
+    store.create("Passport", "new", Source::User).unwrap();
+    assert!(matches!(
+        store.restore(&trashed),
+        Err(StoreError::AlreadyExists)
+    ));
+    assert!(in_trash.exists());
+    store.delete("Passport").unwrap();
+
+    let meta = store.restore(&trashed).unwrap();
+    assert!(!in_trash.exists(), "moved back out of the trash");
+    assert_eq!(meta.title, "Passport");
+    assert_eq!(meta.source, Source::Claude);
+    assert_eq!(
+        meta.modified,
+        SystemTime::UNIX_EPOCH + Duration::from_secs(1_700_000_000)
+    );
+    assert_eq!(
+        store.read("Passport").unwrap().unwrap().body,
+        "Expires in May"
+    );
+
+    // Emptied from the trash meanwhile: rebuilt from its text.
+    let trashed = store.trash("Passport").unwrap();
+    fs::remove_file(trashed.in_trash.as_ref().unwrap()).unwrap();
+    let meta = store.restore(&trashed).unwrap();
+    assert_eq!(meta.source, Source::Claude);
+    assert_eq!(
+        store.read("Passport").unwrap().unwrap().body,
+        "Expires in May"
+    );
+}
+
+#[test]
 fn list_ignores_other_files_and_sorts_newest_first() {
     let (_dir, store) = store();
     store.create("A", "a", Source::User).unwrap();

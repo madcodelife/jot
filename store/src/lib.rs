@@ -16,10 +16,12 @@ use notify_debouncer_mini::notify::{self, RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{DebounceEventResult, Debouncer, new_debouncer};
 
 mod todo;
+mod trash;
 pub mod when;
 
 pub use jiff::civil::DateTime;
 pub use todo::{DEFAULT_TODO_NOTE, Todo};
+pub use trash::Trashed;
 
 /// How many characters of a note's body `NoteMeta::preview` and `SearchHit::snippet` hold.
 const PREVIEW_CHARS: usize = 120;
@@ -309,7 +311,7 @@ impl Store {
         Ok(meta)
     }
 
-    /// Deletes the note's file (moving it to the system trash is out of scope for v1). Only the app calls it.
+    /// Deletes the note's file for good (`trash` moves it to the system trash instead). Only the app calls it.
     pub fn delete(&self, title: &str) -> Result<(), StoreError> {
         let entry = self
             .find(&clean_title(title)?)?

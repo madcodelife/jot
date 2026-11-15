@@ -4,7 +4,7 @@ use std::fmt::Display;
 use std::path::PathBuf;
 use std::time::UNIX_EPOCH;
 
-use jot_store::{Source, Store, StoreError, Watcher};
+use jot_store::{Source, Store, StoreError, Trashed, Watcher};
 use nsh_core::element::io_code;
 use nsh_core::prelude::*;
 
@@ -20,7 +20,16 @@ pub struct Notes {
     store: Store,
     /// The folder watcher `watch` started; replaced by the next `watch`.
     watcher: Option<Watcher>,
+    /// The notes `trash` moved to the trash this run, by token, oldest
+    /// first: what `restore` brings back.
+    trashed: Vec<(u32, Trashed)>,
+    /// The token of the next note trashed.
+    next_token: u32,
 }
+
+/// How many trashed notes `restore` can still bring back: the oldest go
+/// first (they stay in the system trash).
+const TRASHED_KEPT: usize = 64;
 
 #[class]
 impl Notes {
@@ -33,6 +42,8 @@ impl Notes {
         Ok(Notes {
             store,
             watcher: None,
+            trashed: Vec::new(),
+            next_token: 1,
         })
     }
 
@@ -143,11 +154,67 @@ impl Notes {
         Ok(meta.into())
     }
 
-    /// Deletes the note's file.
+    /// Deletes the note's file for good (`trash` moves it to the system
+    /// trash, which can be undone).
     pub fn delete(&mut self, title: String) -> Result<(), JsError> {
         self.store
             .delete(&title)
             .map_err(|e| store_error(e, format_args!("cannot delete the note {title:?}")))
+    }
+
+    /// Moves the note titled `title` to the system trash; `restore` with
+    /// the token it returns brings it back. Throws `ERR_JOT_NOT_FOUND`.
+    pub fn trash(&mut self, title: String) -> Result<TrashedNote, JsError> {
+        let trashed = self.store.trash(&title).map_err(|e| {
+            store_error(
+                e,
+                format_args!("cannot move the note {title:?} to the trash"),
+            )
+        })?;
+        let token = self.next_token;
+        self.next_token = self.next_token.wrapping_add(1).max(1);
+        let note = TrashedNote {
+            title: trashed.title.clone(),
+            token,
+        };
+        if self.trashed.len() == TRASHED_KEPT {
+            self.trashed.remove(0);
+        }
+        self.trashed.push((token, trashed));
+        Ok(note)
+    }
+
+    /// Brings back the note `trash` returned `token` for, where it was:
+    /// moved out of the trash, or rebuilt from its text when the trash no
+    /// longer has it. Throws `ERR_JOT_ALREADY_EXISTS` when a note has its
+    /// title now (the token stays good), `ERR_JOT_NOT_FOUND` for a token
+    /// this folder did not give or already restored.
+    pub fn restore(&mut self, token: u32) -> Result<NoteMeta, JsError> {
+        let Some(at) = self.trashed.iter().position(|(t, _)| *t == token) else {
+            return Err(store_error(
+                StoreError::NotFound,
+                format_args!("cannot restore the trashed note {token}"),
+            ));
+        };
+        let trashed = &self.trashed[at].1;
+        let meta = self.store.restore(trashed).map_err(|e| {
+            store_error(
+                e,
+                format_args!("cannot restore the note {:?}", trashed.title),
+            )
+        })?;
+        self.trashed.remove(at);
+        Ok(meta.into())
+    }
+
+    /// The path of the note titled `title` (case does not matter), or
+    /// `null` when there is none: what the file manager shows.
+    pub fn path(&self, title: String) -> Result<Option<String>, JsError> {
+        let path = self
+            .store
+            .path(&title)
+            .map_err(|e| store_error(e, format_args!("cannot find the note {title:?}")))?;
+        Ok(path.map(|path| path.to_string_lossy().into_owned()))
     }
 
     /// Calls `onChange` when notes in the folder change, by the app or
@@ -253,6 +320,15 @@ impl From<jot_store::NoteMeta> for NoteMeta {
             preview: meta.preview,
         }
     }
+}
+
+/// A note `Notes.trash` moved to the system trash.
+#[derive(Debug, Clone, PartialEq, JsObject)]
+pub struct TrashedNote {
+    /// The note's title.
+    pub title: String,
+    /// What `Notes.restore` takes to bring it back.
+    pub token: u32,
 }
 
 /// A note with its body.
@@ -403,7 +479,7 @@ pub(crate) fn store_error(error: StoreError, doing: impl Display) -> JsError {
 
 #[cfg(test)]
 mod tests {
-    use super::{format_due, parse_due};
+    use super::{Notes, format_due, parse_due};
 
     #[test]
     fn due_times() {
@@ -429,5 +505,50 @@ mod tests {
         ] {
             assert_eq!(parse_due(wrong), None, "{wrong:?}");
         }
+    }
+
+    /// The tokens `trash` gives bring each note back once; the real trash
+    /// is used, and the test takes back what it put there.
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn trashed_notes_come_back_by_token() {
+        let dir = std::env::temp_dir().join(format!(
+            "jot-notes-trash-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let mut notes = Notes::new(dir.to_string_lossy().into_owned()).unwrap();
+        notes.create("One".into(), "1".into()).unwrap();
+        notes.create("Two".into(), "2".into()).unwrap();
+        assert!(
+            notes
+                .path("one".into())
+                .unwrap()
+                .unwrap()
+                .ends_with("One.md")
+        );
+
+        let one = notes.trash("one".into()).unwrap();
+        let two = notes.trash("Two".into()).unwrap();
+        assert_eq!(one.title, "One");
+        assert_ne!(one.token, two.token);
+        assert!(notes.list().unwrap().is_empty());
+        assert_eq!(notes.path("One".into()).unwrap(), None);
+
+        // Two first, as an undo stack takes them back.
+        assert_eq!(notes.restore(two.token).unwrap().title, "Two");
+        assert!(notes.restore(two.token).is_err(), "restored once");
+        assert!(notes.restore(9999).is_err(), "never given");
+
+        // A note that took the title: the token stays good.
+        notes.create("One".into(), "new".into()).unwrap();
+        assert!(notes.restore(one.token).is_err());
+        notes.delete("One".into()).unwrap();
+        assert_eq!(notes.restore(one.token).unwrap().title, "One");
+        assert_eq!(notes.read("One".into()).unwrap().unwrap().body, "1");
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }

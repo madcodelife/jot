@@ -32,7 +32,7 @@ use nsh_core::prelude::*;
 
 pub use folder::Folder;
 pub use input_source::InputSource;
-pub use notes::{Note, NoteMeta, NoteSource, Notes, SearchHit, Todo};
+pub use notes::{Note, NoteMeta, NoteSource, Notes, SearchHit, Todo, TrashedNote};
 pub use reminders::{DueEvent, Reminders};
 pub use summon::{Summon, SummonKey};
 pub use when::{When, WhenMatch};

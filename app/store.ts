@@ -2,9 +2,9 @@
 // list, a note open), the query and the selection, and what the user does
 // with them. Components read these signals; only the functions below write
 // them, so every change goes through one place.
-import { batch, computed, reduceMotion, signal, Storage, untracked } from "nsh";
+import { batch, computed, platform, reduceMotion, signal, Storage, untracked } from "nsh";
 import { t } from "nsh/i18n";
-import { Folder, Notes, Reminders, Summon, type DueEvent, type NoteMeta, type Todo } from "jot/native";
+import { Folder, Notes, Reminders, Summon, type DueEvent, type NoteMeta, type Todo, type TrashedNote } from "jot/native";
 import { morphNext } from "../ui/motion";
 import { T } from "../ui/tokens";
 import { todoKeyword, todoKeywords } from "./i18n";
@@ -61,6 +61,14 @@ export const focusRequest = signal<{ target: "field" | "editor" }>({ target: "fi
 export const listEntrance = signal(0);
 /** To-dos being ticked in the to-do view: they stay, checked, until their row folds away. */
 export const checking = signal<ReadonlySet<string>>(new Set());
+/** The notes moved to the trash while "Moved to the trash" shows, the last one on top: the undo key takes them back one by one. */
+export const trashed = signal<readonly TrashedNote[]>([]);
+/** Bumped as a note goes to the trash or one comes back: the footer's countdown starts over. */
+export const trashCountdown = signal(0);
+/** A short confirmation in the footer ("Copied"), gone after a moment. */
+export const flash = signal<string | null>(null);
+/** The note whose title is being edited in its row (the action panel's "Rename"). */
+export const renaming = signal<string | null>(null);
 
 /** Notes Jot itself created this run: not Claude's arrivals. */
 const createdHere = new Set<string>();
@@ -71,6 +79,30 @@ let known = new Set<string>();
 let openings = 0;
 /** The query Escape goes back to from a note opened out of the to-do view. */
 let backQuery: string | null = null;
+/** Notes moved to the trash (lowercase titles): a late autosave of the editor never brings one back. */
+const gone = new Set<string>();
+/** Saves the open note's pending edits now (the editor sets it while a note is open). */
+let flushEditor: (() => void) | null = null;
+let trashTimer: ReturnType<typeof setTimeout> | undefined;
+
+let flashTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Shows `text` in the footer for a moment. */
+export function showFlash(text: string) {
+  flash.set(text);
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => flash.set(null), T.timing.savedFor);
+}
+
+/** The editor's way to save its pending edits at once, before its note goes to the trash; `null` as it closes. */
+export function setEditorFlush(flush: (() => void) | null) {
+  flushEditor = flush;
+}
+
+/** The platform's own words (the trash's name, the file manager's) come in one form per desktop. */
+export const desktopOs = platform.os === "windows" ? "windows" : platform.os === "linux" ? "linux" : "macos";
+/** The system trash as this platform names it (废纸篓, 回收站). */
+export const binName = () => t(`trash.bin.${desktopOs}`);
 
 /** The `code` of an error `jot/native` threw (`ERR_JOT_*`, or Node's errno codes for I/O). */
 export const errorCode = (error: unknown): string | undefined =>
@@ -158,6 +190,8 @@ function useFolder(n: Notes): Notes {
   known = new Set(n.list().map((m) => m.title));
   createdHere.clear();
   lastWritten.clear();
+  gone.clear();
+  clearTimeout(trashTimer);
   n.watch(folderChanged);
   batch(() => {
     notes.set(n);
@@ -167,6 +201,8 @@ function useFolder(n: Notes): Notes {
     opened.set(null);
     if (untracked(stage) === "editor") stage.set("list");
     selected.set(0);
+    trashed.set([]);
+    renaming.set(null);
   });
   if (before && before !== n) before.dispose();
   restartReminders();
@@ -366,6 +402,7 @@ export function create(title: string) {
   if (!n) return;
   try {
     const meta = n.create(title, "");
+    gone.delete(meta.title.toLowerCase());
     createdHere.add(meta.title);
     known.add(meta.title);
     lastWritten.set(meta.title, "");
@@ -400,7 +437,7 @@ export function open(title: string, options: { line?: number; focus?: boolean } 
 /** Saves the editor's text (the editor calls it after a pause in typing). */
 export function save(title: string, body: string) {
   const n = untracked(notes);
-  if (!n) return;
+  if (!n || gone.has(title.toLowerCase())) return;
   lastWritten.set(title, body);
   n.write(title, body);
   refresh();
@@ -442,4 +479,151 @@ export function checkSelected() {
 export function clampSelection() {
   const count = selectable();
   if (untracked(selected) >= count) selected.set(Math.max(0, count - 1));
+}
+
+/** Moves `title` to the system trash; "Moved to the trash" shows, with the undo key, for a few seconds. */
+export function trashNote(title: string) {
+  const n = untracked(notes);
+  if (!n) return;
+  const wasOpen = untracked(stage) === "editor" && untracked(opened)?.title.toLowerCase() === title.toLowerCase();
+  // The note's last edits go with it to the trash, and no autosave after brings it back.
+  if (wasOpen) flushEditor?.();
+  let note: TrashedNote;
+  try {
+    note = n.trash(title);
+  } catch (error) {
+    notice.set(t("trash.failed", { title, error: errorMessage(error), bin: binName() }));
+    return;
+  }
+  gone.add(note.title.toLowerCase());
+  known.delete(note.title);
+  lastWritten.delete(note.title);
+  morphNext(T.spring.collapse);
+  batch(() => {
+    if (wasOpen) {
+      backQuery = null;
+      opened.set(null);
+      stage.set("list");
+    }
+    notice.set(null);
+    trashed.update((list) => [...list, note]);
+    refresh();
+  });
+  if (wasOpen) focusRequest.set({ target: "field" });
+  restartTrashCountdown();
+}
+
+/** ⌘Z (Ctrl+Z) while "Moved to the trash" shows: the last note trashed comes back where it was, selected. */
+export function undoTrash() {
+  const n = untracked(notes);
+  const list = untracked(trashed);
+  const note = list[list.length - 1];
+  if (!n || !note) return;
+  const rest = list.slice(0, -1);
+  let meta: NoteMeta;
+  try {
+    meta = n.restore(note.token);
+  } catch (error) {
+    // A note took its title meanwhile: this one stays in the trash, where the system's trash still has it.
+    batch(() => {
+      trashed.set(rest);
+      notice.set(
+        errorCode(error) === "ERR_JOT_ALREADY_EXISTS"
+          ? t("trash.restore_taken", { title: note.title, bin: binName() })
+          : t("trash.restore_failed", { title: note.title, error: errorMessage(error) }),
+      );
+    });
+    restartTrashCountdown();
+    return;
+  }
+  gone.delete(meta.title.toLowerCase());
+  // Back from the trash is no arrival of Claude's, whoever wrote it.
+  known.add(meta.title);
+  createdHere.add(meta.title);
+  morphNext(T.spring.drop);
+  batch(() => {
+    trashed.set(rest);
+    notice.set(null);
+    refresh();
+  });
+  selectNote(meta.title);
+  restartTrashCountdown();
+}
+
+/** Selects the row of `title`; when the query hides it, the search narrows to it. */
+function selectNote(title: string) {
+  const find = () => untracked(rows).findIndex((r) => r.kind === "note" && r.meta.title === title);
+  let index = find();
+  if (index < 0) {
+    query.set(title);
+    index = find();
+  }
+  selected.set(Math.max(0, index));
+}
+
+/** "Moved to the trash" stays `T.timing.undoFor` after the last change, then the footer and ⌘Z are theirs again. */
+function restartTrashCountdown() {
+  clearTimeout(trashTimer);
+  if (!untracked(trashed).length) {
+    trashTimer = undefined;
+    return;
+  }
+  trashCountdown.update((c) => c + 1);
+  trashTimer = setTimeout(() => {
+    trashTimer = undefined;
+    trashed.set([]);
+  }, T.timing.undoFor);
+}
+
+/** The action panel's "Rename": the row's title becomes a field. */
+export function startRename(title: string) {
+  notice.set(null);
+  renaming.set(title);
+}
+
+/** Leaves the title field: Return or leaving it renames the note (`to` trimmed), Escape keeps the old title. */
+export function finishRename(to: string | null) {
+  const from = untracked(renaming);
+  if (from === null) return;
+  renaming.set(null);
+  const title = to?.trim();
+  const n = untracked(notes);
+  if (!n || !title || title === from) return;
+  const wasOpen = untracked(opened)?.title === from;
+  // The editor's pending edits land in the file before it is renamed, not in a new file of the old name.
+  if (wasOpen) flushEditor?.();
+  let meta: NoteMeta;
+  try {
+    meta = n.rename(from, title);
+  } catch (error) {
+    const code = errorCode(error);
+    notice.set(
+      code === "ERR_JOT_ALREADY_EXISTS"
+        ? t("note.rename_taken", { title })
+        : code === "ERR_JOT_INVALID_TITLE"
+          ? t("note.invalid_title", { title })
+          : t("note.rename_failed", { title: from, error: errorMessage(error) }),
+    );
+    return;
+  }
+  // The new name is no note of Claude's arriving.
+  known.delete(from);
+  known.add(meta.title);
+  createdHere.add(meta.title);
+  const written = lastWritten.get(from);
+  lastWritten.delete(from);
+  if (written !== undefined) lastWritten.set(meta.title, written);
+  batch(() => {
+    refresh();
+    if (untracked(query).trim()) query.set(meta.title);
+    // The open note follows its new name (a new editor on the same text).
+    if (wasOpen) opened.set({ title: meta.title, line: null, focus: false, token: ++openings });
+  });
+  selectNote(meta.title);
+}
+
+/** The action panel's "Show in Finder": the note's file, selected in the file manager. */
+export function revealNote(title: string) {
+  const path = untracked(notes)?.path(title);
+  if (path) void Folder.reveal(path).catch((error: unknown) => notice.set(errorMessage(error)));
 }
