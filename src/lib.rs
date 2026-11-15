@@ -8,11 +8,14 @@
 //! - [`Reminders`]: fires at the to-dos' due times while the app runs.
 //! - [`Summon`]: a system-wide double tap of a modifier key.
 //! - [`Folder`]: the system's folder dialog, and a folder shown in Finder.
+//! - [`InputSource`]: the language of the keyboard input source, which
+//!   dictation listens for.
 //!
 //! Platform code lives in `platform/<os>.rs` behind one interface, so
 //! `App.tsx` never checks the platform for these.
 
 mod folder;
+mod input_source;
 mod notes;
 #[cfg(target_os = "macos")]
 #[path = "platform/macos.rs"]
@@ -28,6 +31,7 @@ mod when;
 use nsh_core::prelude::*;
 
 pub use folder::Folder;
+pub use input_source::InputSource;
 pub use notes::{Note, NoteMeta, NoteSource, Notes, SearchHit, Todo};
 pub use reminders::{DueEvent, Reminders};
 pub use summon::{Summon, SummonKey};
@@ -41,5 +45,6 @@ fn native(registry: &mut Registry) {
         .class::<Reminders>()
         .module::<When>()
         .module::<Summon>()
-        .module::<Folder>();
+        .module::<Folder>()
+        .module::<InputSource>();
 }

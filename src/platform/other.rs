@@ -1,5 +1,6 @@
 //! Platforms without a native implementation yet: no permission is
-//! needed, and double taps and holds are not heard.
+//! needed, double taps and holds are not heard, and the input source's
+//! language is unknown.
 
 use crate::summon::SummonKey;
 
@@ -20,4 +21,9 @@ pub(crate) fn watch_double_tap_hold(
     _on_start: Box<dyn Fn() + Send>,
     _on_end: Box<dyn Fn(bool) + Send>,
 ) {
+}
+
+/// Not known here: dictation falls back to the user's languages.
+pub(crate) fn input_language() -> Option<String> {
+    None
 }

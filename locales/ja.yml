@@ -137,7 +137,7 @@ settings:
     hold: "%{key} 長押しで話す"
     hold_hint: Jot で %{key} を長押しして入力。ほかの App では %{key} を 2 回押して長押しすると、ひとことメモ
     language: 認識する言語
-    language_auto: Jot の言語と同じ
+    language_auto: 入力ソースに合わせる
     permission: マイクと音声認識
     permission_hint: 初めて話すときに macOS が両方の許可を求めます
     denied_hint: 許可されていません。システム設定の「プライバシーとセキュリティ」でオンにしてください
@@ -186,6 +186,7 @@ theme:
 
 voice:
   listening: 聞いています…
+  language_tag: 認識する言語：%{language}。クリックか ⌘L で切り替え
   start: 音声入力
   start_note: カーソル位置に音声入力
   stop: 終了

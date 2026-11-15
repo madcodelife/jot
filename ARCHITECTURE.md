@@ -173,5 +173,14 @@ module Summon {                                 // gestures of a modifier, syste
   // Replaces the previous handlers; the key may differ from onDoubleTap's.
   onDoubleTapHold(key: "option" | "control", handlers: { start: () => void; end: (event: { cancelled: boolean }) => void }): void;
 }
+
+module InputSource {                            // the keyboard input source selected now
+  // Its first language, BCP 47 ("zh-Hans" for Pinyin, "ja", "en"); null where the platform does not say.
+  // macOS: Carbon's Text Input Sources, read on the main thread (a promise for the hop).
+  language(): Promise<string | null>;
+}
 ```
+Dictation's language (`app/speechlang.ts`, pure): switched to while listening (the language tag, ⌘L: 中 → EN → 日 →
+繁, kept for the run) › chosen in the settings › on "auto", the input source's when it is Chinese or Japanese › the
+first of the user's languages that is Chinese, Japanese or English with a region › Jot's language in its usual region.
 The notch comes from NSH: `displays()` → `cutouts` (`nsh/desktop`).

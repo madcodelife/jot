@@ -14,12 +14,12 @@ import { whenOptions } from "../app/settings";
 import { allNotes, errorMessage, lastWritten, notes, now, opened, revision, save } from "../app/store";
 import { taskLine, toggledLine } from "../app/tasks";
 import { age, parseDue } from "../app/time";
-import { cancelVoice, joinSpoken, listening, speechAvailable, startVoice, stopVoice, voiceError } from "../app/voice";
+import { cancelVoice, joinSpoken, listening, listeningLang, speechAvailable, startVoice, stopVoice, voiceError } from "../app/voice";
 import { Icon } from "./icons";
 import { fadeTo } from "./motion";
 import { fade } from "./themes";
 import { T } from "./tokens";
-import { Breathing, MicButton } from "./Voice";
+import { Breathing, LanguageTag, MicButton } from "./Voice";
 
 /** What the panel's keys ask of the open note (⌘↩ ticks the caret's task). */
 interface PaperActions {
@@ -370,6 +370,13 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
               <Text class="text-paper-muted" style={{ fontSize: T.type.meta }}>
                 {t("voice.listening")}
               </Text>
+              <If when={listeningLang()}>
+                {(lang) => (
+                  <View style={{ marginLeft: 4 }}>
+                    <LanguageTag testID="paper-lang" lang={lang()} surface="paper" />
+                  </View>
+                )}
+              </If>
             </View>
           </If>
           <If when={speechAvailable()}>

@@ -34,7 +34,7 @@ export const notificationsOn = signal(true);
 export const islandOn = signal(true);
 /** Holding ⌥ dictates (in the panel and the note), and a double press held does anywhere (macOS). */
 export const holdToTalk = signal(true);
-/** The language dictation listens for: "auto" follows Jot's language, else one of `SPEECH_LANGUAGES`. */
+/** The language dictation listens for: "auto" follows the input source (`app/speechlang.ts`), else one of `SPEECH_LANGUAGES`. */
 export const speechLanguage = signal<SpeechLanguageChoice>("auto");
 
 /** The languages dictation offers, as the recognizer names them, each in itself. */

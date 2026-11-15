@@ -136,7 +136,7 @@ settings:
     hold: 按住 %{key} 說話
     hold_hint: 浮窗裡按住 %{key} 輸入；在其他 App 裡連按兩下 %{key} 並按住，隨口記一句
     language: 辨識語言
-    language_auto: 跟隨 Jot 的語言
+    language_auto: 跟隨目前的輸入法
     permission: 麥克風與語音辨識
     permission_hint: 第一次說話時 macOS 會請求這兩項權限
     denied_hint: 尚未授權，到系統設定的「隱私權與安全性」裡打開
@@ -185,6 +185,7 @@ theme:
 
 voice:
   listening: 正在聽…
+  language_tag: 辨識語言：%{language}，點按或 ⌘L 換一種
   start: 語音輸入
   start_note: 在游標處說話
   stop: 說完了

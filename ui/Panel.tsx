@@ -42,11 +42,13 @@ import {
   holdKeyUp,
   listening,
   listeningByHold,
+  listeningLang,
   speechAvailable,
   startVoice,
+  switchVoiceLanguage,
   toggleVoice,
 } from "../app/voice";
-import { Breathing, MicButton } from "./Voice";
+import { Breathing, LanguageTag, MicButton } from "./Voice";
 import { openSettings } from "./Settings";
 import { fade } from "./themes";
 import { tn } from "../app/i18n";
@@ -192,6 +194,12 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
     },
     { when: "always" },
   );
+  // ⌘L while dictating (into the field or the note): the next language, the words so far kept.
+  effect(() => {
+    if (!listening()) return;
+    const stop = keymap.bind({ "mod+l": () => void switchVoiceLanguage() }, { when: "always" });
+    return stop;
+  });
   // The arrow keys move the selection, except in the note's text, where they move the caret.
   effect(() => {
     if (editing() && !fieldFocused()) return;
@@ -296,7 +304,10 @@ function Field(props: { onFocusChange: (focused: boolean) => void }) {
           </If>
         }
       >
-        <KeyHint label={t("voice.cancel")} keys={T.keys.esc} />
+        <View class="flex-row items-center" style={{ gap: 12 }}>
+          <If when={listeningLang()}>{(lang) => <LanguageTag testID="voice-lang" lang={lang()} surface="glass" />}</If>
+          <KeyHint label={t("voice.cancel")} keys={T.keys.esc} />
+        </View>
       </If>
       <If when={speechAvailable()}>
         <MicButton

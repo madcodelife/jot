@@ -3,14 +3,22 @@
 // filed from the island. A place that takes the words is a `VoiceSink`; this
 // module starts and ends the session and tells the sink what was heard.
 //
+// On "auto" a session listens for the language of the input source the user
+// types with (`InputSource`, read when it starts: they may have just
+// switched), so it begins one hop after the press. While it listens, the
+// language tag (or ⌘L) switches to the next language: the session restarts
+// in it and the words heard so far stay.
+//
 // Holding ⌥ dictates while the panel has the focus: the key down starts a
 // short timer, and a key up or any other key before it fires is no hold (a
 // double press summons, ⌥ with a letter types). The double press held
 // anywhere is the native side's (`Summon.onDoubleTapHold`, App.tsx).
 import { batch, localeSettings, signal, Speech, untracked, type KeyEvent, type SpeechErrorCode, type SpeechSession } from "nsh";
 import { t } from "nsh/i18n";
-import { languageOf, shownLanguage, type Language } from "./i18n";
-import { holdToTalk, speechLanguage } from "./settings";
+import { InputSource } from "jot/native";
+import { shownLanguage } from "./i18n";
+import { holdToTalk, speechLanguage, type SpeechLanguageChoice } from "./settings";
+import { chooseSpeechLang, nextSpeechLang } from "./speechlang";
 import { joinSpoken } from "./spoken";
 
 export { joinSpoken };
@@ -52,24 +60,35 @@ export async function detectSpeech() {
   }
 }
 
-const REGION: Record<Language, string> = { "zh-Hans": "zh-CN", "zh-Hant": "zh-TW", en: "en-US", ja: "ja-JP" };
+/** The language the running session listens for (null while none runs, or while it reads the input source). */
+export const listeningLang = signal<string | null>(null);
 
-/**
- * The language the recognizer listens for: the one chosen in the settings,
- * else Jot's language in the user's own region when one of their languages
- * names it (`en-GB`, `zh-Hant-HK` → `zh-HK`), else its usual one.
- */
-export function speechLang(): string {
-  const choice = untracked(speechLanguage);
-  if (choice !== "auto") return choice;
-  const shown = untracked(shownLanguage);
-  for (const tag of untracked(localeSettings).languages) {
-    if (languageOf(tag) !== shown) continue;
-    const parts = tag.split(/[-_]/);
-    const region = parts.slice(1).find((p) => /^[A-Za-z]{2}$/.test(p));
-    if (region) return `${parts[0].toLowerCase()}-${region.toUpperCase()}`;
+/** The language switched to while listening, kept for this run while the settings' choice stays what it was then. */
+let switched: { lang: string; under: SpeechLanguageChoice } | null = null;
+
+/** The language switched to, while the settings still say what they said then. */
+function switchedLang(): string | null {
+  return switched && switched.under === untracked(speechLanguage) ? switched.lang : null;
+}
+
+/** The language a session starting now listens for, given the input source's (`input`). */
+export function speechLang(input: string | null): string {
+  return chooseSpeechLang({
+    choice: untracked(speechLanguage),
+    switched: switchedLang(),
+    input,
+    languages: untracked(localeSettings).languages,
+    shown: untracked(shownLanguage),
+  });
+}
+
+/** The input source's language, or null when it cannot be read. */
+async function inputLanguage(): Promise<string | null> {
+  try {
+    return await InputSource.language();
+  } catch {
+    return null;
   }
-  return REGION[shown];
 }
 
 /** What the user is told when a session fails. */
@@ -81,71 +100,132 @@ export const PRIVACY_URL = {
   speech: "x-apple.systempreferences:com.apple.preference.security?Privacy_SpeechRecognition",
 } as const;
 
-let session: SpeechSession | null = null;
-let sink: VoiceSink | null = null;
+/** A dictation from its press to its end: where the words go, and the recognizer's session. */
+interface Run {
+  target: VoiceTarget;
+  sink: VoiceSink;
+  /** The session listening now; null while the input source is read, and once it is let go (cancelled, switched away from). */
+  session: SpeechSession | null;
+  /** The words of the sessions it switched away from. */
+  kept: string;
+  /** The words of the session listening now. */
+  heard: string;
+}
 
-/** Starts dictating into `target`; false when speech is unavailable or a session already runs. */
+let run: Run | null = null;
+
+/**
+ * Starts dictating into `target`: false when speech is unavailable or a
+ * session already runs (the sink hears nothing then); otherwise the sink
+ * hears how it goes, a failure to start included.
+ */
 export function startVoice(target: VoiceTarget, into: VoiceSink, options: { byHold?: boolean } = {}): boolean {
-  if (!untracked(speechAvailable) || session) return false;
-  let started: SpeechSession;
-  try {
-    started = Speech.start({ lang: speechLang(), interim: true });
-  } catch {
-    // Refused before it ran (the capability, a language tag it cannot take).
-    into.fail("not-allowed", "");
-    return false;
-  }
-  session = started;
-  sink = into;
+  if (!untracked(speechAvailable) || run) return false;
+  const r: Run = { target, sink: into, session: null, kept: "", heard: "" };
+  run = r;
   batch(() => {
     listening.set(target);
     listeningByHold.set(options.byHold ?? false);
   });
+  // Only "auto" asks the input source; a language chosen or switched to starts at once.
+  if (untracked(speechLanguage) !== "auto" || switchedLang()) begin(r, speechLang(null));
+  else
+    void inputLanguage().then((input) => {
+      if (run === r) begin(r, speechLang(input));
+    });
+  return true;
+}
+
+/** Starts `r`'s recognizer session in `lang`. */
+function begin(r: Run, lang: string) {
+  let started: SpeechSession;
+  try {
+    started = Speech.start({ lang, interim: true });
+  } catch {
+    // Refused before it ran (the capability, a language tag it cannot take).
+    settle(r);
+    r.sink.fail("not-allowed", r.kept);
+    return;
+  }
+  r.session = started;
+  listeningLang.set(lang);
   started.on("start", () => speechDenied.set(false));
   started.on("result", ({ text }) => {
-    if (session === started) into.update(clean(text));
+    if (r.session !== started) return;
+    r.heard = clean(text);
+    r.sink.update(joinSpoken(r.kept, r.heard));
   });
   started.on("end", ({ text, error }) => {
-    // Cancelled: its sink already put things back.
-    if (session !== started) return;
-    session = null;
-    sink = null;
-    batch(() => {
-      listening.set(null);
-      listeningByHold.set(false);
-    });
+    // Cancelled (its sink already put things back) or switched away from.
+    if (r.session !== started) return;
+    settle(r);
+    const said = clean(text);
+    const all = joinSpoken(r.kept, said);
     if (error === "not-allowed") speechDenied.set(true);
-    // Stopping before a word was said is "no-speech": nothing to file, nothing to say.
-    if (error && !(error === "no-speech" && !clean(text))) into.fail(error, clean(text));
-    else into.finish(clean(text));
+    // Stopping before a word was said is "no-speech": nothing new to file, nothing to say.
+    if (error && !(error === "no-speech" && !said)) r.sink.fail(error, all);
+    else r.sink.finish(all);
   });
-  return true;
+}
+
+/** `r` is over: nothing listens any more. */
+function settle(r: Run) {
+  if (run === r) run = null;
+  batch(() => {
+    listening.set(null);
+    listeningByHold.set(false);
+    listeningLang.set(null);
+  });
 }
 
 /** Stops listening: the recognizer finishes what it heard, and the sink gets the final transcript. */
 export function stopVoice() {
-  session?.stop();
+  const r = run;
+  if (!r) return;
+  if (r.session) {
+    r.session.stop();
+    return;
+  }
+  // Stopped while the input source was read: nothing was heard.
+  settle(r);
+  r.sink.finish(r.kept);
 }
 
 /** Escape while listening: the session ends at once and its words go. Returns whether one was running. */
 export function cancelVoice(target?: VoiceTarget): boolean {
-  if (!session || (target && untracked(listening) !== target)) return false;
-  const ending = session;
-  const was = sink;
-  session = null;
-  sink = null;
-  batch(() => {
-    listening.set(null);
-    listeningByHold.set(false);
-  });
+  const r = run;
+  if (!r || (target && r.target !== target)) return false;
+  const ending = r.session;
+  r.session = null;
+  settle(r);
+  ending?.abort();
+  r.sink.cancel();
+  return true;
+}
+
+/**
+ * Listens for the next language (中 → EN → 日 → 繁) from now on: the
+ * session restarts in it, and the words heard so far stay. Remembered for
+ * this run (the settings keep their choice). False when no session listens.
+ */
+export function switchVoiceLanguage(): boolean {
+  const r = run;
+  const ending = r?.session;
+  const lang = untracked(listeningLang);
+  if (!r || !ending || !lang) return false;
+  const next = nextSpeechLang(lang);
+  switched = { lang: next, under: untracked(speechLanguage) };
+  r.kept = joinSpoken(r.kept, r.heard);
+  r.heard = "";
+  r.session = null;
   ending.abort();
-  was?.cancel();
+  begin(r, next);
   return true;
 }
 
 /** The microphone button: starts, or stops the session running. */
 export function toggleVoice(target: VoiceTarget, into: () => VoiceSink) {
-  if (session) stopVoice();
+  if (run) stopVoice();
   else startVoice(target, into());
 }
 
@@ -165,7 +245,7 @@ export function holdKeyDown(event: KeyEvent, begin: () => boolean) {
     return;
   }
   if (event.repeat || holdTimer !== undefined || heldSession) return;
-  if (!untracked(holdToTalk) || !untracked(speechAvailable) || session) return;
+  if (!untracked(holdToTalk) || !untracked(speechAvailable) || run) return;
   holdTimer = setTimeout(() => {
     holdTimer = undefined;
     heldSession = begin();

@@ -17,8 +17,8 @@ import { Icon } from "./icons";
 import { fadeTo, morphNext, springConfig } from "./motion";
 import { TodoCheck } from "./parts";
 import { T } from "./tokens";
-import { PRIVACY_URL } from "../app/voice";
-import { Breathing } from "./Voice";
+import { listening, listeningLang, PRIVACY_URL } from "../app/voice";
+import { Breathing, LanguageTag } from "./Voice";
 
 /** What the island says. */
 type IslandEvent = { kind: "write"; title: string } | { kind: "remind"; todo: Todo } | { kind: "dictate" };
@@ -437,6 +437,9 @@ function DictationContent() {
           <Text testID="island-label" class={failed() ? "text-island-fg" : "text-island-muted"} style={{ numberOfLines: 1, fontSize: T.type.islandLabel, flexShrink: 1 }}>
             {label()}
           </Text>
+          <If when={d().phase === "listening" && listening() === "quick" ? listeningLang() : null}>
+            {(lang) => <LanguageTag testID="island-lang" lang={lang()} surface="island" />}
+          </If>
           <If when={(() => { const now = d(); return now.phase === "filed" && now.where === "todo" ? now.label : null; })()}>
             {(when) => (
               <View class="flex-row items-center bg-due/25" style={{ gap: 3, paddingHorizontal: 6, height: 17, borderRadius: 8.5 }}>

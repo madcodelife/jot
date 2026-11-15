@@ -1,5 +1,6 @@
-//! macOS: the Accessibility permission, AppKit's event monitors, and the
-//! main dispatch queue for the hold's timer.
+//! macOS: the Accessibility permission, AppKit's event monitors, the
+//! main dispatch queue for the hold's timer, and the keyboard input source
+//! (Carbon's Text Input Sources).
 
 use std::cell::{Cell, RefCell};
 use std::ffi::c_void;
@@ -19,6 +20,30 @@ unsafe extern "C" {
     fn AXIsProcessTrusted() -> u8;
     fn AXIsProcessTrustedWithOptions(options: *const c_void) -> u8;
     static kAXTrustedCheckOptionPrompt: *const c_void;
+}
+
+/// A Core Foundation object (`CFTypeRef`).
+type CfRef = *const c_void;
+
+#[link(name = "Carbon", kind = "framework")]
+unsafe extern "C" {
+    /// The selected keyboard input source, retained (the Create Rule).
+    fn TISCopyCurrentKeyboardInputSource() -> CfRef;
+    /// One of a source's properties, not retained (the Get Rule).
+    fn TISGetInputSourceProperty(source: CfRef, key: CfRef) -> CfRef;
+    /// The key of a source's languages: a CFArray of CFStrings, BCP 47 tags,
+    /// the one it is most used for first.
+    static kTISPropertyInputSourceLanguages: CfRef;
+}
+
+#[link(name = "CoreFoundation", kind = "framework")]
+unsafe extern "C" {
+    fn CFRelease(object: CfRef);
+    fn CFGetTypeID(object: CfRef) -> usize;
+    fn CFArrayGetTypeID() -> usize;
+    fn CFStringGetTypeID() -> usize;
+    fn CFArrayGetCount(array: CfRef) -> isize;
+    fn CFArrayGetValueAtIndex(array: CfRef, index: isize) -> CfRef;
 }
 
 // libdispatch, part of libSystem.
@@ -198,5 +223,48 @@ fn modifiers(flags: NSEventModifierFlags) -> Modifiers {
         control: flags.contains(NSEventModifierFlags::Control),
         alt: flags.contains(NSEventModifierFlags::Option),
         command: flags.contains(NSEventModifierFlags::Command),
+    }
+}
+
+/// The first language of the keyboard input source selected now (`zh-Hans`
+/// for Pinyin, `ja` for Kana, `en` for ABC), `None` for a source naming
+/// none. Main thread: Text Input Sources belong to it in an AppKit app
+/// (`InputSource.language` hops there).
+pub(crate) fn input_language() -> Option<String> {
+    // SAFETY: a plain query; the source it returns is retained for us and
+    // released below, after the last use of what it holds.
+    let source = unsafe { TISCopyCurrentKeyboardInputSource() };
+    if source.is_null() {
+        return None;
+    }
+    // SAFETY: `source` is a valid input source; the key is the framework's
+    // constant, which lives as long as the process.
+    let languages = unsafe { TISGetInputSourceProperty(source, kTISPropertyInputSourceLanguages) };
+    let first = first_string(languages);
+    // SAFETY: `source` came from a Copy function, so it is ours to release,
+    // once; `languages` (owned by it) is not used after.
+    unsafe { CFRelease(source) };
+    first
+}
+
+/// `array`'s first element as a string, when `array` is a non-empty CFArray
+/// whose first element is a CFString.
+fn first_string(array: CfRef) -> Option<String> {
+    // SAFETY: `array` is null or a valid CF object (a property of a live
+    // source), so its type may be asked, and an array's count and elements
+    // read; its elements are valid CF objects, not retained (the Get Rule),
+    // and live as long as the array.
+    unsafe {
+        if array.is_null() || CFGetTypeID(array) != CFArrayGetTypeID() || CFArrayGetCount(array) < 1
+        {
+            return None;
+        }
+        let first = CFArrayGetValueAtIndex(array, 0);
+        if first.is_null() || CFGetTypeID(first) != CFStringGetTypeID() {
+            return None;
+        }
+        // A CFString is toll-free bridged to NSString; borrowed for the copy.
+        let tag = (*first.cast::<NSString>()).to_string();
+        (!tag.is_empty()).then_some(tag)
     }
 }
