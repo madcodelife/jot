@@ -7,7 +7,7 @@ import { Input } from "nsh/base";
 import { t } from "nsh/i18n";
 import { openActions, type ActionTarget } from "../app/actions";
 import { tn } from "../app/i18n";
-import { activate, allTodos, arriving, finishRename, focusRequest, listEntrance, now, renaming, rows, selected, stage, type Row } from "../app/store";
+import { activate, allTodos, arriving, entering, finishRename, focusRequest, listEntrance, now, renaming, rows, selected, stage, type Row } from "../app/store";
 import { plainSnippet } from "../app/tasks";
 import { age, hm, todaySummary, type TodaySummary } from "../app/time";
 import { Icon, type IconName } from "./icons";
@@ -52,9 +52,12 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
   effect(() => {
     if (stage() === "hidden") opacity.set(0);
   });
-  // The list opening: each row drops in 28 ms after the one above it.
+  // The list opening: each row drops in 28 ms after the one above it. A row a search brings in later (made after
+  // the entrance's turn) shows at once, as the rows it joins: typing never replays the entrance.
+  const born = untracked(listEntrance);
   effect(() => {
-    if (!listEntrance()) return;
+    const entrance = listEntrance();
+    if (!entrance || (entrance === born && !entering())) return;
     const delay = untracked(() => props.index) * T.timing.stagger;
     if (reduceMotion()) {
       opacity.set(0);

@@ -59,6 +59,17 @@ export const notice = signal<string | null>(null);
 export const focusRequest = signal<{ target: "field" | "editor" }>({ target: "field" }, { equals: false });
 /** Bumped as the list opens: rows made then drop in one after another. */
 export const listEntrance = signal(0);
+/** True for the rest of the turn that started the list's entrance: rows made for it drop in too, rows a search adds later do not. */
+let entranceTurn = false;
+export const entering = () => entranceTurn;
+/** Starts the list's entrance (the panel summoned, the to-do view opened): every row drops in. */
+function startEntrance() {
+  listEntrance.update((n) => n + 1);
+  entranceTurn = true;
+  setTimeout(() => {
+    entranceTurn = false;
+  }, 0);
+}
 /** To-dos being ticked in the to-do view: they stay, checked, until their row folds away. */
 export const checking = signal<ReadonlySet<string>>(new Set());
 /** The notes moved to the trash while "Moved to the trash" shows, the last one on top: the undo key takes them back one by one. */
@@ -289,7 +300,7 @@ export function summon(start: { query?: string } = {}) {
     selected.set(0);
     opened.set(null);
     notice.set(null);
-    listEntrance.update((n) => n + 1);
+    startEntrance();
     stage.set("list");
   });
   focusRequest.set({ target: "field" });
@@ -387,7 +398,7 @@ export function activate(index = untracked(selected)) {
   if (row.kind === "summary") {
     morphNext(T.spring.expand);
     setQuery(todoKeyword());
-    listEntrance.update((n) => n + 1);
+    startEntrance();
   } else if (row.kind === "note") open(row.meta.title);
   else create(row.title);
 }
