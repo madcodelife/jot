@@ -36,6 +36,8 @@ import {
 } from "../app/store";
 import { actionShortcuts, actionsReturn, actionsTarget, filteredActions, primaryAction, runShortcut, toggleActions, type Action } from "../app/actions";
 import { ActionPanel, actionsHeight } from "./ActionPanel";
+import { DuePicker } from "./DuePicker";
+import { duePicker } from "../app/due";
 import { Icon } from "./icons";
 import { fadeTo, springConfig } from "./motion";
 import { NoteList } from "./NoteList";
@@ -190,6 +192,7 @@ export function PanelWindow() {
           <If when={actionsTarget()}>
             {(target) => <ActionPanel {...actionsPlace(filteredActions(target(), ""))} returnFocus={actionsReturn()} />}
           </If>
+          <DuePicker />
         </View>
       </Window>
     </If>
@@ -213,7 +216,7 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
       "mod+,": () => openSettings(),
       // ⌘K: the row's actions (Raycast's action panel); again, it closes.
       [T.keys.actions]: () => {
-        if (untracked(renaming) !== null) return;
+        if (untracked(renaming) !== null || untracked(duePicker)) return;
         toggleActions(untracked(stage) === "editor" && !untracked(fieldFocused) ? "editor" : "field");
       },
       "mod+enter": () => {
@@ -233,7 +236,7 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
   // The actions' own keys, with the action panel closed too. Ctrl+D (Windows, Linux) stays the note text's
   // "select the next occurrence" while the text has the focus; macOS's ⌃X is no text key.
   effect(() => {
-    if (renaming() !== null) return;
+    if (renaming() !== null || duePicker()) return;
     const inText = editing() && !fieldFocused();
     const keys = actionShortcuts().filter((k) => !(inText && k === T.keys.trashShortcut && !T.keys.trashInText));
     const stop = keymap.bind(Object.fromEntries(keys.map((k) => [k, () => runShortcut(k)])), { when: "always" });
@@ -246,9 +249,9 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
     return stop;
   });
   // The arrow keys move the selection, except in the note's text, where they move the caret, a title being
-  // renamed, and the action panel's own list.
+  // renamed, and the action panel's and the reminder time picker's own lists.
   effect(() => {
-    if (renaming() !== null || actionsTarget()) return;
+    if (renaming() !== null || actionsTarget() || duePicker()) return;
     if (editing() && !fieldFocused()) return;
     const stop = keymap.bind({ up: () => move(-1), down: () => move(1) }, { when: "always", repeat: true });
     return stop;

@@ -62,6 +62,44 @@ export function parseDue(due: string | null | undefined): Date | null {
   return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
 }
 
+/** `d` as the store takes a due time: `"2026-11-14T09:00"`, local. */
+export function dueValue(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** A quick choice: Things', Reminders' and Raycast's first rows. */
+export interface QuickChoice {
+  id: "hour" | "tonight" | "tomorrow" | "monday";
+  at: Date;
+}
+
+/**
+ * The reminder time picker's quick choices: in an hour (to the minute), this evening at 20:00, tomorrow morning
+ * and next Monday morning (at `morning`, the settings' time for a date alone, 9:00 unless changed), those still
+ * to come; one at the same time as one before it (next Monday is tomorrow on a Sunday) is left out.
+ */
+export function quickChoices(now: Date, morning = "09:00"): QuickChoice[] {
+  const [h, m] = morning.split(":").map(Number);
+  const day = (days: number, hour: number, minute = 0) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + days, hour, minute);
+  const hour = new Date(now.getTime() + 3_600_000);
+  hour.setSeconds(0, 0);
+  // Monday after today: 1 day on a Sunday, 7 on a Monday.
+  const toMonday = (8 - now.getDay()) % 7 || 7;
+  const all: QuickChoice[] = [
+    { id: "hour", at: hour },
+    { id: "tonight", at: day(0, 20) },
+    { id: "tomorrow", at: day(1, h, m) },
+    { id: "monday", at: day(toMonday, h, m) },
+  ];
+  const seen = new Set<number>();
+  return all.filter((c) => {
+    const time = c.at.getTime();
+    if (time <= now.getTime() || seen.has(time)) return false;
+    seen.add(time);
+    return true;
+  });
+}
+
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
 /** Whole days from `now`'s day to `d`'s. */

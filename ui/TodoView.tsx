@@ -1,9 +1,11 @@
 // The to-do view ("待办" or "/todo" in the field): every open to-do by
 // group (overdue, today, tomorrow, later, no time), each with its note and
 // its due time. Ticking one shows it checked for a moment, then its row
-// folds away (the store animates the fold).
-import { effect, Scroll, Text, token, untracked, View, type ScrollRef } from "nsh";
+// folds away (the store animates the fold). Pressing the due time (or the
+// alarm a selected row without one shows) opens the reminder time picker.
+import { cleanup, effect, Scroll, Text, token, untracked, View, type ScrollRef, type ViewRef } from "nsh";
 import type { Todo } from "jot/native";
+import { clearTodoAnchor, openTodoDue, setTodoAnchor } from "../app/due";
 import { activate, checking, checkTodo, keySteps, now, selected, todoItems, type TodoItem } from "../app/store";
 import { t } from "nsh/i18n";
 import { dueLabel, groupLabel, parseDue, type TodoGroup } from "../app/time";
@@ -162,7 +164,47 @@ function TodoRow(props: { item: TodoRowItem }) {
           {todo().note}
         </Text>
       </View>
-      <DueChip todo={todo()} group={props.item.group} onAccent={onAccent()} />
+      <DueButton item={props.item} selected={isSelected()} onAccent={onAccent()} />
+    </View>
+  );
+}
+
+/**
+ * The row's due time as a button that opens the reminder time picker under it; without a time, an alarm that
+ * adds one, shown while the row is selected (the picker opens there for ⌘K's "Add Reminder…" too).
+ */
+function DueButton(props: { item: TodoRowItem; selected: boolean; onAccent: boolean }) {
+  const todo = () => props.item.todo;
+  const key = props.item.key;
+  let label: ViewRef | undefined;
+  cleanup(() => clearTodoAnchor(key, label));
+  return (
+    <View
+      testID={`due:${todo().text}`}
+      ref={(r) => {
+        label = r;
+        setTodoAnchor(key, r);
+      }}
+      role="button"
+      accessibilityLabel={todo().due ? t("todo.due_change", { text: todo().text }) : t("actions.due_add")}
+      tooltip={todo().due ? undefined : t("actions.due_add")}
+      onPress={() => openTodoDue(todo())}
+      hitSlop={4}
+      class="active:opacity-70"
+      style={{ borderRadius: T.radius.chip, borderCurve: "continuous" }}
+    >
+      <If
+        when={todo().due}
+        else={
+          <If when={props.selected}>
+            <View class={props.onAccent ? "" : "hover:bg-glass-hover"} style={{ padding: 4, borderRadius: T.radius.chip }}>
+              <Icon name="alarm" size={13} tint={props.onAccent ? token("on-accent-muted") : token("glass-muted")} />
+            </View>
+          </If>
+        }
+      >
+        <DueChip todo={todo()} group={props.item.group} onAccent={props.onAccent} />
+      </If>
     </View>
   );
 }

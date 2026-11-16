@@ -6,13 +6,16 @@
 // elsewhere (Claude appending to the note) come in without moving the caret.
 // Dictation (⌥ held, or the microphone at the top right) types at the caret:
 // the words still being recognized show faint, and turn to ink when final.
+// Pressing a time chip (or ⇧⌘D on a to-do line) opens the reminder time
+// picker over it; the time it picks is one edit, which undo takes back.
 import { cleanup, computed, createAnimatedValue, effect, Notifications, signal, Text, token, untracked, View } from "nsh";
 import { Button, Editor, type EditorDecoration, type EditorPosition, type EditorRef, type EditorSelection } from "nsh/base";
 import { t } from "nsh/i18n";
 import { When } from "jot/native";
+import { caretOnTodo, openDuePicker, setEditorDue } from "../app/due";
 import { whenOptions } from "../app/settings";
 import { allNotes, errorMessage, lastWritten, notes, now, opened, revision, save, setEditorFlush } from "../app/store";
-import { taskLine, toggledLine } from "../app/tasks";
+import { taskLine, toggledLine, withDue } from "../app/tasks";
 import { age, parseDue } from "../app/time";
 import { cancelVoice, joinSpoken, listening, listeningLang, speechAvailable, startVoice, stopVoice, voiceError } from "../app/voice";
 import { Icon } from "./icons";
@@ -232,14 +235,62 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     return started;
   }
 
+  /**
+   * Opens the reminder time picker on the to-do of `line`, against its time chip (or the line's end when it has
+   * none, where a new one goes). False when the line is no open to-do.
+   */
+  function pickDueAt(line: number): boolean {
+    const content = lineAt(untracked(text), line);
+    const task = taskLine(content);
+    if (!task || task.done || !editor) return false;
+    const column = task.due ? task.due.start : content.length;
+    const end = task.due ? task.due.end : content.length;
+    const due = task.due ? task.due.at.replace(" ", "T") : null;
+    const target = { kind: "editor" as const, line, text: content };
+    void editor
+      .rangeBounds({ start: { line, column }, end: { line, column: end } })
+      .then((boxes) => openDuePicker(target, due, boxes[0]?.pageBounds ?? null))
+      .catch(() => openDuePicker(target, due, null));
+    return true;
+  }
+
+  /** Writes the picked time on `line`, if it still reads `before`: only the part that changes, so a caret elsewhere on the line stays where it was. */
+  function writeDue(line: number, before: string, due: Date | null) {
+    const content = lineAt(untracked(text), line);
+    if (!editor) return;
+    if (taskLine(content) === null || content !== before) {
+      showNotice("conflict", t("due.changed"));
+      return;
+    }
+    const next = withDue(content, due);
+    if (next === content) return;
+    let from = 0;
+    while (from < content.length && from < next.length && content[from] === next[from]) from++;
+    let back = 0;
+    while (back < content.length - from && back < next.length - from && content[content.length - 1 - back] === next[next.length - 1 - back]) back++;
+    editor.edit([
+      { range: { start: { line, column: from }, end: { line, column: content.length - back } }, text: next.slice(from, next.length - back) },
+    ]);
+    if (due) askToNotify();
+  }
+
   const actions: PaperActions = { toggleTaskAtCaret: () => toggleLine(untracked(caretLine)), dictate };
   current = actions;
   // Before the note goes to the trash or takes a new name, what was typed is saved.
   setEditorFlush(saveNow);
+  const dueSide = { apply: writeDue, openAtCaret: () => pickDueAt(untracked(caretLine)), focus: () => editor?.focus() };
+  setEditorDue(dueSide);
+  // Whether the caret is on an open to-do: the action panel offers "Reminder Time…" then.
+  effect(() => {
+    const task = taskLine(lineAt(text(), caretLine()));
+    caretOnTodo.set(!!task && !task.done);
+  });
   cleanup(() => {
     if (current === actions) {
       current = null;
       setEditorFlush(null);
+      setEditorDue(null);
+      caretOnTodo.set(false);
     }
     // The note closes while dictating into it: the words go with it.
     cancelVoice("editor");
@@ -432,7 +483,10 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
         }}
         onTextPress={({ position, clicks }) => {
           const task = taskLine(lineAt(untracked(text), position.line));
-          if (clicks === 1 && task && position.column >= task.box.start && position.column <= task.box.end) toggleLine(position.line);
+          if (clicks !== 1 || !task) return;
+          if (position.column >= task.box.start && position.column <= task.box.end) toggleLine(position.line);
+          // The time chip: the picker opens over it.
+          else if (task.due && !task.done && position.column >= task.due.start && position.column <= task.due.end) pickDueAt(position.line);
         }}
       />
       <If when={notice()}>

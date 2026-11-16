@@ -2,7 +2,7 @@
 // reminder (` ⏰ 2026-11-14 09:00`) and the done stamp (` ✅ 2026-11-14`)
 // are, and a line ticked or unticked. The file format is the store's
 // (ARCHITECTURE.md "To-dos"); the store parses the same lines for `todos()`.
-import { isoDay } from "./time";
+import { absolute, isoDay } from "./time";
 
 const TASK = /^(\s*)[-*] \[( |x|X)\] /;
 const DUE = / ?⏰ (\d{4}-\d\d-\d\d \d\d:\d\d)/;
@@ -56,6 +56,32 @@ export function toggledLine(text: string, done: boolean, today: Date): string {
   const body = text.slice(m[0].length).replace(DONE, "");
   const box = `${m[1]}- [${done ? "x" : " "}] `;
   return done ? `${box}${body} ✅ ${isoDay(today)}` : `${box}${body}`;
+}
+
+/**
+ * `text` (a task line) with its reminder at `due`, or without one for `null`: the store's
+ * `set_todo_due` for the open note's editor. A time it has is replaced where it is written; a new one
+ * goes at the end, before a done stamp.
+ */
+export function withDue(text: string, due: Date | null): string {
+  const task = taskLine(text);
+  if (!task) return text;
+  const written = due ? `⏰ ${absolute(due)}` : null;
+  if (task.due) {
+    // The reminder's span starts at ⏰; the space before it goes with it.
+    const start = task.due.start > task.rest.start && text[task.due.start - 1] === " " ? task.due.start - 1 : task.due.start;
+    const head = text.slice(0, start);
+    const tail = text.slice(task.due.end);
+    if (written) return `${head}${start === task.rest.start ? "" : " "}${written}${tail}`;
+    // A time right after the box leaves no space at the text's start; one at the end, none after the text.
+    const rest = start === task.rest.start ? tail.replace(/^[ \t]+/, "") : tail;
+    return rest ? head + rest : head.replace(/[ \t]+$/, "");
+  }
+  if (!written) return text;
+  const end = task.stamp ? task.stamp.start - (text[task.stamp.start - 1] === " " ? 1 : 0) : text.length;
+  const head = text.slice(0, end).replace(/[ \t]+$/, "");
+  const space = head.length < task.rest.start ? "" : " ";
+  return `${head.length < task.rest.start ? text.slice(0, task.rest.start) : head}${space}${written}${text.slice(end)}`;
 }
 
 /**

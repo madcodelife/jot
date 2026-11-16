@@ -267,6 +267,36 @@ impl Notes {
             })?;
         Ok(meta.into())
     }
+
+    /// Sets the reminder time of the to-do at `line` of `note` to `due`
+    /// (`"YYYY-MM-DDTHH:mm"` local time), or removes it for `null`, if
+    /// that line's text is still `text` (else throws `ERR_JOT_CHANGED`).
+    /// Throws a `TypeError` for another form of `due`.
+    pub fn set_todo_due(
+        &mut self,
+        note: String,
+        line: u32,
+        text: String,
+        due: Option<String>,
+    ) -> Result<NoteMeta, JsError> {
+        let due = due
+            .map(|due| {
+                parse_due(&due).ok_or_else(|| {
+                    JsError::Type(format!("due must be \"YYYY-MM-DDTHH:mm\", got {due:?}"))
+                })
+            })
+            .transpose()?;
+        let meta = self
+            .store
+            .set_todo_due(&note, line as usize, &text, due)
+            .map_err(|e| {
+                store_error(
+                    e,
+                    format_args!("cannot change the reminder at line {line} of {note:?}"),
+                )
+            })?;
+        Ok(meta.into())
+    }
 }
 
 impl Notes {

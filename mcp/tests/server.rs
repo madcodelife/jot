@@ -1,5 +1,5 @@
 //! Drives the server through an MCP client over an in-memory transport: create → search → read → append, and
-//! add → list → complete for to-dos.
+//! add → list → complete → reschedule for to-dos.
 
 use std::fs;
 
@@ -81,6 +81,7 @@ async fn create_search_read_append() {
             "list_todos",
             "read_note",
             "recent_notes",
+            "reschedule_todo",
             "search_notes"
         ]
     );
@@ -418,6 +419,160 @@ async fn add_list_complete_todos() {
         fs::read_to_string(dir.path().join("Trips.md")).unwrap(),
         "---\nsource: claude\n---\n- [ ] Pay rent ⏰ 2026-11-14 15:00\n- [ ] Call mom ⏰ 2026-11-13 11:00\n\
          - [ ] 繳費 ⏰ 2026-11-20 15:00\n- [ ] 家賃 ⏰ 2026-11-20 15:00\n- [ ] 会議 ⏰ 2026-11-14 15:00\n"
+    );
+
+    client.cancel().await.unwrap();
+    server.await.unwrap();
+}
+
+#[tokio::test]
+async fn reschedule_todos() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Store::open(dir.path()).unwrap();
+    let todo_note = dir.path().join("待办.md");
+    fs::write(
+        &todo_note,
+        "- [ ] 交房租 ⏰ 2026-11-14 09:00\n- [ ] 交周报\n- [x] 发版 ✅ 2026-11-12\n- [ ] 遛狗 ⏰ 2026-11-13 18:00\n",
+    )
+    .unwrap();
+
+    let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
+    let server = tokio::spawn(async move {
+        JotServer::new(store)
+            .with_clock(friday_morning)
+            .serve(server_transport)
+            .await
+            .unwrap()
+            .waiting()
+            .await
+            .unwrap();
+    });
+    let client = Client.serve(client_transport).await.unwrap();
+
+    // The schema asks for `due`, null allowed.
+    let tool = client
+        .list_all_tools()
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|tool| tool.name == "reschedule_todo")
+        .unwrap();
+    let schema = serde_json::Value::Object((*tool.input_schema).clone());
+    let required = schema["required"].as_array().unwrap();
+    for field in ["note", "text", "due"] {
+        assert!(required.contains(&serde_json::json!(field)), "{schema}");
+    }
+
+    // A phrase, as "把交房租改到下周五 9点" gives it.
+    let (is_error, text) = call(
+        &client,
+        "reschedule_todo",
+        serde_json::json!({ "note": "待办", "text": "房租", "due": "下周五 9点" }),
+    )
+    .await;
+    assert!(!is_error, "{text}");
+    assert!(
+        text.contains("\"交房租\" in the note \"待办\" is now due Fri 2026-11-20 09:00 (it was due Sat 2026-11-14 09:00)."),
+        "{text}"
+    );
+    // ISO, on a to-do without a time.
+    let (is_error, text) = call(
+        &client,
+        "reschedule_todo",
+        serde_json::json!({ "note": "待办", "text": "交周报", "due": "2026-11-16T10:00" }),
+    )
+    .await;
+    assert!(!is_error, "{text}");
+    assert!(text.contains("now due Mon 2026-11-16 10:00."), "{text}");
+    // A time already past says so.
+    let (_, text) = call(
+        &client,
+        "reschedule_todo",
+        serde_json::json!({ "note": "待办", "text": "遛狗", "due": "2026-11-13T08:00" }),
+    )
+    .await;
+    assert!(text.contains("already passed"), "{text}");
+    // null removes it.
+    let (is_error, text) = call(
+        &client,
+        "reschedule_todo",
+        serde_json::json!({ "note": "待办", "text": "遛狗", "due": null }),
+    )
+    .await;
+    assert!(!is_error, "{text}");
+    assert!(
+        text.contains("Removed the reminder of \"遛狗\" in the note \"待办\" (it was due Fri 2026-11-13 08:00)."),
+        "{text}"
+    );
+    assert_eq!(
+        fs::read_to_string(&todo_note).unwrap(),
+        "- [ ] 交房租 ⏰ 2026-11-20 09:00\n- [ ] 交周报 ⏰ 2026-11-16 10:00\n- [x] 发版 ✅ 2026-11-12\n- [ ] 遛狗\n"
+    );
+    let (_, text) = call(
+        &client,
+        "reschedule_todo",
+        serde_json::json!({ "note": "待办", "text": "遛狗", "due": null }),
+    )
+    .await;
+    assert!(text.contains("has no reminder"), "{text}");
+
+    // Errors: `due` left out, empty or unreadable; a checked to-do; several match; nothing matches.
+    let left_out = client
+        .call_tool(
+            CallToolRequestParams::new("reschedule_todo".to_owned()).with_arguments(
+                serde_json::json!({ "note": "待办", "text": "遛狗" })
+                    .as_object()
+                    .unwrap()
+                    .clone(),
+            ),
+        )
+        .await;
+    assert!(
+        left_out.is_err() || left_out.unwrap().is_error == Some(true),
+        "a call without `due` fails"
+    );
+    for due in ["", "someday"] {
+        let (is_error, text) = call(
+            &client,
+            "reschedule_todo",
+            serde_json::json!({ "note": "待办", "text": "遛狗", "due": due }),
+        )
+        .await;
+        assert!(is_error, "{due:?}");
+        assert!(text.contains("null"), "{text}");
+    }
+    let (is_error, text) = call(
+        &client,
+        "reschedule_todo",
+        serde_json::json!({ "note": "待办", "text": "发版", "due": "明天" }),
+    )
+    .await;
+    assert!(is_error);
+    assert!(text.contains("already checked off"), "{text}");
+    let (is_error, text) = call(
+        &client,
+        "reschedule_todo",
+        serde_json::json!({ "note": "待办", "text": "交", "due": "明天" }),
+    )
+    .await;
+    assert!(is_error);
+    assert!(
+        text.contains("pass the full text of the one to reschedule"),
+        "{text}"
+    );
+    let (is_error, text) = call(
+        &client,
+        "reschedule_todo",
+        serde_json::json!({ "note": "待办", "text": "买菜", "due": "明天" }),
+    )
+    .await;
+    assert!(is_error);
+    assert!(text.contains("Its open to-dos:"), "{text}");
+    // Nothing changed through the errors.
+    assert!(
+        fs::read_to_string(&todo_note)
+            .unwrap()
+            .ends_with("- [ ] 遛狗\n")
     );
 
     client.cancel().await.unwrap();

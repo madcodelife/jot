@@ -49,6 +49,8 @@ pub(crate) struct TaskLine {
     pub(crate) text: String,
     pub(crate) due: Option<DateTime>,
     done_on: Option<Date>,
+    /// The `⏰ <time>` part with the spaces before it, if any.
+    due_range: Option<Range<usize>>,
     /// The `✅ <date>` part with the spaces before it, if any.
     done_range: Option<Range<usize>>,
 }
@@ -115,8 +117,10 @@ impl TaskLine {
             content_start,
             done,
             text: text.trim().to_owned(),
-            due: reminder.map(|(at, _)| at),
+            due: reminder.as_ref().map(|(at, _)| *at),
             done_on: checked.as_ref().map(|(date, _)| *date),
+            due_range: reminder
+                .map(|(_, range)| content_start + range.start..content_start + range.end),
             done_range: checked
                 .map(|(_, range)| content_start + range.start..content_start + range.end),
         })
@@ -305,6 +309,42 @@ impl Store {
         })
     }
 
+    /// Sets (`Some`) or clears (`None`) the reminder time of the to-do at `line` of `note`, if that line's text is
+    /// still `text` (else `StoreError::Changed`). A time it has is replaced where it is written; a new one goes at
+    /// the line's end, before a done stamp. Fails with `NotFound` when the note is gone. A to-do already at that
+    /// time (or without one, for `None`) is left as it is.
+    pub fn set_todo_due(
+        &self,
+        note: &str,
+        line: usize,
+        text: &str,
+        due: Option<DateTime>,
+    ) -> Result<NoteMeta, StoreError> {
+        let entry = self
+            .find(&clean_title(note)?)?
+            .ok_or(StoreError::NotFound)?;
+        self.try_rewrite(entry, |body| {
+            let task = task_lines(body)
+                .find(|(task_line, _)| *task_line == line)
+                .map(|(_, task)| task)
+                .filter(|task| task.text == text.trim())
+                .ok_or(StoreError::Changed)?;
+            let mut out = String::with_capacity(body.len() + 24);
+            let mut changed = false;
+            for (index, (whole, content)) in lines(body).enumerate() {
+                if index == line {
+                    let next = rescheduled(content, &task, due);
+                    changed = next != content;
+                    out.push_str(&next);
+                    out.push_str(&whole[content.len()..]);
+                } else {
+                    out.push_str(whole);
+                }
+            }
+            Ok(changed.then_some(out))
+        })
+    }
+
     /// Appends `- [ ] text[ ⏰ due]` to `note` (default "待办"), creating the note with `source` as needed. The
     /// line goes right after a to-do at the end of the note, else after a blank line. Line breaks in `text`
     /// become spaces; an empty text fails with an `InvalidInput` I/O error.
@@ -388,6 +428,61 @@ fn toggled(line: &str, task: &TaskLine, done: bool, today: Date) -> String {
         out.push_str(&format!(" {DONE} {today}"));
     }
     out
+}
+
+/// `line` (without its line break) with its reminder time set to `due`, or without one for `None`.
+fn rescheduled(line: &str, task: &TaskLine, due: Option<DateTime>) -> String {
+    let written = due.map(|at| format!("{REMINDER} {}", format_due(at)));
+    match (&task.due_range, written) {
+        // Replaced where it is: a time in the middle of the text stays there.
+        (Some(range), Some(written)) => {
+            let space = if range.start == task.content_start {
+                ""
+            } else {
+                " "
+            };
+            format!(
+                "{}{space}{written}{}",
+                &line[..range.start],
+                &line[range.end..]
+            )
+        }
+        (Some(range), None) => {
+            let rest = &line[range.end..];
+            // A time right after the box leaves no space at the text's start.
+            let rest = if range.start == task.content_start {
+                rest.trim_start_matches([' ', '\t'])
+            } else {
+                rest
+            };
+            let out = format!("{}{rest}", &line[..range.start]);
+            if rest.is_empty() {
+                out.trim_end_matches([' ', '\t']).to_owned()
+            } else {
+                out
+            }
+        }
+        // A new time goes at the end, before a done stamp.
+        (None, Some(written)) => {
+            let end = task
+                .done_range
+                .as_ref()
+                .map_or(line.len(), |range| range.start);
+            let head = line[..end].trim_end_matches([' ', '\t']);
+            let space = if head.len() < task.content_start {
+                ""
+            } else {
+                " "
+            };
+            let head = if head.len() < task.content_start {
+                &line[..task.content_start]
+            } else {
+                head
+            };
+            format!("{head}{space}{written}{}", &line[end..])
+        }
+        (None, None) => line.to_owned(),
+    }
 }
 
 /// `body` with `line` appended, and the new line's index.
@@ -615,6 +710,113 @@ mod tests {
         assert_eq!(fs::read_to_string(&path).unwrap(), "intro\n- [ ] 发版\n");
         assert!(matches!(
             store.set_todo_done("Nope", 0, "发版", true, today),
+            Err(StoreError::NotFound)
+        ));
+    }
+
+    #[test]
+    fn rescheduling() {
+        let at = |h| Some(date(2026, 11, 20).at(h, 30, 0, 0));
+        // (line, due, expected)
+        let cases: &[(&str, Option<DateTime>, &str)] = &[
+            ("- [ ] 交房租", at(9), "- [ ] 交房租 ⏰ 2026-11-20 09:30"),
+            ("- [ ] 交房租  ", at(9), "- [ ] 交房租 ⏰ 2026-11-20 09:30"),
+            ("- [ ]", at(9), "- [ ] ⏰ 2026-11-20 09:30"),
+            (
+                "- [ ] 交房租 ⏰ 2026-11-14 09:00",
+                at(18),
+                "- [ ] 交房租 ⏰ 2026-11-20 18:30",
+            ),
+            (
+                "- [ ] 交房租 ⏰2026-11-14",
+                at(18),
+                "- [ ] 交房租 ⏰ 2026-11-20 18:30",
+            ),
+            (
+                "- [ ] 交 ⏰ 2026-11-14 18:30 房租",
+                at(9),
+                "- [ ] 交 ⏰ 2026-11-20 09:30 房租",
+            ),
+            (
+                "- [ ] ⏰ 2026-11-14 18:30 房租",
+                at(9),
+                "- [ ] ⏰ 2026-11-20 09:30 房租",
+            ),
+            (
+                "- [x] 交房租 ✅ 2026-11-13",
+                at(9),
+                "- [x] 交房租 ⏰ 2026-11-20 09:30 ✅ 2026-11-13",
+            ),
+            ("- [ ] 交房租 ⏰ 2026-11-14 09:00", None, "- [ ] 交房租"),
+            ("- [ ] 交 ⏰ 2026-11-14 18:30 房租", None, "- [ ] 交 房租"),
+            ("- [ ] ⏰ 2026-11-14 18:30 房租", None, "- [ ] 房租"),
+            ("  * [ ] 交房租 ⏰ 2026-11-14 09:00", None, "  * [ ] 交房租"),
+            (
+                "- [x] 交房租 ⏰ 2026-11-14 09:00 ✅ 2026-11-13",
+                None,
+                "- [x] 交房租 ✅ 2026-11-13",
+            ),
+            ("- [ ] 交房租", None, "- [ ] 交房租"),
+        ];
+        for &(line, due, expected) in cases {
+            let task = TaskLine::parse(line).unwrap();
+            let next = rescheduled(line, &task, due);
+            assert_eq!(next, expected, "{line:?}");
+            // What is written reads back as the same to-do at the new time.
+            let back = TaskLine::parse(&next).unwrap();
+            assert_eq!((back.text, back.due), (task.text.clone(), due), "{line:?}");
+        }
+    }
+
+    #[test]
+    fn setting_and_clearing_the_due_time() {
+        let (_dir, store) = store();
+        let path = store.root().join("Work.md");
+        fs::write(
+            &path,
+            "---\nsource: claude\n---\n- [ ] 写周报 ⏰ 2026-11-14 09:00\r\n```\n- [ ] fenced\n```\n- [ ] 发版",
+        )
+        .unwrap();
+        let friday = date(2026, 11, 20).at(15, 0, 0, 0);
+
+        store
+            .set_todo_due("work", 0, "写周报", Some(friday))
+            .unwrap();
+        store
+            .set_todo_due("Work", 4, " 发版 ", Some(friday))
+            .unwrap();
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            "---\nsource: claude\n---\n- [ ] 写周报 ⏰ 2026-11-20 15:00\r\n```\n- [ ] fenced\n```\n\
+             - [ ] 发版 ⏰ 2026-11-20 15:00"
+        );
+        let todos = store.todos().unwrap();
+        assert!(todos.iter().all(|todo| todo.due == Some(friday)));
+
+        store.set_todo_due("Work", 0, "写周报", None).unwrap();
+        assert!(
+            fs::read_to_string(&path)
+                .unwrap()
+                .contains("---\n- [ ] 写周报\r\n```")
+        );
+        // Already without one: the file is not written.
+        touch(&store, "Work", 100);
+        store.set_todo_due("Work", 0, "写周报", None).unwrap();
+        let modified = fs::metadata(&path).unwrap().modified().unwrap();
+        assert_eq!(modified, SystemTime::UNIX_EPOCH + Duration::from_secs(100));
+
+        // A line that changed, a fenced line, a missing note.
+        for (line, text) in [(0, "交周报"), (2, "fenced"), (1, "写周报"), (9, "发版")] {
+            assert!(
+                matches!(
+                    store.set_todo_due("Work", line, text, Some(friday)),
+                    Err(StoreError::Changed)
+                ),
+                "{line} {text}"
+            );
+        }
+        assert!(matches!(
+            store.set_todo_due("Nope", 0, "发版", None),
             Err(StoreError::NotFound)
         ));
     }

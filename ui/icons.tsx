@@ -25,6 +25,7 @@ const PATHS = {
   copy: `<g ${STROKE} stroke-width="1.6"><rect x="6.5" y="6.5" width="10" height="10" rx="2"/><path d="M13.5 6.5V5A1.5 1.5 0 0 0 12 3.5H5A1.5 1.5 0 0 0 3.5 5v7A1.5 1.5 0 0 0 5 13.5h1.5"/></g>`,
   external: `<g ${STROKE} stroke-width="1.7"><path d="M8 4.5H5A1.5 1.5 0 0 0 3.5 6v9A1.5 1.5 0 0 0 5 16.5h9a1.5 1.5 0 0 0 1.5-1.5v-3"/><path d="M11 3.5h5.5V9M16.5 3.5 9 11"/></g>`,
   trash: `<g ${STROKE} stroke-width="1.6"><path d="M4 6h12M8 6V4h4v2M5.5 6l.8 10.5h7.4L14.5 6"/></g>`,
+  chevron: `<g ${STROKE} stroke-width="1.8"><path d="m8 4.5 5.5 5.5L8 15.5"/></g>`,
   chevrons: `<g ${STROKE} stroke-width="1.7"><path d="m6.5 8 3.5-3.5L13.5 8M6.5 12l3.5 3.5 3.5-3.5"/></g>`,
 } as const;
 

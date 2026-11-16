@@ -5,6 +5,7 @@ import { Clipboard, computed, signal, untracked } from "nsh";
 import { t } from "nsh/i18n";
 import type { Todo } from "jot/native";
 import { keyCaps, T } from "../ui/tokens";
+import { caretOnTodo, openDueAtCaret, openTodoDue, writeTodoDue } from "./due";
 import {
   activate,
   binName,
@@ -38,7 +39,7 @@ export type ActionTarget =
 export interface Action {
   id: string;
   label: string;
-  /** The keystroke that runs it (`keymap`'s), `"enter"` for Return. */
+  /** The keystroke that runs it (`keymap`'s), `"enter"` for Return; empty for none. */
   shortcut: string;
   keys: readonly string[];
   /** Destroys something: drawn in the danger color, after a separator. */
@@ -71,7 +72,7 @@ const action = (id: string, label: string, shortcut: string, run: () => void, de
   id,
   label,
   shortcut,
-  keys: keyCaps(shortcut),
+  keys: shortcut ? keyCaps(shortcut) : [],
   destructive,
   run,
 });
@@ -86,6 +87,8 @@ export function actionsFor(target: ActionTarget): Action[] {
         action("open", t("actions.open"), "enter", () =>
           target.index === null ? focusRequest.set({ target: "editor" }) : activate(target.index),
         ),
+        // In the open note, with the caret on an open to-do: its reminder time.
+        ...(target.index === null && caretOnTodo() ? [action("due", t("actions.due"), T.keys.due, () => void openDueAtCaret())] : []),
         action("reveal", t(`actions.reveal.${desktopOs}`), T.keys.reveal, () => revealNote(title)),
         action("rename", t("actions.rename"), T.keys.rename, () => startRename(title)),
         action("copy-title", t("actions.copy_title"), T.keys.copyTitle, () => copy(title)),
@@ -101,6 +104,8 @@ export function actionsFor(target: ActionTarget): Action[] {
       return [
         action("open-note", t("actions.open_note"), "enter", () => activate(target.index)),
         action("tick", t("actions.tick"), "mod+enter", () => checkTodo(target.todo)),
+        action("due", target.todo.due ? t("actions.due") : t("actions.due_add"), T.keys.due, () => openTodoDue(target.todo)),
+        ...(target.todo.due ? [action("due-remove", t("actions.due_remove"), "", () => writeTodoDue(target.todo, null))] : []),
       ];
   }
 }
@@ -121,7 +126,7 @@ export function runShortcut(shortcut: string) {
 }
 
 /** The keys actions bind directly (Return and ⌘↩ are the panel's own). */
-export const actionShortcuts = () => [T.keys.reveal, T.keys.rename, T.keys.copyTitle, T.keys.copyBody, T.keys.trashShortcut];
+export const actionShortcuts = () => [T.keys.reveal, T.keys.rename, T.keys.copyTitle, T.keys.copyBody, T.keys.trashShortcut, T.keys.due];
 
 function copy(text: string) {
   Clipboard.writeText(text).then(

@@ -193,6 +193,7 @@ fn run(
         }
         if rescan {
             if let Some(fresh) = open_todos(store) {
+                drop_rescheduled(&mut lock(snoozes), &todos, &fresh);
                 todos = fresh;
             }
         }
@@ -255,6 +256,26 @@ fn take_due(
     }
     due.sort_by_key(|todo| todo.due);
     due
+}
+
+/// Drops the snoozes of to-dos whose time changed between `before` and
+/// `after` (the user picked a new one, or removed it): the new time is the
+/// reminder now, which the rescan's to-dos fire at.
+fn drop_rescheduled(
+    snoozes: &mut Vec<Snooze>,
+    before: &[jot_store::Todo],
+    after: &[jot_store::Todo],
+) {
+    let due = |todos: &[jot_store::Todo], snooze: &Snooze| {
+        todos
+            .iter()
+            .find(|todo| todo.note == snooze.note && todo.line == snooze.line)
+            .map(|todo| (todo.text.clone(), todo.due))
+    };
+    snoozes.retain(|snooze| match (due(before, snooze), due(after, snooze)) {
+        (Some((text, was)), Some((same, now))) => text != same || was == now,
+        _ => true,
+    });
 }
 
 /// Whether the wall clock moved further than the time waited since
@@ -375,5 +396,43 @@ mod tests {
         let due = take_due(&todos, &mut snoozes, nine, later);
         assert_eq!(due, vec![todos[0].clone()]);
         assert!(snoozes.is_empty());
+    }
+
+    #[test]
+    fn a_new_time_replaces_the_snooze() {
+        let nine = date(2026, 11, 14).at(9, 0, 0, 0);
+        let snoozed = nine + SignedDuration::from_mins(10);
+        let friday = date(2026, 11, 20).at(15, 0, 0, 0);
+        let before = [todo("a", 0, Some(nine)), todo("b", 0, Some(nine))];
+        let mut snoozes = vec![
+            Snooze {
+                note: "a".into(),
+                line: 0,
+                at: snoozed,
+            },
+            Snooze {
+                note: "b".into(),
+                line: 0,
+                at: snoozed,
+            },
+        ];
+        // `a` moved to Friday; `b` kept its time (another line of its note changed).
+        let after = [todo("a", 0, Some(friday)), todo("b", 0, Some(nine))];
+        drop_rescheduled(&mut snoozes, &before, &after);
+        assert_eq!(snoozes.len(), 1);
+        assert_eq!(snoozes[0].note, "b");
+        // The new time is what fires: not at the snooze's end, at Friday's.
+        assert_eq!(next_due(&after[..1], &snoozes[..0], nine), Some(friday));
+        assert!(take_due(&after[..1], &mut Vec::new(), nine, snoozed).is_empty());
+        assert_eq!(
+            take_due(&after[..1], &mut Vec::new(), nine, friday),
+            vec![after[0].clone()]
+        );
+
+        // Its time removed: the snooze goes too, and nothing fires.
+        let cleared = [todo("b", 0, None)];
+        drop_rescheduled(&mut snoozes, &after, &cleared);
+        assert!(snoozes.is_empty());
+        assert_eq!(next_due(&cleared, &snoozes, nine), None);
     }
 }

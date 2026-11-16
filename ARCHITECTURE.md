@@ -93,6 +93,10 @@ impl Store {
     /// Checks or unchecks the to-do at `line` of `note`, if that line's text is still `text`
     /// (else `StoreError::Changed`); checking adds ` ✅ <today>`, unchecking removes it.
     pub fn set_todo_done(&self, note: &str, line: usize, text: &str, done: bool, today: jiff::civil::Date) -> Result<NoteMeta, StoreError>;
+    /// Sets (`Some`) or clears (`None`) the reminder of the to-do at `line` of `note`, if that line's text is
+    /// still `text` (else `StoreError::Changed`): a time it has is replaced where it is written, a new one goes at
+    /// the end (before a done stamp). The reminder time picker of the to-do view and `reschedule_todo` write with it.
+    pub fn set_todo_due(&self, note: &str, line: usize, text: &str, due: Option<DateTime>) -> Result<NoteMeta, StoreError>;
     /// Appends `- [ ] text[ ⏰ due]` to `note` (default "待办", created as needed, with `source`).
     pub fn add_todo(&self, note: Option<&str>, text: &str, due: Option<DateTime>, source: Source) -> Result<Todo, StoreError>;
 }
@@ -130,7 +134,10 @@ pub mod when {                   // store/src/when/: mod.rs (driver, labels), zh
 
 MCP tools (mcp/): `add_todo(text, due?, note?)` (`due`: ISO `2026-11-14T09:00` or a phrase `when::parse` reads, in
 Chinese, English or Japanese; without `due`, a phrase in `text` becomes the time),
-`list_todos(range?)` (`overdue` | `today` | `upcoming` | `all`, default `today`+`overdue`), `complete_todo(note, text)`.
+`list_todos(range?)` (`overdue` | `today` | `upcoming` | `all`, default `today`+`overdue`), `complete_todo(note, text)`,
+`reschedule_todo(note, text, due)` (`due` required: ISO or a phrase `when::parse` reads; `null` removes the reminder;
+only the `⏰` part of the line changes). The last two find the open to-do the same way: the exact text, else the one
+whose text holds it; several or none fail, listing the candidates.
 
 ## The app's Rust face (`jot/native`, src/)
 
@@ -155,6 +162,7 @@ class Notes {                                   // wraps jot_store::Store
   watch(onChange: () => void): void;            // folder changed (debounced); replaces the previous listener
   todos(): Todo[];
   setTodoDone(note: string, line: number, text: string, done: boolean): NoteMeta;
+  setTodoDue(note: string, line: number, text: string, due: string | null /* "YYYY-MM-DDTHH:mm", else TypeError; null removes */): NoteMeta;  // ERR_JOT_CHANGED
   addTodo(text: string, due?: string | null /* "YYYY-MM-DDTHH:mm", else TypeError */, note?: string | null /* "待办" */): Todo;
 }
 interface NoteMeta { title: string; modified: number /* ms since epoch */; source: "user" | "claude"; preview: string }
@@ -177,6 +185,8 @@ class Reminders {                               // fires at due times while the 
   start(onDue: (event: { todos: Todo[]; missed: boolean }) => void): void;  // missed: they came due while the Mac slept
   snooze(note: string, line: number, minutes: number): void;               // in memory: fires again later
 }
+// The reminders' thread reads the folder again when it changes: a to-do given a new time fires at that time, and a
+// snooze of it is dropped (the new time is the reminder now); one whose time was removed fires no more.
 
 module Summon {                                 // gestures of a modifier, system-wide
   isTrusted(): boolean;                         // macOS: Accessibility granted
@@ -199,13 +209,29 @@ Dictation's language (`app/speechlang.ts`, pure): switched to while listening (t
 first of the user's languages that is Chinese, Japanese or English with a region › Jot's language in its usual region.
 The notch comes from NSH: `displays()` → `cutouts` (`nsh/desktop`).
 
+## The reminder time picker (app/due.ts, ui/DuePicker.tsx)
+
+One picker for the open note and the to-do view: an `Overlay` in the panel's window, anchored to the time chip
+(`EditorRef.rangeBounds` of the `⏰` range gives its box in the window; the line's end for a to-do without a time) or
+to the to-do row's due label (a `ViewRef`). It opens from a press on the chip (`onTextPress`) or the label, from
+⇧⌘D (`T.keys.due`, Things' deadline key, free in the editor and the panel; Ctrl+Shift+D elsewhere) and from the
+action panel ("Reminder Time…", in the note while the caret is on an open to-do; on a to-do row "Reminder Time…" /
+"Add Reminder…" and "Remove Reminder"). Quick choices first (in an hour, this evening 20:00, tomorrow and next Monday
+at the settings' time for a date alone; those past or repeated left out: `quickChoices` in app/time.ts), then
+`Calendar` and `TimeField`, set with the button or ⌘↩, then "Remove Reminder". It opens with the first choice focused:
+↑↓ move among the choices, Return picks, Tab reaches the calendar and the field, Escape closes (its keys are bound
+after the panel's, so they win). The open note writes through `editor.edit` (the changed part of the line only:
+undo takes it back in one step and the caret stays; `withDue` in app/tasks.ts mirrors `set_todo_due`); the to-do
+view through `Notes.setTodoDue`, its row following to its new group, still selected.
+
 ## Row actions (app/actions.ts)
 
 One list of actions per row kind drives the action panel (⌘K / Ctrl+K, and a right click on a row:
 `ui/ActionPanel.tsx`), the footer's primary action (what Return does) and the actions' own keys, which work with the
 panel closed. A note: open ↩, show in Finder ⇧⌘F, rename ⌘R (in place, in its row), copy title ⇧⌘C, copy text
 ⇧⌘A, move to trash ⌃X (Windows / Linux Ctrl+D; keys in `ui/tokens.ts`). "New" row: create; today's row: show
-to-dos; a to-do: open its note, tick ⌘↩. Nothing but a note can be trashed. Moving to the trash folds the row away
+to-dos; a to-do: open its note, tick ⌘↩, its reminder time ⇧⌘D (and "Remove Reminder" when it has one); in the open
+note, the caret's to-do's reminder time ⇧⌘D. Nothing but a note can be trashed. Moving to the trash folds the row away
 and turns the footer into "Moved to the Trash" with Undo for 5 s (`T.timing.undoFor`); while it shows, ⌘Z takes
 the trashed notes back one at a time, the last first (an undo stack); then ⌘Z is the search field's again. With the
 note's text focused, Ctrl+D stays the editor's (select the next occurrence); macOS's ⌃X is no text key.

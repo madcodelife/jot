@@ -1,7 +1,7 @@
 //! Jot's MCP server: lets Claude search, read and add to the user's notes folder, and keep their to-dos.
 //!
 //! The tools never delete or overwrite: Claude can create a note (marked `source: claude`), append to one, add
-//! a to-do or check one off, so what the user wrote stays as it is.
+//! a to-do, check one off or move its reminder time, so what the user wrote stays as it is.
 
 use std::ffi::OsString;
 use std::path::PathBuf;
@@ -35,7 +35,7 @@ instead of making a near-duplicate.
 
 To-dos are Markdown task lines (`- [ ] …`) in any note, with an optional reminder time; the Jot app notifies the \
 user when one comes due. Add one when the user asks to be reminded of something or to put something on their \
-list, list them when the user asks what they have to do, and check one off when the user says it is done.";
+list, list them when the user asks what they have to do, check one off when the user says it is done, and move one's reminder time (or remove it) when the user asks to reschedule it.";
 
 /// The MCP server over one notes folder.
 #[derive(Debug, Clone)]
@@ -134,6 +134,30 @@ pub struct CompleteTodoParams {
     pub note: String,
     /// The to-do's text as list_todos showed it; a unique part of it is enough.
     pub text: String,
+}
+
+/// `reschedule_todo`'s arguments.
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct RescheduleTodoParams {
+    /// The note the to-do is in, as list_todos showed it (case-insensitive).
+    pub note: String,
+    /// The to-do's text as list_todos showed it; a unique part of it is enough.
+    pub text: String,
+    /// The new reminder time, in the user's local time: ISO such as "2026-11-20T09:00" (a date alone means
+    /// 09:00), or a phrase in Chinese, English or Japanese, such as "周五", "明天下午3点", "next monday 9am" or
+    /// "来週の金曜". `null` removes the reminder.
+    // Required, though it may be null: a call that leaves it out by mistake must not remove the reminder.
+    #[serde(deserialize_with = "Option::deserialize")]
+    #[schemars(required)]
+    pub due: Option<String>,
+}
+
+/// What `find_open_todo` found for a note and a text.
+enum Found {
+    /// The one open to-do that matches.
+    Open(Todo),
+    /// No open to-do matches; this checked one reads exactly so.
+    Done(Todo),
 }
 
 #[tool_router]
@@ -431,26 +455,168 @@ impl JotServer {
         &self,
         Parameters(params): Parameters<CompleteTodoParams>,
     ) -> CallToolResult {
-        let wanted = params.text.trim();
-        if wanted.is_empty() {
-            return error("Say which to-do: pass its text as list_todos showed it.".to_owned());
-        }
-        let meta = match self.store.read(&params.note) {
-            Ok(Some(note)) => note.meta,
-            Ok(None) => {
-                return error(format!(
-                    "No note is titled \"{}\". Use list_todos to see which note each to-do is in.",
-                    params.note.trim()
+        let todo = match self.find_open_todo(&params.note, &params.text, "check off") {
+            Ok(Found::Open(todo)) => todo,
+            Ok(Found::Done(done)) => {
+                return text(format!(
+                    "\"{}\" in the note \"{}\" is already checked off{}.",
+                    done.text,
+                    done.note,
+                    done.done_on
+                        .map(|day| format!(" ({})", format_day(day)))
+                        .unwrap_or_default()
                 ));
             }
-            Err(error) => return failure(&error, &params.note),
+            Err(result) => return result,
+        };
+        match self
+            .store
+            .set_todo_done(&todo.note, todo.line, &todo.text, true, (self.now)().date())
+        {
+            Ok(_) => text(format!(
+                "Checked off \"{}\" in the note \"{}\".",
+                todo.text, todo.note
+            )),
+            Err(StoreError::Changed) => error(format!(
+                "The note \"{}\" changed while Jot was checking off the to-do. Call complete_todo again.",
+                todo.note
+            )),
+            Err(error) => failure(&error, &todo.note),
+        }
+    }
+
+    #[tool(
+        description = "Move the reminder time of one of the user's open Jot to-dos, or remove it: only the \
+            to-do's `⏰` time changes; its text stays. Use it when the user asks to reschedule a to-do \
+            (\"把交房租改到周五\", \"push the dentist to next monday 9am\", \"不用提醒我交周报了\"). Takes the \
+            note and the to-do's text as list_todos showed them (a unique part of the text is enough) and `due`: \
+            ISO local time such as 2026-11-20T09:00, or a phrase in Chinese, English or Japanese (支持中英日) \
+            such as 周五 / 明天下午3点 / next monday 9am / 来週の金曜; `null` removes the reminder. Fails, \
+            listing the candidates, when no open to-do or several match: then ask the user which one. Confirm \
+            the resolved time back to the user.",
+        annotations(
+            title = "Reschedule to-do",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn reschedule_todo(
+        &self,
+        Parameters(params): Parameters<RescheduleTodoParams>,
+    ) -> CallToolResult {
+        let now = (self.now)();
+        let due = match params.due.as_deref().map(str::trim) {
+            None => None,
+            Some("") => {
+                return error(
+                    "`due` is empty: pass the new time, or null to remove the reminder.".to_owned(),
+                );
+            }
+            Some(due) => match parse_due(due, now) {
+                Some(at) => Some(at),
+                None => {
+                    return error(format!(
+                        "Jot cannot read the time \"{due}\". Pass ISO local time such as \
+                         \"{}\", or a phrase such as \"周五 9点\", \"next monday 9am\" or \"来週の金曜\"; \
+                         null removes the reminder.",
+                        format_iso(now)
+                    ));
+                }
+            },
+        };
+        let todo = match self.find_open_todo(&params.note, &params.text, "reschedule") {
+            Ok(Found::Open(todo)) => todo,
+            Ok(Found::Done(done)) => {
+                return error(format!(
+                    "\"{}\" in the note \"{}\" is already checked off: it has nothing to remind of.",
+                    done.text, done.note
+                ));
+            }
+            Err(result) => return result,
+        };
+        if todo.due == due {
+            return text(match due {
+                Some(at) => format!(
+                    "\"{}\" in the note \"{}\" is already due {}.",
+                    todo.text,
+                    todo.note,
+                    format_due(at)
+                ),
+                None => format!(
+                    "\"{}\" in the note \"{}\" has no reminder.",
+                    todo.text, todo.note
+                ),
+            });
+        }
+        match self
+            .store
+            .set_todo_due(&todo.note, todo.line, &todo.text, due)
+        {
+            Ok(_) => {
+                let was = todo
+                    .due
+                    .map(|at| format!(" (it was due {})", format_due(at)))
+                    .unwrap_or_default();
+                let mut out = match due {
+                    Some(at) => format!(
+                        "\"{}\" in the note \"{}\" is now due {}{was}.",
+                        todo.text,
+                        todo.note,
+                        format_due(at)
+                    ),
+                    None => format!(
+                        "Removed the reminder of \"{}\" in the note \"{}\"{was}.",
+                        todo.text, todo.note
+                    ),
+                };
+                if due.is_some_and(|at| at < now) {
+                    out.push_str(" That time has already passed.");
+                }
+                text(out)
+            }
+            Err(StoreError::Changed) => error(format!(
+                "The note \"{}\" changed while Jot was rescheduling the to-do. Call reschedule_todo again.",
+                todo.note
+            )),
+            Err(error) => failure(&error, &todo.note),
+        }
+    }
+}
+
+impl JotServer {
+    /// The open to-do of `note` that `wanted` names: the one whose text it is, else the one whose text holds it
+    /// (case-insensitive). When none is open, a checked one that reads exactly so; else the error to return,
+    /// listing the candidates (`verb` says what the caller does, for the message).
+    fn find_open_todo(
+        &self,
+        note: &str,
+        wanted: &str,
+        verb: &str,
+    ) -> Result<Found, CallToolResult> {
+        let wanted = wanted.trim();
+        if wanted.is_empty() {
+            return Err(error(
+                "Say which to-do: pass its text as list_todos showed it.".to_owned(),
+            ));
+        }
+        let meta = match self.store.read(note) {
+            Ok(Some(found)) => found.meta,
+            Ok(None) => {
+                return Err(error(format!(
+                    "No note is titled \"{}\". Use list_todos to see which note each to-do is in.",
+                    note.trim()
+                )));
+            }
+            Err(error) => return Err(failure(&error, note)),
         };
         let todos: Vec<Todo> = match self.store.todos() {
             Ok(todos) => todos
                 .into_iter()
                 .filter(|todo| todo.note == meta.title)
                 .collect(),
-            Err(error) => return failure(&error, &params.note),
+            Err(error) => return Err(failure(&error, note)),
         };
         let open: Vec<&Todo> = todos.iter().filter(|todo| !todo.done).collect();
         let exact: Vec<&Todo> = open
@@ -468,33 +634,10 @@ impl JotServer {
             exact
         };
         match candidates.as_slice() {
-            [todo] => match self.store.set_todo_done(
-                &todo.note,
-                todo.line,
-                &todo.text,
-                true,
-                (self.now)().date(),
-            ) {
-                Ok(_) => text(format!(
-                    "Checked off \"{}\" in the note \"{}\".",
-                    todo.text, todo.note
-                )),
-                Err(StoreError::Changed) => error(format!(
-                    "The note \"{}\" changed while Jot was checking off the to-do. Call complete_todo again.",
-                    todo.note
-                )),
-                Err(error) => failure(&error, &todo.note),
-            },
+            [todo] => Ok(Found::Open((*todo).clone())),
             [] => {
                 if let Some(done) = todos.iter().find(|todo| todo.done && todo.text == wanted) {
-                    return text(format!(
-                        "\"{}\" in the note \"{}\" is already checked off{}.",
-                        done.text,
-                        done.note,
-                        done.done_on
-                            .map(|day| format!(" ({})", format_day(day)))
-                            .unwrap_or_default()
-                    ));
+                    return Ok(Found::Done(done.clone()));
                 }
                 let mut out = format!(
                     "No open to-do in the note \"{}\" matches \"{wanted}\".",
@@ -508,11 +651,11 @@ impl JotServer {
                         push_todo(&mut out, todo);
                     }
                 }
-                error(out)
+                Err(error(out))
             }
             several => {
                 let mut out = format!(
-                    "{} in the note \"{}\" match \"{wanted}\"; pass the full text of the one to check off, or ask \
+                    "{} in the note \"{}\" match \"{wanted}\"; pass the full text of the one to {verb}, or ask \
                      the user which one:\n",
                     count_todos(several.len()),
                     meta.title
@@ -521,11 +664,11 @@ impl JotServer {
                     push_todo(&mut out, todo);
                 }
                 if several.iter().all(|todo| todo.text == several[0].text) {
-                    out.push_str(
-                        "They read the same: the user can check the right one off in the Jot app.",
-                    );
+                    out.push_str(&format!(
+                        "They read the same: the user can {verb} the right one in the Jot app."
+                    ));
                 }
-                error(out)
+                Err(error(out))
             }
         }
     }

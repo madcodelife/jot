@@ -67,6 +67,7 @@ todo:
   tick: 「%{text}」を完了
   row: "%{text}、%{note}"
   due_tip: "%{when} · リマインダー"
+  due_change: 「%{text}」のリマインダーの時刻を変更
 
 note:
   invalid_title: 「%{title}」はタイトルに使えません
@@ -225,6 +226,9 @@ actions:
   todos: やることを表示
   open_note: メモを開く
   tick: 完了
+  due: リマインダーの時刻…
+  due_add: リマインダーを追加…
+  due_remove: リマインダーを削除
 
 trash:
   bin:
@@ -238,3 +242,19 @@ trash:
   failed: 「%{title}」を%{bin}に入れられませんでした：%{error}
   restore_taken: 「%{title}」というメモがあるため、元のメモは%{bin}に残っています
   restore_failed: 「%{title}」を戻せませんでした：%{error}
+
+due:
+  title: リマインダーの時刻
+  none: リマインダーなし
+  quick:
+    hour: 1時間後
+    tonight: 今夜
+    tomorrow: 明日の朝
+    monday: 来週の月曜
+  time: 時刻
+  set: 設定
+  remove: リマインダーを削除
+  previous_month: 前の月
+  next_month: 次の月
+  changed: このやることは変更されたばかりのため、時刻は変えていません
+  failed: リマインダーの時刻を変更できませんでした：%{error}

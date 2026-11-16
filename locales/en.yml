@@ -68,6 +68,7 @@ todo:
   tick: Complete “%{text}”
   row: "%{text}, %{note}"
   due_tip: "%{when} · reminder"
+  due_change: "Change the reminder time of “%{text}”"
 
 note:
   invalid_title: "“%{title}” can’t be a title"
@@ -226,6 +227,9 @@ actions:
   todos: Show To-dos
   open_note: Open Note
   tick: Complete
+  due: Reminder Time…
+  due_add: Add Reminder…
+  due_remove: Remove Reminder
 
 trash:
   bin:
@@ -239,3 +243,19 @@ trash:
   failed: "Couldn’t move “%{title}” to the %{bin}: %{error}"
   restore_taken: "A note named “%{title}” exists; the other one is still in the %{bin}"
   restore_failed: "Couldn’t restore “%{title}”: %{error}"
+
+due:
+  title: Reminder Time
+  none: No reminder
+  quick:
+    hour: In an Hour
+    tonight: This Evening
+    tomorrow: Tomorrow Morning
+    monday: Next Monday
+  time: Time
+  set: Set
+  remove: Remove Reminder
+  previous_month: Previous month
+  next_month: Next month
+  changed: The to-do just changed; its reminder time stays as it was
+  failed: "Couldn’t change the reminder time: %{error}"

@@ -58,8 +58,8 @@ export function ActionPanel(props: { left: number; top: number; returnFocus: "fi
   };
   const run = (item: Action | undefined) => {
     if (!item) return;
-    // The action may want the focus itself (rename, open); the field gets it otherwise.
-    if (item.id !== "rename") focusRequest.set({ target: props.returnFocus });
+    // The action may want the focus itself (rename, the reminder time picker); the field gets it otherwise.
+    if (item.id !== "rename" && item.id !== "due") focusRequest.set({ target: props.returnFocus });
     runAction(item);
   };
   const step = (delta: number) => {

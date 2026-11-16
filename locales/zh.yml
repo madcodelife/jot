@@ -68,6 +68,7 @@ todo:
   tick: 勾掉「%{text}」
   row: "%{text}，%{note}"
   due_tip: "%{when} · 到点提醒"
+  due_change: 改「%{text}」的提醒时间
 
 note:
   invalid_title: 「%{title}」不能作标题
@@ -227,6 +228,9 @@ actions:
   todos: 查看待办
   open_note: 打开笔记
   tick: 勾掉
+  due: 提醒时间…
+  due_add: 添加提醒…
+  due_remove: 移除提醒
 
 trash:
   bin:
@@ -240,3 +244,19 @@ trash:
   failed: 没能把「%{title}」移到%{bin}：%{error}
   restore_taken: 已有叫「%{title}」的笔记，原来那条还在%{bin}里
   restore_failed: 没能恢复「%{title}」：%{error}
+
+due:
+  title: 提醒时间
+  none: 没有提醒
+  quick:
+    hour: 一小时后
+    tonight: 今晚
+    tomorrow: 明天上午
+    monday: 下周一
+  time: 时间
+  set: 设定
+  remove: 移除提醒
+  previous_month: 上个月
+  next_month: 下个月
+  changed: 这条待办刚被改过，提醒时间没有改
+  failed: 没能改提醒时间：%{error}
