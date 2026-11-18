@@ -1,4 +1,4 @@
-<title>Jot 设计稿</title>
+<title>Jot Design Draft</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -887,40 +887,40 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
 <div class="wrap">
   <header class="top">
     <div>
-      <h1>Jot 设计稿</h1>
-      <p class="lede">按一个键呼出的速记本。三个桌面平台和 iPhone 共用一套布局、字号、颜色和动效节奏，材质和操作习惯跟着各自的平台走。下面的桌面可以直接操作，切换平台看它们各自的样子。</p>
+      <h1>Jot design draft</h1>
+      <p class="lede">A notebook you summon with one key. The three desktop platforms and iPhone share one layout, type scale, palette and motion rhythm; materials and conventions follow each platform. The desktop below is live: switch platforms to see each of them.</p>
     </div>
   </header>
 
   <div class="stagebar">
-    <div class="seg-p" id="platSeg" role="radiogroup" aria-label="平台">
+    <div class="seg-p" id="platSeg" role="radiogroup" aria-label="Platform">
       <button type="button" role="radio" data-p="macos">macOS</button>
       <button type="button" role="radio" data-p="windows">Windows</button>
       <button type="button" role="radio" data-p="linux">Linux</button>
       <button type="button" role="radio" data-p="iphone">iPhone</button>
     </div>
     <div class="controls">
-      <div class="seg-p small" id="notchSeg" role="radiogroup" aria-label="屏幕">
-        <button type="button" role="radio" data-n="yes">刘海屏</button>
-        <button type="button" role="radio" data-n="no">外接显示器</button>
+      <div class="seg-p small" id="notchSeg" role="radiogroup" aria-label="Display">
+        <button type="button" role="radio" data-n="yes">Notch</button>
+        <button type="button" role="radio" data-n="no">External display</button>
       </div>
-      <button class="btn" id="themeBtn" type="button">切换深浅色</button>
+      <button class="btn" id="themeBtn" type="button">Light / dark</button>
     </div>
   </div>
 
-  <div class="stage" id="stage" tabindex="0" aria-label="Jot 交互演示">
+  <div class="stage" id="stage" tabindex="0" aria-label="Jot interactive demo">
     <div class="wall"></div>
     <div class="desk">
       <div class="menubar only-mac">
-        <div class="l"><b>终端</b><span>Shell</span><span>编辑</span><span>显示</span><span>窗口</span></div>
+        <div class="l"><b>Terminal</b><span>Shell</span><span>Edit</span><span>View</span><span>Window</span></div>
         <div class="r">
           <span class="tray" title="Jot"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15.5 13.8 5.7a1.6 1.6 0 0 1 2.3 2.3L6.3 17.8 3 18.5z"/><path d="M12.4 7.1l2.3 2.3"/></svg></span>
-          <span class="date" data-next="周六 11月14日">周五 11月13日</span><span class="clock">09:41</span>
+          <span class="date" data-next="Sat Nov 14">Fri Nov 13</span><span class="clock">09:41</span>
         </div>
       </div>
       <div class="gbar only-linux" aria-hidden="true">
         <div class="ws"><i></i><i></i><i></i></div>
-        <span class="clk"><span class="date" data-next="11月14日">11月13日</span> <span class="clock">09:41</span></span>
+        <span class="clk"><span class="date" data-next="Nov 14">Nov 13</span> <span class="clock">09:41</span></span>
         <div class="sys">
           <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 15.5a1.5 1.5 0 1 0 0 .01zM3 8.4a10 10 0 0 1 14 0l-1.4 1.4a8 8 0 0 0-11.2 0zm2.8 2.8a6 6 0 0 1 8.4 0l-1.4 1.4a4 4 0 0 0-5.6 0z"/></svg>
           <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 7.5h3l4-3.5v12l-4-3.5H3z"/><path d="M13 6.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
@@ -930,7 +930,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
       <div class="taskbar only-win" aria-hidden="true">
         <div class="tb-apps">
           <span class="tb-app"><svg viewBox="0 0 20 20"><rect x="3" y="3" width="6.3" height="6.3" rx="1.4" fill="var(--accent)"/><rect x="10.7" y="3" width="6.3" height="6.3" rx="1.4" fill="var(--accent)" opacity=".75"/><rect x="3" y="10.7" width="6.3" height="6.3" rx="1.4" fill="var(--accent)" opacity=".75"/><rect x="10.7" y="10.7" width="6.3" height="6.3" rx="1.4" fill="var(--accent)" opacity=".5"/></svg></span>
-          <span class="tb-search"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>搜索</span>
+          <span class="tb-search"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>Search</span>
           <span class="tb-app"><svg viewBox="0 0 20 20"><rect x="2.5" y="4" width="15" height="12" rx="2" fill="#f5c04a"/><rect x="2.5" y="6.5" width="15" height="9.5" rx="2" fill="#f9d36a"/></svg></span>
           <span class="tb-app run"><svg viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="15" height="13" rx="2.5" fill="#2b2d36"/><path d="m6 8 2.5 2L6 12M10 12.5h4" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           <span class="tb-app"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" fill="#2f8be8"/><path d="M4 12c3-4 9-5 12-2" stroke="#7fe0c7" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg></span>
@@ -946,13 +946,13 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
 
       <div class="term" aria-hidden="true">
         <div class="bar" id="tbar"></div>
-        <pre id="term"><span class="dim">jot 已连接 · MCP · 8 个工具</span>
+        <pre id="term"><span class="dim">jot connected · MCP · 8 tools</span>
 
-<span class="me">› 帮我写一下发布 jot-mcp 的步骤</span>
-先构建 release 版本，再注册给 Claude：
+<span class="me">› Write down the steps to release jot-mcp</span>
+Build the release binary, then register it with Claude:
   cargo build --release -p jot-mcp
   claude mcp add jot -- ./target/release/jot-mcp
-注册后重开会话就能用。
+Start a new session after registering and it’s ready.
 </pre>
       </div>
 
@@ -961,13 +961,13 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
       <div class="panel glass" id="panel" data-state="hidden">
         <div class="field">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>
-          <input id="q" placeholder="搜索或新建…" autocomplete="off" spellcheck="false" aria-label="搜索或新建笔记">
+          <input id="q" placeholder="Search or create…" autocomplete="off" spellcheck="false" aria-label="Search or create a note">
           <span class="chip" id="chip"></span>
         </div>
         <div class="list" id="list"></div>
         <div class="foot" id="foot"></div>
         <div class="paper" id="paper">
-          <div class="saved" id="saved"><i></i>已保存</div>
+          <div class="saved" id="saved"><i></i>Saved</div>
           <h2 id="pt"></h2>
           <div class="meta" id="pm"></div>
           <div class="body" id="pb" contenteditable="true" spellcheck="false"></div>
@@ -977,7 +977,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
       <div class="island" id="island" aria-live="polite">
         <div class="c">
           <div class="av" id="iav"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.5l1.6 5.3 5.4-1.9-3.6 4.4 3.6 4.4-5.4-1.9L10 17.1l-1.6-5.3-5.4 1.9 3.6-4.4L3 4.9l5.4 1.9z"/></svg></div>
-          <div class="tx"><div class="lb" id="ilb">Claude · 正在记到 Jot</div><div class="tt" id="itt"></div></div>
+          <div class="tx"><div class="lb" id="ilb">Claude · Writing to Jot</div><div class="tt" id="itt"></div></div>
           <div class="st" id="ist"></div>
         </div>
         <div class="scan"></div>
@@ -990,150 +990,150 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     <div class="phonestage only-iphone">
       <div class="ext">
         <div class="ext-box"><div class="fit" data-w="300" id="extWidget"></div></div>
-        <p class="ext-cap"><b>主屏小组件 · 示意</b>最近三条笔记，点「+」直接新建。<br><span>需要 NSH 支持 App 扩展，以后</span></p>
+        <p class="ext-cap"><b>Home Screen widget · sketch</b>The last three notes; tap “+” to create one.<br><span>Needs App Extension support in NSH; later</span></p>
       </div>
       <div class="phone"><div class="screen"><div class="fit" data-w="390" id="phoneFit"></div></div></div>
       <div class="ext">
         <div class="ext-box"><div class="fit" data-w="300" id="extShare"></div></div>
-        <p class="ext-cap"><b>分享扩展 · 示意</b>在任何 App 里选中文字或链接，分享到 Jot 记一条。<br><span>需要 NSH 支持 App 扩展，以后</span></p>
+        <p class="ext-cap"><b>Share extension · sketch</b>Select text or a link in any app and share it to Jot as a note.<br><span>Needs App Extension support in NSH; later</span></p>
       </div>
     </div>
   </div>
 
   <div class="controls">
-    <button class="btn primary" id="demoBtn" type="button">▶ 自动演示</button>
-    <button class="btn" id="openBtn" type="button">呼出 / 收起</button>
-    <button class="btn" id="writeBtn" type="button">让 Claude 记一条</button>
-    <button class="btn" id="ctodoBtn" type="button">让 Claude 加提醒</button>
-    <button class="btn" id="readBtn" type="button">让 Claude 读一条</button>
-    <button class="btn" id="remindBtn" type="button">写一条提醒</button>
-    <button class="btn" id="alarmBtn" type="button">到点提醒</button>
+    <button class="btn primary" id="demoBtn" type="button">▶ Play demo</button>
+    <button class="btn" id="openBtn" type="button">Show / hide</button>
+    <button class="btn" id="writeBtn" type="button">Have Claude jot a note</button>
+    <button class="btn" id="ctodoBtn" type="button">Have Claude add a reminder</button>
+    <button class="btn" id="readBtn" type="button">Have Claude read a note</button>
+    <button class="btn" id="remindBtn" type="button">Write a reminder</button>
+    <button class="btn" id="alarmBtn" type="button">Reminder comes due</button>
     <span class="note" id="pnote"></span>
   </div>
 
   <section>
     <div class="sec-h">
-      <h2>状态画廊</h2>
-      <p id="galSub">每一格是一个静态画面，跟着上面选中的平台和深浅色变。</p>
+      <h2>States</h2>
+      <p id="galSub">Each tile is a still frame; it follows the platform and the light or dark theme chosen above.</p>
     </div>
     <div class="states" id="states"></div>
   </section>
 
   <section class="card wide">
-    <h3>跨平台对照</h3>
-    <p class="sub">品牌一致，材质和习惯跟平台。上面几项四个平台都一样；下表是按平台换掉的部分，当前平台那一列高亮。</p>
+    <h3>Across platforms</h3>
+    <p class="sub">One brand; materials and conventions follow the platform. The items here are the same on all four platforms; the table below lists what changes per platform, with the current platform’s column highlighted.</p>
     <div class="shared">
-      <div><b>布局结构</b><span>输入框在上，下面是列表；打开笔记后左列表、右正文。手机上是列表推到全屏编辑器。</span></div>
-      <div><b>字号阶梯（pt）</b><span class="ladder"><span>笔记标题 <i>29</i></span><span>输入框 <i>22</i></span><span>行标题 / 正文 <i>16</i></span><span>摘要 <i>13</i></span><span>元信息 <i>12</i></span></span><span>iPhone 照 iOS 的文字样式整体上调：正文 17，大标题 34。</span></div>
-      <div><b>间距和圆角比例</b><span>间距取 4 的倍数；行的圆角是外框的一半，纸面介于两者之间。具体数值按平台换。</span></div>
-      <div><b>颜色 token</b><span>荧光笔黄标搜索命中，Claude 橙标来源和追加，绿是已保存，琥珀是警告。强调色用系统的。</span></div>
-      <div><b>动效节奏</b><span>呼出约 0.3 s，形变约 0.4 s，列表逐行错开 28 ms；输入过滤、上下选择这类高频操作不加动画。减弱动态效果时只淡入淡出。</span></div>
-      <div><b>灵动岛</b><span>Claude 读写本子时出现：标题逐字打出、写完弹出对勾、读时扫过一道光。Mac 上到点的提醒也从这里弹出，点一下勾掉。各平台只换出现的位置和材质。</span></div>
-      <div><b>待办</b><span>待办长在笔记里：勾选框、时间标签、已过期的警示红都是 token；勾选框的形状跟平台（Apple 圆形，Windows 方形 4 px 圆角，GNOME 圆角方框）。到点用各平台自己的系统通知。</span></div>
+      <div><b>Layout</b><span>The field on top, the list below; an open note puts the list on the left and the text on the right. On a phone the list pushes to a full-screen editor.</span></div>
+      <div><b>Type scale (pt)</b><span class="ladder"><span>Note title <i>29</i></span><span>Field <i>22</i></span><span>Row title / body <i>16</i></span><span>Snippet <i>13</i></span><span>Metadata <i>12</i></span></span><span>iPhone moves everything up to iOS’s text styles: body 17, large title 34.</span></div>
+      <div><b>Spacing and corner ratios</b><span>Spacing in multiples of 4; a row’s corner radius is half the frame’s, the paper’s in between. The exact values change per platform.</span></div>
+      <div><b>Color tokens</b><span>Highlighter yellow marks search hits, Claude orange marks where a note came from and what was appended, green is saved, amber is a warning. The accent is the system’s.</span></div>
+      <div><b>Motion rhythm</b><span>Summon about 0.3 s, morphs about 0.4 s, list rows staggered by 28 ms; frequent actions such as filtering while typing and moving the selection are not animated. With Reduce Motion, only fades.</span></div>
+      <div><b>Notch island</b><span>Appears while Claude reads or writes the notebook: the title types out letter by letter, a check pops when it’s written, a shimmer sweeps while it reads. On the Mac, due reminders pop out here too; a click checks them off. Platforms change only where it appears and its material.</span></div>
+      <div><b>To-dos</b><span>To-dos live in notes: the checkbox, the time chip and the overdue red are tokens; the checkbox’s shape follows the platform (round on Apple, a square with 4 px corners on Windows, a rounded square on GNOME). When one comes due, each platform’s own system notification shows it.</span></div>
     </div>
     <div class="tbl"><table class="cmp">
-      <thead><tr><th></th><th data-p="macos">macOS 26</th><th data-p="windows">Windows 11（Fluent 2）</th><th data-p="linux">Linux（GNOME / libadwaita）</th><th data-p="iphone">iPhone（iOS 26）</th></tr></thead>
+      <thead><tr><th></th><th data-p="macos">macOS 26</th><th data-p="windows">Windows 11 (Fluent 2)</th><th data-p="linux">Linux (GNOME / libadwaita)</th><th data-p="iphone">iPhone (iOS 26)</th></tr></thead>
       <tbody>
-        <tr><td>浮窗材质</td><td data-p="macos">Liquid Glass（<code>glassEffect: "regular"</code>）</td><td data-p="windows">Acrylic（窗口 <code>backdrop: "popover"</code>）</td><td data-p="linux">实色 popover 表面，1px 描边加阴影；NSH 的 Linux 后端没有背景模糊</td><td data-p="iphone">全屏界面；工具栏、按钮、搜索框用 Liquid Glass</td></tr>
-        <tr><td>系统字体</td><td data-p="macos">SF Pro，中文苹方</td><td data-p="windows">Segoe UI Variable，中文微软雅黑（稿子里用 Open Sans 代替）</td><td data-p="linux">Adwaita Sans（基于 Inter）或 Cantarell，中文 Noto Sans CJK</td><td data-p="iphone">SF Pro，中文苹方</td></tr>
-        <tr><td>圆角（外框 / 行 / 纸面）</td><td data-p="macos">28 / 14 / 20；呼出时是全圆胶囊</td><td data-p="windows">8 / 4 / 4：窗口 8，控件 4</td><td data-p="linux">12 / 6 / 8</td><td data-p="iphone">按钮、搜索框全圆；分组列表 22</td></tr>
-        <tr><td>选中态</td><td data-p="macos">整行填系统强调色，文字反白</td><td data-p="windows">浅色底，左侧 3px 强调色竖条（Fluent 列表的画法），文字不变色</td><td data-p="linux">中性灰底（libadwaita 行的选中画法）</td><td data-p="iphone">没有常驻选中；按下时整行变灰</td></tr>
-        <tr><td>按键写法</td><td data-p="macos">符号键帽：<kbd>⌥</kbd><kbd>⌘</kbd><kbd>↩</kbd><kbd>esc</kbd>；底栏先写动作再跟键帽，组合键拆成几个键帽并排，不写 +</td><td data-p="windows">文字键帽：<kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>Enter</kbd><kbd>Esc</kbd>，同一套键帽样式</td><td data-p="linux">文字键帽：<kbd>Super</kbd><kbd>Ctrl</kbd><kbd>Enter</kbd>，同一套键帽样式</td><td data-p="iphone">不显示按键</td></tr>
-        <tr><td>呼出方式</td><td data-p="macos">连按两下 ⌥（要辅助功能权限）；没授权时用 ⌃⌥J</td><td data-p="windows">建议连按两下 Ctrl（待定）；备用 Ctrl+Alt+J</td><td data-p="linux">Super+J（待定），经 GlobalShortcuts portal 注册；Wayland 下做不到连按修饰键</td><td data-p="iphone">点开 App；以后可以加小组件</td></tr>
-        <tr><td>托盘</td><td data-p="macos">菜单栏右上</td><td data-p="windows">任务栏右下的通知区域</td><td data-p="linux">GNOME 默认没有；装 AppIndicator 扩展后在顶栏右侧</td><td data-p="iphone">没有；长按图标的快捷操作</td></tr>
-        <tr><td>灵动岛</td><td data-p="macos">从刘海长出；外接显示器从菜单栏正中垂下</td><td data-p="windows">屏幕上沿正中垂下的胶囊（深色 Acrylic）；备选：托盘上方弹出</td><td data-p="linux">顶栏下方正中的实色卡片，也就是 GNOME 通知横幅的位置</td><td data-p="iphone">不用：要 Live Activity，属于 App 扩展</td></tr>
-        <tr><td>动效曲线</td><td data-p="macos">弹簧，轻微回弹</td><td data-p="windows">同样的时长，不回弹（Fluent 的减速曲线）</td><td data-p="linux">同样的时长，临界阻尼，不回弹</td><td data-p="iphone">系统的推入转场和键盘动画</td></tr>
-        <tr><td>强调色</td><td data-p="macos">系统强调色</td><td data-p="windows">系统强调色（默认 #005FB8，深色 #60CDFF）</td><td data-p="linux">GNOME 强调色（默认蓝 #3584E4）</td><td data-p="iphone">系统蓝</td></tr>
-        <tr><td>待办勾选框</td><td data-p="macos">圆形，勾上填强调色（同「提醒事项」）</td><td data-p="windows">方框，4 px 圆角、1 px 描边；勾上填强调色</td><td data-p="linux">圆角方框，2 px 描边（libadwaita 的 check button）</td><td data-p="iphone">圆形，22 pt</td></tr>
-        <tr><td>勾掉待办</td><td data-p="macos">点勾选框，或 ⌘↩</td><td data-p="windows">点勾选框，或 Ctrl+Enter</td><td data-p="linux">点勾选框，或 Ctrl+Enter</td><td data-p="iphone">点圆圈，或左滑「完成」</td></tr>
-        <tr><td>到点提醒</td><td data-p="macos">右上角通知横幅，同时刘海里弹出「提醒 · 交房租」</td><td data-p="windows">右下角 Toast，按钮等宽一排</td><td data-p="linux">顶栏下方正中的通知横幅，药丸按钮</td><td data-p="iphone">锁屏和横幅；要等 NSH 支持定时通知</td></tr>
+        <tr><td>Panel material</td><td data-p="macos">Liquid Glass (<code>glassEffect: "regular"</code>)</td><td data-p="windows">Acrylic (window <code>backdrop: "popover"</code>)</td><td data-p="linux">Solid popover surface, a 1px border and a shadow; NSH’s Linux backend has no background blur</td><td data-p="iphone">Full screen; Liquid Glass for the toolbar, buttons and search field</td></tr>
+        <tr><td>System font</td><td data-p="macos">SF Pro; PingFang for Chinese</td><td data-p="windows">Segoe UI Variable; Microsoft YaHei for Chinese (Open Sans stands in here)</td><td data-p="linux">Adwaita Sans (based on Inter) or Cantarell; Noto Sans CJK for Chinese</td><td data-p="iphone">SF Pro; PingFang for Chinese</td></tr>
+        <tr><td>Corner radius (frame / row / paper)</td><td data-p="macos">28 / 14 / 20; a full capsule when summoned</td><td data-p="windows">8 / 4 / 4: window 8, controls 4</td><td data-p="linux">12 / 6 / 8</td><td data-p="iphone">Buttons and search field fully round; grouped lists 22</td></tr>
+        <tr><td>Selection</td><td data-p="macos">The whole row in the system accent, text in white</td><td data-p="windows">A light fill and a 3px accent bar on the left (as Fluent lists draw it); the text keeps its color</td><td data-p="linux">A neutral gray fill (as libadwaita rows draw it)</td><td data-p="iphone">No persistent selection; a row turns gray while pressed</td></tr>
+        <tr><td>Keys</td><td data-p="macos">Symbol keycaps: <kbd>⌥</kbd><kbd>⌘</kbd><kbd>↩</kbd><kbd>esc</kbd>; the footer names the action, then its keycaps, a combination as several keycaps side by side, no +</td><td data-p="windows">Text keycaps: <kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>Enter</kbd><kbd>Esc</kbd>, in the same keycap style</td><td data-p="linux">Text keycaps: <kbd>Super</kbd><kbd>Ctrl</kbd><kbd>Enter</kbd>, in the same keycap style</td><td data-p="iphone">No keys shown</td></tr>
+        <tr><td>Summon</td><td data-p="macos">Double-press ⌥ (needs Accessibility access); ⌃⌥J without it</td><td data-p="windows">Double-press Ctrl, suggested (to be decided); fallback Ctrl+Alt+J</td><td data-p="linux">Super+J (to be decided), registered through the GlobalShortcuts portal; double-pressing a modifier isn’t possible under Wayland</td><td data-p="iphone">Open the app; a widget later</td></tr>
+        <tr><td>Tray</td><td data-p="macos">Menu bar, top right</td><td data-p="windows">The notification area, bottom right of the taskbar</td><td data-p="linux">None by default on GNOME; on the right of the top bar with the AppIndicator extension</td><td data-p="iphone">None; quick actions on a long press of the icon</td></tr>
+        <tr><td>Notch island</td><td data-p="macos">Grows out of the notch; on an external display it hangs from the middle of the menu bar</td><td data-p="windows">A capsule hanging from the middle of the top edge (dark Acrylic); alternative: pops up above the tray</td><td data-p="linux">A solid card centered below the top bar, where GNOME shows notification banners</td><td data-p="iphone">Not used: it would need a Live Activity, an App Extension</td></tr>
+        <tr><td>Motion curve</td><td data-p="macos">Spring, a slight bounce</td><td data-p="windows">Same durations, no bounce (Fluent’s decelerate curve)</td><td data-p="linux">Same durations, critically damped, no bounce</td><td data-p="iphone">The system’s push transition and keyboard animation</td></tr>
+        <tr><td>Accent</td><td data-p="macos">System accent</td><td data-p="windows">System accent (default #005FB8, dark #60CDFF)</td><td data-p="linux">GNOME accent (default blue #3584E4)</td><td data-p="iphone">System blue</td></tr>
+        <tr><td>To-do checkbox</td><td data-p="macos">Round, filled with the accent when checked (as in Reminders)</td><td data-p="windows">Square, 4 px corners, 1 px border; filled with the accent when checked</td><td data-p="linux">Rounded square, 2 px border (libadwaita’s check button)</td><td data-p="iphone">Round, 22 pt</td></tr>
+        <tr><td>Check off a to-do</td><td data-p="macos">Click the checkbox, or ⌘↩</td><td data-p="windows">Click the checkbox, or Ctrl+Enter</td><td data-p="linux">Click the checkbox, or Ctrl+Enter</td><td data-p="iphone">Tap the circle, or swipe left for “Done”</td></tr>
+        <tr><td>Due reminders</td><td data-p="macos">A notification banner at the top right, and “Reminder · Pay rent” pops out of the notch</td><td data-p="windows">A toast at the bottom right, buttons of equal width in a row</td><td data-p="linux">A notification banner centered below the top bar, pill buttons</td><td data-p="iphone">Lock Screen and banner; waits for scheduled notifications in NSH</td></tr>
       </tbody>
     </table></div>
   </section>
 
   <section class="spec">
     <div class="card">
-      <h3>两层结构</h3>
-      <p class="sub">照 HIG 的 Liquid Glass 规则：材质只给浮在内容上方的控件层，正文不用。</p>
+      <h3>Two layers</h3>
+      <p class="sub">Following the HIG’s Liquid Glass rules: the material is only for the control layer floating above the content, never for the text.</p>
       <div class="layers">
-        <div class="layer g"><b>功能层 · <span id="matName">Liquid Glass（regular）</span></b><span id="matDesc">浮窗外框、搜索框、提示胶囊。整个界面只有这一块玻璃，不叠玻璃。</span></div>
-        <div class="layer p"><b>内容层 · 纸面</b><span>笔记正文、代码块。不透明，深浅色各一套；搜索命中用荧光笔黄。</span></div>
+        <div class="layer g"><b>Control layer · <span id="matName">Liquid Glass (regular)</span></b><span id="matDesc">The panel’s frame, the search field and hint capsules. This is the only glass in the interface; glass is never stacked.</span></div>
+        <div class="layer p"><b>Content layer · paper</b><span>Note text and code blocks. Opaque, one set for light and one for dark; search hits in highlighter yellow.</span></div>
       </div>
     </div>
 
     <div class="card">
-      <h3>灵动岛</h3>
-      <p class="sub" id="islSub">从刘海里长出来，只在 Claude 动你的本子时出现。</p>
+      <h3>Notch island</h3>
+      <p class="sub" id="islSub">Grows out of the notch, and only appears when Claude touches your notebook.</p>
       <div class="islands">
-        <div class="isl"><div class="pill s"></div><span id="islIdle">平时：和刘海一样，看不出来</span></div>
-        <div class="isl"><div class="pill"><span class="d"></span><em>正在记</em> 部署命令</div>Claude 写入：标题逐字打出来</div>
-        <div class="isl"><div class="pill"><span class="d"></span><em>已记下</em> 部署命令 <span class="k"></span></div>写完：对勾弹出，1.6 秒后收回</div>
-        <div class="isl"><div class="pill"><span class="d"></span><em>正在读</em> 办公室 wifi</div>Claude 读取：底边扫过一道光</div>
-        <div class="isl only-mac"><div class="pill"><span class="d bell"></span><em>提醒</em> 交房租 <span class="k ring"></span></div>到点（只在 Mac 上）：点一下勾掉，对勾弹出后收回</div>
+        <div class="isl"><div class="pill s"></div><span id="islIdle">At rest: same as the notch, invisible</span></div>
+        <div class="isl"><div class="pill"><span class="d"></span><em>Writing</em> Deploy commands</div>Claude writes: the title types out letter by letter</div>
+        <div class="isl"><div class="pill"><span class="d"></span><em>Saved</em> Deploy commands <span class="k"></span></div>Written: a check pops, then it folds away after 1.6 s</div>
+        <div class="isl"><div class="pill"><span class="d"></span><em>Reading</em> Office wifi</div>Claude reads: a shimmer sweeps the bottom edge</div>
+        <div class="isl only-mac"><div class="pill"><span class="d bell"></span><em>Reminder</em> Pay rent <span class="k ring"></span></div>Due (Mac only): a click checks it off; a check pops, then it folds away</div>
       </div>
     </div>
 
     <div class="card wide">
-      <h3>动效</h3>
-      <p class="sub">参数用 SwiftUI 的说法（response / damping）；能被打断，按 esc 随时收回。Windows 和 Linux 用同样的 response，damping 取 1，不回弹。系统开启「减弱动态效果」时只保留淡入淡出。</p>
+      <h3>Motion</h3>
+      <p class="sub">Parameters in SwiftUI’s terms (response / damping); everything can be interrupted, and esc folds it away at any time. Windows and Linux use the same response with damping 1, no bounce. With the system’s Reduce Motion on, only fades remain.</p>
       <div class="tbl"><table>
-        <thead><tr><th>时刻</th><th>怎么动</th><th>弹簧（macOS / iPhone）</th></tr></thead>
+        <thead><tr><th>Moment</th><th>How it moves</th><th>Spring (macOS / iPhone)</th></tr></thead>
         <tbody>
-          <tr><td>呼出</td><td>胶囊从上方 1.4% 处落下、由 90% 放大到 100%，同时淡入</td><td class="num">response 0.32 s · damping 0.77</td></tr>
-          <tr><td>展开列表</td><td>胶囊向下长成面板；最近的笔记逐行落入，每行错开 28 ms</td><td class="num">response 0.39 s · damping 0.74</td></tr>
-          <tr><td>打开笔记</td><td>面板向两侧变宽，列表收窄到左栏只留标题，纸面从右边滑入；iPhone 用系统的推入转场</td><td class="num">response 0.39 s · damping 0.74</td></tr>
-          <tr><td>灵动岛</td><td>macOS 从刘海向下、向两侧鼓出；Windows、Linux 的胶囊从上方落下并展开；内容从模糊到清晰，收回时反着来</td><td class="num">response 0.36 s · damping 0.64</td></tr>
-          <tr><td>新笔记落入</td><td>Claude 写的那一行从上方掉进列表，描一圈橙色光再淡掉</td><td class="num">response 0.31 s · damping 0.63</td></tr>
-          <tr><td>时间变标签</td><td>停笔 0.8 秒后，「明天 9:00」原地换成标签，从 82% 放大到位；光标不动，文字不跳行</td><td class="num">response 0.31 s · damping 0.63</td></tr>
-          <tr><td>勾掉待办</td><td>勾在 0.22 s 里画出来；编辑器里那一行变淡、划掉，待办视图里 0.3 s 后这一行收起。减弱动态效果时只淡出</td><td class="num">收起：response 0.32 s · damping 0.77</td></tr>
-          <tr><td>到点通知</td><td>用系统自己的进出动画；Mac 的灵动岛和 Claude 用同一套弹簧</td><td class="num">—</td></tr>
-          <tr><td>搜索命中、上下选择</td><td>没有动画，输入即过滤（高频操作不加动效，HIG motion）</td><td class="num">—</td></tr>
+          <tr><td>Summon</td><td>The capsule drops from 1.4% above, scales from 90% to 100% and fades in</td><td class="num">response 0.32 s · damping 0.77</td></tr>
+          <tr><td>List opens</td><td>The capsule grows down into the panel; recent notes drop in row by row, 28 ms apart</td><td class="num">response 0.39 s · damping 0.74</td></tr>
+          <tr><td>Open a note</td><td>The panel widens to both sides, the list narrows to a left column of titles, the paper slides in from the right; iPhone uses the system push transition</td><td class="num">response 0.39 s · damping 0.74</td></tr>
+          <tr><td>Notch island</td><td>On macOS it swells down and out of the notch; on Windows and Linux the capsule drops from above and expands; its content sharpens from a blur, and the reverse when it folds away</td><td class="num">response 0.36 s · damping 0.64</td></tr>
+          <tr><td>New note arrives</td><td>Claude’s row drops into the list from above, traced by an orange glow that fades</td><td class="num">response 0.31 s · damping 0.63</td></tr>
+          <tr><td>Time becomes a chip</td><td>0.8 s after you stop typing, “tomorrow 9:00” turns into a chip in place, scaling up from 82%; the caret stays put and the text doesn’t reflow</td><td class="num">response 0.31 s · damping 0.63</td></tr>
+          <tr><td>Check off a to-do</td><td>The check draws in 0.22 s; in the editor the line fades and is struck through, in the to-do view the row folds away after 0.3 s. With Reduce Motion, it only fades</td><td class="num">Fold: response 0.32 s · damping 0.77</td></tr>
+          <tr><td>Due notification</td><td>The system’s own transitions; on the Mac the island uses the same spring as for Claude</td><td class="num">—</td></tr>
+          <tr><td>Search hits, moving the selection</td><td>No animation; the list filters as you type (frequent actions get no motion, HIG motion)</td><td class="num">—</td></tr>
         </tbody>
       </table></div>
     </div>
 
     <div class="card wide">
-      <h3>在 NSH 里怎么做</h3>
-      <p class="sub">大部分 NSH 现在就有；各平台的呼出键和刘海位置先在 Jot 自己的 Rust crate 里做。</p>
+      <h3>How it’s built in NSH</h3>
+      <p class="sub">NSH has most of it today; each platform’s summon key and the notch position are done in Jot’s own Rust crate first.</p>
       <div class="tbl"><table>
-        <thead><tr><th>要做的</th><th>NSH 的做法</th><th>状态</th></tr></thead>
+        <thead><tr><th>What</th><th>How in NSH</th><th>Status</th></tr></thead>
         <tbody>
-          <tr><td>无边框、透明的浮窗</td><td>窗口 <code>frame: "none"</code>、透明窗口、<code>level: "floating"</code></td><td><span class="st ok">已有</span></td></tr>
-          <tr><td>macOS 的 Liquid Glass</td><td><code>glassEffect: "regular"</code>（macOS 26），更早的系统退回 <code>backdropFilter</code> 模糊</td><td><span class="st ok">已有</span></td></tr>
-          <tr><td>Windows 的 Acrylic</td><td>窗口 <code>backdrop: "popover"</code>，在 Windows 11 上就是 Acrylic</td><td><span class="st ok">已有</span></td></tr>
-          <tr><td>Linux 的浮窗表面</td><td>不透明的 popover 颜色，描边和阴影自己画；透明窗口上的阴影在 GNOME / KDE 上的表现要实测</td><td><span class="st todo">实现时确认</span></td></tr>
-          <tr><td>弹簧形变</td><td>原生动画图的 spring driver，跑在主线程，不经过 JS；各平台只换 damping</td><td><span class="st ok">已有</span></td></tr>
-          <tr><td>托盘、备用快捷键</td><td><code>nsh/desktop</code> 的 Tray、GlobalShortcut；Linux 的托盘是 StatusNotifierItem，GNOME 要 AppIndicator 扩展</td><td><span class="st ok">已有</span></td></tr>
-          <tr><td>双击 ⌥ 呼出（macOS）</td><td>Jot 的 Rust crate 监听修饰键（需要辅助功能权限）；没授权时退回备用快捷键</td><td><span class="st todo">Jot 里做</span></td></tr>
-          <tr><td>双击 Ctrl 呼出（Windows）</td><td>Jot 的 Rust crate 用低级键盘钩子判断 Ctrl 连按两下，不需要权限</td><td><span class="st todo">Jot 里做</span></td></tr>
-          <tr><td>Super+J 呼出（Linux）</td><td><code>GlobalShortcut</code> 走 GlobalShortcuts portal（GNOME 48+、KDE）；没有 portal 时注册失败，提示去系统设置绑定</td><td><span class="st ok">已有</span></td></tr>
-          <tr><td>开机启动</td><td><code>Application.loginItem()</code></td><td><span class="st ok">已有</span></td></tr>
-          <tr><td>正文编辑、Markdown 高亮</td><td><code>nsh/base</code> 的 Editor</td><td><span class="st ok">已有</span></td></tr>
-          <tr><td>灵动岛窗口</td><td><code>level: "aboveDock"</code>（在菜单栏、任务栏之上）、所有桌面空间都显示、点击穿透、无阴影</td><td><span class="st ok">已有</span></td></tr>
-          <tr><td>刘海的位置和大小</td><td>先在 Jot 的 Rust crate 里读 NSScreen；之后可以提给 NSH，作为 <code>displays()</code> 的一个字段</td><td><span class="st warn">Jot 先做，再提 NSH</span></td></tr>
-          <tr><td>iPhone 版</td><td>NSH 的 iOS 后端；底部搜索框、列表、全屏编辑器都是现有元素</td><td><span class="st ok">已有</span></td></tr>
-          <tr><td>小组件、分享扩展</td><td>都是 App 扩展，NSH 目前不支持</td><td><span class="st todo">以后</span></td></tr>
-          <tr><td>主屏快捷操作（长按图标）</td><td>Info.plist 的快捷操作加启动时的回调，NSH 是否支持要查</td><td><span class="st warn">待确认</span></td></tr>
-          <tr><td>减弱透明度 / 动态效果</td><td>读系统设置，退回不透明底和淡入淡出</td><td><span class="st todo">实现时确认</span></td></tr>
-          <tr><td>桌面通知</td><td><code>nsh</code> 的 <code>Notifications</code>：标题、正文，点通知回到 App（按 id 认出是哪一条）；macOS、Windows、Linux 都有</td><td><span class="st ok">已有</span></td></tr>
-          <tr><td>通知上的按钮</td><td>「完成」「10 分钟后」「打开」：NSH 的通知现在只有标题和正文，按下只报是哪一条。要提给 NSH：通知带几个按钮，按下时报按钮的 id。没有之前，点通知打开待办视图</td><td><span class="st warn">要提 NSH</span></td></tr>
-          <tr><td>到点触发、错过的提醒</td><td>Jot 常驻托盘，自己算下一条的时间，到点调 <code>Notifications</code>；醒来后把睡着时到点的几条合成一条</td><td><span class="st todo">Jot 里做</span></td></tr>
-          <tr><td>手机定时通知</td><td>App 不在前台时，到点的通知要事先交给系统排好（iOS 的通知触发器、Android 的闹钟）。NSH 没有，要提</td><td><span class="st warn">NSH 没有，要提</span></td></tr>
-          <tr><td>时间解析</td><td>「明天 9:00」「下周五」「半小时后」换成绝对时间：Jot 的 Rust 代码，App 和 <code>jot-mcp</code> 共用一份；文件里只存 <code>⏰ YYYY-MM-DD HH:mm</code></td><td><span class="st todo">Jot 里做</span></td></tr>
+          <tr><td>Borderless, transparent panel</td><td>Window <code>frame: "none"</code>, a transparent window, <code>level: "floating"</code></td><td><span class="st ok">Available</span></td></tr>
+          <tr><td>Liquid Glass on macOS</td><td><code>glassEffect: "regular"</code> (macOS 26); earlier systems fall back to a <code>backdropFilter</code> blur</td><td><span class="st ok">Available</span></td></tr>
+          <tr><td>Acrylic on Windows</td><td>Window <code>backdrop: "popover"</code>, which is Acrylic on Windows 11</td><td><span class="st ok">Available</span></td></tr>
+          <tr><td>The panel surface on Linux</td><td>An opaque popover color, with the border and shadow drawn by Jot; how a shadow on a transparent window looks on GNOME / KDE needs testing</td><td><span class="st todo">Confirm when building</span></td></tr>
+          <tr><td>Spring morphs</td><td>The native animation graph’s spring driver, on the main thread without going through JS; platforms only change the damping</td><td><span class="st ok">Available</span></td></tr>
+          <tr><td>Tray, fallback shortcut</td><td>Tray and GlobalShortcut in <code>nsh/desktop</code>; the Linux tray is a StatusNotifierItem, and GNOME needs the AppIndicator extension</td><td><span class="st ok">Available</span></td></tr>
+          <tr><td>Double-press ⌥ to summon (macOS)</td><td>Jot’s Rust crate watches the modifier keys (needs Accessibility access); without it, the fallback shortcut</td><td><span class="st todo">In Jot</span></td></tr>
+          <tr><td>Double-press Ctrl to summon (Windows)</td><td>Jot’s Rust crate detects a double Ctrl press with a low-level keyboard hook; no permission needed</td><td><span class="st todo">In Jot</span></td></tr>
+          <tr><td>Super+J to summon (Linux)</td><td><code>GlobalShortcut</code> through the GlobalShortcuts portal (GNOME 48+, KDE); without the portal, registering fails and Jot asks you to bind it in the system settings</td><td><span class="st ok">Available</span></td></tr>
+          <tr><td>Open at login</td><td><code>Application.loginItem()</code></td><td><span class="st ok">Available</span></td></tr>
+          <tr><td>Text editing, Markdown highlighting</td><td>The Editor in <code>nsh/base</code></td><td><span class="st ok">Available</span></td></tr>
+          <tr><td>Island window</td><td><code>level: "aboveDock"</code> (above the menu bar and taskbar), on every Space, click-through, no shadow</td><td><span class="st ok">Available</span></td></tr>
+          <tr><td>The notch’s position and size</td><td>Read from NSScreen in Jot’s Rust crate first; later it can go to NSH as a field of <code>displays()</code></td><td><span class="st warn">Jot first, then NSH</span></td></tr>
+          <tr><td>iPhone app</td><td>NSH’s iOS backend; the bottom search field, the list and the full-screen editor are all existing elements</td><td><span class="st ok">Available</span></td></tr>
+          <tr><td>Widget, share extension</td><td>Both are App Extensions, which NSH doesn’t support yet</td><td><span class="st todo">Later</span></td></tr>
+          <tr><td>Home Screen quick actions (long-press the icon)</td><td>Quick actions in Info.plist plus a callback at launch; whether NSH supports it needs checking</td><td><span class="st warn">To confirm</span></td></tr>
+          <tr><td>Reduce Transparency / Motion</td><td>Read the system settings and fall back to an opaque background and fades</td><td><span class="st todo">Confirm when building</span></td></tr>
+          <tr><td>Desktop notifications</td><td><code>Notifications</code> in <code>nsh</code>: a title and body; clicking one returns to the app (an id tells which); on macOS, Windows and Linux</td><td><span class="st ok">Available</span></td></tr>
+          <tr><td>Buttons on notifications</td><td>“Done”, “In 10 Minutes”, “Open”: NSH’s notifications have only a title and body today, and a click only says which one. To propose to NSH: notifications with buttons that report the button’s id when pressed. Until then, clicking a notification opens the to-do view</td><td><span class="st warn">Propose to NSH</span></td></tr>
+          <tr><td>Firing on time, missed reminders</td><td>Jot stays in the tray, works out the next time itself and calls <code>Notifications</code> when it comes; after waking, the ones that came due during sleep are merged into one</td><td><span class="st todo">In Jot</span></td></tr>
+          <tr><td>Scheduled notifications on phones</td><td>When the app isn’t in the foreground, a due notification has to be handed to the system ahead of time (iOS notification triggers, Android alarms). NSH has none yet; to propose</td><td><span class="st warn">Missing in NSH; propose</span></td></tr>
+          <tr><td>Reading times</td><td>“tomorrow 9:00”, “next friday”, “in half an hour” (or in Chinese and Japanese: 明天 9:00, 下周五, 半小时后, 明日 9時) become absolute times: Jot’s Rust code, shared by the app and <code>jot-mcp</code>; the file only stores <code>⏰ YYYY-MM-DD HH:mm</code></td><td><span class="st todo">In Jot</span></td></tr>
         </tbody>
       </table></div>
     </div>
 
     <div class="card wide decide">
-      <h3>需要你定的</h3>
+      <h3>Open decisions</h3>
       <ul>
-        <li><b>名字：</b>Jot 只是代号。</li>
-        <li><b>Windows 呼出键：</b>建议连按两下 Ctrl。单按 Alt 会激活当前窗口的菜单栏，连按 Alt 容易误触；备用快捷键先定 Ctrl+Alt+J。</li>
-        <li><b>Linux 快捷键：</b>建议 Super+J。Wayland 下应用拿不到连按修饰键，只能注册普通组合键；要在 GNOME 和 KDE 上核对没被占用。</li>
-        <li><b>Windows 灵动岛位置：</b>推荐屏幕上沿正中垂下的胶囊，和 macOS 在同一个位置，视线不用找。备选是右下角托盘上方弹出，贴近 Windows 通知的位置，但离视线远、和系统通知抢地方。</li>
-        <li><b>灵动岛要不要给自己用：</b>比如把文字拖到灵动岛上直接记一条。</li>
-        <li><b>提醒的默认时间：</b>只写日期不写时间时，默认 9:00。建议就用 9:00：早上开工前提醒，一天里还来得及做；如果你习惯晚上处理杂事，可以在设置里放一个「默认提醒时间」。另外「下午」「晚上」这种没有钟点的说法，建议 Claude 按 15:00 / 20:00 记，并在回复里说出来。</li>
-        <li><b>通知上的「打开」按钮：</b>HIG 不建议放只是打开 App 的按钮，点通知本身就会打开。建议 macOS 和 iPhone 只留「完成」「10 分钟后」，Windows 和 GNOME 照常放三个。</li>
+        <li><b>Name:</b> Jot is only a code name.</li>
+        <li><b>Windows summon key:</b> double-press Ctrl, suggested. A single Alt press activates the current window’s menu bar, so a double Alt is easy to trigger by accident; the fallback shortcut is Ctrl+Alt+J for now.</li>
+        <li><b>Linux shortcut:</b> Super+J, suggested. Under Wayland an app can’t see double-pressed modifiers and can only register ordinary key combinations; check that it’s free on GNOME and KDE.</li>
+        <li><b>Island position on Windows:</b> recommended: a capsule hanging from the middle of the top edge, where it is on macOS, so the eye doesn’t have to look for it. The alternative pops up above the tray at the bottom right, near where Windows shows notifications, but far from where you’re looking and competing with system notifications.</li>
+        <li><b>Should the island be yours to use too:</b> for example, drag text onto it to jot a note.</li>
+        <li><b>Default reminder time:</b> a date without a time means 9:00. Suggested: keep 9:00, a reminder before the workday starts, with the day still ahead to get it done; if you deal with errands in the evening, a “Default reminder time” setting can change it. And for phrases without an hour, such as “afternoon” or “evening”, Claude should use 15:00 / 20:00 and say so in its reply.</li>
+        <li><b>The “Open” button on notifications:</b> the HIG advises against a button that only opens the app, since clicking the notification already does. Suggested: only “Done” and “In 10 Minutes” on macOS and iPhone; Windows and GNOME keep all three.</li>
       </ul>
     </div>
   </section>
@@ -1200,13 +1200,13 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
 
   /* ── per-platform words, keys and places ── */
   const PL={
-    macos:{summon:'⌥ ⌥', summonTxt:'连按两下 ⌥', fallback:'⌃⌥J', enter:'↩', create:'⌘↩', esc:'esc', undo:'⌘Z', settings:'⌘,', quit:'⌘Q', newNote:'⌘N',
-      folder:'~/Documents/Jot', files:'访达', sys:'系统设置', login:'登录时打开 Jot', termTitle:'~/projects — claude', stage:'macOS 26 桌面'},
-    windows:{summon:'Ctrl Ctrl', summonTxt:'连按两下 Ctrl', fallback:'Ctrl+Alt+J', enter:'Enter', create:'Ctrl+Enter', esc:'Esc', undo:'Ctrl+Z', settings:'Ctrl+,', quit:'', newNote:'Ctrl+N',
-      folder:'C:\\Users\\me\\Documents\\Jot', files:'文件资源管理器', sys:'Windows 设置', login:'开机时启动', termTitle:'claude', stage:'Windows 11 桌面'},
-    linux:{summon:'Super+J', summonTxt:'按 Super+J', fallback:'Super+J', enter:'Enter', create:'Ctrl+Enter', esc:'Esc', undo:'Ctrl+Z', settings:'Ctrl+,', quit:'Ctrl+Q', newNote:'Ctrl+N',
-      folder:'~/Documents/Jot', files:'文件', sys:'设置', login:'登录时启动', termTitle:'~/projects — claude', stage:'GNOME 桌面'},
-    iphone:{folder:'iCloud 云盘 › Jot', stage:'iPhone'}
+    macos:{summon:'⌥ ⌥', summonTxt:'Double-press ⌥', fallback:'⌃⌥J', enter:'↩', create:'⌘↩', esc:'esc', undo:'⌘Z', settings:'⌘,', quit:'⌘Q', newNote:'⌘N',
+      folder:'~/Documents/Jot', files:'Finder', sys:'System Settings', login:'Open at Login', termTitle:'~/projects — claude', stage:'macOS 26 desktop'},
+    windows:{summon:'Ctrl Ctrl', summonTxt:'Double-press Ctrl', fallback:'Ctrl+Alt+J', enter:'Enter', create:'Ctrl+Enter', esc:'Esc', undo:'Ctrl+Z', settings:'Ctrl+,', quit:'', newNote:'Ctrl+N',
+      folder:'C:\\Users\\me\\Documents\\Jot', files:'File Explorer', sys:'Windows Settings', login:'Start with Windows', termTitle:'claude', stage:'Windows 11 desktop'},
+    linux:{summon:'Super+J', summonTxt:'Press Super+J', fallback:'Super+J', enter:'Enter', create:'Ctrl+Enter', esc:'Esc', undo:'Ctrl+Z', settings:'Ctrl+,', quit:'Ctrl+Q', newNote:'Ctrl+N',
+      folder:'~/Documents/Jot', files:'Files', sys:'Settings', login:'Start at Login', termTitle:'~/projects — claude', stage:'GNOME desktop'},
+    iphone:{folder:'iCloud Drive › Jot', stage:'iPhone'}
   };
   const L=()=>PL[P];
   // Keys as keycaps, one per key: symbols on Apple platforms, words on Windows and Linux.
@@ -1223,14 +1223,14 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
 
   // Sample notes (examples, not real data).
   let notes=[
-    {t:'办公室 wifi',b:'SSID：Studio-5G\n密码贴在前台白板上，每季度换一次。\n访客网络：Studio-Guest，不用密码。',m:'10 分钟前',src:'user'},
-    {t:'周会要点 · 11月13日',b:'- 发布窗口改到下周二\n- 设计稿下周三前定稿\n- 图标三套方案，投票选一套\n- [x] 把纪要发到群里 ⏰ 2026-11-13 09:30 ✅ 2026-11-13\n- [ ] 交设计稿反馈 ⏰ 2026-11-13 14:00',m:'今天 09:40',src:'user'},
-    {t:'常用 SQL：按天统计',b:'```\nSELECT date(created_at) AS day, count(*)\nFROM orders\nGROUP BY day\nORDER BY day DESC;\n```',m:'昨天',src:'claude'},
-    {t:'生活杂事',b:'快递柜的取件码在手机短信里。\n- [ ] 续健身卡 ⏰ 2026-11-12 18:00\n- [ ] 给猫喂药 ⏰ 2026-11-13 21:00\n- [ ] 买咖啡豆',m:'昨天',src:'user'},
-    {t:'护照到期',b:'2027 年 3 月 18 日到期。提前半年续，记得带旧护照和两张白底照片。\n- [ ] 准备续签材料 ⏰ 2026-11-20 09:00',m:'昨天',src:'user'},
-    {t:'咖啡豆比例',b:'15 g 豆 : 250 g 水，92 °C，总时长 2 分 30 秒。\n浅烘的豆子水温再高 2 度。',m:'11月8日',src:'user'},
-    {t:'租房合同要点',b:'- 押一付三\n- 退租提前 30 天书面通知\n- 空调维修归房东\n- [ ] 给房东回电话 ⏰ 2026-11-13 10:30',m:'11月2日',src:'user'},
-    {t:'想读的书',b:'- 《设计心理学》\n- 《人月神话》\n- The Art of Doing Science and Engineering',m:'10月28日',src:'claude'},
+    {t:'Office wifi',b:'SSID: Studio-5G\nThe password is on the whiteboard at reception; it changes every quarter.\nGuest network: Studio-Guest, no password.',m:'10 min ago',src:'user'},
+    {t:'Weekly sync · Nov 13',b:'- Release window moves to next Tuesday\n- Designs final by next Wednesday\n- Three icon options; vote for one\n- [x] Post the notes to the group ⏰ 2026-11-13 09:30 ✅ 2026-11-13\n- [ ] Send design feedback ⏰ 2026-11-13 14:00',m:'Today 09:40',src:'user'},
+    {t:'SQL: orders per day',b:'```\nSELECT date(created_at) AS day, count(*)\nFROM orders\nGROUP BY day\nORDER BY day DESC;\n```',m:'Yesterday',src:'claude'},
+    {t:'Errands',b:'The parcel locker code is in a text message.\n- [ ] Renew gym membership ⏰ 2026-11-12 18:00\n- [ ] Give the cat its pills ⏰ 2026-11-13 21:00\n- [ ] Buy coffee beans',m:'Yesterday',src:'user'},
+    {t:'Passport renewal',b:'Expires on 18 March 2027. Renew six months ahead; bring the old passport and two photos on a white background.\n- [ ] Gather renewal documents ⏰ 2026-11-20 09:00',m:'Yesterday',src:'user'},
+    {t:'Coffee ratio',b:'15 g beans : 250 g water, 92 °C, 2 min 30 s in all.\nLight roasts: 2 degrees hotter.',m:'Nov 8',src:'user'},
+    {t:'Lease terms',b:'- One month deposit, three months in advance\n- 30 days of written notice to move out\n- The landlord pays for AC repairs\n- [ ] Call the landlord back ⏰ 2026-11-13 10:30',m:'Nov 2',src:'user'},
+    {t:'Books to read',b:'- The Design of Everyday Things\n- The Mythical Man-Month\n- The Art of Doing Science and Engineering',m:'Oct 28',src:'claude'},
   ];
   const NOTES0=notes.map(n=>({...n}));
 
@@ -1238,16 +1238,16 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   const pad=n=>String(n).padStart(2,'0');
   const NOW=new Date(2026,10,13,9,41);   // the story's clock: Friday 13 November 2026, 09:41
   const TODAY_ISO='2026-11-13';
-  const WK='日一二三四五六';
+  const WK=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const dayOf=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();
   const dDays=d=>Math.round((dayOf(d)-dayOf(NOW))/864e5);
   const hm=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}`;
   const absDue=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${hm(d)}`;
-  function relDay(d){ const n=dDays(d); return n===0?'今天':n===1?'明天':n===2?'后天':n===-1?'昨天':(n>0&&n<7)?'周'+WK[d.getDay()]:`${d.getMonth()+1}月${d.getDate()}日`; }
+  function relDay(d){ const n=dDays(d); return n===0?'Today':n===1?'Tomorrow':n===-1?'Yesterday':(n>0&&n<7)?WK[d.getDay()]:`${MON[d.getMonth()]} ${d.getDate()}`; }
   // In the "today" and "tomorrow" groups the header already says the day, so the chip shows the time alone.
   const dueLabel=(d,grp)=>grp==='today'||grp==='tom'?hm(d):`${relDay(d)} ${hm(d)}`;
   const isoDay=s=>{ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); };
-  const doneLabel=s=>{ const n=dDays(isoDay(s)); return n===0?'今天完成':n===-1?'昨天完成':`${isoDay(s).getMonth()+1}月${isoDay(s).getDate()}日完成`; };
+  const doneLabel=s=>{ const n=dDays(isoDay(s)); return n===0?'Done today':n===-1?'Done yesterday':`Done ${MON[isoDay(s).getMonth()]} ${isoDay(s).getDate()}`; };
   function parseLine(l){
     const m=/^- \[( |x)\] (.*)$/.exec(l); if(!m) return null;
     let rest=m[2], due=null, doneAt=null;
@@ -1258,7 +1258,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   const lineOf=t=>`- [${t.done?'x':' '}] ${t.text}${t.due?' ⏰ '+absDue(t.due):''}${t.done&&t.doneAt?' ✅ '+t.doneAt:''}`;
   function allTodos(){ const out=[]; for(const n of notes) n.b.split('\n').forEach((l,li)=>{ const t=parseLine(l); if(t) out.push({...t,n,li}); }); return out; }
   const grpOf=t=>!t.due?'none':t.due<NOW?'late':dDays(t.due)===0?'today':dDays(t.due)===1?'tom':'later';
-  const GROUPS=[['late','已过期'],['today','今天'],['tom','明天'],['later','以后'],['none','没有时间']];
+  const GROUPS=[['late','Overdue'],['today','Today'],['tom','Tomorrow'],['later','Upcoming'],['none','Anytime']];
   function todoGroups(){
     const g={}; for(const t of allTodos()) if(!t.done) (g[grpOf(t)]??=[]).push(t);
     for(const k in g) g[k].sort((a,b)=>(a.due||0)-(b.due||0));
@@ -1267,9 +1267,9 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   function setDone(t,done){ const ls=t.n.b.split('\n'); ls[t.li]=lineOf({...t,done,doneAt:done?TODAY_ISO:null}); t.n.b=ls.join('\n'); }
   function addTodo(title,text,due,src){
     let n=notes.find(n=>n.t===title);
-    if(!n){ n={t:title,b:'',m:'刚刚',src}; notes.unshift(n); }
+    if(!n){ n={t:title,b:'',m:'Just now',src}; notes.unshift(n); }
     if(!n.b.split('\n').some(l=>{const t=parseLine(l); return t&&t.text===text;})) n.b=(n.b?n.b+'\n':'')+lineOf({done:false,text,due});
-    n.m='刚刚'; return n;
+    n.m='Just now'; return n;
   }
   function todaySummary(){
     const ts=allTodos().filter(t=>t.due&&dDays(t.due)===0), open=ts.filter(t=>!t.done);
@@ -1277,7 +1277,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     const next=open.filter(t=>t.due>=NOW).sort((a,b)=>a.due-b.due)[0];
     return {total:ts.length, left:open.length, late, next, dots:ts.sort((a,b)=>(b.done?1:0)-(a.done?1:0)).map(t=>t.done)};
   }
-  const TODO_Q=/^(待办|\/todo)$/i;
+  const TODO_Q=/^(todo|todos|to-dos?|\/todo)$/i;
   const isTodoQ=v=>TODO_Q.test(String(v).trim());
 
   const panel=$('#panel'), list=$('#list'), q=$('#q'), hint=$('#hint');
@@ -1307,8 +1307,8 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     if(query && !notes.some(n=>n.t.toLowerCase()===query.toLowerCase())) out.push({create:query});
     return out;
   }
-  const cbH=(on,label)=>`<span class="cb${on?' on':''}" role="checkbox" aria-checked="${on}" aria-label="勾掉「${esc(label)}」" contenteditable="false">${ICON_CHECK}</span>`;
-  const chipH=(t,grp,{pop,tip}={})=>t.due?`<span class="due${!t.done&&t.due<NOW?' late':''}${pop?' pop':''}${tip?' hover':''}" data-abs="${absDue(t.due)}" contenteditable="false">${ICON_ALARM}${dueLabel(t.due,grp)}<span class="tip">${absDue(t.due)}<small>周${WK[t.due.getDay()]} · 到点提醒</small></span></span>`:'';
+  const cbH=(on,label)=>`<span class="cb${on?' on':''}" role="checkbox" aria-checked="${on}" aria-label="Complete “${esc(label)}”" contenteditable="false">${ICON_CHECK}</span>`;
+  const chipH=(t,grp,{pop,tip}={})=>t.due?`<span class="due${!t.done&&t.due<NOW?' late':''}${pop?' pop':''}${tip?' hover':''}" data-abs="${absDue(t.due)}" contenteditable="false">${ICON_ALARM}${dueLabel(t.due,grp)}<span class="tip">${absDue(t.due)}<small>${WK[t.due.getDay()]} · reminder</small></span></span>`:'';
   function sumRow(i,isSel){
     const s=sumInfo();
     return `<div class="row tdsum${isSel?' sel':''}" data-i="${i}" style="--i:${i}"><i class="ind"></i><div class="ic">${ICON_LIST}</div><div class="tx"><span class="t">${s.title}</span><span class="s">${esc(s.sub)}</span></div><span class="m">${s.dots}</span></div>`;
@@ -1316,8 +1316,8 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   function footHTML(todo){
     const k=L();
     return todo
-      ? foot([['打开笔记',k.enter,true],['勾掉',k.create],['返回',k.esc]],`${allTodos().filter(t=>!t.done).length} 件没勾掉`)
-      : foot([['打开',k.enter,true],['新建',k.create],['收起',k.esc]],`${notes.length} 条笔记 · ${esc(k.folder)}`);
+      ? foot([['Open Note',k.enter,true],['Complete',k.create],['Back',k.esc]],`${allTodos().filter(t=>!t.done).length} open`)
+      : foot([['Open',k.enter,true],['Create',k.create],['Hide',k.esc]],`${notes.length} notes · ${esc(k.folder)}`);
   }
   function renderTodos(){
     const gs=todoGroups(); rows=[]; let h='', i=0, height=.6;
@@ -1329,7 +1329,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
         h+=`<div class="row td${key===arriving?' arrive':''}" data-i="${ri}" style="--i:${i++}"><i class="ind"></i>${cbH(false,t.text)}<span class="t"><b>${esc(t.text)}</b><span class="nt">${esc(t.n.t)}</span></span>${chipH(t,g.k)}</div>`; height+=3.6;
       }
     }
-    if(!rows.length){ h='<div class="tdempty">没有没勾掉的待办</div>'; height=8; }
+    if(!rows.length){ h='<div class="tdempty">You’re all caught up</div>'; height=8; }
     if(sel>=rows.length) sel=Math.max(0,rows.length-1);
     list.innerHTML=h; list.classList.add('tdv');
     list.querySelectorAll('.row.td').forEach(r=>r.classList.toggle('sel',+r.dataset.i===sel));
@@ -1346,7 +1346,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
       panel.style.setProperty('--rows',Math.max(1,rows.length));
       list.innerHTML=rows.map((r,i)=>{
         if(r.sum) return sumRow(i,i===sel);
-        if(r.create) return `<div class="row new${i===sel?' sel':''}" data-i="${i}" style="--i:${i}"><i class="ind"></i><div class="ic">${ICON_PLUS}</div><div class="tx"><span class="t">新建「${esc(r.create)}」</span><span class="s">回车直接开始写</span></div><span class="m">${kx(L().create)}</span></div>`;
+        if(r.create) return `<div class="row new${i===sel?' sel':''}" data-i="${i}" style="--i:${i}"><i class="ind"></i><div class="ic">${ICON_PLUS}</div><div class="tx"><span class="t">Create “${esc(r.create)}”</span><span class="s">Press Return to start writing</span></div><span class="m">${kx(L().create)}</span></div>`;
         const n=r.n, cl=n.src==='claude';
         const cls=['row',i===sel?'sel':'',n.t===arriving?'arrive':'',n.t===readingTitle?'reading':''].join(' ');
         return `<div class="${cls}" data-i="${i}" style="--i:${i}"><i class="ind"></i><div class="ic${cl?' cl':''}">${cl?ICON_SPARK:ICON_DOC}</div><div class="tx"><span class="t">${hl(n.t,r.terms)}</span><span class="s">${hl(snippet(n,r.terms),r.terms)}</span></div><span class="m">${esc(n.m)}</span></div>`;
@@ -1403,7 +1403,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     const da=line.querySelector('.done-at'); if(da) da.remove();
     const due=line.querySelector('.due'); if(due) due.classList.toggle('late',!on&&new Date(due.dataset.abs.replace(' ','T'))<NOW);
     if(on) line.insertAdjacentHTML('beforeend',`<span class="done-at" data-d="${TODAY_ISO}" contenteditable="false">${doneLabel(TODAY_ISO)}</span>`);
-    const n=notes.find(n=>n.t===title); if(n){ n.b=serialize(box); n.m='刚刚'; }
+    const n=notes.find(n=>n.t===title); if(n){ n.b=serialize(box); n.m='Just now'; }
   }
 
   function setState(s){
@@ -1422,19 +1422,19 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   function toggle(){ panel.dataset.state==='hidden'?show():hide(); }
   function openNote(n){
     openTitle=n.t; $('#pt').textContent=n.t;
-    $('#pm').innerHTML=(n.src==='claude'?`<span class="by">${ICON_SPARK}Claude 记的</span> · `:'')+`${esc(n.m)} · ${esc(n.t)}.md`;
+    $('#pm').innerHTML=(n.src==='claude'?`<span class="by">${ICON_SPARK}By Claude</span> · `:'')+`${esc(n.m)} · ${esc(n.t)}.md`;
     $('#pb').innerHTML=md(n.b);
     setState('editor');
   }
   function openSel(){
     const r=rows[sel]; if(!r) return;
-    if(r.sum){ q.value='待办'; sel=0; setState('list'); render(true); return; }
+    if(r.sum){ q.value='todo'; sel=0; setState('list'); render(true); return; }
     if(r.todo){ const n=r.todo.n; q.value=n.t; sel=0; render(false); openNote(n); return; }
-    if(r.create){ const n={t:r.create,b:'',m:'刚刚',src:'user'}; notes.unshift(n); q.value=''; sel=0; render(false); openNote(n); setTimeout(()=>{ $('#pb').focus(); },reduce?0:300); return; }
+    if(r.create){ const n={t:r.create,b:'',m:'Just now',src:'user'}; notes.unshift(n); q.value=''; sel=0; render(false); openNote(n); setTimeout(()=>{ $('#pb').focus(); },reduce?0:300); return; }
     openNote(r.n);
   }
   q.addEventListener('input',()=>{ sel=0; if(panel.dataset.state==='capsule') setState('list'); if(panel.dataset.state==='editor') setState('list'); render(false); });
-  let saveT; $('#pb').addEventListener('input',()=>{ const s=$('#saved'); s.classList.remove('on'); clearTimeout(saveT); saveT=setTimeout(()=>{ const n=notes.find(n=>n.t===openTitle); if(n){ n.b=serialize($('#pb')); n.m='刚刚'; } s.classList.add('on'); setTimeout(()=>s.classList.remove('on'),1400); },300); });
+  let saveT; $('#pb').addEventListener('input',()=>{ const s=$('#saved'); s.classList.remove('on'); clearTimeout(saveT); saveT=setTimeout(()=>{ const n=notes.find(n=>n.t===openTitle); if(n){ n.b=serialize($('#pb')); n.m='Just now'; } s.classList.add('on'); setTimeout(()=>s.classList.remove('on'),1400); },300); });
   $('#pb').addEventListener('mousedown',e=>{ if(e.target.closest('.cb')) e.preventDefault(); });
   $('#pb').addEventListener('click',e=>{ const cb=e.target.closest('.cb'); if(cb) toggleLine(cb.closest('.todo')); });
 
@@ -1479,19 +1479,19 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   // A reminder in the island (macOS): a bell, the to-do, and a checkbox that ticks it off.
   function islandRemind(t){
     const av=$('#iav'); av.className='av rem'; av.innerHTML=ICON_BELL; island.dataset.mode='remind';
-    $('#ilb').textContent=`提醒 · ${hm(t.due)} · ${t.note}`; $('#itt').textContent=t.text;
-    $('#ist').innerHTML=`<span class="icb" role="button" aria-label="勾掉「${esc(t.text)}」">${ICON_CHECK}</span>`;
+    $('#ilb').textContent=`Reminder · ${hm(t.due)} · ${t.note}`; $('#itt').textContent=t.text;
+    $('#ist').innerHTML=`<span class="icb" role="button" aria-label="Complete “${esc(t.text)}”">${ICON_CHECK}</span>`;
     island.classList.remove('reading'); island.classList.add('open');
   }
   async function islandTick(){
     const b=island.querySelector('.icb'); if(!b||b.classList.contains('on')) return;
-    b.classList.add('on'); $('#ilb').textContent='已完成'; ntfClose();
+    b.classList.add('on'); $('#ilb').textContent='Done'; ntfClose();
     await sleep(900); if(island.dataset.mode==='remind') islandClose();
   }
   island.addEventListener('click',()=>{ if(island.dataset.mode==='remind') islandTick().catch(()=>{}); });
 
   /* system notification on the stage (and the gallery shares the markup) */
-  const ntfIn=({title,body,time='现在',acts=[]})=>`<div class="n-hd"><span class="mi-ic">${ICON_PEN}</span><span>Jot</span><span class="sp"></span><span class="more">${ICON_MORE}</span>${ICON_X.replace('<svg','<svg class="x"')}</div>
+  const ntfIn=({title,body,time='now',acts=[]})=>`<div class="n-hd"><span class="mi-ic">${ICON_PEN}</span><span>Jot</span><span class="sp"></span><span class="more">${ICON_MORE}</span>${ICON_X.replace('<svg','<svg class="x"')}</div>
     <span class="n-ic">${ICON_PEN}</span><b class="n-t">${esc(title)}</b><span class="n-tm"><span class="n-app">Jot · </span>${esc(time)}</span><span class="n-s">${body}</span>
     ${acts.length?`<div class="n-acts">${acts.map(a=>`<button type="button" class="na">${a}</button>`).join('')}</div>`:''}`;
   const ntfH=(o,style='')=>`<div class="ntf glass" style="${style}">${ntfIn(o)}</div>`;
@@ -1516,49 +1516,49 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     $$('.desk .date').forEach(d=>{ d.dataset.now??=d.textContent; d.textContent=next?d.dataset.next:d.dataset.now; });
   }
   let busy=false;
-  const DEPLOY={t:'部署命令',b:'```\ncargo build --release -p jot-mcp\nclaude mcp add jot -- ./target/release/jot-mcp\n```\n发布前先在 staging 跑一遍。',m:'刚刚',src:'claude'};
+  const DEPLOY={t:'Deploy commands',b:'```\ncargo build --release -p jot-mcp\nclaude mcp add jot -- ./target/release/jot-mcp\n```\nRun it on staging before a release.',m:'Just now',src:'claude'};
   async function claudeWrite(){
     if(busy) return; busy=true;
     try{
       if(P==='iphone'){ await phoneArrive(); return; }
       const title=DEPLOY.t;
-      await ttype('› ','把刚才的部署命令记到 Jot','me');
+      await ttype('› ','Save those deploy commands to Jot','me');
       await sleep(350);
-      tline(`<span class="tool">⏺ jot · create_note</span><span class="dim">(「${title}」)</span>`);
-      islandOpen('write','Claude · 正在记到 Jot');
+      tline(`<span class="tool">⏺ jot · create_note</span><span class="dim">("${title}")</span>`);
+      islandOpen('write','Claude · Writing to Jot');
       await sleep(240); await itype(title); await sleep(500);
       if(!notes.some(n=>n.t===title)) notes.unshift({...DEPLOY});
-      $('#ilb').textContent='已记下'; $('#iav').classList.remove('spin'); $('#ist').innerHTML=`<div class="ok">${ICON_OK}</div>`;
+      $('#ilb').textContent='Saved to Jot'; $('#iav').classList.remove('spin'); $('#ist').innerHTML=`<div class="ok">${ICON_OK}</div>`;
       arriving=title; if(panel.dataset.state==='list'){ q.value=''; sel=0; render(true);}
-      tline(`<span class="dim">  ⎿ 已保存 ${title}.md</span>`);
+      tline(`<span class="dim">  ⎿ Saved ${title}.md</span>`);
       await sleep(1600); islandClose(); setTimeout(()=>{arriving=null;},1600);
     }finally{ busy=false; }
   }
   async function claudeRead(){
     if(busy||P==='iphone') return; busy=true;
     try{
-      const title='办公室 wifi';
-      await ttype('› ','我在 Jot 里记过办公室 wifi 吗','me');
+      const title='Office wifi';
+      await ttype('› ','Did I save the office wifi in Jot?','me');
       await sleep(350);
-      tline(`<span class="tool">⏺ jot · search_notes</span><span class="dim">(「wifi」)</span>`);
+      tline(`<span class="tool">⏺ jot · search_notes</span><span class="dim">("wifi")</span>`);
       await sleep(300);
-      tline(`<span class="tool">⏺ jot · read_note</span><span class="dim">(「${title}」)</span>`);
-      islandOpen('read','Claude · 正在读'); readingTitle=title;
+      tline(`<span class="tool">⏺ jot · read_note</span><span class="dim">("${title}")</span>`);
+      islandOpen('read','Claude · Reading'); readingTitle=title;
       if(panel.dataset.state==='list') render(false);
       await sleep(240); await itype(title); await sleep(1500);
       islandClose(); readingTitle=null;
-      tline('记过。SSID 是 Studio-5G，密码贴在前台白板上；访客网络 Studio-Guest 不用密码。');
+      tline('Yes. The SSID is Studio-5G and the password is on the whiteboard at reception; the guest network, Studio-Guest, has no password.');
     }finally{ busy=false; readingTitle=null; }
   }
 
   async function typeQuery(text){ q.value=''; for(const ch of text){ q.value+=ch; q.dispatchEvent(new Event('input')); await sleep(110);} }
 
   /* ── to-do demos ── */
-  const RENT={text:'交房租',due:new Date(2026,10,14,9,0),note:'生活杂事'};
-  const REPORT={text:'交周报',due:new Date(2026,10,13,15,0),note:'待办'};   // "周五下午": today is Friday
+  const RENT={text:'Pay rent',due:new Date(2026,10,14,9,0),note:'Errands'};
+  const REPORT={text:'Send the weekly report',due:new Date(2026,10,13,15,0),note:'To-dos'};   // "Friday afternoon": today is Friday
   // The reminder demo starts from the sample note each time, so it can be replayed.
   function resetNote(t){ const n=notes.find(n=>n.t===t), n0=NOTES0.find(n=>n.t===t); if(n&&n0) n.b=n0.b; }
-  // Types "- [ ] 交房租 明天 9:00" under the last to-do of `box`: the prefix turns into a checkbox as soon as it's
+  // Types "- [ ] Pay rent tomorrow 9:00" under the last to-do of `box`: the prefix turns into a checkbox as soon as it's
   // complete, and after a pause the time words turn into a chip in place (the caret doesn't move).
   async function typeReminder(box){
     const todos=box.querySelectorAll('.todo'), after=todos[todos.length-1];
@@ -1567,11 +1567,11 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     for(const ch of '- [ ] '){ line.firstChild.textContent+=ch; await sleep(75); }
     line.innerHTML=`${cbH(false,RENT.text)}<span class="tt"></span><i class="icar"></i>`;
     const tt=line.querySelector('.tt');
-    for(const ch of `${RENT.text} 明天 9:00`){ tt.textContent+=ch; await sleep(95); }
+    for(const ch of `${RENT.text} tomorrow 9:00`){ tt.textContent+=ch; await sleep(95); }
     await sleep(850);
     tt.textContent=RENT.text; line.querySelector('.icar').remove();
     tt.insertAdjacentHTML('afterend',chipH({...RENT,done:false},'',{pop:true})+'<i class="icar"></i>');
-    const n=notes.find(n=>n.t===RENT.note); if(n){ n.b=serialize(box); n.m='刚刚'; }
+    const n=notes.find(n=>n.t===RENT.note); if(n){ n.b=serialize(box); n.m='Just now'; }
     return line;
   }
   async function remindDemo(){
@@ -1580,7 +1580,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
       if(P==='iphone'){ await phoneRemind(); return; }
       if(panel.dataset.state==='hidden'){ show(); await sleep(900); }
       resetNote(RENT.note);
-      await typeQuery('生活'); await sleep(500);
+      await typeQuery('errands'); await sleep(500);
       sel=rows.findIndex(r=>r.n&&r.n.t===RENT.note); openSel(); await sleep(1000);
       const pb=$('#pb');
       const line=await typeReminder(pb);
@@ -1588,7 +1588,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
       await sleep(500);
       const chip=line.querySelector('.due'); await point(chip,.5,.7); chip.classList.add('hover'); await sleep(1900); chip.classList.remove('hover');
       line.querySelector('.icar')?.remove();
-      const gym=[...pb.querySelectorAll('.todo')].find(l=>l.querySelector('.tt')?.textContent==='续健身卡');
+      const gym=[...pb.querySelectorAll('.todo')].find(l=>l.querySelector('.tt')?.textContent==='Renew gym membership');
       if(gym&&!gym.classList.contains('done')){ await point(gym.querySelector('.cb')); await click(); toggleLine(gym); }
       await sleep(1400); ptrOff();
     }catch(e){ if(e!=='cancel') throw e; }
@@ -1600,8 +1600,8 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     try{
       if(P==='iphone'){ await phoneAlarm(); return; }
       hide(); await sleep(400);
-      const ff=$('#ff'); ff.innerHTML=`${ICON_FF}快进到 明天（周六）09:00`; ff.classList.add('on'); clockTo(true); await sleep(1300); ff.classList.remove('on');
-      ntfOpen({title:RENT.text, body:RENT.note, acts:['完成','10 分钟后','打开']});
+      const ff=$('#ff'); ff.innerHTML=`${ICON_FF}Fast-forward to tomorrow (Saturday) 09:00`; ff.classList.add('on'); clockTo(true); await sleep(1300); ff.classList.remove('on');
+      ntfOpen({title:RENT.text, body:RENT.note, acts:['Done','In 10 Minutes','Open']});
       if(P==='macos') islandRemind(RENT);
       await sleep(2300);
       if(P==='macos'){ await point(island.querySelector('.icb')); await click(); await islandTick(); }
@@ -1614,19 +1614,19 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     if(busy) return; busy=true;
     try{
       if(P==='iphone'){ await phoneClaudeTodo(); return; }
-      await ttype('› ','提醒我周五下午交周报','me');
+      await ttype('› ','Remind me to send the weekly report Friday afternoon','me');
       await sleep(350);
-      tline(`<span class="tool">⏺ jot · add_todo</span><span class="dim">(「${REPORT.text}」, due: 2026-11-13T15:00)</span>`);
-      islandOpen('write','Claude · 正在加提醒');
+      tline(`<span class="tool">⏺ jot · add_todo</span><span class="dim">("${REPORT.text}", due: 2026-11-13T15:00)</span>`);
+      islandOpen('write','Claude · Adding a reminder');
       await sleep(240); await itype(REPORT.text); await sleep(450);
       addTodo(REPORT.note,REPORT.text,REPORT.due,'claude');
-      $('#ilb').textContent='Claude · 加了提醒'; $('#iav').classList.remove('spin');
-      $('#itt').innerHTML=`${esc(REPORT.text)}<span class="itm">今天 15:00</span>`;
+      $('#ilb').textContent='Claude · Reminder added'; $('#iav').classList.remove('spin');
+      $('#itt').innerHTML=`${esc(REPORT.text)}<span class="itm">Today 15:00</span>`;
       $('#ist').innerHTML=`<div class="ok">${ICON_OK}</div>`;
       arriving=REPORT.note+'|'+REPORT.text;
       if(panel.dataset.state==='list') render(false);
-      tline(`<span class="dim">  ⎿ 写进「${REPORT.note}」：- [ ] ${REPORT.text} ⏰ 2026-11-13 15:00</span>`);
-      tline('好，今天（周五）15:00 提醒你交周报。你没说几点，先按下午 3 点记的。');
+      tline(`<span class="dim">  ⎿ Added to "${REPORT.note}": - [ ] ${REPORT.text} ⏰ 2026-11-13 15:00</span>`);
+      tline('Done: I will remind you to send the weekly report today (Friday) at 15:00. You gave no time, so I went with 3 pm.');
       await sleep(1600); islandClose(); setTimeout(()=>{arriving=null;},1600);
     }finally{ busy=false; }
   }
@@ -1653,35 +1653,35 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   const iosStatus=()=>`<div class="ios-sb"><span class="clock">09:41</span><span class="ic"><svg viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg viewBox="0 0 16 12" fill="currentColor"><path d="M8 11.5 5.6 9a3.4 3.4 0 0 1 4.8 0zM3.3 6.7a6.6 6.6 0 0 1 9.4 0l-1.5 1.5a4.5 4.5 0 0 0-6.4 0zM1 4.4a9.9 9.9 0 0 1 14 0l-1.5 1.5a7.8 7.8 0 0 0-11 0z"/></svg><svg viewBox="0 0 27 13" fill="none"><rect x=".5" y=".5" width="23" height="12" rx="3.8" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="17" height="9" rx="2.4" fill="currentColor"/><path d="M25 4.5v4" stroke="currentColor" stroke-width="1.5" opacity=".4" stroke-linecap="round"/></svg></span></div><div class="ios-di"></div>`;
   function iosKb(ret,pri){
     const k=c=>`<span class="ky">${c}</span>`;
-    return `<div class="ios-kb" aria-hidden="true"><div class="kr">${[...'qwertyuiop'].map(k).join('')}</div><div class="kr r2">${[...'asdfghjkl'].map(k).join('')}</div><div class="kr"><span class="ky s">⇧</span><span class="gap"></span>${[...'zxcvbnm'].map(k).join('')}<span class="gap"></span><span class="ky s">⌫</span></div><div class="kr"><span class="ky s w2">123</span><span class="ky sp">空格</span><span class="ky s w2${pri?' pri':''}">${ret}</span></div><div class="kb-ex">${ICON_GLOBE}${ICON_MIC}</div></div>`;
+    return `<div class="ios-kb" aria-hidden="true"><div class="kr">${[...'qwertyuiop'].map(k).join('')}</div><div class="kr r2">${[...'asdfghjkl'].map(k).join('')}</div><div class="kr"><span class="ky s">⇧</span><span class="gap"></span>${[...'zxcvbnm'].map(k).join('')}<span class="gap"></span><span class="ky s">⌫</span></div><div class="kr"><span class="ky s w2">123</span><span class="ky sp">space</span><span class="ky s w2${pri?' pri':''}">${ret}</span></div><div class="kb-ex">${ICON_GLOBE}${ICON_MIC}</div></div>`;
   }
   const iosRow=(n,terms=[],extra='')=>`<div class="prow${extra}"><div class="pr-top"><span class="pr-t">${n.src==='claude'?ICON_SPARK:''}${hl(n.t,terms)}</span><span class="pr-m">${esc(n.m)}</span></div><div class="pr-s">${hl(snippet(n,terms),terms)}</div></div>`;
-  const iosCreate=t=>`<div class="prow new"><span class="pplus">${ICON_PLUS}</span><div style="min-width:0"><div class="pr-t">新建「${esc(t)}」</div><div class="pr-s">没有找到，点这里开始写</div></div></div>`;
-  const iosBar=(q,focus)=>`<div class="ios-bar"><div class="ios-search ios-g">${ICON_SEARCH}<span class="q${q?'':' ph'}">${q?esc(q)+(focus?'<i class="icar"></i>':''):'搜索或新建'}</span>${q?'':ICON_MIC}</div><span class="gb big ios-g">${focus?ICON_X:ICON_COMPOSE}</span></div>`;
+  const iosCreate=t=>`<div class="prow new"><span class="pplus">${ICON_PLUS}</span><div style="min-width:0"><div class="pr-t">Create “${esc(t)}”</div><div class="pr-s">Not found. Tap here to start writing</div></div></div>`;
+  const iosBar=(q,focus)=>`<div class="ios-bar"><div class="ios-search ios-g">${ICON_SEARCH}<span class="q${q?'':' ph'}">${q?esc(q)+(focus?'<i class="icar"></i>':''):'Search or create'}</span>${q?'':ICON_MIC}</div><span class="gb big ios-g">${focus?ICON_X:ICON_COMPOSE}</span></div>`;
   const iosTop=()=>`<div class="ios-top"><span class="gb ios-g">${ICON_MORE}</span></div><div class="ios-h1">Jot</div>`;
 
   function buildPhone(){
     $('#phoneFit').innerHTML=`<div class="ios" id="ph" data-scr="list">${iosStatus()}
-      <div class="ios-v ios-lv"><div class="ios-top"><button type="button" class="gb ios-g" aria-label="更多">${ICON_MORE}</button></div><div class="ios-h1" id="phh1">Jot</div><div class="ios-sub" id="phcount"></div><div class="ios-list" id="phl"></div><div class="ios-fade"></div></div>
-      <div class="ios-v ios-ed" id="phe"><div class="ed-bar"><button type="button" class="gb ios-g" id="phback" aria-label="返回">${ICON_BACK}</button><div class="ed-r"><span class="ed-grp ios-g"><span>${ICON_SHARE}</span><span>${ICON_MORE}</span></span><button type="button" class="gb pri" id="phdone" aria-label="完成" style="display:none">${ICON_CHECK}</button></div></div>
-        <div class="saved" id="phsaved"><i></i>已保存</div>
+      <div class="ios-v ios-lv"><div class="ios-top"><button type="button" class="gb ios-g" aria-label="More">${ICON_MORE}</button></div><div class="ios-h1" id="phh1">Jot</div><div class="ios-sub" id="phcount"></div><div class="ios-list" id="phl"></div><div class="ios-fade"></div></div>
+      <div class="ios-v ios-ed" id="phe"><div class="ed-bar"><button type="button" class="gb ios-g" id="phback" aria-label="Back">${ICON_BACK}</button><div class="ed-r"><span class="ed-grp ios-g"><span>${ICON_SHARE}</span><span>${ICON_MORE}</span></span><button type="button" class="gb pri" id="phdone" aria-label="Done" style="display:none">${ICON_CHECK}</button></div></div>
+        <div class="saved" id="phsaved"><i></i>Saved</div>
         <div class="ed-sc"><div class="ed-h" id="pht"></div><div class="ed-meta" id="phm"></div><div class="ed-body" id="phb" contenteditable="true" spellcheck="false"></div></div></div>
-      <div class="ios-bar" id="phbar"><label class="ios-search ios-g">${ICON_SEARCH}<input id="phq" placeholder="搜索或新建" autocomplete="off" spellcheck="false" aria-label="搜索或新建笔记"><span id="phmic">${ICON_MIC}</span></label><button type="button" class="gb big ios-g" id="phnew" aria-label="新建">${ICON_COMPOSE}</button></div>
-      ${iosKb('搜索',true)}<div class="ios-home"></div><div class="touch" id="phtouch"></div>
-      <div class="ios-ntf ios-g need" id="phntf" aria-hidden="true"><span class="n-ic">${ICON_PEN}</span><b class="n-t">${RENT.text}</b><span class="n-tm">现在</span><span class="n-s">${RENT.note}</span></div>
-      <span class="need-tag" id="phneed" style="top:47px;left:auto;right:24px;transform:none;display:none">要等 NSH 支持定时通知</span></div>`;
+      <div class="ios-bar" id="phbar"><label class="ios-search ios-g">${ICON_SEARCH}<input id="phq" placeholder="Search or create" autocomplete="off" spellcheck="false" aria-label="Search or create a note"><span id="phmic">${ICON_MIC}</span></label><button type="button" class="gb big ios-g" id="phnew" aria-label="New">${ICON_COMPOSE}</button></div>
+      ${iosKb('search',true)}<div class="ios-home"></div><div class="touch" id="phtouch"></div>
+      <div class="ios-ntf ios-g need" id="phntf" aria-hidden="true"><span class="n-ic">${ICON_PEN}</span><b class="n-t">${RENT.text}</b><span class="n-tm">now</span><span class="n-s">${RENT.note}</span></div>
+      <span class="need-tag" id="phneed" style="top:47px;left:auto;right:24px;transform:none;display:none">Waits for scheduled notifications in NSH</span></div>`;
     const ph=$('#ph'), pq=$('#phq');
     pq.addEventListener('focus',()=>{ ph.dataset.kb='1'; phNewIcon(); });
     pq.addEventListener('input',()=>{ phRender(); phNewIcon(); });
-    $('#phnew').addEventListener('click',()=>{ if(ph.dataset.kb==='1'&&ph.dataset.scr==='list'){ pq.value=''; pq.blur(); ph.dataset.kb=''; phRender(); phNewIcon(); } else { phOpen({t:'新笔记',b:'',m:'刚刚',src:'user',fresh:true}); } });
+    $('#phnew').addEventListener('click',()=>{ if(ph.dataset.kb==='1'&&ph.dataset.scr==='list'){ pq.value=''; pq.blur(); ph.dataset.kb=''; phRender(); phNewIcon(); } else { phOpen({t:'New note',b:'',m:'Just now',src:'user',fresh:true}); } });
     $('#phl').addEventListener('click',e=>{
       if(phSwiped){ phSwiped=false; return; }
       const td=e.target.closest('.ptd');
       if(td){ const i=+td.dataset.i, t=phTodos[i]; if(!t) return; if(e.target.closest('.cb,.ptd-act')){ phComplete(i); return; } if(td.classList.contains('open')){ td.classList.remove('open'); return; } phOpen(t.n); return; }
       const r=e.target.closest('.prow'); if(!r) return;
-      if(r.classList.contains('tdsum')){ $('#phq').value='待办'; phRender(); phNewIcon(); return; }
-      const it=phRows[+r.dataset.i]; if(!it) return; if(it.create){ const n={t:it.create,b:'',m:'刚刚',src:'user'}; notes.unshift(n); phOpen(n); } else phOpen(it.n); });
-    // Swipe a to-do left to reveal "完成": the row follows the finger 1:1 and snaps open or shut on release.
+      if(r.classList.contains('tdsum')){ $('#phq').value='todo'; phRender(); phNewIcon(); return; }
+      const it=phRows[+r.dataset.i]; if(!it) return; if(it.create){ const n={t:it.create,b:'',m:'Just now',src:'user'}; notes.unshift(n); phOpen(n); } else phOpen(it.n); });
+    // Swipe a to-do left to reveal "Done": the row follows the finger 1:1 and snaps open or shut on release.
     $('#phl').addEventListener('pointerdown',e=>{ const r=e.target.closest('.ptd'); if(!r||e.target.closest('.cb,.ptd-act')) return; const inn=r.querySelector('.ptd-in'); sw={r,inn,x:e.clientX,dx:0,base:r.classList.contains('open')?-88:0,z:parseFloat(getComputedStyle($('#phoneFit')).zoom)||1}; inn.style.transition='none'; });
     addEventListener('pointermove',e=>{ if(!sw) return; sw.dx=(e.clientX-sw.x)/sw.z; if(Math.abs(sw.dx)>4) phSwiped=true; sw.inn.style.transform=`translateX(${Math.min(0,Math.max(-130,sw.base+sw.dx))}px)`; });
     addEventListener('pointerup',()=>{ if(!sw) return; const {r,inn,base,dx}=sw; sw=null; inn.style.transition=''; inn.style.transform=''; if(Math.abs(dx)>4){ r.classList.toggle('open',base+dx<-44); setTimeout(()=>{phSwiped=false;},0); } });
@@ -1689,28 +1689,28 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     $('#phb').addEventListener('click',e=>{ const cb=e.target.closest('.cb'); if(cb) toggleLine(cb.closest('.todo')); });
     $('#phback').addEventListener('click',phBack);
     $('#phdone').addEventListener('click',()=>{ $('#phb').blur(); phEditEnd(); });
-    $('#phb').addEventListener('focus',()=>{ ph.dataset.kb='1'; $('#phdone').style.display=''; $$('#ph .kr .ky.w2')[1].textContent='换行'; $$('#ph .kr .ky.w2')[1].classList.remove('pri'); });
-    $('#phb').addEventListener('input',()=>{ const n=notes.find(n=>n.t===phOpenTitle); if(n){ n.b=serialize($('#phb')); n.m='刚刚'; } });
+    $('#phb').addEventListener('focus',()=>{ ph.dataset.kb='1'; $('#phdone').style.display=''; $$('#ph .kr .ky.w2')[1].textContent='return'; $$('#ph .kr .ky.w2')[1].classList.remove('pri'); });
+    $('#phb').addEventListener('input',()=>{ const n=notes.find(n=>n.t===phOpenTitle); if(n){ n.b=serialize($('#phb')); n.m='Just now'; } });
     phRender();
   }
   let phRows=[], phOpenTitle=null, phTodos=[], sw=null, phSwiped=false;
   function phNewIcon(){ const ph=$('#ph'); $('#phnew').innerHTML=(ph.dataset.kb==='1'&&ph.dataset.scr==='list')?ICON_X:ICON_COMPOSE; $('#phmic').style.display=$('#phq').value?'none':''; }
   function sumInfo(){
     const s=todaySummary();
-    return {title:s.left?`今天 ${s.left} 件待办`:'今天没有待办',
-      sub:s.left?`${s.late?s.late+' 件已过期 · ':''}${s.next?`下一件 ${hm(s.next.due)} ${s.next.text}`:''}`:(s.late?`${s.late} 件已过期`:'今天的都做完了'),
-      dots:`<span class="dots" aria-label="今天 ${s.total} 件，做完 ${s.total-s.left} 件">${s.dots.map(d=>`<i${d?' class="on"':''}></i>`).join('')}</span>`};
+    return {title:s.left?`${s.left} to-do${s.left===1?'':'s'} today`:'Nothing due today',
+      sub:s.left?`${s.late?s.late+' overdue · ':''}${s.next?`Next: ${hm(s.next.due)} ${s.next.text}`:''}`:(s.late?`${s.late} overdue`:'All done for today'),
+      dots:`<span class="dots" aria-label="${s.total-s.left} of ${s.total} done today">${s.dots.map(d=>`<i${d?' class="on"':''}></i>`).join('')}</span>`};
   }
   const iosSum=()=>{ const s=sumInfo(); return `<div class="prow tdsum"><span class="pplus">${ICON_LIST}</span><div style="flex:1;min-width:0"><div class="pr-t">${s.title}</div><div class="pr-s">${esc(s.sub)}</div></div>${s.dots}</div>`; };
-  const iosTodo=(t,grp,i,extra='')=>`<div class="ptd${extra}" data-i="${i}"><div class="ptd-act">${ICON_CHECK}完成</div><div class="ptd-in">${cbH(false,t.text)}<div class="tx"><span class="tt">${esc(t.text)}</span><div class="sub">${chipH(t,grp)}<span>${esc(t.n.t)}</span></div></div></div></div>`;
+  const iosTodo=(t,grp,i,extra='')=>`<div class="ptd${extra}" data-i="${i}"><div class="ptd-act">${ICON_CHECK}Done</div><div class="ptd-in">${cbH(false,t.text)}<div class="tx"><span class="tt">${esc(t.text)}</span><div class="sub">${chipH(t,grp)}<span>${esc(t.n.t)}</span></div></div></div></div>`;
   function phTodoView(arrive){
-    $('#phh1').textContent='待办'; phTodos=[]; let h='';
+    $('#phh1').textContent='To-dos'; phTodos=[]; let h='';
     for(const g of todoGroups()){
       h+=`<div class="ios-tdh${g.k==='late'?' late':''}">${g.l}<span>${g.items.length}</span></div>`;
       for(const t of g.items){ h+=iosTodo(t,g.k,phTodos.length,(t.n.t+'|'+t.text)===arrive?' arrive':''); phTodos.push(t); }
     }
-    $('#phl').innerHTML=h||'<div class="ios-sub" style="padding-left:0">没有没勾掉的待办</div>';
-    $('#phcount').textContent=`${phTodos.length} 件没勾掉 · 左滑或点圆圈完成`;
+    $('#phl').innerHTML=h||'<div class="ios-sub" style="padding-left:0">You’re all caught up</div>';
+    $('#phcount').textContent=`${phTodos.length} open · swipe left or tap a circle to complete`;
   }
   function phComplete(i){
     const t=phTodos[i], r=$(`#phl .ptd[data-i="${i}"]`); if(!t||!r||r.classList.contains('checking')) return;
@@ -1726,16 +1726,16 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     phRows=filter(query);
     if(query.trim()) phRows.sort((a,b)=>(a.create?0:1)-(b.create?0:1));   // on a phone, "create" leads: it's the thumb's first target
     $('#phl').innerHTML=(query.trim()?'':iosSum())+phRows.map((r,i)=>r.create?iosCreate(r.create).replace('class="prow new"',`class="prow new" data-i="${i}"`):iosRow(r.n,r.terms,r.n.t===arrive?' arrive':'').replace('<div class="prow',`<div data-i="${i}" class="prow`)).join('');
-    $('#phcount').textContent=`${notes.length} 条笔记 · ${PL.iphone.folder}`;
+    $('#phcount').textContent=`${notes.length} notes · ${PL.iphone.folder}`;
   }
   function phOpen(n){
     const ph=$('#ph'); phOpenTitle=n.t; if(n.fresh){ delete n.fresh; notes.unshift(n); }
     $('#pht').textContent=n.t;
-    $('#phm').innerHTML=(n.src==='claude'?`<span class="by">${ICON_SPARK}Claude 记的</span>·`:'')+`<span>${esc(n.m)}</span>`;
+    $('#phm').innerHTML=(n.src==='claude'?`<span class="by">${ICON_SPARK}By Claude</span>·`:'')+`<span>${esc(n.m)}</span>`;
     $('#phb').innerHTML=md(n.b);
     $('#phq').blur(); ph.dataset.kb=''; ph.dataset.scr='ed'; $('#phdone').style.display='none';
   }
-  function phEditEnd(){ const ph=$('#ph'); ph.dataset.kb=''; $('#phdone').style.display='none'; const k=$$('#ph .kr .ky.w2')[1]; k.textContent='搜索'; k.classList.add('pri'); const s=$('#phsaved'); s.classList.add('on'); setTimeout(()=>s.classList.remove('on'),1400); }
+  function phEditEnd(){ const ph=$('#ph'); ph.dataset.kb=''; $('#phdone').style.display='none'; const k=$$('#ph .kr .ky.w2')[1]; k.textContent='search'; k.classList.add('pri'); const s=$('#phsaved'); s.classList.add('on'); setTimeout(()=>s.classList.remove('on'),1400); }
   function phBack(){ const ph=$('#ph'); $('#phb').blur(); ph.dataset.kb=''; ph.dataset.scr='list'; $('#phq').value=''; phRender(); phNewIcon(); }
   function phReset(){ const ph=$('#ph'); if(!ph) return; $('#phb').blur(); $('#phq').blur(); $('#phq').value=''; ph.dataset.kb=''; ph.dataset.scr='list'; $('#phntf').classList.remove('on'); $('#phneed').style.display='none'; phCalloutOff(); phRender(); phNewIcon(); }
   async function tap(el){
@@ -1756,10 +1756,10 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     await sleep(700);
     const first=$('#phl .prow:not(.new)'); await tap(first); phOpen(phRows.find(r=>!r.create).n); await sleep(1400);
     const body=$('#phb'); await tap(body.lastElementChild||body);
-    ph.dataset.kb='1'; $('#phdone').style.display=''; const rk=$$('#ph .kr .ky.w2')[1]; rk.textContent='换行'; rk.classList.remove('pri'); await sleep(500);
+    ph.dataset.kb='1'; $('#phdone').style.display=''; const rk=$$('#ph .kr .ky.w2')[1]; rk.textContent='return'; rk.classList.remove('pri'); await sleep(500);
     const p=document.createElement('p'); body.appendChild(p);
-    for(const ch of '访客网络下月改成 Studio-Guest-2。'){ p.textContent+=ch; await sleep(60); }
-    const n=notes.find(n=>n.t===phOpenTitle); if(n){ n.b=body.innerText; n.m='刚刚'; }
+    for(const ch of 'Guest network becomes Studio-Guest-2 next month.'){ p.textContent+=ch; await sleep(60); }
+    const n=notes.find(n=>n.t===phOpenTitle); if(n){ n.b=body.innerText; n.m='Just now'; }
     await sleep(700); await tap($('#phdone')); phEditEnd(); await sleep(1300);
     await tap($('#phback')); phBack(); await sleep(400);
   }
@@ -1767,18 +1767,18 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     if(!notes.some(n=>n.t===DEPLOY.t)) notes.unshift({...DEPLOY});
     phBack(); phRender(DEPLOY.t); await sleep(1800);
   }
-  function phEditStart(){ const ph=$('#ph'); ph.dataset.kb='1'; $('#phdone').style.display=''; const rk=$$('#ph .kr .ky.w2')[1]; rk.textContent='换行'; rk.classList.remove('pri'); }
+  function phEditStart(){ const ph=$('#ph'); ph.dataset.kb='1'; $('#phdone').style.display=''; const rk=$$('#ph .kr .ky.w2')[1]; rk.textContent='return'; rk.classList.remove('pri'); }
   // No hover on a phone: tapping the chip shows the absolute time in a callout.
   function phCallout(chip){
     const ph=$('#ph'), a=ph.getBoundingClientRect(), b=chip.getBoundingClientRect(), z=a.width/390||1;
     phCalloutOff();
-    ph.insertAdjacentHTML('beforeend',`<div class="ios-call ios-g" id="phcall" style="left:${Math.min(300,Math.max(90,(b.left+b.width/2-a.left)/z))}px;top:${(b.bottom-a.top)/z+10}px">${absDue(RENT.due)}<small>周六 · 点一下改时间</small></div>`);
+    ph.insertAdjacentHTML('beforeend',`<div class="ios-call ios-g" id="phcall" style="left:${Math.min(300,Math.max(90,(b.left+b.width/2-a.left)/z))}px;top:${(b.bottom-a.top)/z+10}px">${absDue(RENT.due)}<small>Sat · tap to change</small></div>`);
   }
   const phCalloutOff=()=>$('#phcall')?.remove();
   async function phoneRemind(){
     const ph=$('#ph'); phReset(); resetNote(RENT.note); await sleep(600);
     await tap($('#phbar .ios-search')); ph.dataset.kb='1'; phNewIcon(); await sleep(500);
-    for(const ch of '生活'){ $('#phq').value+=ch; phRender(); phNewIcon(); await sleep(160); }
+    for(const ch of 'errands'){ $('#phq').value+=ch; phRender(); phNewIcon(); await sleep(160); }
     await sleep(500);
     const n=notes.find(n=>n.t===RENT.note);
     await tap($$('#phl .prow').find(r=>r.dataset.i!==undefined&&phRows[+r.dataset.i]?.n===n)); phOpen(n); await sleep(1200);
@@ -1788,7 +1788,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     await sleep(600);
     const chip=line.querySelector('.due'); await tap(chip); phCallout(chip); await sleep(2000); phCalloutOff();
     line.querySelector('.icar')?.remove();
-    const gym=[...body.querySelectorAll('.todo')].find(l=>l.querySelector('.tt')?.textContent==='续健身卡');
+    const gym=[...body.querySelectorAll('.todo')].find(l=>l.querySelector('.tt')?.textContent==='Renew gym membership');
     if(gym&&!gym.classList.contains('done')){ await tap(gym.querySelector('.cb')); toggleLine(gym); }
     await sleep(1300); await tap($('#phdone')); phEditEnd(); await sleep(600);
   }
@@ -1799,7 +1799,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   }
   async function phoneClaudeTodo(){
     addTodo(REPORT.note,REPORT.text,REPORT.due,'claude');
-    phBack(); $('#phq').value='待办'; phRender(REPORT.note+'|'+REPORT.text); phNewIcon(); await sleep(1800);
+    phBack(); $('#phq').value='todo'; phRender(REPORT.note+'|'+REPORT.text); phNewIcon(); await sleep(1800);
   }
   $('#extWidget').innerHTML=`<div class="ios" style="width:300px;height:250px;background:linear-gradient(150deg,var(--mac-wall-a),var(--mac-wall-b) 60%,var(--mac-wall-c))">
     <div class="ios-g" style="position:absolute;left:18px;top:20px;width:264px;height:126px;border-radius:24px;padding:14px 16px;display:flex;gap:14px">
@@ -1808,257 +1808,257 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     </div>
     <div style="position:absolute;left:18px;right:18px;top:166px;display:flex;justify-content:space-between">${[0,1,2,3].map(()=>`<span style="width:56px;height:56px;border-radius:15px;background:rgba(255,255,255,.35);box-shadow:inset 0 0 0 1px rgba(255,255,255,.4)"></span>`).join('')}</div></div>`;
   $('#extShare').innerHTML=`<div class="ios" style="width:300px;height:250px;background:var(--ios-grouped)">
-    <div style="margin:14px 14px 0;background:var(--ios-cell);border-radius:16px;padding:10px 12px;display:flex;gap:10px;align-items:center"><span style="width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,var(--mac-wall-a),var(--mac-wall-b))"></span><div style="min-width:0"><b style="font-size:14px;display:block">京都红叶季的三条小路</b><span style="font-size:12px;color:var(--ios-2)">选中的一段文字和链接</span></div></div>
-    <div style="display:flex;justify-content:space-around;padding:18px 6px 10px">${[['信息','#34c759'],['邮件','#0a84ff'],['Jot','jot'],['更多','']].map(([t,c])=>`<div style="display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11.5px">${c==='jot'?`<span class="appic" style="width:54px;height:54px;border-radius:14px;margin:0;box-shadow:0 0 0 3px var(--ios-bg),0 0 0 5px var(--accent)">${ICON_PEN}</span>`:`<span style="width:54px;height:54px;border-radius:14px;background:${c||'var(--ios-cell)'};display:grid;place-items:center;color:var(--ios-2)">${c?'':ICON_MORE}</span>`}${t}</div>`).join('')}</div>
-    <div style="margin:0 14px;background:var(--ios-cell);border-radius:14px;padding:12px 14px;font-size:15px;display:flex;justify-content:space-between;align-items:center"><span>存到 Jot</span>${ICON_PEN.replace('<svg','<svg style="width:18px;height:18px"')}</div></div>`;
+    <div style="margin:14px 14px 0;background:var(--ios-cell);border-radius:16px;padding:10px 12px;display:flex;gap:10px;align-items:center"><span style="width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,var(--mac-wall-a),var(--mac-wall-b))"></span><div style="min-width:0"><b style="font-size:14px;display:block">Three quiet lanes for Kyoto’s autumn leaves</b><span style="font-size:12px;color:var(--ios-2)">The selected text and link</span></div></div>
+    <div style="display:flex;justify-content:space-around;padding:18px 6px 10px">${[['Messages','#34c759'],['Mail','#0a84ff'],['Jot','jot'],['More','']].map(([t,c])=>`<div style="display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11.5px">${c==='jot'?`<span class="appic" style="width:54px;height:54px;border-radius:14px;margin:0;box-shadow:0 0 0 3px var(--ios-bg),0 0 0 5px var(--accent)">${ICON_PEN}</span>`:`<span style="width:54px;height:54px;border-radius:14px;background:${c||'var(--ios-cell)'};display:grid;place-items:center;color:var(--ios-2)">${c?'':ICON_MORE}</span>`}${t}</div>`).join('')}</div>
+    <div style="margin:0 14px;background:var(--ios-cell);border-radius:14px;padding:12px 14px;font-size:15px;display:flex;justify-content:space-between;align-items:center"><span>Save to Jot</span>${ICON_PEN.replace('<svg','<svg style="width:18px;height:18px"')}</div></div>`;
 
   /* ───────── gallery ───────── */
   const N=t=>notes.find(n=>n.t===t)||NOTES0.find(n=>n.t===t);
   const chip=()=>kx(L().summon);
   const mfield=(text,{ph,caret}={})=>`<div class="mfd">${ICON_SEARCH}<span class="q${ph?' ph':''}">${ph?(caret?'<i class="icar"></i>':'')+esc(ph):esc(text)+(caret?'<i class="icar"></i>':'')}</span><span class="chip">${chip()}</span></div>`;
   const mrow=(n,{sel,terms=[],sub}={})=>{const cl=n.src==='claude'; return `<div class="mr${sel?' sel':''}"><i class="ind"></i><div class="ic${cl?' cl':''}">${cl?ICON_SPARK:ICON_DOC}</div><div class="tx"><span class="t">${hl(n.t,terms)}</span>${sub===false?'':`<span class="s">${hl(sub||snippet(n,terms),terms)}</span>`}</div>${sub===false?'':`<span class="m">${esc(n.m)}</span>`}</div>`;};
-  const mfoot=(cnt)=>`<div class="mft">${foot([['打开',L().enter,true],['新建',L().create]],cnt??`${notes.length} 条笔记`)}</div>`;
+  const mfoot=(cnt)=>`<div class="mft">${foot([['Open',L().enter,true],['Create',L().create]],cnt??`${notes.length} notes`)}</div>`;
   function tbar(title){
     if(P==='windows') return `<div class="tbar win">${ICON_PEN.replace('<svg','<svg class="ai" style="color:var(--claude)"')}<span>${title}</span><span class="cap"><span>${ICON_MIN}</span><span>${ICON_MAX}</span><span>${ICON_X}</span></span></div>`;
     if(P==='linux') return `<div class="tbar adw"><span>${title}</span><span class="x">${ICON_X}</span></div>`;
     return `<div class="tbar mac"><span class="tls"><i></i><i></i><i></i></span><span>${title}</span></div>`;
   }
-  const sideWith=(top)=>`<div class="mside">${[top,...['办公室 wifi','周会要点 · 11月13日','常用 SQL：按天统计','护照到期'].map(N)].map((n,i)=>mrow(n,{sub:false,sel:i===0})).join('')}</div>`;
+  const sideWith=(top)=>`<div class="mside">${[top,...['Office wifi','Weekly sync · Nov 13','SQL: orders per day','Passport renewal'].map(N)].map((n,i)=>mrow(n,{sub:false,sel:i===0})).join('')}</div>`;
   // A desktop at Friday's given time with a system notification; on a Mac with a reminder, the island too.
   function deskNtf(o,island,time){
     const ch = P==='windows' ? `<div class="mtb"><span class="ti">${ICON_UP}</span><span class="ti">${ICON_PEN}</span><span class="ti">${ICON_WIFI}</span><span class="ti">${ICON_VOL}</span><span class="clk"><span>${time}</span><span>2026/11/14</span></span></div>`
-      : P==='linux' ? `<div class="mgb"><span class="ws"><i></i><i></i><i></i></span><span class="clk">11月14日 ${time}</span><span>${ICON_WIFI}</span><span>${ICON_VOL}</span><span>${ICON_BATT}</span></div>`
-      : `<div class="mbar"><span class="ti">${ICON_PEN}</span><span>${ICON_WIFI}</span><span>${ICON_BATT}</span><span>周六 ${time}</span></div>`;
+      : P==='linux' ? `<div class="mgb"><span class="ws"><i></i><i></i><i></i></span><span class="clk">Nov 14 ${time}</span><span>${ICON_WIFI}</span><span>${ICON_VOL}</span><span>${ICON_BATT}</span></div>`
+      : `<div class="mbar"><span class="ti">${ICON_PEN}</span><span>${ICON_WIFI}</span><span>${ICON_BATT}</span><span>Sat ${time}</span></div>`;
     // The frame is a crop of the right half of the screen, so the notch sits left of center.
-    const isl = island&&P==='macos' ? `<div class="misl" style="left:170px"><span class="av">${ICON_BELL}</span><div class="tx"><div class="lb">提醒 · 09:00 · 生活杂事</div><div class="tt">${RENT.text}</div></div><span class="icb">${ICON_CHECK}</span></div>` : '';
+    const isl = island&&P==='macos' ? `<div class="misl" style="left:170px"><span class="av">${ICON_BELL}</span><div class="tx"><div class="lb">Reminder · 09:00 · Errands</div><div class="tt">${RENT.text}</div></div><span class="icb">${ICON_CHECK}</span></div>` : '';
     return `<div class="mf">${ch}${isl}${ntfH(o)}</div>`;
   }
 
   const D={
     onboard(){
       const s2={
-        macos:`<li class="cur"><span class="n">2</span><div class="l"><b>允许 Jot 听 ⌥ 键</b><span>连按两下 ⌥ 呼出需要「辅助功能」权限。Jot 只判断 ⌥ 有没有连按两下，不记录你打的字。</span><button class="b lnk">先不授权，改用 ⌃⌥J</button></div><div class="ri"><button class="b pri">打开系统设置</button></div></li>`,
-        windows:`<li class="cur"><span class="n">2</span><div class="l"><b>试一下：连按两下 Ctrl</b><span>不需要任何权限。按对了这一步会自动打勾，浮窗也会弹出来。</span><button class="b lnk">换成快捷键 Ctrl+Alt+J</button></div><div class="ri"><span class="wait"><i></i>${kx('Ctrl Ctrl')}</span></div></li>`,
-        linux:`<li class="cur"><span class="n">2</span><div class="l"><b>设一个呼出快捷键</b><span>GNOME 会弹出系统的确认框，建议 Super+J，也可以在那里换一个。Wayland 下不能用连按修饰键呼出。</span></div><div class="ri"><button class="b pri">设置快捷键…</button></div></li>`
+        macos:`<li class="cur"><span class="n">2</span><div class="l"><b>Let Jot listen for ⌥</b><span>Double-pressing ⌥ to summon needs Accessibility access. Jot only checks whether ⌥ was pressed twice; it never records what you type.</span><button class="b lnk">Not now; use ⌃⌥J instead</button></div><div class="ri"><button class="b pri">Open System Settings</button></div></li>`,
+        windows:`<li class="cur"><span class="n">2</span><div class="l"><b>Try it: double-press Ctrl</b><span>No permission needed. Get it right and this step checks itself off and the panel pops up.</span><button class="b lnk">Use the shortcut Ctrl+Alt+J instead</button></div><div class="ri"><span class="wait"><i></i>${kx('Ctrl Ctrl')}</span></div></li>`,
+        linux:`<li class="cur"><span class="n">2</span><div class="l"><b>Set a summon shortcut</b><span>GNOME shows its own confirmation dialog; Super+J is suggested, and you can pick another there. Double-pressing a modifier can’t summon under Wayland.</span></div><div class="ri"><button class="b pri">Set Shortcut…</button></div></li>`
       }[P];
-      return `<div class="mf"><div class="mw ob">${tbar('')}<div class="ob-hd"><span class="appic">${ICON_PEN}</span><b>欢迎使用 Jot</b><span>三步设好。以后在任何地方${esc(L().summonTxt)}，就能记一条。</span></div>
+      return `<div class="mf"><div class="mw ob">${tbar('')}<div class="ob-hd"><span class="appic">${ICON_PEN}</span><b>Welcome to Jot</b><span>Three steps and you’re set. Then jot from anywhere: ${esc(L().summonTxt)}.</span></div>
         <ol class="steps">
-          <li class="done"><span class="n">${ICON_CHECK}</span><div class="l"><b>选笔记文件夹</b><span>${esc(L().folder)}。笔记是普通的 .md 文件，放进 iCloud 云盘、Dropbox 就能同步。</span></div><div class="ri"><button class="b">更改…</button></div></li>
+          <li class="done"><span class="n">${ICON_CHECK}</span><div class="l"><b>Choose a notes folder</b><span>${esc(L().folder)}. Notes are plain .md files; put them in iCloud Drive or Dropbox to sync.</span></div><div class="ri"><button class="b">Change…</button></div></li>
           ${s2}
-          <li class="later"><span class="n">3</span><div class="l"><b>连接 Claude</b><span>把 jot-mcp 登记到 Claude Code，Claude 就能读写这个本子。</span></div><div class="ri"><button class="b">连接</button></div></li>
-        </ol><div class="ob-ft"><span>这些都能在设置里改。</span><button class="b">稍后</button></div></div></div>`;
+          <li class="later"><span class="n">3</span><div class="l"><b>Connect Claude</b><span>Register jot-mcp with Claude Code, and Claude can read and write this notebook.</span></div><div class="ri"><button class="b">Connect</button></div></li>
+        </ol><div class="ob-ft"><span>You can change all of this in Settings.</span><button class="b">Later</button></div></div></div>`;
     },
     empty(){
-      return `<div class="mf"><div class="mp glass">${mfield('',{ph:'搜索或新建…',caret:true})}<div class="mempty">${ICON_PEN}<b>还没有笔记</b><span>输入一个标题，按 ${kx(L().enter)} 就是第一条。</span><span>也可以在 Claude 里说「记到 Jot」。</span></div>${mfoot(`0 条笔记 · ${L().folder}`)}</div></div>`;
+      return `<div class="mf"><div class="mp glass">${mfield('',{ph:'Search or create…',caret:true})}<div class="mempty">${ICON_PEN}<b>No notes yet</b><span>Type a title and press ${kx(L().enter)} to start your first.</span><span>Or ask Claude to “jot this down.”</span></div>${mfoot(`0 notes · ${L().folder}`)}</div></div>`;
     },
     nores(){
-      const t='京都行程';
-      return `<div class="mf"><div class="mp glass">${mfield(t,{caret:true})}<div class="mnote">没有包含「${t}」的笔记</div><div class="mls" style="padding-top:2px"><div class="mr sel new"><i class="ind"></i><div class="ic">${ICON_PLUS}</div><div class="tx"><span class="t" style="font-weight:500">新建「${t}」</span><span class="s">按 ${P==='macos'?'↩':'Enter'} 开始写，标题就是「${t}」</span></div><span class="m">${kx(L().enter)}</span></div></div>${mfoot()}</div></div>`;
+      const t='Kyoto trip';
+      return `<div class="mf"><div class="mp glass">${mfield(t,{caret:true})}<div class="mnote">No notes contain “${t}”</div><div class="mls" style="padding-top:2px"><div class="mr sel new"><i class="ind"></i><div class="ic">${ICON_PLUS}</div><div class="tx"><span class="t" style="font-weight:500">Create “${t}”</span><span class="s">Press ${P==='macos'?'↩':'Enter'} to start writing, titled “${t}”</span></div><span class="m">${kx(L().enter)}</span></div></div>${mfoot()}</div></div>`;
     },
     markdown(){
-      const top={t:'京都行程',m:'刚刚',src:'user'};
-      return `<div class="mf"><div class="mp ed glass">${mfield('京都')}${sideWith(top)}<div class="mpp"><h3><span class="md"># </span>京都行程</h3><div class="meta">刚刚 · 京都行程.md</div><div class="bd">
-        <div class="todo done"><span class="cb on">${ICON_CHECK}</span><span class="tt">订四条河原町的酒店</span></div>
-        <div class="todo"><span class="cb">${ICON_CHECK}</span><span class="tt">买 ICOCA 卡<i class="icar"></i></span></div>
-        <p class="h"><span class="md">## </span>第一天</p>
-        <p><span class="md">- </span>伏见稻荷，早上 7 点前到人少</p>
-        <div class="pre"><span class="md">\`\`\`</span>\n京都站 → 稻荷站  JR 奈良线 5 分钟\n<span class="md">\`\`\`</span></div>
-        <p><span class="md">[</span><span class="lnk">岚山小火车时刻表</span><span class="md">](…)</span></p></div></div></div></div>`;
+      const top={t:'Kyoto trip',m:'Just now',src:'user'};
+      return `<div class="mf"><div class="mp ed glass">${mfield('Kyoto')}${sideWith(top)}<div class="mpp"><h3><span class="md"># </span>Kyoto trip</h3><div class="meta">Just now · Kyoto trip.md</div><div class="bd">
+        <div class="todo done"><span class="cb on">${ICON_CHECK}</span><span class="tt">Book the hotel in Shijo-Kawaramachi</span></div>
+        <div class="todo"><span class="cb">${ICON_CHECK}</span><span class="tt">Get an ICOCA card<i class="icar"></i></span></div>
+        <p class="h"><span class="md">## </span>Day 1</p>
+        <p><span class="md">- </span>Fushimi Inari: get there before 7 am, fewer people</p>
+        <div class="pre"><span class="md">\`\`\`</span>\nKyoto Sta. → Inari Sta.  JR Nara Line, 5 min\n<span class="md">\`\`\`</span></div>
+        <p><span class="md">[</span><span class="lnk">Arashiyama train timetable</span><span class="md">](…)</span></p></div></div></div></div>`;
     },
     claude(){
-      const n={t:'部署命令',m:'昨天 14:02',src:'claude'};
-      return `<div class="mf"><div class="mp ed glass">${mfield('部署')}${sideWith(n)}<div class="mpp"><h3>部署命令</h3><div class="meta"><span class="by">${ICON_SPARK}Claude 记的</span> · 昨天 14:02 · 部署命令.md</div><div class="bd">
+      const n={t:'Deploy commands',m:'Yesterday 14:02',src:'claude'};
+      return `<div class="mf"><div class="mp ed glass">${mfield('Deploy')}${sideWith(n)}<div class="mpp"><h3>Deploy commands</h3><div class="meta"><span class="by">${ICON_SPARK}By Claude</span> · Yesterday 14:02 · Deploy commands.md</div><div class="bd">
         <div class="pre">cargo build --release -p jot-mcp\nclaude mcp add jot -- ./target/release/jot-mcp</div>
-        <p>发布前先在 staging 跑一遍。</p>
-        <div class="app"><div class="app-l">${ICON_SPARK}Claude 追加 · 今天 08:30</div><p>staging 的地址换成了 staging-2.internal，旧地址月底下线。</p></div></div></div></div></div>`;
+        <p>Run it on staging before a release.</p>
+        <div class="app"><div class="app-l">${ICON_SPARK}Claude appended · Today 08:30</div><p>Staging moved to staging-2.internal; the old address goes away at the end of the month.</p></div></div></div></div></div>`;
     },
     append(){
-      const n={t:'周会要点 · 11月13日',m:'刚刚',src:'user'};
-      return `<div class="mf"><div class="mp ed glass">${mfield('周会')}<div class="mside">${[n,N('办公室 wifi'),N('部署命令')||DEPLOY,N('护照到期'),N('咖啡豆比例')].map((x,i)=>mrow(x,{sub:false,sel:i===0})).join('')}</div><div class="mpp"><h3>周会要点 · 11月13日</h3><div class="meta">刚刚 · 周会要点 · 11月13日.md</div><div class="bd">
-        <p><span class="md">- </span>发布窗口改到下周二</p><p><span class="md">- </span>设计稿下周三前定稿，先给<i class="icar"></i></p><p><span class="md">- </span>图标三套方案，投票选一套</p></div>
-        <div class="mtoast glass">${ICON_SPARK}Claude 在末尾加了一段，你的光标没动<button class="b lnk" style="padding:0 8px">查看 ↓</button></div></div></div></div>`;
+      const n={t:'Weekly sync · Nov 13',m:'Just now',src:'user'};
+      return `<div class="mf"><div class="mp ed glass">${mfield('Weekly')}<div class="mside">${[n,N('Office wifi'),N('Deploy commands')||DEPLOY,N('Passport renewal'),N('Coffee ratio')].map((x,i)=>mrow(x,{sub:false,sel:i===0})).join('')}</div><div class="mpp"><h3>Weekly sync · Nov 13</h3><div class="meta">Just now · Weekly sync · Nov 13.md</div><div class="bd">
+        <p><span class="md">- </span>Release window moves to next Tuesday</p><p><span class="md">- </span>Designs final by next Wednesday; send them to<i class="icar"></i></p><p><span class="md">- </span>Three icon options; vote for one</p></div>
+        <div class="mtoast glass">${ICON_SPARK}Claude added to the end. Your cursor stayed put.<button class="b lnk" style="padding:0 8px">Show ↓</button></div></div></div></div>`;
     },
     undo(){
-      const list=['办公室 wifi','周会要点 · 11月13日','常用 SQL：按天统计','咖啡豆比例','租房合同要点'].map(N);
-      return `<div class="mf"><div class="mp glass">${mfield('',{ph:'搜索或新建…'})}<div class="mls">${list.map((n,i)=>mrow(n,{sel:i===2})).join('')}</div><div class="mft undo">${ICON_TRASH.replace('<svg','<svg style="width:15px;height:15px;opacity:.7"')}<span>已删除「护照到期」</span><span class="cnt" style="display:flex;gap:10px;align-items:center"><button class="b pri" style="height:24px">撤销</button>${kx(L().undo)}</span><i class="bar"></i></div></div></div>`;
+      const list=['Office wifi','Weekly sync · Nov 13','SQL: orders per day','Coffee ratio','Lease terms'].map(N);
+      return `<div class="mf"><div class="mp glass">${mfield('',{ph:'Search or create…'})}<div class="mls">${list.map((n,i)=>mrow(n,{sel:i===2})).join('')}</div><div class="mft undo">${ICON_TRASH.replace('<svg','<svg style="width:15px;height:15px;opacity:.7"')}<span>Deleted “Passport renewal”</span><span class="cnt" style="display:flex;gap:10px;align-items:center"><button class="b pri" style="height:24px">Undo</button>${kx(L().undo)}</span><i class="bar"></i></div></div></div>`;
     },
     tray(){
       const k=L();
-      const items=`<div class="mi hl">${ICON_PLUS}新建笔记<span class="k">${kt(k.newNote)}</span></div>
-        <div class="mi">${ICON_SEARCH}呼出 Jot<span class="k">${kt(k.summon)}</span></div>
-        <div class="msep"></div><div class="mh">最近</div>
-        <div class="mi">${ICON_SPARK.replace('<svg','<svg class="cl"')}部署命令</div><div class="mi">${ICON_DOC}办公室 wifi</div><div class="mi">${ICON_DOC}周会要点 · 11月13日</div>
+      const items=`<div class="mi hl">${ICON_PLUS}New Note<span class="k">${kt(k.newNote)}</span></div>
+        <div class="mi">${ICON_SEARCH}Open Jot<span class="k">${kt(k.summon)}</span></div>
+        <div class="msep"></div><div class="mh">Recent</div>
+        <div class="mi">${ICON_SPARK.replace('<svg','<svg class="cl"')}Deploy commands</div><div class="mi">${ICON_DOC}Office wifi</div><div class="mi">${ICON_DOC}Weekly sync · Nov 13</div>
         <div class="msep"></div>
-        <div class="mi"><span class="dot"></span>Claude 已连接</div>
-        <div class="mi">${ICON_FOLDER_P}在${k.files}中打开笔记文件夹</div>
-        <div class="mi">${ICON_GEAR}设置…<span class="k">${kt(k.settings)}</span></div>
-        <div class="msep"></div><div class="mi">${P==='windows'?ICON_X:'<svg viewBox="0 0 20 20"></svg>'}退出 Jot<span class="k">${kt(k.quit)}</span></div>`;
+        <div class="mi"><span class="dot"></span>Claude connected</div>
+        <div class="mi">${ICON_FOLDER_P}Open Notes Folder in ${k.files}</div>
+        <div class="mi">${ICON_GEAR}Settings…<span class="k">${kt(k.settings)}</span></div>
+        <div class="msep"></div><div class="mi">${P==='windows'?ICON_X:'<svg viewBox="0 0 20 20"></svg>'}Quit Jot<span class="k">${kt(k.quit)}</span></div>`;
       if(P==='windows') return `<div class="mf"><div class="mn glass" style="right:70px;bottom:58px">${items}</div><div class="mtb"><span class="ti">${ICON_UP}</span><span class="ti on">${ICON_PEN}</span><span class="ti">${ICON_WIFI}</span><span class="ti">${ICON_VOL}</span><span class="clk"><span>09:41</span><span>2026/11/13</span></span></div></div>`;
-      if(P==='linux') return `<div class="mf"><div class="mgb"><span class="ws"><i></i><i></i><i></i></span><span class="clk">11月13日 09:41</span><span class="ti on">${ICON_PEN}</span><span>${ICON_WIFI}</span><span>${ICON_VOL}</span><span>${ICON_BATT}</span></div><span class="mtag">装了 AppIndicator 扩展才有这个图标</span><div class="mn glass" style="right:60px;top:38px">${items}</div></div>`;
-      return `<div class="mf"><div class="mbar"><span class="ti on">${ICON_PEN}</span><span>${ICON_WIFI}</span><span>${ICON_BATT}</span><span>周五 11月13日</span><span>09:41</span></div><div class="mn glass" style="right:160px;top:30px">${items}</div></div>`;
+      if(P==='linux') return `<div class="mf"><div class="mgb"><span class="ws"><i></i><i></i><i></i></span><span class="clk">Nov 13 09:41</span><span class="ti on">${ICON_PEN}</span><span>${ICON_WIFI}</span><span>${ICON_VOL}</span><span>${ICON_BATT}</span></div><span class="mtag">This icon needs the AppIndicator extension</span><div class="mn glass" style="right:60px;top:38px">${items}</div></div>`;
+      return `<div class="mf"><div class="mbar"><span class="ti on">${ICON_PEN}</span><span>${ICON_WIFI}</span><span>${ICON_BATT}</span><span>Fri Nov 13</span><span>09:41</span></div><div class="mn glass" style="right:160px;top:30px">${items}</div></div>`;
     },
     settings(){
       const k=L();
       const summon = P==='linux'
-        ? `<div class="sr"><div class="l"><b>呼出快捷键</b><span>由 GNOME 管理，在系统的「键盘快捷键」里也能改</span></div><div class="ri">${kx('Super+J')}<button class="b">更改…</button></div></div>`
-        : `<div class="sr"><span class="rd on"></span><div class="l"><b>${esc(k.summonTxt)}</b><span>${P==='macos'?'<span class="dot" style="width:6px;height:6px;margin-right:4px"></span>已获得辅助功能权限':'不需要额外权限'}</span></div></div>
-           <div class="sr"><span class="rd"></span><div class="l"><b>快捷键</b><span>没授权或和别的软件冲突时用</span></div><div class="ri"><span class="rec"><i></i>按下新的组合键…<span class="x">${ICON_X}</span></span></div></div>`;
-      const appearance = P==='windows' ? `<span class="dd">跟随系统${ICON_DOWN}</span>` : `<span class="seg"><span class="on">跟随系统</span><span>浅色</span><span>深色</span></span>`;
-      const title = P==='macos'?'Jot 设置':P==='windows'?'Jot 设置':'偏好设置';
+        ? `<div class="sr"><div class="l"><b>Summon Shortcut</b><span>Managed by GNOME; you can also change it in the system’s Keyboard Shortcuts</span></div><div class="ri">${kx('Super+J')}<button class="b">Change…</button></div></div>`
+        : `<div class="sr"><span class="rd on"></span><div class="l"><b>${esc(k.summonTxt)}</b><span>${P==='macos'?'<span class="dot" style="width:6px;height:6px;margin-right:4px"></span>Accessibility access granted':'No extra permission needed'}</span></div></div>
+           <div class="sr"><span class="rd"></span><div class="l"><b>Fallback Shortcut</b><span>For when access isn’t granted or another app has the keys</span></div><div class="ri"><span class="rec"><i></i>Press a new shortcut…<span class="x">${ICON_X}</span></span></div></div>`;
+      const appearance = P==='windows' ? `<span class="dd">Auto${ICON_DOWN}</span>` : `<span class="seg"><span class="on">Auto</span><span>Light</span><span>Dark</span></span>`;
+      const title = P==='macos'?'Jot Settings':P==='windows'?'Jot Settings':'Preferences';
       return `<div class="mf"><div class="mw" style="width:560px;top:50%">${tbar(title)}<div class="wbody">
-        <div class="gt">笔记</div><div class="grp"><div class="sr">${P==='windows'?ICON_FOLDER_P.replace('<svg','<svg class="sic"'):''}<div class="l"><b>笔记文件夹</b><span>${esc(k.folder)}</span></div><div class="ri"><button class="b">更改…</button><button class="b">在${k.files}中显示</button></div></div></div>
-        <div class="gt">呼出</div><div class="grp">${summon}</div>
-        <div class="gt">Claude</div><div class="grp"><div class="sr"><span class="dot"></span><div class="l"><b>Claude Code · 已连接</b><span>jot-mcp 已写进 Claude Code 的配置</span></div><div class="ri"><button class="b">断开</button></div></div><div class="sr"><span class="dot off"></span><div class="l"><b>Claude Desktop · 未连接</b><span>连接后重启一次 Claude Desktop</span></div><div class="ri"><button class="b pri">连接 Claude</button></div></div></div>
-        <div class="gt">通用</div><div class="grp"><div class="sr"><div class="l"><b>外观</b></div><div class="ri">${appearance}</div></div><div class="sr"><div class="l"><b>${k.login}</b></div><div class="ri"><span class="sw on"></span></div></div></div>
+        <div class="gt">Notes</div><div class="grp"><div class="sr">${P==='windows'?ICON_FOLDER_P.replace('<svg','<svg class="sic"'):''}<div class="l"><b>Notes Folder</b><span>${esc(k.folder)}</span></div><div class="ri"><button class="b">Change…</button><button class="b">Show in ${k.files}</button></div></div></div>
+        <div class="gt">Summon</div><div class="grp">${summon}</div>
+        <div class="gt">Claude</div><div class="grp"><div class="sr"><span class="dot"></span><div class="l"><b>Claude Code · Connected</b><span>jot-mcp is in Claude Code’s configuration</span></div><div class="ri"><button class="b">Disconnect</button></div></div><div class="sr"><span class="dot off"></span><div class="l"><b>Claude Desktop · Not connected</b><span>Restart Claude Desktop once after connecting</span></div><div class="ri"><button class="b pri">Connect Claude</button></div></div></div>
+        <div class="gt">General</div><div class="grp"><div class="sr"><div class="l"><b>Appearance</b></div><div class="ri">${appearance}</div></div><div class="sr"><div class="l"><b>${k.login}</b></div><div class="ri"><span class="sw on"></span></div></div></div>
       </div></div></div>`;
     },
     todoedit(){
-      const n=N('生活杂事');
-      return `<div class="mf"><div class="mp ed glass">${mfield('生活')}${sideWith({...n,m:'刚刚'})}<div class="mpp"><h3>生活杂事</h3><div class="meta">刚刚 · 生活杂事.md</div><div class="bd">
-        <p>快递柜的取件码在手机短信里。</p>
-        ${todoLineH({done:true,text:'续健身卡',due:new Date(2026,10,12,18,0),doneAt:TODAY_ISO})}
-        ${todoLineH({done:false,text:'给猫喂药',due:new Date(2026,10,13,21,0)})}
-        ${todoLineH({done:false,text:'买咖啡豆'})}
+      const n=N('Errands');
+      return `<div class="mf"><div class="mp ed glass">${mfield('errands')}${sideWith({...n,m:'Just now'})}<div class="mpp"><h3>Errands</h3><div class="meta">Just now · Errands.md</div><div class="bd">
+        <p>The parcel locker code is in a text message.</p>
+        ${todoLineH({done:true,text:'Renew gym membership',due:new Date(2026,10,12,18,0),doneAt:TODAY_ISO})}
+        ${todoLineH({done:false,text:'Give the cat its pills',due:new Date(2026,10,13,21,0)})}
+        ${todoLineH({done:false,text:'Buy coffee beans'})}
         <div class="todo">${cbH(false,RENT.text)}<span class="tt">${RENT.text}</span>${chipH({...RENT,done:false},'',{tip:true})}<i class="icar"></i></div></div></div></div></div>`;
     },
     todoview(){
       const k=L(), T=(text,note,due)=>({text,due,n:{t:note},done:false});
-      const gs=[['late','已过期',[T('续健身卡','生活杂事',new Date(2026,10,12,18,0))]],
-        ['today','今天',[T('给房东回电话','租房合同要点',new Date(2026,10,13,10,30)),T('交设计稿反馈','周会要点 · 11月13日',new Date(2026,10,13,14,0)),T('给猫喂药','生活杂事',new Date(2026,10,13,21,0))]],
-        ['tom','明天',[T(RENT.text,RENT.note,RENT.due)]],['later','以后',[T('准备续签材料','护照到期',new Date(2026,10,20,9,0))]],['none','没有时间',[T('买咖啡豆','生活杂事',null)]]];
+      const gs=[['late','Overdue',[T('Renew gym membership','Errands',new Date(2026,10,12,18,0))]],
+        ['today','Today',[T('Call the landlord back','Lease terms',new Date(2026,10,13,10,30)),T('Send design feedback','Weekly sync · Nov 13',new Date(2026,10,13,14,0)),T('Give the cat its pills','Errands',new Date(2026,10,13,21,0))]],
+        ['tom','Tomorrow',[T(RENT.text,RENT.note,RENT.due)]],['later','Upcoming',[T('Gather renewal documents','Passport renewal',new Date(2026,10,20,9,0))]],['none','Anytime',[T('Buy coffee beans','Errands',null)]]];
       let h='', i=0;
       for(const [g,l,items] of gs){ h+=`<div class="mgh${g==='late'?' late':''}">${l}<span>${items.length}</span></div>`;
         for(const t of items){ const s=i===1, c=i===2; i++; h+=`<div class="mtd${s?' sel':''}${c?' checking':''}"><i class="ind"></i>${cbH(c,t.text)}<span class="t"><b>${esc(t.text)}</b><span class="nt">${esc(t.n.t)}</span></span>${chipH(t,g)}</div>`; } }
-      return `<div class="mf"><div class="mp glass" style="top:18px">${mfield('待办')}<div class="mls">${h}</div><div class="mft">${foot([['打开笔记',k.enter,true],['勾掉',k.create]],'7 件没勾掉')}</div></div></div>`;
+      return `<div class="mf"><div class="mp glass" style="top:18px">${mfield('todo')}<div class="mls">${h}</div><div class="mft">${foot([['Open Note',k.enter,true],['Complete',k.create]],'7 open')}</div></div></div>`;
     },
-    notify(){ return deskNtf({title:RENT.text,body:RENT.note,acts:['完成','10 分钟后','打开']},true,'09:00'); },
-    missed(){ return deskNtf({title:'错过了 2 个提醒',body:'给猫喂药（昨天 21:00）、交房租（09:00）'},false,'11:05'); },
+    notify(){ return deskNtf({title:RENT.text,body:RENT.note,acts:['Done','In 10 Minutes','Open']},true,'09:00'); },
+    missed(){ return deskNtf({title:'You missed 2 reminders',body:'Give the cat its pills (yesterday 21:00), Pay rent (09:00)'},false,'11:05'); },
     error(){
       const k=L();
-      return `<div class="mf"><div class="mp glass">${mfield('',{ph:'笔记文件夹不可用'})}<div class="merr"><span class="eic">${ICON_FOLDER}</span><b>找不到笔记文件夹</b><p><code>${esc(k.folder)}</code> 不在原来的位置。它可能被移走、改了名，或者在一块没接上的${P==='windows'?'移动硬盘':'外置硬盘'}上。</p><div class="acts"><button class="b pri">重新选择文件夹…</button><button class="b">在原位置新建</button></div><small>Claude 那边会收到同样的错误；修好后两边一起恢复。</small></div></div></div>`;
+      return `<div class="mf"><div class="mp glass">${mfield('',{ph:'Notes folder unavailable'})}<div class="merr"><span class="eic">${ICON_FOLDER}</span><b>Can’t find the notes folder</b><p><code>${esc(k.folder)}</code> isn’t where it was. It may have been moved or renamed, or be on an ${P==='windows'?'external drive':'external disk'} that isn’t connected.</p><div class="acts"><button class="b pri">Choose Folder Again…</button><button class="b">Recreate It Here</button></div><small>Claude gets the same error; once it’s fixed, both work again.</small></div></div></div>`;
     }
   };
 
   const I={
     onboard(){
       const st=(n,cls,b,s)=>`<div class="ios-cell" style="align-items:flex-start;gap:14px"><span style="width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:700;flex:none;${cls==='done'?'background:var(--ok);color:#fff':cls==='cur'?'background:var(--accent);color:#fff':'background:var(--ios-sep)'}">${cls==='done'?ICON_CHECK.replace('<svg','<svg style="width:14px;height:14px"'):n}</span><div><b style="font-weight:600">${b}</b><span class="d">${s}</span></div></div>`;
-      return `<div class="ios" style="background:var(--ios-grouped)">${iosStatus()}<div style="padding:96px 0 0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px"><span class="appic" style="width:72px;height:72px;border-radius:18px">${ICON_PEN}</span><b style="font-size:28px;font-weight:700;margin-top:6px">欢迎使用 Jot</b><span style="font-size:16px;color:var(--ios-2);padding:0 36px;line-height:1.4">随手记，和电脑上的 Jot 用同一个本子。</span></div>
-        <div class="ios-grp" style="margin-top:30px">${st(1,'done','笔记文件夹','iCloud 云盘 › Jot')}${st(2,'cur','和电脑用同一个文件夹','在 Mac 或 PC 的 Jot 里选同一个 iCloud 云盘文件夹，笔记就会同步。')}${st(3,'','Claude 在电脑上连接','Claude 记下的笔记会同步到手机上，带橙色标记。')}</div>
-        <div style="position:absolute;left:24px;right:24px;bottom:54px;display:flex;flex-direction:column;gap:10px"><span class="ios-btn pri">开始使用</span><span style="text-align:center;font-size:15px;color:var(--accent)">选择其他文件夹</span></div><div class="ios-home"></div></div>`;
+      return `<div class="ios" style="background:var(--ios-grouped)">${iosStatus()}<div style="padding:96px 0 0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px"><span class="appic" style="width:72px;height:72px;border-radius:18px">${ICON_PEN}</span><b style="font-size:28px;font-weight:700;margin-top:6px">Welcome to Jot</b><span style="font-size:16px;color:var(--ios-2);padding:0 36px;line-height:1.4">Jot things down, in the same notebook as Jot on your computer.</span></div>
+        <div class="ios-grp" style="margin-top:30px">${st(1,'done','Notes folder','iCloud Drive › Jot')}${st(2,'cur','Use the same folder as your computer','Choose the same iCloud Drive folder in Jot on your Mac or PC, and your notes sync.')}${st(3,'','Claude connects on your computer','Notes Claude saves sync to your phone with an orange mark.')}</div>
+        <div style="position:absolute;left:24px;right:24px;bottom:54px;display:flex;flex-direction:column;gap:10px"><span class="ios-btn pri">Get Started</span><span style="text-align:center;font-size:15px;color:var(--accent)">Choose Another Folder</span></div><div class="ios-home"></div></div>`;
     },
     empty(){
-      return `<div class="ios">${iosStatus()}<div class="ios-v ios-lv">${iosTop()}<div class="ios-sub">0 条笔记 · iCloud 云盘 › Jot</div></div><div class="ios-empty">${ICON_PEN}<b>还没有笔记</b><span>在下面的搜索框里输入标题，<br>就是第一条。</span></div>${iosBar('')}<div class="ios-home"></div></div>`;
+      return `<div class="ios">${iosStatus()}<div class="ios-v ios-lv">${iosTop()}<div class="ios-sub">0 notes · iCloud Drive › Jot</div></div><div class="ios-empty">${ICON_PEN}<b>No notes yet</b><span>Type a title in the search field below<br>to start your first.</span></div>${iosBar('')}<div class="ios-home"></div></div>`;
     },
     nores(){
-      return `<div class="ios" data-kb="1">${iosStatus()}<div class="ios-v ios-lv">${iosTop()}<div class="ios-sub">没有包含「京都行程」的笔记</div><div class="ios-list">${iosCreate('京都行程')}</div></div>${iosBar('京都行程',true)}${iosKb('搜索',true)}<div class="ios-home"></div></div>`;
+      return `<div class="ios" data-kb="1">${iosStatus()}<div class="ios-v ios-lv">${iosTop()}<div class="ios-sub">No notes contain “Kyoto trip”</div><div class="ios-list">${iosCreate('Kyoto trip')}</div></div>${iosBar('Kyoto trip',true)}${iosKb('search',true)}<div class="ios-home"></div></div>`;
     },
     edBar(done){ return `<div class="ed-bar"><span class="gb ios-g">${ICON_BACK}</span><div class="ed-r"><span class="ed-grp ios-g"><span>${ICON_SHARE}</span><span>${ICON_MORE}</span></span>${done?`<span class="gb pri">${ICON_CHECK}</span>`:''}</div></div>`; },
     markdown(){
-      return `<div class="ios" data-kb="1">${iosStatus()}${I.edBar(true)}<div class="ed-sc"><div class="ed-h"><span class="md"># </span>京都行程</div><div class="ed-meta">刚刚</div><div class="ed-body bd" style="font-size:17px">
-        <div class="todo done"><span class="cb on">${ICON_CHECK}</span><span class="tt">订四条河原町的酒店</span></div>
-        <div class="todo"><span class="cb">${ICON_CHECK}</span><span class="tt">买 ICOCA 卡<i class="icar"></i></span></div>
-        <p class="h" style="font-size:20px"><span class="md">## </span>第一天</p><p><span class="md">- </span>伏见稻荷，早上 7 点前到</p>
-        <div class="pre" style="font-size:14px">京都站 → 稻荷站\nJR 奈良线 5 分钟</div></div></div>${iosKb('换行')}<div class="ios-home"></div></div>`;
+      return `<div class="ios" data-kb="1">${iosStatus()}${I.edBar(true)}<div class="ed-sc"><div class="ed-h"><span class="md"># </span>Kyoto trip</div><div class="ed-meta">Just now</div><div class="ed-body bd" style="font-size:17px">
+        <div class="todo done"><span class="cb on">${ICON_CHECK}</span><span class="tt">Book the hotel in Shijo-Kawaramachi</span></div>
+        <div class="todo"><span class="cb">${ICON_CHECK}</span><span class="tt">Get an ICOCA card<i class="icar"></i></span></div>
+        <p class="h" style="font-size:20px"><span class="md">## </span>Day 1</p><p><span class="md">- </span>Fushimi Inari: before 7 am</p>
+        <div class="pre" style="font-size:14px">Kyoto Sta. → Inari Sta.\nJR Nara Line, 5 min</div></div></div>${iosKb('return')}<div class="ios-home"></div></div>`;
     },
     claude(){
-      return `<div class="ios">${iosStatus()}${I.edBar(false)}<div class="ed-sc"><div class="ed-h">部署命令</div><div class="ed-meta"><span class="by">${ICON_SPARK}Claude 记的</span>· 昨天 14:02</div><div class="ed-body bd" style="font-size:17px">
-        <div class="pre" style="font-size:13.5px">cargo build --release -p jot-mcp\nclaude mcp add jot -- ./target/release/jot-mcp</div><p>发布前先在 staging 跑一遍。</p>
-        <div class="app"><div class="app-l" style="font-size:13px">${ICON_SPARK}Claude 追加 · 今天 08:30</div><p>staging 的地址换成了 staging-2.internal，旧地址月底下线。</p></div></div></div><div class="ios-home"></div></div>`;
+      return `<div class="ios">${iosStatus()}${I.edBar(false)}<div class="ed-sc"><div class="ed-h">Deploy commands</div><div class="ed-meta"><span class="by">${ICON_SPARK}By Claude</span>· Yesterday 14:02</div><div class="ed-body bd" style="font-size:17px">
+        <div class="pre" style="font-size:13.5px">cargo build --release -p jot-mcp\nclaude mcp add jot -- ./target/release/jot-mcp</div><p>Run it on staging before a release.</p>
+        <div class="app"><div class="app-l" style="font-size:13px">${ICON_SPARK}Claude appended · Today 08:30</div><p>Staging moved to staging-2.internal; the old address goes away at the end of the month.</p></div></div></div><div class="ios-home"></div></div>`;
     },
     append(){
-      return `<div class="ios" data-kb="1">${iosStatus()}${I.edBar(true)}<div class="ios-pill ios-g">${ICON_SPARK}Claude 在末尾加了一段<span class="u">查看</span></div><div class="ed-sc" style="top:162px"><div class="ed-h">周会要点 · 11月13日</div><div class="ed-meta">刚刚</div><div class="ed-body bd" style="font-size:17px"><p><span class="md">- </span>发布窗口改到下周二</p><p><span class="md">- </span>设计稿下周三前定稿，先给<i class="icar"></i></p><p><span class="md">- </span>图标三套方案，投票选一套</p></div></div>${iosKb('换行')}<div class="ios-home"></div></div>`;
+      return `<div class="ios" data-kb="1">${iosStatus()}${I.edBar(true)}<div class="ios-pill ios-g">${ICON_SPARK}Claude added to the end<span class="u">Show</span></div><div class="ed-sc" style="top:162px"><div class="ed-h">Weekly sync · Nov 13</div><div class="ed-meta">Just now</div><div class="ed-body bd" style="font-size:17px"><p><span class="md">- </span>Release window moves to next Tuesday</p><p><span class="md">- </span>Designs final by next Wednesday; send them to<i class="icar"></i></p><p><span class="md">- </span>Three icon options; vote for one</p></div></div>${iosKb('return')}<div class="ios-home"></div></div>`;
     },
     undo(){
-      const ls=['办公室 wifi','周会要点 · 11月13日','常用 SQL：按天统计','咖啡豆比例','租房合同要点','想读的书'].map(N);
-      return `<div class="ios">${iosStatus()}<div class="ios-v ios-lv">${iosTop()}<div class="ios-sub">6 条笔记 · iCloud 云盘 › Jot</div><div class="ios-list">${ls.map(n=>iosRow(n)).join('')}</div><div class="ios-fade"></div></div><div class="ios-toast ios-g">${ICON_TRASH.replace('<svg','<svg style="width:18px;height:18px;color:var(--ios-2)"')}已删除「护照到期」<span class="u">撤销</span></div>${iosBar('')}<div class="ios-home"></div></div>`;
+      const ls=['Office wifi','Weekly sync · Nov 13','SQL: orders per day','Coffee ratio','Lease terms','Books to read'].map(N);
+      return `<div class="ios">${iosStatus()}<div class="ios-v ios-lv">${iosTop()}<div class="ios-sub">6 notes · iCloud Drive › Jot</div><div class="ios-list">${ls.map(n=>iosRow(n)).join('')}</div><div class="ios-fade"></div></div><div class="ios-toast ios-g">${ICON_TRASH.replace('<svg','<svg style="width:18px;height:18px;color:var(--ios-2)"')}Deleted “Passport renewal”<span class="u">Undo</span></div>${iosBar('')}<div class="ios-home"></div></div>`;
     },
     tray(){
       return `<div class="ios" style="background:linear-gradient(160deg,var(--mac-wall-a),var(--mac-wall-b) 55%,var(--mac-wall-c))">${iosStatus()}<div class="ios-dim" style="-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)"></div>
         <div class="ios-g" style="position:absolute;left:40px;top:300px;width:250px;border-radius:24px;overflow:hidden;font-size:17px;background:var(--ios-cell);border:0">
-          ${[['新建笔记',ICON_COMPOSE],['搜索',ICON_SEARCH],['部署命令',ICON_SPARK],['办公室 wifi',ICON_DOC]].map(([t,ic],i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 18px;${i?'border-top:1px solid var(--ios-sep)':''}">${t}${ic.replace('<svg',`<svg style="width:20px;height:20px;${i===2?'color:var(--claude)':''}"`)}</div>`).join('')}</div>
+          ${[['New Note',ICON_COMPOSE],['Search',ICON_SEARCH],['Deploy commands',ICON_SPARK],['Office wifi',ICON_DOC]].map(([t,ic],i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 18px;${i?'border-top:1px solid var(--ios-sep)':''}">${t}${ic.replace('<svg',`<svg style="width:20px;height:20px;${i===2?'color:var(--claude)':''}"`)}</div>`).join('')}</div>
         <span class="appic" style="position:absolute;left:40px;top:512px;width:64px;height:64px;border-radius:16px;margin:0">${ICON_PEN}</span><div class="ios-home" style="background:#fff"></div></div>`;
     },
     settings(){
-      return `<div class="ios">${iosStatus()}<div class="ios-v ios-lv">${iosTop()}</div><div class="ios-dim"></div><div class="ios-sheet"><div class="hd"><span class="gb ios-g">${ICON_X}</span><span>设置</span><span class="gb pri">${ICON_CHECK}</span></div>
-        <div class="ios-gt">笔记</div><div class="ios-grp"><div class="ios-cell">笔记文件夹<span class="v">iCloud 云盘 › Jot ${ICON_CHEV}</span></div></div>
-        <div class="ios-gt">外观</div><div class="ios-grp"><div class="ios-cell">外观<span class="v">跟随系统 ${ICON_CHEV}</span></div></div>
-        <div class="ios-gt">Claude</div><div class="ios-grp"><div class="ios-cell"><div>在电脑上连接<span class="d">在 Mac 或 PC 的 Jot 设置里点「连接 Claude」。Claude 记下的笔记会经 iCloud 同步到这里。</span></div></div></div>
-        <div class="ios-grp"><div class="ios-cell">关于 Jot<span class="v">${ICON_CHEV}</span></div></div></div><div class="ios-home"></div></div>`;
+      return `<div class="ios">${iosStatus()}<div class="ios-v ios-lv">${iosTop()}</div><div class="ios-dim"></div><div class="ios-sheet"><div class="hd"><span class="gb ios-g">${ICON_X}</span><span>Settings</span><span class="gb pri">${ICON_CHECK}</span></div>
+        <div class="ios-gt">Notes</div><div class="ios-grp"><div class="ios-cell">Notes Folder<span class="v">iCloud Drive › Jot ${ICON_CHEV}</span></div></div>
+        <div class="ios-gt">Appearance</div><div class="ios-grp"><div class="ios-cell">Appearance<span class="v">Auto ${ICON_CHEV}</span></div></div>
+        <div class="ios-gt">Claude</div><div class="ios-grp"><div class="ios-cell"><div>Connect on your computer<span class="d">Click “Connect Claude” in Jot’s settings on your Mac or PC. Notes Claude saves sync here through iCloud.</span></div></div></div>
+        <div class="ios-grp"><div class="ios-cell">About Jot<span class="v">${ICON_CHEV}</span></div></div></div><div class="ios-home"></div></div>`;
     },
     todoedit(){
-      return `<div class="ios" data-kb="1">${iosStatus()}${I.edBar(true)}<div class="ed-sc"><div class="ed-h">生活杂事</div><div class="ed-meta">刚刚</div><div class="ed-body bd" style="font-size:17px"><p>快递柜的取件码在手机短信里。</p>
-        ${todoLineH({done:true,text:'续健身卡',due:new Date(2026,10,12,18,0),doneAt:TODAY_ISO})}
-        ${todoLineH({done:false,text:'给猫喂药',due:new Date(2026,10,13,21,0)})}
-        ${todoLineH({done:false,text:'买咖啡豆'})}
+      return `<div class="ios" data-kb="1">${iosStatus()}${I.edBar(true)}<div class="ed-sc"><div class="ed-h">Errands</div><div class="ed-meta">Just now</div><div class="ed-body bd" style="font-size:17px"><p>The parcel locker code is in a text message.</p>
+        ${todoLineH({done:true,text:'Renew gym membership',due:new Date(2026,10,12,18,0),doneAt:TODAY_ISO})}
+        ${todoLineH({done:false,text:'Give the cat its pills',due:new Date(2026,10,13,21,0)})}
+        ${todoLineH({done:false,text:'Buy coffee beans'})}
         <div class="todo">${cbH(false,RENT.text)}<span class="tt">${RENT.text}</span>${chipH({...RENT,done:false},'')}<i class="icar"></i></div></div></div>
-        <div class="ios-call ios-g" style="left:165px;top:369px;animation:none">${absDue(RENT.due)}<small>周六 · 点一下改时间</small></div>${iosKb('换行')}<div class="ios-home"></div></div>`;
+        <div class="ios-call ios-g" style="left:165px;top:369px;animation:none">${absDue(RENT.due)}<small>Sat · tap to change</small></div>${iosKb('return')}<div class="ios-home"></div></div>`;
     },
     todoview(){
       const T=(text,note,due)=>({text,due,n:{t:note},done:false});
-      const gs=[['late','已过期',[T('续健身卡','生活杂事',new Date(2026,10,12,18,0))]],
-        ['today','今天',[T('给房东回电话','租房合同要点',new Date(2026,10,13,10,30)),T('交设计稿反馈','周会要点 · 11月13日',new Date(2026,10,13,14,0)),T('给猫喂药','生活杂事',new Date(2026,10,13,21,0))]],
-        ['tom','明天',[T(RENT.text,RENT.note,RENT.due)]],['later','以后',[T('准备续签材料','护照到期',new Date(2026,10,20,9,0))]],['none','没有时间',[T('买咖啡豆','生活杂事',null)]]];
+      const gs=[['late','Overdue',[T('Renew gym membership','Errands',new Date(2026,10,12,18,0))]],
+        ['today','Today',[T('Call the landlord back','Lease terms',new Date(2026,10,13,10,30)),T('Send design feedback','Weekly sync · Nov 13',new Date(2026,10,13,14,0)),T('Give the cat its pills','Errands',new Date(2026,10,13,21,0))]],
+        ['tom','Tomorrow',[T(RENT.text,RENT.note,RENT.due)]],['later','Upcoming',[T('Gather renewal documents','Passport renewal',new Date(2026,10,20,9,0))]],['none','Anytime',[T('Buy coffee beans','Errands',null)]]];
       let h='', i=0;
       for(const [g,l,items] of gs){ h+=`<div class="ios-tdh${g==='late'?' late':''}">${l}<span>${items.length}</span></div>`; for(const t of items){ h+=iosTodo(t,g,i,i===1?' open':''); i++; } }
-      return `<div class="ios">${iosStatus()}<div class="ios-v ios-lv">${iosTop().replace('>Jot<','>待办<')}<div class="ios-sub">7 件没勾掉 · 左滑或点圆圈完成</div><div class="ios-list">${h}</div><div class="ios-fade"></div></div>${iosBar('待办')}<div class="ios-home"></div></div>`;
+      return `<div class="ios">${iosStatus()}<div class="ios-v ios-lv">${iosTop().replace('>Jot<','>To-dos<')}<div class="ios-sub">7 open · swipe left or tap a circle to complete</div><div class="ios-list">${h}</div><div class="ios-fade"></div></div>${iosBar('todo')}<div class="ios-home"></div></div>`;
     },
     lock(date,time,card){
       return `<div class="ios ios-lockw">${iosStatus()}<div class="ios-lock"><div class="lk-d">${date}</div><div class="lk-t">${time}</div>${card}</div><div class="ios-home" style="background:#fff"></div></div>`;
     },
     notify(){
-      return I.lock('11月14日 星期六','9:00',`<div class="ios-ntf ios-g need"><span class="n-ic">${ICON_PEN}</span><b class="n-t">${RENT.text}</b><span class="n-tm">现在</span><span class="n-s">${RENT.note}</span></div><span class="need-tag" style="bottom:78px">要等 NSH 支持定时通知</span>`);
+      return I.lock('Saturday, November 14','9:00',`<div class="ios-ntf ios-g need"><span class="n-ic">${ICON_PEN}</span><b class="n-t">${RENT.text}</b><span class="n-tm">now</span><span class="n-s">${RENT.note}</span></div><span class="need-tag" style="bottom:78px">Waits for scheduled notifications in NSH</span>`);
     },
     missed(){
-      return I.lock('11月14日 星期六','11:05',`<div class="stk"></div><div class="ios-ntf ios-g need"><span class="n-ic">${ICON_PEN}</span><b class="n-t">${RENT.text}</b><span class="n-tm">09:00</span><span class="n-s">${RENT.note} · 还有 1 条</span></div><span class="need-tag" style="bottom:66px">要等 NSH 支持定时通知</span>`);
+      return I.lock('Saturday, November 14','11:05',`<div class="stk"></div><div class="ios-ntf ios-g need"><span class="n-ic">${ICON_PEN}</span><b class="n-t">${RENT.text}</b><span class="n-tm">09:00</span><span class="n-s">${RENT.note} · 1 more</span></div><span class="need-tag" style="bottom:66px">Waits for scheduled notifications in NSH</span>`);
     },
     error(){
-      return `<div class="ios">${iosStatus()}<div class="ios-v ios-lv">${iosTop()}</div><div class="ios-empty" style="top:250px"><span style="width:72px;height:72px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn);margin-bottom:6px">${ICON_FOLDER.replace('<svg','<svg style="width:36px;height:36px;color:var(--warn);margin:0"')}</span><b>打不开笔记文件夹</b><span>iCloud 云盘已关闭，或者没有登录 Apple 账户，Jot 读不到「iCloud 云盘 › Jot」。</span></div>
-        <div style="position:absolute;left:24px;right:24px;bottom:54px;display:flex;flex-direction:column;gap:10px"><span class="ios-btn pri">打开设置</span><span class="ios-btn sec">选择其他文件夹</span></div><div class="ios-home"></div></div>`;
+      return `<div class="ios">${iosStatus()}<div class="ios-v ios-lv">${iosTop()}</div><div class="ios-empty" style="top:250px"><span style="width:72px;height:72px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn);margin-bottom:6px">${ICON_FOLDER.replace('<svg','<svg style="width:36px;height:36px;color:var(--warn);margin:0"')}</span><b>Can’t open the notes folder</b><span>iCloud Drive is off or you’re not signed in to an Apple Account, so Jot can’t read “iCloud Drive › Jot”.</span></div>
+        <div style="position:absolute;left:24px;right:24px;bottom:54px;display:flex;flex-direction:column;gap:10px"><span class="ios-btn pri">Open Settings</span><span class="ios-btn sec">Choose Another Folder</span></div><div class="ios-home"></div></div>`;
     }
   };
 
   const STATES=[
-    {id:'onboard',t:'首次启动引导',d:{
-      macos:'三步里只有第二步要动手。辅助功能权限只用来判断 ⌥ 有没有连按两下；不授权也能用，退回 ⌃⌥J。',
-      windows:'Windows 不需要权限，第二步改成直接试一下：按对了自动打勾。教的就是以后天天用的动作。',
-      linux:'第二步由 GNOME 弹出系统的快捷键确认框，最终的组合键以用户在那里定的为准。',
-      iphone:'手机上没有快捷键，也不在手机上连接 Claude，第二、三步改成说明：和电脑用同一个 iCloud 云盘文件夹。'}},
-    {id:'empty',t:'空状态',d:{desk:'第一次呼出时列表是空的。不放示例笔记，只说怎么写第一条，以及 Claude 也能往里记。',iphone:'空列表的提示指向底部搜索框：在那里输入标题就是新建。'}},
-    {id:'nores',t:'搜不到，直接新建',d:{desk:'搜不到时只剩一行「新建」，而且已经选中，按回车就以输入的内容为标题开始写。不弹确认框。',iphone:'搜不到时「新建」排第一行，正好在拇指够得着的地方；点一下开始写。'}},
-    {id:'markdown',t:'编辑中的 Markdown',d:{desk:'标题、列表、待办、代码块、链接。Markdown 符号保留但调淡：看到的就是文件里存的，没有预览和源码两种模式。点勾选框直接勾掉待办。',iphone:'和桌面同一套写法；键盘弹起时右上角出现「完成」，收起键盘并保存。'}},
-    {id:'todoedit',t:'带时间的待办（编辑中）',d:{
-      macos:'写「- [ ] 交房租 明天 9:00」，停 0.8 秒后「明天 9:00」原地变成时间标签，光标不动。悬停看到绝对时间；文件里存的是「- [ ] 交房租 ⏰ 2026-11-14 09:00」。勾掉的一行变淡、划掉，行尾写上完成日期。macOS 的勾选框是圆的，和「提醒事项」一样。',
-      windows:'写法和 macOS 一样。勾选框按 Fluent 画成 4 px 圆角的方框，勾上后填强调色；时间标签也用 4 px 圆角。',
-      linux:'写法和 macOS 一样。勾选框按 libadwaita 画成圆角方框、2 px 描边；工具提示是 GNOME 的深色气泡。',
-      iphone:'同一套写法。手机上没有悬停：点一下时间标签弹出绝对时间，可以改时间或去掉提醒。'}},
-    {id:'todoview',t:'待办视图',d:{
-      desk:'搜索框输入「待办」或 /todo 进入；按已过期、今天、明天、以后、没有时间分组，已过期的标签用警示红。勾掉时勾先画出来，0.3 秒后这一行收起；减弱动态效果时只淡出。回车跳到所在笔记。',
-      iphone:'分组和桌面一样。左滑露出「完成」，或者点圆圈；行跟着手指走，松手按位置弹开或收回。'}},
-    {id:'notify',t:'到点通知',d:{
-      macos:'右上角是系统通知横幅：标题是待办，正文是所在笔记。刘海里同时弹出「提醒 · 交房租」，点一下勾掉，对勾弹出后两边一起收回。',
-      windows:'右下角的 Toast，标题是待办，正文是所在笔记；三个按钮等宽排一行。没有灵动岛：系统通知已经够了。',
-      linux:'GNOME 的通知横幅在顶栏下方正中，按钮是一排药丸按钮。没有灵动岛。',
-      iphone:'锁屏上的通知。App 不在前台时到点的通知要预先交给系统排好，所以要等 NSH 支持定时通知。'},
-      tag:{macos:'通知上的按钮要等 NSH 支持',windows:'通知上的按钮要等 NSH 支持',linux:'通知上的按钮要等 NSH 支持',iphone:'需要 NSH 支持定时通知，以后'}},
-    {id:'missed',t:'错过的提醒',d:{
-      desk:'电脑睡着时到点的提醒，醒来后合成一条「错过了 2 个提醒」，不连弹。没有按钮：点开进待办视图的「已过期」。不放「全部完成」，没看清就批量勾掉容易出错。',
-      iphone:'手机不会因为睡眠错过：系统按时送达，同一个 App 的几条自动叠成一摞。'},tag:{iphone:'需要 NSH 支持定时通知，以后'}},
-    {id:'claude',t:'Claude 写的笔记',d:{desk:'列表和正文头部都有 Claude 的标记。Claude 用 append_note 追加的段落左边一道橙线，标出追加的时间。',iphone:'标记和桌面一样：正文头部写明「Claude 记的」，追加的段落有橙线和时间。'}},
-    {id:'append',t:'编辑时 Claude 追加了内容',d:{desk:'光标、选区、滚动位置都不动，只在纸面底部浮出一句提示；点「查看」才跳到末尾，5 秒没理会就收起。',iphone:'提示浮在顶部导航下方，不挡键盘和正在输入的那一行。'}},
-    {id:'undo',t:'删除后撤销',d:{desk:'删除后 8 秒内可以撤销，底边的细线是倒计时。这段时间里文件还在，过了才真正删掉，所以撤销不会丢东西。',iphone:'左滑删除后，撤销提示出现在底部工具栏上方，8 秒后消失。'}},
-    {id:'tray',t:'托盘菜单',d:{
-      macos:'点菜单栏图标出菜单（HIG：菜单栏附加项用菜单，不用弹出框）。新建和呼出放最上面，退出放最下面。',
-      windows:'左键点任务栏右下角的图标直接呼出浮窗，右键出这个菜单。Windows 菜单项更高，适合触屏。',
-      linux:'GNOME 默认没有托盘，装了 AppIndicator 扩展才有这个图标。没有时照样能用：靠快捷键呼出，设置从浮窗里进。',
-      iphone:'手机上没有托盘，同样的入口放在长按 App 图标弹出的快捷操作里。'},tag:{iphone:'需要 NSH 支持主屏快捷操作，待确认'}},
-    {id:'settings',t:'设置窗口',d:{
-      macos:'只有一页，所以标题是「Jot 设置」、不用工具栏分页（HIG settings）。图里备用快捷键正在录制。',
-      windows:'Fluent 的设置卡片：一项一张卡，控件靠右；外观用下拉框。图里备用快捷键正在录制。',
-      linux:'libadwaita 的分组圆角列表。快捷键交给 GNOME 管，这里只显示当前组合键，点「更改」跳到系统的确认框。',
-      iphone:'手机上只剩笔记文件夹和外观；连接 Claude 在电脑上做。'}},
-    {id:'error',t:'笔记文件夹不可访问',d:{
-      desk:'说清是哪个文件夹、可能为什么不见了，给两种修法。另一种原因是没有权限，那时主按钮换成「打开${sys}」。',
-      iphone:'iCloud 云盘关了或没登录时，说清原因，主按钮直接去系统设置。'}},
+    {id:'onboard',t:'First-run setup',d:{
+      macos:'Of the three steps, only the second needs you. Accessibility access is only used to tell whether ⌥ was pressed twice; Jot works without it, falling back to ⌃⌥J.',
+      windows:'Windows needs no permission, so the second step is simply trying it: get it right and it checks itself off. It teaches the very gesture you’ll use every day.',
+      linux:'In the second step GNOME shows its own shortcut confirmation dialog; the key combination is whatever the user sets there.',
+      iphone:'A phone has no shortcut and doesn’t connect to Claude itself, so steps two and three become explanations: use the same iCloud Drive folder as your computer.'}},
+    {id:'empty',t:'Empty state',d:{desk:'The list is empty the first time you summon it. No sample notes: just how to write the first one, and that Claude can write here too.',iphone:'The empty list’s hint points to the search field at the bottom: typing a title there creates a note.'}},
+    {id:'nores',t:'No results: create',d:{desk:'With no results, only the “Create” row is left, already selected: Return starts writing with what you typed as the title. No confirmation dialog.',iphone:'With no results, “Create” is the first row, right where the thumb reaches; one tap starts writing.'}},
+    {id:'markdown',t:'Markdown while editing',d:{desk:'Headings, lists, to-dos, code blocks, links. The Markdown marks stay but are dimmed: what you see is what the file holds, with no separate preview and source modes. Clicking a checkbox checks off the to-do.',iphone:'The same writing as on the desktop; while the keyboard is up, “Done” appears at the top right, closing the keyboard and saving.'}},
+    {id:'todoedit',t:'A to-do with a time (editing)',d:{
+      macos:'Write “- [ ] Pay rent tomorrow 9:00” and 0.8 s later “tomorrow 9:00” turns into a time chip in place, the caret staying put. Hovering shows the absolute time; the file stores “- [ ] Pay rent ⏰ 2026-11-14 09:00”. A checked line fades and is struck through, with the completion date at its end. Checkboxes on macOS are round, as in Reminders. Chinese and Japanese phrases such as 明天 9:00 or 明日 9時 work the same way.',
+      windows:'Written as on macOS. The checkbox follows Fluent, a square with 4 px corners, filled with the accent when checked; the time chip has 4 px corners too.',
+      linux:'Written as on macOS. The checkbox follows libadwaita, a rounded square with a 2 px border; the tooltip is GNOME’s dark bubble.',
+      iphone:'The same writing. A phone has no hover: tapping a time chip shows the absolute time, where you can change it or remove the reminder.'}},
+    {id:'todoview',t:'To-do view',d:{
+      desk:'Type “todo” or /todo in the search field to open it; grouped as Overdue, Today, Tomorrow, Upcoming and Anytime, with overdue chips in warning red. Checking one off draws the check first, then the row folds away after 0.3 s; with Reduce Motion it only fades. Return jumps to the note it’s in.',
+      iphone:'Grouped as on the desktop. Swipe left to reveal “Done”, or tap the circle; the row follows the finger and snaps open or shut on release.'}},
+    {id:'notify',t:'Due notification',d:{
+      macos:'At the top right, the system notification banner: the to-do as the title, its note as the body. At the same time “Reminder · Pay rent” pops out of the notch; a click checks it off, a check pops and both fold away.',
+      windows:'A toast at the bottom right with the to-do as the title and its note as the body; three buttons of equal width in a row. No island: the system notification is enough.',
+      linux:'GNOME’s notification banner, centered below the top bar, with a row of pill buttons. No island.',
+      iphone:'A notification on the Lock Screen. A due notification has to be handed to the system ahead of time when the app isn’t in the foreground, so this waits for scheduled notifications in NSH.'},
+      tag:{macos:'Notification buttons wait for NSH',windows:'Notification buttons wait for NSH',linux:'Notification buttons wait for NSH',iphone:'Needs scheduled notifications in NSH; later'}},
+    {id:'missed',t:'Missed reminders',d:{
+      desk:'Reminders that came due while the computer slept are merged into one, “You missed 2 reminders”, on waking, instead of a burst. No buttons: clicking opens the to-do view at Overdue. No “Complete All”: checking off a batch you haven’t read is error-prone.',
+      iphone:'A phone doesn’t miss them while asleep: the system delivers them on time, and one app’s notifications stack on their own.'},tag:{iphone:'Needs scheduled notifications in NSH; later'}},
+    {id:'claude',t:'Notes by Claude',d:{desk:'Both the list and the note’s header carry Claude’s mark. A paragraph Claude appends with append_note gets an orange line on its left and the time it was added.',iphone:'Marked as on the desktop: the note’s header says “By Claude”, and appended paragraphs get the orange line and the time.'}},
+    {id:'append',t:'Claude appends while you edit',d:{desk:'The caret, selection and scroll position stay put; only a hint floats up at the bottom of the paper. “Show” jumps to the end; left alone, it folds away after 5 s.',iphone:'The hint floats below the top navigation, clear of the keyboard and the line being typed.'}},
+    {id:'undo',t:'Undo after delete',d:{desk:'A delete can be undone for 8 s; the thin line along the bottom counts down. The file stays until then and is only deleted after, so undo never loses anything.',iphone:'After a swipe-left delete, the undo hint appears above the bottom toolbar and goes away after 8 s.'}},
+    {id:'tray',t:'Tray menu',d:{
+      macos:'Clicking the menu bar icon opens a menu (HIG: menu bar extras use menus, not popovers). New and Open at the top, Quit at the bottom.',
+      windows:'A left click on the icon at the bottom right of the taskbar summons the panel directly; a right click opens this menu. Windows menu items are taller, suited to touch.',
+      linux:'GNOME has no tray by default; this icon only appears with the AppIndicator extension. Without it Jot still works: the shortcut summons it, and settings open from the panel.',
+      iphone:'A phone has no tray; the same entries go in the quick actions of a long press on the app icon.'},tag:{iphone:'Needs Home Screen quick actions in NSH; to confirm'}},
+    {id:'settings',t:'Settings window',d:{
+      macos:'Only one page, so the title is “Jot Settings”, with no toolbar tabs (HIG settings). In the picture the fallback shortcut is being recorded.',
+      windows:'Fluent settings cards: one card per item, controls on the right; Appearance is a dropdown. In the picture the fallback shortcut is being recorded.',
+      linux:'libadwaita’s grouped, rounded list. GNOME manages the shortcut: this only shows the current combination, and “Change” jumps to the system’s confirmation dialog.',
+      iphone:'A phone keeps only the notes folder and appearance; Claude is connected on a computer.'}},
+    {id:'error',t:'Notes folder unavailable',d:{
+      desk:'Say which folder it is and why it may have gone, and offer two fixes. When the cause is a missing permission, the main button becomes “Open ${sys}”.',
+      iphone:'When iCloud Drive is off or signed out, say so, and the main button goes straight to Settings.'}},
   ];
 
   const fits=new ResizeObserver(es=>{ for(const e of es){ const f=e.target.querySelector(':scope > .fit'); if(f&&f.dataset.w&&e.contentRect.width) f.style.zoom=e.contentRect.width/+f.dataset.w; } });
@@ -2067,7 +2067,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     const ip=P==='iphone', w=ip?390:680, fh=ip?844:540;
     const pick=STATES.filter(s=>h.includes(s.id)), shown=pick.length?pick:STATES;  // screenshot helper: #…-tray-settings
     g.innerHTML=shown.map(s=>{
-      let cap=s.d[P]||(ip?s.d.iphone:s.d.desk)||''; cap=cap.replace('${sys}',L().sys||'系统设置');
+      let cap=s.d[P]||(ip?s.d.iphone:s.d.desk)||''; cap=cap.replace('${sys}',L().sys||'System Settings');
       const tag=s.tag&&s.tag[P];
       return `<figure class="sc"><div class="frame" style="aspect-ratio:${w}/${fh}"><div class="fit" data-w="${w}" style="width:${w}px;height:${fh}px" aria-hidden="true">${(ip?I:D)[s.id]()}</div></div><figcaption><b>${s.t}</b><span>${cap}</span>${tag?`<span class="tag">${tag}</span>`:''}</figcaption></figure>`;
     }).join('');
@@ -2076,10 +2076,10 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
 
   /* ───────── platform switching ───────── */
   const NOTE={
-    macos:'连按两下 <kbd>⌥</kbd> 呼出；浮窗里直接打字，<kbd>↩</kbd> 打开，<kbd>esc</kbd> 返回。第一行「今天 3 件待办」回车进待办视图（也可以输入「待办」或 /todo），<kbd>⌘</kbd><kbd>↩</kbd> 勾掉。右上角可以切到外接显示器，看没有刘海时灵动岛的样子。',
-    windows:'连按两下 <kbd>Ctrl</kbd> 呼出（这里连按 <kbd>Alt</kbd> 也行）。输入「待办」进待办视图，<kbd>Ctrl</kbd><kbd>Enter</kbd> 勾掉。浮窗是 Acrylic；托盘在右下角；灵动岛从屏幕上沿正中垂下，到点提醒用右下角的 Toast。',
-    linux:'按 <kbd>Super</kbd><kbd>J</kbd> 呼出（浏览器里用 <kbd>Ctrl</kbd><kbd>J</kbd>，连按 <kbd>Alt</kbd> 也行）。输入「待办」进待办视图，<kbd>Ctrl</kbd><kbd>Enter</kbd> 勾掉。浮窗是实色表面，没有模糊；GNOME 默认没有托盘；灵动岛在顶栏下方。',
-    iphone:'点底部的搜索框开始；第一行「今天 3 件待办」进待办视图，左滑完成。点笔记打开，点正文编辑，点右上角的对勾收起键盘。手机上的到点提醒要等 NSH 支持定时通知。两侧的小组件和分享扩展只是示意。'
+    macos:'Double-press <kbd>⌥</kbd> to summon; type straight into the panel, <kbd>↩</kbd> opens, <kbd>esc</kbd> goes back. Return on the first row, “3 to-dos today”, opens the to-do view (or type “todo” or /todo); <kbd>⌘</kbd><kbd>↩</kbd> checks one off. Switch to an external display at the top right to see the island without a notch.',
+    windows:'Double-press <kbd>Ctrl</kbd> to summon (a double <kbd>Alt</kbd> works here too). Type “todo” for the to-do view; <kbd>Ctrl</kbd><kbd>Enter</kbd> checks one off. The panel is Acrylic; the tray is at the bottom right; the island hangs from the middle of the top edge, and due reminders are toasts at the bottom right.',
+    linux:'Press <kbd>Super</kbd><kbd>J</kbd> to summon (in a browser, <kbd>Ctrl</kbd><kbd>J</kbd> or a double <kbd>Alt</kbd>). Type “todo” for the to-do view; <kbd>Ctrl</kbd><kbd>Enter</kbd> checks one off. The panel is a solid surface with no blur; GNOME has no tray by default; the island sits below the top bar.',
+    iphone:'Start with the search field at the bottom; the first row, “3 to-dos today”, opens the to-do view; swipe left to complete. Tap a note to open it, tap the text to edit, tap the check at the top right to close the keyboard. Due reminders on the phone wait for scheduled notifications in NSH. The widget and share extension on either side are only sketches.'
   };
   function termBar(){
     if(P==='windows') return `<div class="tab">${'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 4 4-4 4M10 14h6"/></svg>'}<span>${L().termTitle}</span><span class="x">${ICON_X.replace('<svg','<svg style="width:.8cqw;height:.8cqw"')}</span></div><span class="plus">${ICON_PLUS.replace('<svg','<svg style="width:1cqw;height:1cqw"')}</span><span class="cap"><span>${ICON_MIN}</span><span>${ICON_MAX}</span><span>${ICON_X}</span></span>`;
@@ -2096,28 +2096,28 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
     const k=L();
     if(p!=='iphone'){
       $('#chip').innerHTML=chip();
-      hint.innerHTML=p==='linux'?`按 ${kx(k.summon)} 呼出 Jot`:`连按两下 ${kx(p==='macos'?'⌥':'Ctrl')} 呼出 Jot`;
+      hint.innerHTML=p==='linux'?`Press ${kx(k.summon)} to summon Jot`:`Double-press ${kx(p==='macos'?'⌥':'Ctrl')} to summon Jot`;
       const bar=$('#tbar'); bar.className='bar'+(p==='windows'?' win':p==='linux'?' adw':''); bar.innerHTML=termBar();
       render(false);
     } else { phReset(); }
     $('#pnote').innerHTML=NOTE[p];
-    $('#stage').setAttribute('aria-label',`Jot 交互演示 · ${k.stage}`);
+    $('#stage').setAttribute('aria-label',`Jot interactive demo · ${k.stage}`);
     $('#openBtn').style.display=p==='iphone'?'none':'';
     $('#readBtn').style.display=p==='iphone'?'none':'';
-    $('#writeBtn').textContent=p==='iphone'?'Claude 在电脑上记一条（同步过来）':'让 Claude 记一条';
-    $('#ctodoBtn').textContent=p==='iphone'?'Claude 在电脑上加提醒（同步过来）':'让 Claude 加提醒';
-    $('#alarmBtn').textContent=p==='iphone'?'到点提醒（示意）':'到点提醒';
-    const mat={macos:['Liquid Glass（regular）','浮窗外框、搜索框、提示胶囊。整个界面只有这一块玻璃，不叠玻璃。'],
-      windows:['Acrylic','浮窗外框和提示胶囊用 Acrylic，和 Windows 11 的弹出菜单、开始菜单是同一种材质。正文不用。'],
-      linux:['实色 popover 表面','NSH 的 Linux 后端没有背景模糊，浮窗用 libadwaita 的 popover 颜色，靠 1px 描边和阴影和桌面分开。'],
-      iphone:['Liquid Glass','只用在底部搜索框、工具栏按钮和键盘这些浮在列表上的控件；列表和正文不用。']}[p];
+    $('#writeBtn').textContent=p==='iphone'?'Claude jots on the computer (synced here)':'Have Claude jot a note';
+    $('#ctodoBtn').textContent=p==='iphone'?'Claude adds a reminder on the computer (synced here)':'Have Claude add a reminder';
+    $('#alarmBtn').textContent=p==='iphone'?'Reminder comes due (sketch)':'Reminder comes due';
+    const mat={macos:['Liquid Glass (regular)','The panel’s frame, the search field and hint capsules. This is the only glass in the interface; glass is never stacked.'],
+      windows:['Acrylic','The panel frame and hint capsules use Acrylic, the same material as the flyout menus and Start menu of Windows 11. Never the text.'],
+      linux:['Solid popover surface','NSH’s Linux backend has no background blur, so the panel uses libadwaita’s popover color, set off from the desktop by a 1px border and a shadow.'],
+      iphone:['Liquid Glass','Only on the controls floating over the list: the bottom search field, toolbar buttons and the keyboard; never the list or the text.']}[p];
     $('#matName').textContent=mat[0]; $('#matDesc').textContent=mat[1];
     const notchless=html.dataset.notch==='no';
-    $('#islSub').textContent={macos:notchless?'外接显示器没有刘海：平时什么也不画，Claude 动本子时从菜单栏正中垂下同样形状的岛。':'从刘海里长出来，只在 Claude 动你的本子时出现。',
-      windows:'没有刘海：从屏幕上沿正中垂下一枚深色 Acrylic 胶囊，说完就收回。备选是右下角托盘上方弹出。',
-      linux:'没有刘海：出现在顶栏下方正中，也就是 GNOME 通知横幅的位置；实色，没有模糊。',
-      iphone:'iPhone 上不用：画进灵动岛要 Live Activity，属于 App 扩展。Claude 记的笔记同步过来时，列表里那一行亮一下。'}[p];
-    $('#islIdle').textContent=(p==='macos'&&!notchless)?'平时：和刘海一样，看不出来':'平时：什么也没有';
+    $('#islSub').textContent={macos:notchless?'An external display has no notch: nothing is drawn at rest, and when Claude touches the notebook an island of the same shape hangs from the middle of the menu bar.':'Grows out of the notch, and only appears when Claude touches your notebook.',
+      windows:'No notch: a dark Acrylic capsule hangs from the middle of the top edge and folds away when it’s done. The alternative pops up above the tray at the bottom right.',
+      linux:'No notch: it appears centered below the top bar, where GNOME shows notification banners; solid, no blur.',
+      iphone:'Not used on iPhone: drawing in the Dynamic Island needs a Live Activity, an App Extension. When a note by Claude syncs in, its row in the list lights up briefly.'}[p];
+    $('#islIdle').textContent=(p==='macos'&&!notchless)?'At rest: same as the notch, invisible':'At rest: nothing';
     renderGallery();
     if(!keepHash){ try{ const th=html.dataset.theme; history.replaceState(null,'','#'+p+(th?'-'+th:'')+(p==='macos'&&notchless?'-external':'')); }catch(e){} }
     if(p!=='iphone') setTimeout(()=>{ if(P===p&&panel.dataset.state==='hidden') show(); }, reduce?0:450);
@@ -2153,7 +2153,7 @@ html.only-tbl .wrap>:not(section:has(.cmp)):not(.spec){display:none}
   if(h.includes('read')) setTimeout(()=>claudeRead().catch(()=>{}),100);
   if(h.includes('demo')) setTimeout(demo,100);
   // -todo: the to-do view; -remind / -alarm / -ctodo: the to-do demos; -swipe: a phone row swiped open.
-  if(h.includes('todo')) setTimeout(()=>{ if(P==='iphone'){ $('#phq').value='待办'; phRender(); if(h.includes('swipe')) $('#phl .ptd[data-i="1"]')?.classList.add('open'); } else { q.value='待办'; sel=1; setState('list'); render(false); } },700);
+  if(h.includes('todo')) setTimeout(()=>{ if(P==='iphone'){ $('#phq').value='todo'; phRender(); if(h.includes('swipe')) $('#phl .ptd[data-i="1"]')?.classList.add('open'); } else { q.value='todo'; sel=1; setState('list'); render(false); } },700);
   if(h.includes('remind')) setTimeout(remindDemo,100);
   if(h.includes('alarm')) setTimeout(alarmDemo,600);
   if(h.includes('ctodo')) setTimeout(()=>claudeTodo().catch(()=>{}),100);

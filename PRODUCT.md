@@ -1,77 +1,105 @@
-# Jot（代号）产品定义
+# Jot (code name): product definition
 
-## 一句话
+## In one sentence
 
-按一个快捷键呼出的速记本：输入框既是搜索框也是新笔记的标题；你和 Claude 共用这个本子，Claude 能往里记，也能读出来。
+A quick-notes notebook you summon with a shortcut: the input field is both the search field and the new note's title;
+you and Claude share the notebook, so Claude can write into it and read from it too.
 
-## 为什么做
+## Why
 
-- Notational Velocity / nvALT 的交互（搜索即新建）至今有人用，2026-10 还被作者重新发版，但只有 Mac 版；Windows、Linux、手机上没有像样的同类。
-- Heynote 这类草稿板是 Electron，被吐槽包大、吃内存，也没有手机版。
-- AI 助手每次会话都从零开始。一个它能写、能搜、能读的本地小本子，让你和它之间有一份共同的记忆。
+- Notational Velocity / nvALT's interaction (searching is creating) still has users, and its author shipped a new
+  release in 2026-10, but it is Mac-only; there is nothing comparable on Windows, Linux or phones.
+- Scratchpads such as Heynote are Electron apps, criticized for their size and memory use, and have no phone version.
+- AI assistants start from zero in every session. A small local notebook they can write, search and read gives you
+  and them a shared memory.
 
-## 核心交互
+## Core interaction
 
-1. 连按两下 ⌥ 呼出一个居中的浮窗，再按一次或按 Esc 隐藏（⌥Space 常被启动器占用）。双击 ⌥ 需要辅助功能权限；没授权时退回一个可改的备用快捷键。
-2. 浮窗顶部是输入框。输入时按标题和正文实时过滤，最近修改的排前面。
-3. ↑↓ 选中，回车打开；搜不到时回车直接以输入内容为标题新建。
-4. 下方是正文编辑区，Markdown 高亮，边写边自动保存，没有保存按钮。
-5. Claude 写的笔记在列表里带一个小标记；App 开着时，新笔记会立刻出现。
+1. Double-press ⌥ to summon a centered floating panel; press it again or Esc to hide it (⌥Space is often taken by
+   launchers). Double-pressing ⌥ needs Accessibility access; without it, Jot falls back to a fallback shortcut you can
+   change.
+2. The input field sits at the top of the panel. Typing filters notes by title and body as you type, most recently
+   modified first.
+3. ↑↓ select, Return opens; when nothing matches, Return creates a note with what you typed as its title.
+4. Below is the editor, with Markdown highlighting and autosave as you type; there is no save button.
+5. Notes Claude wrote carry a small mark in the list; while the app is open, new notes appear immediately.
 
-## 待办和提醒
+## To-dos and reminders
 
-Jot 仍是速记本，待办长在笔记里，不另起一套任务管理。
+Jot is still a notebook: to-dos live in notes, not in a separate task manager.
 
-- 任何笔记里写 `- [ ] 内容` 就是一条待办，点勾选框或在行上按 ⌘↩ 勾掉，勾掉后写成 `- [x]`，并在行尾记完成时间 `✅ 2026-11-14`。
-- 写时间就是提醒：`- [ ] 交房租 明天 9:00`。保存时把相对时间换成绝对时间写进文件：`- [ ] 交房租 ⏰ 2026-11-14 09:00`
-  （「明天」第二天就不对了，所以文件里只存绝对时间；`⏰ YYYY-MM-DD HH:mm` 与 Obsidian 的 Reminder 插件同一写法）。界面上把它画成一个时间标签。
-  认的说法：今天 / 明天 / 后天、周一到周日、下周五、11月20日、20号、9点 / 9:30 / 下午3点、半小时后 / 2小时后；只写日期不写时间时默认 9:00。
-- 改时间不用打字：点笔记里的时间标签、待办视图里的时间，或在待办上按 ⇧⌘D（⌘K 里的「提醒时间…」），弹出时间选择：先是「一小时后 / 今晚 / 明天上午 / 下周一」
-  （已过的不显示），再是日历和时间，设定（⌘↩）；有时间时可「移除提醒」。在笔记里改是一次编辑，⌘Z 撤回；改了时间的提醒按新时间响，之前的「10 分钟后」作废。
-- 到点：桌面弹系统通知（标题是待办内容，正文是所在笔记），按钮「完成」「10 分钟后」「打开」；Mac 上灵动岛同时弹出「提醒 · 交房租」，点一下勾掉。
-  电脑睡着时错过的提醒，醒来后合成一条「错过了 2 个提醒」。
-- 待办视图：搜索框输入「待办」（或 `/todo`），列出所有没勾掉的待办，分组：已过期、今天、明天、以后、没有时间；每条显示所在笔记。
-  浮窗刚呼出、还没输入时，列表顶部有一行「今天 3 件待办」，回车进入待办视图。
-- Claude：说「提醒我周五交周报」，Claude 写进一条带时间的待办；问「我今天有什么要做的」，Claude 列出来；说「把交房租改到周五」，Claude 改它的时间。
+- `- [ ] text` in any note is a to-do. Click its checkbox or press ⌘↩ on its line to check it off; it becomes `- [x]`,
+  with the completion date at the end of the line: `✅ 2026-11-14`.
+- Writing a time makes it a reminder: `- [ ] 交房租 明天 9:00` ("pay rent tomorrow 9:00"). On save, the relative time
+  is replaced by an absolute one in the file: `- [ ] 交房租 ⏰ 2026-11-14 09:00`
+  ("tomorrow" stops being true the next day, so the file only stores absolute times; `⏰ YYYY-MM-DD HH:mm` is the same
+  form as Obsidian's Reminder plugin). The interface draws it as a time chip.
+  Phrases understood: 今天 / 明天 / 后天 (today / tomorrow / the day after tomorrow), 周一 to 周日 (Monday to Sunday),
+  下周五 (next Friday), 11月20日 (Nov 20), 20号 (the 20th), 9点 / 9:30 / 下午3点 (9 o'clock / 9:30 / 3 pm),
+  半小时后 / 2小时后 (in half an hour / in 2 hours); a date without a time means 9:00. English and Japanese phrases
+  work too (`tomorrow 9am`, `next friday`, `明日 9時`).
+- Changing a time needs no typing: click the time chip in a note or the time in the to-do view, or press ⇧⌘D on a
+  to-do ("Reminder Time…" in ⌘K), and a time picker opens: first "In an hour / This evening / Tomorrow morning / Next
+  Monday" (past ones are left out), then a calendar and a time, set with ⌘↩; when there is a time, "Remove Reminder".
+  A change in a note is one edit that ⌘Z takes back; a reminder whose time changed fires at the new time, and an
+  earlier "in 10 minutes" snooze is dropped.
+- When it comes due: a system notification on the desktop (the to-do as the title, its note as the body) with the
+  buttons "Done", "In 10 Minutes" and "Open"; on the Mac, the notch island also pops out "Reminder · Pay rent", and a
+  click checks it off. Reminders missed while the computer slept are merged into one on waking: "You missed 2
+  reminders".
+- The to-do view: typing "todo" (待办 in Chinese, or `/todo`) in the search field lists every open to-do, grouped as
+  overdue, today, tomorrow, later and without a time; each shows the note it is in. When the panel has just been
+  summoned and nothing is typed yet, the top of the list has a row "3 to-dos today"; Return opens the to-do view.
+- Claude: say "remind me to send the weekly report on Friday" and Claude writes a to-do with a time; ask "what do I
+  have to do today" and Claude lists them; say "move paying rent to Friday" and Claude changes its time.
 
-不做：项目、优先级、标签式上下文、复杂重复规则、指派给别人。
+Not doing: projects, priorities, tag-style contexts, complex recurrence rules, assigning to other people.
 
-## 存储
+## Storage
 
-- 笔记是一个文件夹（默认 `~/Documents/Jot`，可改）里的 `.md` 文件，文件名就是标题。
-- 文件头用 YAML frontmatter 记来源：`source: claude`。用户手写的笔记不加。
-- 同步不自己做，交给 iCloud Drive、Dropbox 或 Syncthing。
+- Notes are `.md` files in a folder (`~/Documents/Jot` by default, changeable); the file name is the title.
+- YAML frontmatter at the top records the source: `source: claude`. Notes the user writes get none.
+- Jot does no syncing of its own; iCloud Drive, Dropbox or Syncthing handle it.
 
-## 给 Claude 的 MCP
+## MCP for Claude
 
-`jot-mcp`：一个 stdio MCP 服务器（Rust），直接读写笔记文件夹，App 不开也能用。
+`jot-mcp`: a stdio MCP server (Rust) that reads and writes the notes folder directly, so it works whether or not the
+app is running.
 
-| 工具 | 作用 |
+| Tool | What it does |
 |---|---|
-| `search_notes(query, limit?)` | 按标题和正文搜索，返回标题、摘要、修改时间 |
-| `read_note(title)` | 读出一条笔记的全文 |
-| `recent_notes(limit?)` | 列出最近修改的笔记 |
-| `create_note(title, body)` | 新建；标题已存在时报错，提示改用 `append_note` |
-| `append_note(title, text)` | 往已有笔记末尾追加一段 |
-| `add_todo(text, due?, note?)` | 加一条待办；`due` 是 ISO 时间，`note` 缺省时写进「待办」这条笔记 |
-| `list_todos(range?)` | 列出没勾掉的待办：`overdue` / `today` / `upcoming` / `all`，带时间和所在笔记 |
-| `complete_todo(note, text)` | 勾掉一条待办（只改勾选状态，不删内容） |
-| `reschedule_todo(note, text, due)` | 改一条没勾掉的待办的提醒时间（只改 `⏰` 那段）；`due` 是 ISO 时间或「周五 9点」这类说法，`null` 移除提醒 |
+| `search_notes(query, limit?)` | Searches titles and bodies; returns titles, snippets and modified times |
+| `read_note(title)` | Reads a note's full text |
+| `recent_notes(limit?)` | Lists the most recently modified notes |
+| `create_note(title, body)` | Creates a note; fails if the title exists, suggesting `append_note` instead |
+| `append_note(title, text)` | Appends a paragraph to the end of an existing note |
+| `add_todo(text, due?, note?)` | Adds a to-do; `due` is an ISO time, and without `note` it goes to the note "待办" (To-dos) |
+| `list_todos(range?)` | Lists open to-dos: `overdue` / `today` / `upcoming` / `all`, with their times and notes |
+| `complete_todo(note, text)` | Checks off a to-do (only its checkbox changes; nothing is deleted) |
+| `reschedule_todo(note, text, due)` | Changes the reminder time of an open to-do (only its `⏰` part); `due` is an ISO time or a phrase such as 周五 9点 ("Friday 9 o'clock"), `null` removes the reminder |
 
-第一版不提供删除和覆盖，Claude 改不坏用户手写的内容。安装：`claude mcp add jot -- <jot-mcp 路径> --dir <笔记文件夹>`；App 设置里以后会有一键「连接 Claude」。
+The first version offers no delete or overwrite, so Claude cannot damage what the user wrote. Setup:
+`claude mcp add jot -- <path to jot-mcp> --dir <notes folder>`; a one-click "Connect Claude" will come to the app's
+settings later.
 
-## 第一版做什么、不做什么
+## What the first version does and doesn't do
 
-做：macOS 桌面（NSH 的 AppKit 后端），托盘常驻，双击 ⌥ 呼出的浮窗，搜索即新建，正文编辑和自动保存，监听文件夹变化，待办和桌面提醒，`jot-mcp`，深浅色。
+Does: the macOS desktop (NSH's AppKit backend), resident in the tray, the floating panel summoned by double-pressing ⌥,
+search-to-create, editing with autosave, watching the folder for changes, to-dos and desktop reminders, `jot-mcp`,
+light and dark themes.
 
-先不做：Windows、Linux 和手机（第二步，同一份代码；手机上的到点提醒要等 NSH 支持定时通知），自建同步，标签和文件夹层级，富文本，草稿块和行内计算，App 内的一键连接 Claude。
+Not yet: Windows, Linux and phones (the next step, from the same code; due reminders on phones wait for scheduled
+notifications in NSH), syncing of its own, tags and nested folders, rich text, scratch blocks and inline calculation,
+one-click Claude connection in the app.
 
-## 设计基调
+## Design tone
 
-参考 Bear、Things 和 Raycast 的浮窗：克制、留白足、字体讲究；深浅两套颜色都要精调。浮窗约 680×440，圆角，失去焦点时自动隐藏。
+Modeled on Bear, Things and Raycast's floating panel: restrained, generous whitespace, careful typography; both the
+light and dark palettes finely tuned. The panel is about 680×440, with rounded corners, and hides itself when it
+loses focus.
 
-## 验收
+## Acceptance
 
-- 从按下快捷键到可以打字，感觉不到延迟。
-- 在 Claude Code 里说「把这个命令记到 Jot」，App 列表里立刻出现这条笔记，带 Claude 标记。
-- 在 Claude Code 里问「我在 Jot 里记过 wifi 密码吗」，Claude 能搜到并读出来。
+- From pressing the shortcut to being able to type, there is no perceptible delay.
+- Saying "save this command to Jot" in Claude Code makes the note appear in the app's list at once, with Claude's mark.
+- Asking "did I save the wifi password in Jot?" in Claude Code, Claude finds it and reads it out.

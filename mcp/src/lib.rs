@@ -306,7 +306,7 @@ impl JotServer {
             user when it comes due. Use it when the user asks to be reminded of something (\"提醒我周五交周报\", \
             \"remind me to call mom at 8\") or to put something on their to-do list. Pass the task as `text` and \
             the time as `due` (ISO local time such as 2026-11-14T09:00, or a phrase in Chinese, English or Japanese \
-            (支持中英日) such as 明天 9点 / 下週五 / tomorrow 3pm / in 30 min / 明日の午後3時). The to-do goes \
+            such as 明天 9点 / 下週五 / tomorrow 3pm / in 30 min / 明日の午後3時). The to-do goes \
             to the note \"待办\" unless the user names another note. Confirm the resolved time back to the user.",
         annotations(
             title = "Add to-do",
@@ -490,7 +490,7 @@ impl JotServer {
             to-do's `⏰` time changes; its text stays. Use it when the user asks to reschedule a to-do \
             (\"把交房租改到周五\", \"push the dentist to next monday 9am\", \"不用提醒我交周报了\"). Takes the \
             note and the to-do's text as list_todos showed them (a unique part of the text is enough) and `due`: \
-            ISO local time such as 2026-11-20T09:00, or a phrase in Chinese, English or Japanese (支持中英日) \
+            ISO local time such as 2026-11-20T09:00, or a phrase in Chinese, English or Japanese \
             such as 周五 / 明天下午3点 / next monday 9am / 来週の金曜; `null` removes the reminder. Fails, \
             listing the candidates, when no open to-do or several match: then ask the user which one. Confirm \
             the resolved time back to the user.",
