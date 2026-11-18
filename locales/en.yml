@@ -174,7 +174,7 @@ settings:
     built_with: Built with Native Shell
 
 theme:
-  default: Graphite
+  default: Indigo
   paper: Paper & Ink
   moss: Moss
   dusk: Dusk

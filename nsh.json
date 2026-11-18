@@ -3,6 +3,9 @@
   "id": "com.madcodelife.jot",
   "version": "1.0.0",
   "build": 1,
+  "icon": {
+    "macos": "icon-macos.png"
+  },
   "rust": ".",
   "theme": "ui/theme.json",
   "window": {
