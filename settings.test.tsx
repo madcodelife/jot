@@ -40,8 +40,11 @@ async function openSettings(app: App, tab?: string) {
   }
 }
 
-/** The color of the settings window's title, which reads `title` (the pane's name). */
+/** The color of the settings window's title, which reads `title` (the page's name). */
 const color = (app: App, title: string) => app.spanStyle(`id:settings-title >> text:${title}`)?.color;
+
+/** The color of the empty panel's title (the theme's text). */
+const panelColor = (app: App) => app.spanStyle("id:empty >> text:还没有笔记")?.color;
 
 test("⌘, in the panel opens the settings window on General", async () => {
   const app = await openJot(folder("open"));
@@ -49,8 +52,14 @@ test("⌘, in the panel opens the settings window on General", async () => {
   expect(app.window("settings").state()).toMatchObject({ visible: true, focused: true });
   expect(app.shows("id:settings-pane:general")).toBe(true);
   expect(app.texts()).toContain("通用");
-  // The double press stands in as granted, so General says it is on.
+  // The double press stands in as granted, so its page says it is on.
+  await app.press("id:settings-tab:summon");
+  await app.waitFor("id:settings-pane:summon");
   expect(app.shows("id:settings-summon-on")).toBe(true);
+  // The app's card opens About.
+  await app.press("id:settings-tab:about");
+  await app.waitFor("id:settings-pane:about");
+  expect(app.texts()).toContain("关于 Jot");
   app.dispose();
 });
 
@@ -70,20 +79,28 @@ test("the appearance switches the windows to dark and back, and is kept", async 
   app.dispose();
 });
 
-test("a theme card recolors the windows at once, and is kept", async () => {
+test("a theme recolors the panel, not the settings window, and is kept", async () => {
   const app = await openJot(folder("theme"));
+  await app.waitFor("id:empty");
+  const panel = panelColor(app);
   await openSettings(app, "appearance");
-  const graphite = color(app, "外观");
+  const settings = color(app, "外观");
 
   await app.press("id:theme:paper");
-  await app.waitUntil(() => color(app, "外观") !== graphite);
-  expect(app.storage()["jot.theme"]).toBe("paper");
+  await app.waitUntil(() => app.storage()["jot.theme"] === "paper");
+  expect(color(app, "外观")).toBe(settings);
 
-  // Back to the default: the theme's tokens go, the base ones return.
+  // Back to the default.
   await app.press("id:theme:default");
-  await app.waitUntil(() => color(app, "外观") === graphite);
-  expect(app.storage()["jot.theme"]).toBe("default");
+  await app.waitUntil(() => app.storage()["jot.theme"] === "default");
+  expect(color(app, "外观")).toBe(settings);
   app.dispose();
+
+  // The panel shows in the kept theme's colors.
+  const paper = await openJot(folder("theme-paper"), { "jot.theme": "paper" });
+  await paper.waitFor("id:empty");
+  expect(panelColor(paper)).not.toBe(panel);
+  paper.dispose();
 });
 
 test("the language changes every window's words at once, and is kept", async () => {

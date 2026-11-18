@@ -109,47 +109,51 @@ settings:
   title: 設定
   tabs:
     general: 一般
+    summon: 呼び出しとショートカット
+    voice: 音声
     appearance: 外観
     reminders: リマインダー
     claude: Claude
     about: 情報
   folder:
     label: メモのフォルダ
-    hint: メモは 1 件ずつ、このフォルダの .md ファイルになります
+    hint: メモは 1 件ずつ、このフォルダの .md ファイルになります。iCloud Drive、Dropbox、Syncthing でフォルダを同期できます。
     change: 変更…
     choose: 選択
     reveal: Finder に表示
     failed: このフォルダを開けませんでした：%{error}
   summon:
-    label: 開き方
     double: "%{key} を 2 回押す"
     on: オン
     grant: 許可…
-    grant_hint: 「アクセシビリティ」で Jot を許可してください
     fallback: 予備のショートカット
-    fallback_hint: 2 回押しが使えないときに Jot を開きます
+    footnote: "%{key} の 2 回押しには「プライバシーとセキュリティ › アクセシビリティ」で Jot の許可が必要です。使えないときは予備のショートカットで開きます。"
   voice:
-    label: 音声
     hold: "%{key} 長押しで話す"
-    hold_hint: Jot で %{key} を長押しして入力。ほかの App では %{key} を 2 回押して長押しすると、ひとことメモ
+    hold_hint: Jot で %{key} を長押しして入力。ほかの App では %{key} を 2 回押して長押しすると、ひとことメモ。
     language: 認識する言語
     language_auto: 入力ソースに合わせる
     permission: マイクと音声認識
     permission_hint: 初めて話すときに macOS が両方の許可を求めます
+    permissions: 権限
     denied_hint: 許可されていません。システム設定の「プライバシーとセキュリティ」でオンにしてください
     grant: 許可…
+  startup:
+    label: 起動
   login:
     label: ログイン時に開く
     hint: ログイン後、Jot はメニューバーで待機します
   language:
     label: 言語
+    interface: 表示言語
   appearance:
     label: 外観
     system: 自動
     light: ライト
     dark: ダーク
   theme:
-    label: テーマ
+    label: パネルのテーマ
+    footnote: テーマで変わるのはパネルの色だけです。
     selected: 選択中
   reminders:
     notifications: 通知
@@ -158,7 +162,8 @@ settings:
     island_hint: リマインダーや Claude のメモをノッチから表示します
     island_no_notch: このディスプレイにはノッチがありません
     default_time: デフォルトの時刻
-    default_time_hint: 「明日 家賃」のように日付だけのときに使う時刻
+    time: 時刻
+    default_time_hint: 「明日 家賃」のように日付だけのときに使う時刻。
   claude:
     intro: Claude はこのフォルダのメモを読み書きできます。
     how: Jot を Claude Code につなぐには、ターミナルでこのコマンドを実行します：
@@ -168,9 +173,11 @@ settings:
     path_note: "<jot-mcp のパス> は仮の値です。パッケージ化のときにアプリ内の jot-mcp の場所に置き換わります。"
     then: あとは Claude に「Jot にメモして」「今日やることは？」と話しかけるだけです。
   about:
+    title: Jot について
     tagline: Claude と共有するメモ帳
     version: バージョン %{version}（%{build}）
     built_with: Native Shell で構築
+    open: 開く
 
 theme:
   default: インディゴ

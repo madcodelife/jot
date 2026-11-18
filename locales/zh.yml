@@ -110,47 +110,51 @@ settings:
   title: 设置
   tabs:
     general: 通用
+    summon: 呼出与快捷键
+    voice: 语音
     appearance: 外观
     reminders: 提醒
     claude: Claude
     about: 关于
   folder:
     label: 笔记文件夹
-    hint: 每条笔记是这里的一个 .md 文件
+    hint: 每条笔记是这里的一个 .md 文件。用 iCloud 云盘、Dropbox 或 Syncthing 同步这个文件夹。
     change: 更改…
     choose: 选择
     reveal: 在访达中显示
     failed: 没能打开这个文件夹：%{error}
   summon:
-    label: 呼出方式
     double: 连按两下 %{key}
     on: 已开启
     grant: 去授权…
-    grant_hint: 需要在「辅助功能」里允许 Jot
     fallback: 备用快捷键
-    fallback_hint: 连按两下不可用时，用它呼出
+    footnote: 连按两下 %{key} 需要在「隐私与安全性 › 辅助功能」里允许 Jot；不可用时用备用快捷键呼出。
   voice:
-    label: 语音
     hold: 按住 %{key} 说话
-    hold_hint: 浮窗里按住 %{key} 输入；在别的 App 里连按两下 %{key} 并按住，随手记一句
+    hold_hint: 浮窗里按住 %{key} 输入；在别的 App 里连按两下 %{key} 并按住，随手记一句。
     language: 识别语言
     language_auto: 跟随当前输入法
     permission: 麦克风与语音识别
     permission_hint: 第一次说话时 macOS 会请求这两个权限
+    permissions: 权限
     denied_hint: 没有授权，到系统设置的「隐私与安全性」里打开
     grant: 去授权…
+  startup:
+    label: 启动
   login:
     label: 开机时启动
     hint: 登录后 Jot 待在菜单栏里
   language:
     label: 语言
+    interface: 界面语言
   appearance:
     label: 外观
     system: 跟随系统
     light: 浅色
     dark: 深色
   theme:
-    label: 主题
+    label: 浮窗主题
+    footnote: 主题只换浮窗的颜色。
     selected: 已选
   reminders:
     notifications: 桌面通知
@@ -159,7 +163,8 @@ settings:
     island_hint: 到点和 Claude 记笔记时，从刘海处展开
     island_no_notch: 这块屏幕没有刘海
     default_time: 默认提醒时间
-    default_time_hint: 只写日期时用这个时间，比如「明天交房租」
+    time: 时间
+    default_time_hint: 只写日期时用这个时间，比如「明天交房租」。
   claude:
     intro: Claude 能读写这个文件夹里的笔记。
     how: 在终端里运行这条命令，把 Jot 接到 Claude Code：
@@ -169,9 +174,11 @@ settings:
     path_note: "<jot-mcp 路径> 是占位：打包时会换成 App 里 jot-mcp 的位置。"
     then: 之后在 Claude 里说「记到 Jot」或「我今天有什么要做的」。
   about:
+    title: 关于 Jot
     tagline: 你和 Claude 共用的速记本
     version: 版本 %{version}（%{build}）
     built_with: 用 Native Shell 构建
+    open: 打开
 
 theme:
   default: 默认

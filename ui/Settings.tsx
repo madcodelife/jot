@@ -1,8 +1,12 @@
-// The settings window: a macOS settings window, with the pane's name in the
-// title bar, icon tabs under it, and grouped rows of a label on the left and
-// its control on the right. The window's height follows the pane: each pane
-// is measured as it lays out and the window resizes to it, animated as
-// macOS animates its settings windows, while the new pane fades in.
+// The settings window, shaped as macOS's System Settings: a fixed window with
+// a sidebar on the left (the app's card, then the pages, each behind a
+// coloured tile) over the system's sidebar material, and on the right the
+// page's title over a grouped form, a group's title above it and its
+// explanation under it.
+//
+// The window draws in the `sys-*` tokens, which no Jot theme overrides: it
+// follows the appearance and takes the system's accent, as macOS's own
+// settings do; a theme only recolours the panel.
 //
 // Every change applies at once (`app/settings.ts`); nothing waits for a
 // Save button.
@@ -12,18 +16,19 @@ import {
   colorScheme,
   createAnimatedValue,
   effect,
+  Image,
   localeSettings,
   openUrl,
   platform,
+  Scroll,
   signal,
   Text,
-  token,
   untracked,
   View,
   type Bounds,
   type JSX,
 } from "nsh";
-import { Button, Radio, RadioGroup, Tab, Tabs } from "nsh/base";
+import { Radio, RadioGroup, Tab, Tabs } from "nsh/base";
 import { Application, displays, Window, type Display, type WindowRef } from "nsh/desktop";
 import { t } from "nsh/i18n";
 import { Folder, Summon } from "jot/native";
@@ -51,34 +56,40 @@ import {
 } from "../app/settings";
 import { PRIVACY_URL, speechAvailable, speechDenied } from "../app/voice";
 import { changeFolder, errorMessage, folderPath, folderShown, trusted } from "../app/store";
-import { FORM, Hint, MacSwitch, PopupButton, PushButton, Segmented, TimeInput } from "./controls";
+import appIcon from "./app-icon.svg";
+import { FORM, Hint, MacSwitch, PopupButton, PushButton, TimeInput } from "./controls";
 import { Icon, type IconName } from "./icons";
 import { fadeTo } from "./motion";
-import { Keycaps } from "./parts";
 import { fade, swatch, THEMES, type Appearance, type ThemeName } from "./themes";
 import { T } from "./tokens";
 
-/** The panes, in the toolbar's order. */
-export type SettingsTab = "general" | "appearance" | "reminders" | "claude" | "about";
+/** The pages: the sidebar's, in its order, and the app card's "about". */
+export type SettingsTab = "general" | "summon" | "voice" | "reminders" | "appearance" | "claude" | "about";
 
-const TABS: readonly { id: SettingsTab; icon: IconName }[] = [
-  { id: "general", icon: "gear" },
-  { id: "appearance", icon: "appearance" },
-  { id: "reminders", icon: "bell" },
-  { id: "claude", icon: "spark" },
-  { id: "about", icon: "info" },
+type Page = { id: Exclude<SettingsTab, "about">; icon: IconName; tile: string };
+
+/** The sidebar's pages, each on a tile of its colour (System Settings' own, by kind). Claude stands apart, after a gap. */
+const PAGES: readonly Page[] = [
+  { id: "general", icon: "tileGear", tile: "#8e8e93" },
+  { id: "summon", icon: "tileOption", tile: "#5e5ce6" },
+  { id: "voice", icon: "tileMic", tile: "#ff375f" },
+  { id: "reminders", icon: "tileBell", tile: "#ff3b30" },
+  { id: "appearance", icon: "tileAppearance", tile: "#1c1c1e" },
 ];
+const CLAUDE: Page = { id: "claude", icon: "tileSpark", tile: "#d97757" };
 
-/** The window's width, its title bar (the traffic lights and the pane's name) and the toolbar under it. */
-const WIDTH = 600;
-const TITLE_BAR = 30;
-const TOOLBAR = TITLE_BAR + 56;
-/** A pane's height before it was measured: the window opens near its size. */
-const GUESS: Record<SettingsTab, number> = { general: 470, appearance: 320, reminders: 220, claude: 300, about: 260 };
+/** The window's size (fixed), the sidebar's width, and the strip the traffic lights and the page's title share. */
+const WIDTH = 715;
+const HEIGHT = 540;
+const SIDEBAR = 216;
+const TITLE_BAR = 52;
 
-/** The window is open, and the pane it shows. */
+/** The window is open, and the page it shows. */
 export const settingsOpen = signal(false);
 export const settingsTab = signal<SettingsTab>("general");
+
+/** The page shown: dictation's falls back to General where there is none. */
+const shownTab = (): SettingsTab => (settingsTab() === "voice" && !speechAvailable() ? "general" : settingsTab());
 
 let settingsWindow: WindowRef | undefined;
 
@@ -89,20 +100,7 @@ export function openSettings(tab?: SettingsTab) {
   else settingsOpen.set(true);
 }
 
-/** The pane heights as laid out, so a pane shown again resizes the window at once. */
-const measured = new Map<SettingsTab, number>();
-
 export function SettingsWindow() {
-  /** Whether the window has its first size: until then it resizes without animating. */
-  let sized = false;
-
-  function fit(tab: SettingsTab, height: number) {
-    measured.set(tab, height);
-    if (untracked(settingsTab) !== tab || !settingsWindow) return;
-    settingsWindow.setBounds({ size: { width: WIDTH, height: Math.ceil(TOOLBAR + height) }, animated: sized });
-    sized = true;
-  }
-
   return (
     <Window
       id="settings"
@@ -111,97 +109,145 @@ export function SettingsWindow() {
       open={settingsOpen()}
       onOpenChange={({ open }) => {
         settingsOpen.set(open);
-        if (!open) {
-          settingsWindow = undefined;
-          sized = false;
-        }
+        if (!open) settingsWindow = undefined;
       }}
       ref={(r) => {
         settingsWindow = r;
         r?.focus();
       }}
-      defaultSize={{ width: WIDTH, height: TOOLBAR + (measured.get(untracked(settingsTab)) ?? GUESS[untracked(settingsTab)]) }}
+      defaultSize={{ width: WIDTH, height: HEIGHT }}
       defaultPosition="center"
       titleBar={{ style: "hidden", height: TITLE_BAR }}
+      backdrop="sidebar"
       resizable={false}
       minimizable={false}
       maximizable={false}
     >
-      <View testID="settings" class={`flex-1 bg-window ${fade()}`}>
-        <Toolbar />
-        <View class="absolute inset-x-0" style={{ top: TOOLBAR }} onLayout={({ bounds }) => fit(untracked(settingsTab), bounds.size.height)}>
-          <Pane />
+      <View testID="settings" class="flex-1 flex-row">
+        <Sidebar />
+        <View class={`flex-1 bg-sys-bg ${fade()}`} style={{ minWidth: 0 }}>
+          <View desktop={{ windowDrag: true }} class="flex-row items-center" style={{ height: TITLE_BAR, paddingHorizontal: 20 }}>
+            <Text testID="settings-title" role="header" class="font-bold text-sys-fg" style={{ fontSize: 15, numberOfLines: 1 }}>
+              {shownTab() === "about" ? t("settings.about.title") : t(`settings.tabs.${shownTab()}`)}
+            </Text>
+          </View>
+          <Scroll class="flex-1">
+            <Pane />
+          </Scroll>
         </View>
       </View>
     </Window>
   );
 }
 
-/** The title bar's pane name, and the icon tabs: the selected one on a soft plate in the accent, which springs to the next. */
-function Toolbar() {
+// ——— The sidebar ———
+
+/** The app's card, then the pages; the selection is one soft plate that springs to the next. */
+function Sidebar() {
+  const info = appInfo();
+  const select = (id: SettingsTab) => settingsTab.set(id);
   return (
-    <View desktop={{ windowDrag: true }} class={`border-b border-window-line ${fade()}`} style={{ height: TOOLBAR }}>
-      <View class="items-center justify-center" style={{ height: TITLE_BAR }}>
-        <Text testID="settings-title" class="font-semibold text-window-fg" style={{ fontSize: 13 }}>
-          {t(`settings.tabs.${settingsTab()}`)}
-        </Text>
-      </View>
+    <View
+      desktop={{ windowDrag: true }}
+      class={`bg-sys-sidebar border-r border-sys-line ${fade()}`}
+      style={{ width: SIDEBAR, paddingTop: TITLE_BAR, paddingHorizontal: 10 }}
+    >
       <Tabs
         accessibilityLabel={t("settings.title")}
-        class="flex-row self-center"
-        style={{ gap: 2 }}
-        indicatorClass={`bg-control ${fade()}`}
-        indicatorStyle={{ top: 0, bottom: 0, borderRadius: 8, borderCurve: "continuous" }}
+        class="flex-col"
+        style={{ gap: 1 }}
+        indicatorClass={`bg-sys-selection ${fade()}`}
+        indicatorStyle={{ left: 0, right: 0, borderRadius: 7, borderCurve: "continuous" }}
       >
-        <Each of={[...TABS]} key={(tab) => tab.id}>
-          {(tab) => {
-            const on = () => settingsTab() === tab().id;
-            return (
-              <Tab
-                testID={`settings-tab:${tab().id}`}
-                selected={on()}
-                onPress={() => settingsTab.set(tab().id)}
-                class="items-center justify-center"
-                style={{ minWidth: 70, height: 50, gap: 3, paddingHorizontal: 8 }}
-              >
-                <Icon name={tab().icon} size={21} tint={on() ? token("accent-ink") : token("window-muted")} />
-                <Text class={on() ? "font-medium text-accent-ink" : "text-window-muted"} style={{ fontSize: 11, numberOfLines: 1 }}>
-                  {t(`settings.tabs.${tab().id}`)}
-                </Text>
-              </Tab>
-            );
-          }}
+        <Tab
+          testID="settings-tab:about"
+          selected={shownTab() === "about"}
+          onPress={() => select("about")}
+          accessibilityLabel={t("settings.about.title")}
+          class="flex-row items-center"
+          style={{ gap: 10, paddingVertical: 7, paddingHorizontal: 8, marginBottom: 10, borderRadius: 8 }}
+        >
+          <Image src={appIcon} accessible={false} style={{ width: 36, height: 36, pointerEvents: "none" }} />
+          <View style={{ minWidth: 0, gap: 1 }}>
+            <Text class="font-semibold text-sys-fg" style={{ fontSize: 13 }}>
+              Jot
+            </Text>
+            <Text class="text-sys-muted" style={{ fontSize: 11, numberOfLines: 1, fontVariant: ["tabular-nums"] }}>
+              {t("settings.about.version", { version: info.version ?? "1.0.0", build: info.build ?? 1 })}
+            </Text>
+          </View>
+        </Tab>
+        <Each of={PAGES.filter((p) => p.id !== "voice" || speechAvailable())} key={(page) => page.id}>
+          {(page) => <SidebarRow page={page()} onPress={() => select(page().id)} />}
         </Each>
+        <View style={{ height: 10 }} />
+        <SidebarRow page={CLAUDE} onPress={() => select("claude")} />
       </Tabs>
     </View>
   );
 }
 
-/** The pane shown; a new one fades in. */
+/** A page in the sidebar: its tile, white glyph on its colour, and its name. */
+function SidebarRow(props: { page: Page; onPress: () => void }) {
+  return (
+    <Tab
+      testID={`settings-tab:${props.page.id}`}
+      selected={shownTab() === props.page.id}
+      onPress={props.onPress}
+      class="flex-row items-center"
+      style={{ height: 28, gap: 8, paddingHorizontal: 6, borderRadius: 7 }}
+    >
+      <View
+        class="items-center justify-center"
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: 5,
+          borderCurve: "continuous",
+          backgroundColor: props.page.tile,
+          boxShadow: [{ x: 0, y: 0.5, blur: 1, color: "#00000026" }],
+        }}
+      >
+        <Icon name={props.page.icon} size={14} tint="#ffffff" />
+      </View>
+      <Text class="text-sys-fg" style={{ fontSize: 13, numberOfLines: 1 }}>
+        {t(`settings.tabs.${props.page.id}`)}
+      </Text>
+    </Tab>
+  );
+}
+
+/** The page shown; a new one fades in. */
 function Pane() {
   const opacity = createAnimatedValue(1);
   effect(() => {
-    settingsTab();
+    shownTab();
     untracked(() => {
       opacity.set(0);
       void fadeTo(opacity, 1, 180, 40);
     });
   });
   return (
-    <View testID={`settings-pane:${settingsTab()}`} style={{ paddingHorizontal: 20, paddingTop: 18, paddingBottom: 22, gap: 10, opacity }}>
-      <If when={settingsTab() === "general"}>
+    <View testID={`settings-pane:${shownTab()}`} style={{ paddingHorizontal: 20, paddingTop: 2, paddingBottom: 24, opacity }}>
+      <If when={shownTab() === "general"}>
         <GeneralPane />
       </If>
-      <If when={settingsTab() === "appearance"}>
-        <AppearancePane />
+      <If when={shownTab() === "summon"}>
+        <SummonPane />
       </If>
-      <If when={settingsTab() === "reminders"}>
+      <If when={shownTab() === "voice"}>
+        <VoicePane />
+      </If>
+      <If when={shownTab() === "reminders"}>
         <RemindersPane />
       </If>
-      <If when={settingsTab() === "claude"}>
+      <If when={shownTab() === "appearance"}>
+        <AppearancePane />
+      </If>
+      <If when={shownTab() === "claude"}>
         <ClaudePane />
       </If>
-      <If when={settingsTab() === "about"}>
+      <If when={shownTab() === "about"}>
         <AboutPane />
       </If>
     </View>
@@ -210,13 +256,13 @@ function Pane() {
 
 // ——— The form ———
 
-/** Rows on one rounded plate, a hairline between them. */
-function Group(props: { children: JSX.Element; testID?: string; padded?: boolean }) {
+/** Rows on one rounded plate, a hairline between them; `gap` spaces it from a group right above. */
+function Group(props: { children: JSX.Element; testID?: string; gap?: boolean }) {
   return (
     <View
       testID={props.testID}
-      class={`bg-group border border-group-edge ${fade()}`}
-      style={{ borderRadius: 10, borderCurve: "continuous", overflow: "hidden", padding: props.padded ? 14 : 0 }}
+      class={`bg-sys-group border-sys-group-edge ${fade()}`}
+      style={{ borderWidth: 0.5, borderRadius: 10, borderCurve: "continuous", overflow: "hidden", marginTop: props.gap ? 12 : 0 }}
     >
       {props.children}
     </View>
@@ -226,21 +272,34 @@ function Group(props: { children: JSX.Element; testID?: string; padded?: boolean
 /** A group's title, above it. */
 function SectionTitle(props: { children: string }) {
   return (
-    <Text role="header" class="font-semibold text-window-fg" style={{ fontSize: 13, marginTop: 6, marginLeft: 2 }}>
+    <Text role="header" class="font-semibold text-sys-fg" style={{ fontSize: 13, marginTop: 18, marginBottom: 7, marginLeft: 2 }}>
       {props.children}
     </Text>
   );
 }
 
-/** A row: its label (and a caption under it) on the left, its control on the right. */
+/** What a group is for, under it. */
+function Footnote(props: { children: JSX.Element; tone?: "muted" | "late"; testID?: string }) {
+  return (
+    <Text
+      testID={props.testID}
+      class={props.tone === "late" ? "text-sys-red" : "text-sys-muted"}
+      style={{ fontSize: FORM.hint, lineHeight: 15, marginTop: 6, marginHorizontal: 12 }}
+    >
+      {props.children}
+    </Text>
+  );
+}
+
+/** A row: its label (and a short caption under it) on the left, its control on the right. */
 function Row(props: { label: string; hint?: string | null; hintTone?: "muted" | "late"; divider?: boolean; children?: JSX.Element; testID?: string }) {
   return (
-    <View testID={props.testID} class="flex-row items-center" style={{ minHeight: 44, paddingVertical: 9, paddingHorizontal: 14, gap: 16 }}>
+    <View testID={props.testID} class="flex-row items-center" style={{ minHeight: 40, paddingVertical: 8, paddingHorizontal: 12, gap: 12 }}>
       <If when={props.divider}>
-        <View class={`absolute bg-window-line ${fade()}`} style={{ top: 0, left: 14, right: 14, height: 1 }} />
+        <View class={`absolute bg-sys-line ${fade()}`} style={{ top: 0, left: 12, right: 12, height: 0.5 }} />
       </If>
-      <View class="flex-1" style={{ minWidth: 0, gap: 2 }}>
-        <Text class="text-window-fg" style={{ fontSize: FORM.label }}>
+      <View class="flex-1" style={{ minWidth: 0, gap: 1 }}>
+        <Text class="text-sys-fg" style={{ fontSize: FORM.label }}>
           {props.label}
         </Text>
         <If when={props.hint}>{(hint) => <Hint tone={props.hintTone}>{hint()}</Hint>}</If>
@@ -250,7 +309,52 @@ function Row(props: { label: string; hint?: string | null; hintTone?: "muted" | 
   );
 }
 
+/** A status: a coloured dot and a word, for a permission that is on. */
+function Status(props: { label: string; testID?: string }) {
+  return (
+    <View testID={props.testID} class="flex-row items-center" style={{ gap: 6 }}>
+      <View class="bg-sys-ok" style={{ width: 8, height: 8, borderRadius: 4 }} />
+      <Text class="text-sys-muted" style={{ fontSize: FORM.control }}>
+        {props.label}
+      </Text>
+    </View>
+  );
+}
+
+/** A shortcut's keys as macOS draws them in its settings: a raised cap each. */
+function Keys(props: { keys: readonly string[] }) {
+  return (
+    <View class="flex-row items-center" style={{ gap: 3 }} accessibilityLabel={props.keys.join(" ")}>
+      <Each of={[...props.keys]} key="index">
+        {(key) => (
+          <View
+            class={`items-center justify-center bg-sys-button border-sys-button-edge ${fade()}`}
+            style={{
+              minWidth: 22,
+              height: 22,
+              paddingHorizontal: 6,
+              borderWidth: 0.5,
+              borderRadius: 5,
+              borderCurve: "continuous",
+              boxShadow: [{ x: 0, y: 1, blur: 0, color: "#00000024" }],
+            }}
+          >
+            <Text class="text-sys-fg" style={{ fontSize: 12 }}>
+              {key()}
+            </Text>
+          </View>
+        )}
+      </Each>
+    </View>
+  );
+}
+
 // ——— General ———
+
+/** A Finder folder, in its own blues (not a template icon). */
+const FOLDER_ICON = `data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M3 9a3 3 0 0 1 3-3h6l3 3h11a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3Z" fill="#5ac8fa"/><path d="M3 12a3 3 0 0 1 3-3h20a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3Z" fill="#7fd3fb"/></svg>',
+)}`;
 
 const folderFailed = signal<string | null>(null);
 
@@ -266,7 +370,7 @@ async function chooseFolder() {
 }
 
 function GeneralPane() {
-  // Read when the pane shows: the user may change it in System Settings meanwhile.
+  // Read when the page shows: the user may change it in System Settings meanwhile.
   const atLogin = signal(false);
   void Application.launchAtLogin().then((on) => atLogin.set(on));
   async function setAtLogin(on: boolean) {
@@ -286,65 +390,37 @@ function GeneralPane() {
   return (
     <>
       <Group testID="settings-folder">
-        <View class="flex-row items-center" style={{ minHeight: 58, paddingVertical: 11, paddingHorizontal: 14, gap: 12 }}>
-          <View class={`items-center justify-center bg-control ${fade()}`} style={{ width: 32, height: 32, borderRadius: 8, borderCurve: "continuous" }}>
-            <Icon name="folder" size={18} tint={token("accent-ink")} />
-          </View>
-          <View class="flex-1" style={{ minWidth: 0, gap: 2 }}>
-            <Text class="text-window-fg" style={{ fontSize: FORM.label }}>
+        <View class="flex-row items-center" style={{ minHeight: 52, paddingVertical: 9, paddingHorizontal: 12, gap: 10 }}>
+          <Image src={FOLDER_ICON} accessible={false} style={{ width: 32, height: 32, pointerEvents: "none" }} />
+          <View class="flex-1" style={{ minWidth: 0, gap: 1 }}>
+            <Text class="text-sys-fg" style={{ fontSize: FORM.label }}>
               {t("settings.folder.label")}
             </Text>
-            <Text testID="settings-folder-path" class="text-window-muted" style={{ fontSize: FORM.hint, numberOfLines: 1 }}>
+            <Text testID="settings-folder-path" class="text-sys-muted" style={{ fontSize: FORM.hint, numberOfLines: 1 }}>
               {folderShown()}
             </Text>
           </View>
           <PushButton testID="settings-reveal" label={t("settings.folder.reveal")} onPress={() => void Folder.reveal(untracked(folderPath) ?? "").catch(() => {})} />
           <PushButton testID="settings-change-folder" label={t("settings.folder.change")} onPress={() => void chooseFolder()} />
         </View>
-        <If when={folderFailed()}>
-          {(message) => (
-            <View style={{ paddingHorizontal: 14, paddingBottom: 10, marginTop: -4 }}>
-              <Hint tone="late">{message()}</Hint>
-            </View>
-          )}
-        </If>
       </Group>
-
-      <SectionTitle>{t("settings.summon.label")}</SectionTitle>
-      <Group>
-        <Row
-          label={t("settings.summon.double", { key: T.keys.summonCaps[0] })}
-          hint={trusted() ? null : t("settings.summon.grant_hint")}
-        >
-          <If
-            when={trusted()}
-            else={<PushButton testID="settings-grant" label={t("settings.summon.grant")} onPress={() => Summon.requestTrust()} />}
-          >
-            <View testID="settings-summon-on" class="flex-row items-center" style={{ gap: 6 }}>
-              <View class="bg-ok" style={{ width: 7, height: 7, borderRadius: 3.5 }} />
-              <Text class="text-window-muted" style={{ fontSize: FORM.control }}>
-                {t("settings.summon.on")}
-              </Text>
-            </View>
-          </If>
-        </Row>
-        <Row divider label={t("settings.summon.fallback")} hint={t("settings.summon.fallback_hint")}>
-          <Keycaps keys={T.keys.fallbackCaps} />
-        </Row>
-      </Group>
-
-      <If when={speechAvailable()}>
-        <VoiceSettings />
+      <If when={folderFailed()} else={<Footnote>{t("settings.folder.hint")}</Footnote>}>
+        {(message) => <Footnote tone="late">{message()}</Footnote>}
       </If>
 
+      <SectionTitle>{t("settings.startup.label")}</SectionTitle>
       <Group>
         <Row label={t("settings.login.label")} hint={t("settings.login.hint")}>
           <MacSwitch testID="settings-login" label={t("settings.login.label")} checked={atLogin()} onChange={(on) => void setAtLogin(on)} />
         </Row>
-        <Row divider label={t("settings.language.label")}>
+      </Group>
+
+      <SectionTitle>{t("settings.language.label")}</SectionTitle>
+      <Group>
+        <Row label={t("settings.language.interface")}>
           <PopupButton
             testID="settings-language"
-            label={t("settings.language.label")}
+            label={t("settings.language.interface")}
             items={languages()}
             value={language()}
             onChange={setLanguage}
@@ -355,26 +431,44 @@ function GeneralPane() {
   );
 }
 
-/** Dictation: holding ⌥ to talk, the language listened for, and the permission while it is refused. */
-function VoiceSettings() {
+// ——— Summon & shortcuts ———
+
+function SummonPane() {
+  const key = T.keys.summonCaps[0];
+  return (
+    <>
+      <Group>
+        <Row label={t("settings.summon.double", { key })}>
+          <If
+            when={trusted()}
+            else={<PushButton testID="settings-grant" label={t("settings.summon.grant")} onPress={() => Summon.requestTrust()} />}
+          >
+            <Status testID="settings-summon-on" label={t("settings.summon.on")} />
+          </If>
+        </Row>
+        <Row divider label={t("settings.summon.fallback")}>
+          <Keys keys={T.keys.fallbackCaps} />
+        </Row>
+      </Group>
+      <Footnote>{t("settings.summon.footnote", { key })}</Footnote>
+    </>
+  );
+}
+
+// ——— Voice ———
+
+/** Dictation: holding ⌥ to talk, the language listened for, and the permission (a button while it is refused). */
+function VoicePane() {
+  const key = T.keys.summonCaps[0];
   const languages = (): { value: SpeechLanguageChoice; title: string }[] => [
     { value: "auto", title: t("settings.voice.language_auto") },
     ...SPEECH_LANGUAGES.map((l) => ({ value: l.value, title: l.name })),
   ];
   return (
     <>
-      <SectionTitle>{t("settings.voice.label")}</SectionTitle>
       <Group testID="settings-voice">
-        <Row
-          label={t("settings.voice.hold", { key: T.keys.summonCaps[0] })}
-          hint={t("settings.voice.hold_hint", { key: T.keys.summonCaps[0] })}
-        >
-          <MacSwitch
-            testID="settings-voice-hold"
-            label={t("settings.voice.hold", { key: T.keys.summonCaps[0] })}
-            checked={holdToTalk()}
-            onChange={setHoldToTalk}
-          />
+        <Row label={t("settings.voice.hold", { key })}>
+          <MacSwitch testID="settings-voice-hold" label={t("settings.voice.hold", { key })} checked={holdToTalk()} onChange={setHoldToTalk} />
         </Row>
         <Row divider label={t("settings.voice.language")}>
           <PopupButton
@@ -385,8 +479,12 @@ function VoiceSettings() {
             onChange={setSpeechLanguage}
           />
         </Row>
+      </Group>
+      <Footnote>{t("settings.voice.hold_hint", { key })}</Footnote>
+
+      <SectionTitle>{t("settings.voice.permissions")}</SectionTitle>
+      <Group>
         <Row
-          divider
           label={t("settings.voice.permission")}
           hint={speechDenied() ? t("settings.voice.denied_hint") : t("settings.voice.permission_hint")}
           hintTone={speechDenied() ? "late" : "muted"}
@@ -404,7 +502,62 @@ function VoiceSettings() {
   );
 }
 
+// ——— Reminders ———
+
+/** Whether a display has a notch (a camera housing) for the island to open from. */
+const hasNotch = () => displays().some((d) => ((d as Display & { cutouts?: Bounds[] }).cutouts ?? []).length > 0);
+
+function RemindersPane() {
+  const twelveHour = () => localeSettings().hourCycle === "h12" || localeSettings().hourCycle === "h11";
+  return (
+    <>
+      <Group>
+        <Row label={t("settings.reminders.notifications")} hint={t("settings.reminders.notifications_hint")}>
+          <MacSwitch
+            testID="settings-notifications"
+            label={t("settings.reminders.notifications")}
+            checked={notificationsOn()}
+            onChange={setNotifications}
+          />
+        </Row>
+        <If when={platform.os === "macos"}>
+          <Row
+            divider
+            label={t("settings.reminders.island")}
+            hint={hasNotch() ? t("settings.reminders.island_hint") : t("settings.reminders.island_no_notch")}
+          >
+            <MacSwitch
+              testID="settings-island"
+              label={t("settings.reminders.island")}
+              checked={islandOn() && hasNotch()}
+              disabled={!hasNotch()}
+              onChange={setIsland}
+            />
+          </Row>
+        </If>
+      </Group>
+
+      <SectionTitle>{t("settings.reminders.time")}</SectionTitle>
+      <Group>
+        <Row label={t("settings.reminders.default_time")}>
+          <TimeInput
+            testID="settings-default-time"
+            label={t("settings.reminders.default_time")}
+            value={defaultTime()}
+            hourCycle={twelveHour() ? "h12" : "h23"}
+            onChange={setDefaultTime}
+          />
+        </Row>
+      </Group>
+      <Footnote>{t("settings.reminders.default_time_hint")}</Footnote>
+    </>
+  );
+}
+
 // ——— Appearance ———
+
+/** The appearances' thumbnails: a sliver of a window in each, the automatic one half light and half dark. */
+const THUMB = { light: "#f2f2f4", dark: "#2a2a2d", lightBar: "#d8d8dc", darkBar: "#47474b" } as const;
 
 function AppearancePane() {
   const modes = (): { value: Appearance; label: string }[] => [
@@ -415,146 +568,112 @@ function AppearancePane() {
   return (
     <>
       <Group>
-        <Row label={t("settings.appearance.label")}>
-          <Segmented testID="settings-appearance" label={t("settings.appearance.label")} options={modes()} value={appearance()} onChange={setAppearance} />
-        </Row>
+        <RadioGroup
+          testID="settings-appearance"
+          accessibilityLabel={t("settings.appearance.label")}
+          class="flex-row justify-center"
+          style={{ gap: 16, paddingTop: 14, paddingBottom: 12, paddingHorizontal: 12 }}
+        >
+          <Each of={modes()} key={(m) => m.value}>
+            {(mode) => <AppearanceThumb value={mode().value} label={mode().label} />}
+          </Each>
+        </RadioGroup>
       </Group>
+
       <SectionTitle>{t("settings.theme.label")}</SectionTitle>
-      <RadioGroup accessibilityLabel={t("settings.theme.label")} class="flex-row flex-wrap" style={{ columnGap: 12, rowGap: 12 }}>
-        <Each of={[...THEMES]} key={(name) => name}>
-          {(name) => <ThemeCard name={name()} />}
-        </Each>
-      </RadioGroup>
+      <Group>
+        <RadioGroup
+          accessibilityLabel={t("settings.theme.label")}
+          class="flex-row"
+          style={{ paddingVertical: 12, paddingHorizontal: 6 }}
+        >
+          <Each of={[...THEMES]} key={(name) => name}>
+            {(name) => <ThemeDot name={name()} />}
+          </Each>
+        </RadioGroup>
+      </Group>
+      <Footnote>{t("settings.theme.footnote")}</Footnote>
     </>
   );
 }
 
-/** The width of a theme card: three to a row. */
-const CARD = Math.floor((WIDTH - 40 - 24) / 3);
+/** One appearance: its thumbnail, ringed in the accent when chosen, and its name. */
+function AppearanceThumb(props: { value: Appearance; label: string }) {
+  const chosen = () => appearance() === props.value;
+  const half = (dark: boolean) => (
+    <View class="flex-1" style={{ backgroundColor: dark ? THUMB.dark : THUMB.light, paddingTop: 8, paddingLeft: dark ? 0 : 8, paddingRight: dark ? 8 : 0 }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: dark ? "#1c1c1e" : "#ffffff",
+          borderTopLeftRadius: dark ? 0 : 4,
+          borderTopRightRadius: dark ? 4 : 0,
+        }}
+      >
+        <View style={{ height: 7, backgroundColor: dark ? THUMB.darkBar : THUMB.lightBar, borderTopLeftRadius: dark ? 0 : 4, borderTopRightRadius: dark ? 4 : 0 }} />
+      </View>
+    </View>
+  );
+  return (
+    <Radio
+      testID={`settings-appearance:${props.value}`}
+      checked={chosen()}
+      onChange={() => setAppearance(props.value)}
+      accessibilityLabel={props.label}
+      style={{ alignItems: "center", gap: 6 }}
+    >
+      <View
+        class={chosen() ? "border-sys-accent" : "border-transparent"}
+        style={{ padding: 0, borderWidth: 3, borderRadius: 10, borderCurve: "continuous" }}
+      >
+        <View
+          class="flex-row border-sys-button-edge"
+          style={{ width: 86, height: 54, borderWidth: 0.5, borderRadius: 7, borderCurve: "continuous", overflow: "hidden" }}
+        >
+          <If when={props.value !== "dark"}>{half(false)}</If>
+          <If when={props.value !== "light"}>{half(true)}</If>
+        </View>
+      </View>
+      <Text class={chosen() ? "font-medium text-sys-fg" : "text-sys-muted"} style={{ fontSize: 11, numberOfLines: 1 }}>
+        {props.label}
+      </Text>
+    </Radio>
+  );
+}
 
-/** A theme as a card: a small floating panel in its colours on a desktop, its name under it; the chosen one ringed in the accent, with a check. */
-function ThemeCard(props: { name: ThemeName }) {
+/** A theme as a dot in its accent, ringed in the system's accent when chosen, its name under it. */
+function ThemeDot(props: { name: ThemeName }) {
   const dark = () => colorScheme() === "dark";
-  const s = () => swatch(props.name, dark());
   const chosen = () => theme() === props.name;
-  const solid = props.name === "contrast";
+  const contrast = props.name === "contrast";
   return (
     <Radio
       testID={`theme:${props.name}`}
       checked={chosen()}
       onChange={() => setThemeName(props.name)}
       accessibilityLabel={t(`theme.${props.name}`)}
-      style={{ width: CARD, gap: 6, alignItems: "center" }}
+      class="flex-1"
+      style={{ alignItems: "center", gap: 5 }}
     >
       <View
-        class={chosen() ? "border-primary" : "border-transparent"}
-        style={{ width: CARD, padding: 2, borderWidth: 2, borderRadius: 13, borderCurve: "continuous" }}
+        class={chosen() ? "border-sys-accent" : "border-transparent"}
+        style={{ width: 36, height: 36, borderWidth: 2.5, borderRadius: 18, alignItems: "center", justifyContent: "center" }}
       >
         <View
-          class="border border-group-edge"
           style={{
-            height: 92,
-            borderRadius: 9,
-            borderCurve: "continuous",
-            overflow: "hidden",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            backgroundImage: dark()
-              ? "linear-gradient(135deg, #1d2b4f 0%, #33244f 55%, #123844 100%)"
-              : "linear-gradient(135deg, #bcd3fb 0%, #d9ccf6 55%, #fbd9c8 100%)",
+            width: 26,
+            height: 26,
+            borderRadius: 13,
+            backgroundColor: contrast ? (dark() ? "#ffffff" : "#000000") : swatch(props.name, dark()).accent,
+            borderWidth: contrast ? 3 : 0.5,
+            borderColor: contrast ? (dark() ? "#000000" : "#ffffff") : "#0000001a",
           }}
-        >
-          {/* The panel: the search line, a selected row in the accent, two rows of text. */}
-          <View
-            style={{
-              width: CARD - 36,
-              height: 66,
-              marginBottom: -6,
-              padding: 7,
-              gap: 5,
-              borderRadius: 8,
-              borderCurve: "continuous",
-              backgroundColor: s().surface,
-              borderWidth: solid ? 1.5 : 1,
-              borderColor: solid ? s().ink : s().line,
-              boxShadow: solid ? [] : [{ x: 0, y: 4, blur: 10, color: "#00000033" }],
-            }}
-          >
-            <View class="flex-row items-center" style={{ gap: 4, height: 9 }}>
-              <View style={{ width: 7, height: 7, borderRadius: 3.5, borderWidth: 1.4, borderColor: s().muted }} />
-              <View style={{ width: "46%", height: 4, borderRadius: 2, backgroundColor: s().muted, opacity: 0.6 }} />
-            </View>
-            <View class="flex-row items-center" style={{ height: 12, gap: 4, paddingHorizontal: 4, borderRadius: 4, backgroundColor: s().accent }}>
-              <View style={{ width: "52%", height: 3.5, borderRadius: 2, backgroundColor: solid && dark() ? "#000000" : "#ffffff" }} />
-            </View>
-            <View class="flex-row items-center" style={{ height: 8, gap: 4, paddingHorizontal: 4 }}>
-              <View style={{ width: "40%", height: 3.5, borderRadius: 2, backgroundColor: s().ink }} />
-              <View style={{ width: "24%", height: 3.5, borderRadius: 2, backgroundColor: s().muted, opacity: 0.7 }} />
-            </View>
-            <View class="flex-row items-center" style={{ height: 8, gap: 4, paddingHorizontal: 4 }}>
-              <View style={{ width: "30%", height: 3.5, borderRadius: 2, backgroundColor: s().ink }} />
-              <View style={{ width: "34%", height: 3.5, borderRadius: 2, backgroundColor: s().muted, opacity: 0.7 }} />
-            </View>
-          </View>
-          <If when={chosen()}>
-            <View
-              class="absolute items-center justify-center bg-primary"
-              style={{ right: 6, top: 6, width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: "#ffffff" }}
-            >
-              <Icon name="check" size={11} tint={token("on-accent")} />
-            </View>
-          </If>
-        </View>
+        />
       </View>
-      <Text class={chosen() ? "font-semibold text-window-fg" : "text-window-muted"} style={{ fontSize: 12, numberOfLines: 1 }}>
+      <Text class={chosen() ? "text-sys-fg" : "text-sys-muted"} style={{ fontSize: 11, numberOfLines: 1 }}>
         {t(`theme.${props.name}`)}
       </Text>
     </Radio>
-  );
-}
-
-// ——— Reminders ———
-
-/** Whether a display has a notch (a camera housing) for the island to open from. */
-const hasNotch = () => displays().some((d) => ((d as Display & { cutouts?: Bounds[] }).cutouts ?? []).length > 0);
-
-function RemindersPane() {
-  const twelveHour = () => localeSettings().hourCycle === "h12" || localeSettings().hourCycle === "h11";
-  return (
-    <Group>
-      <Row label={t("settings.reminders.notifications")} hint={t("settings.reminders.notifications_hint")}>
-        <MacSwitch
-          testID="settings-notifications"
-          label={t("settings.reminders.notifications")}
-          checked={notificationsOn()}
-          onChange={setNotifications}
-        />
-      </Row>
-      <If when={platform.os === "macos"}>
-        <Row
-          divider
-          label={t("settings.reminders.island")}
-          hint={hasNotch() ? t("settings.reminders.island_hint") : t("settings.reminders.island_no_notch")}
-        >
-          <MacSwitch
-            testID="settings-island"
-            label={t("settings.reminders.island")}
-            checked={islandOn() && hasNotch()}
-            disabled={!hasNotch()}
-            onChange={setIsland}
-          />
-        </Row>
-      </If>
-      <Row divider label={t("settings.reminders.default_time")} hint={t("settings.reminders.default_time_hint")}>
-        <TimeInput
-          testID="settings-default-time"
-          label={t("settings.reminders.default_time")}
-          value={defaultTime()}
-          hourCycle={twelveHour() ? "h12" : "h23"}
-          onChange={setDefaultTime}
-        />
-      </Row>
-    </Group>
   );
 }
 
@@ -575,21 +694,15 @@ function ClaudePane() {
   }
   return (
     <>
-      <View class="flex-row items-center" style={{ gap: 12, paddingHorizontal: 2, paddingBottom: 4 }}>
-        <View class="items-center justify-center bg-claude/15" style={{ width: 34, height: 34, borderRadius: 9, borderCurve: "continuous" }}>
-          <Icon name="spark" size={19} tint={token("claude")} />
-        </View>
-        <Text class="flex-1 font-medium text-window-fg" style={{ fontSize: 13 }}>
-          {t("settings.claude.intro")}
-        </Text>
-      </View>
-      <Group padded>
-        <View style={{ gap: 10 }}>
-          <Text class="text-window-fg" style={{ fontSize: 12 }}>
+      <Group>
+        <Row label={t("settings.claude.intro")} />
+        <View style={{ paddingHorizontal: 12, paddingTop: 10, paddingBottom: 12, gap: 8 }}>
+          <View class={`absolute bg-sys-line ${fade()}`} style={{ top: 0, left: 12, right: 12, height: 0.5 }} />
+          <Text class="text-sys-fg" style={{ fontSize: FORM.label }}>
             {t("settings.claude.how")}
           </Text>
-          <View class={`flex-row items-center bg-control border border-window-line ${fade()}`} style={{ gap: 10, paddingVertical: 9, paddingLeft: 12, paddingRight: 6, borderRadius: 8, borderCurve: "continuous" }}>
-            <Text testID="settings-claude-command" class="flex-1 font-mono text-window-fg" style={{ fontSize: 11.5, lineHeight: 17, userSelect: "text" }}>
+          <View class={`flex-row items-center bg-sys-field ${fade()}`} style={{ gap: 8, paddingVertical: 7, paddingLeft: 10, paddingRight: 6, borderRadius: 7, borderCurve: "continuous" }}>
+            <Text testID="settings-claude-command" class="flex-1 font-mono text-sys-fg" style={{ fontSize: 11.5, lineHeight: 17, userSelect: "text" }}>
               {command()}
             </Text>
             <PushButton
@@ -602,9 +715,7 @@ function ClaudePane() {
           <Hint>{t("settings.claude.path_note")}</Hint>
         </View>
       </Group>
-      <Text class="text-window-muted" style={{ fontSize: 12, marginLeft: 2 }}>
-        {t("settings.claude.then")}
-      </Text>
+      <Footnote>{t("settings.claude.then")}</Footnote>
     </>
   );
 }
@@ -616,42 +727,34 @@ const NSH_URL = "https://github.com/longbridge/nsh";
 function AboutPane() {
   const info = appInfo();
   return (
-    <View class="items-center" style={{ paddingTop: 10, paddingBottom: 6, gap: 4 }}>
-      <View
-        class="items-center justify-center"
-        style={{
-          width: 76,
-          height: 76,
-          marginBottom: 10,
-          borderRadius: 18,
-          borderCurve: "continuous",
-          backgroundImage: `linear-gradient(160deg, ${token("ring")} 0%, ${token("primary")} 100%)`,
-          boxShadow: [{ x: 0, y: 6, blur: 16, color: "#00000033" }],
-        }}
-      >
-        <Icon name="pen" size={38} tint={token("on-accent")} />
-      </View>
-      <Text class="font-bold text-window-fg" style={{ fontSize: 22, letterSpacing: -0.3 }}>
-        Jot
-      </Text>
-      <Text class="text-window-muted" style={{ fontSize: 12 }}>
-        {t("settings.about.tagline")}
-      </Text>
-      <Text testID="settings-version" class="text-window-muted" style={{ fontSize: 11, fontVariant: ["tabular-nums"], marginTop: 2 }}>
-        {t("settings.about.version", { version: info.version ?? "1.0.0", build: info.build ?? 1 })}
-      </Text>
-      <Button
-        testID="settings-nsh"
-        onPress={() => void openUrl(NSH_URL).catch(() => {})}
-        accessibilityLabel={t("settings.about.built_with")}
-        class="flex-row items-center hover:opacity-80 active:opacity-60"
-        style={{ gap: 4, marginTop: 14, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6 }}
-      >
-        <Text class="text-accent-ink" style={{ fontSize: 12 }}>
-          {t("settings.about.built_with")}
+    <>
+      <View class="items-center" style={{ paddingTop: 22, paddingBottom: 18, gap: 3 }}>
+        <Image
+          src={appIcon}
+          accessibilityLabel="Jot"
+          style={{ width: 84, height: 84, marginBottom: 10, boxShadow: [{ x: 0, y: 6, blur: 16, color: "#00000033" }], borderRadius: 19 }}
+        />
+        <Text class="font-bold text-sys-fg" style={{ fontSize: 20, letterSpacing: -0.3 }}>
+          Jot
         </Text>
-        <Icon name="external" size={12} tint={token("accent-ink")} />
-      </Button>
-    </View>
+        <Text class="text-sys-muted" style={{ fontSize: 12 }}>
+          {t("settings.about.tagline")}
+        </Text>
+        <Text testID="settings-version" class="text-sys-muted" style={{ fontSize: 11, fontVariant: ["tabular-nums"], marginTop: 2 }}>
+          {t("settings.about.version", { version: info.version ?? "1.0.0", build: info.build ?? 1 })}
+        </Text>
+      </View>
+      <Group>
+        <Row label={t("settings.about.built_with")}>
+          <PushButton
+            testID="settings-nsh"
+            icon="external"
+            label={t("settings.about.open")}
+            accessibilityLabel={t("settings.about.built_with")}
+            onPress={() => void openUrl(NSH_URL).catch(() => {})}
+          />
+        </Row>
+      </Group>
+    </>
   );
 }

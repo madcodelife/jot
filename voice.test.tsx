@@ -125,10 +125,11 @@ test("the note's microphone types at the caret, and the final words are saved", 
   app.dispose();
 });
 
-test("General shows the voice group: holding ⌥ to talk is on, and turning it off is kept", async () => {
+test("the settings' Voice page: holding ⌥ to talk is on, and turning it off is kept", async () => {
   const app = await openJot(folder("settings"));
   await app.waitFor("id:search");
   await app.keyboard.press("mod+,");
+  await app.press("id:settings-tab:voice");
   await app.waitFor("id:settings-voice");
   expect(app.texts()).toContain("按住 ⌥ 说话");
   expect(app.texts()).toContain("跟随当前输入法");

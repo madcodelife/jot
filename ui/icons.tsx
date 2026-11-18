@@ -27,6 +27,13 @@ const PATHS = {
   trash: `<g ${STROKE} stroke-width="1.6"><path d="M4 6h12M8 6V4h4v2M5.5 6l.8 10.5h7.4L14.5 6"/></g>`,
   chevron: `<g ${STROKE} stroke-width="1.8"><path d="m8 4.5 5.5 5.5L8 15.5"/></g>`,
   chevrons: `<g ${STROKE} stroke-width="1.7"><path d="m6.5 8 3.5-3.5L13.5 8M6.5 12l3.5 3.5 3.5-3.5"/></g>`,
+  // The settings sidebar's tiles: filled glyphs, white on a colored square (drawn on a 16 grid).
+  tileGear: `<path fill="#000" transform="scale(1.25)" d="M8 5.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6Zm6 3.6V7.2l-1.7-.4-.4-1 .9-1.5-1.1-1.1-1.5.9-1-.4L8.8 2H7.2l-.4 1.7-1 .4-1.5-.9-1.1 1.1.9 1.5-.4 1L2 7.2v1.6l1.7.4.4 1-.9 1.5 1.1 1.1 1.5-.9 1 .4.4 1.7h1.6l.4-1.7 1-.4 1.5.9 1.1-1.1-.9-1.5.4-1Z"/>`,
+  tileOption: `<g ${STROKE} stroke-width="1.7" transform="scale(1.25)"><path d="M2 4.5h3.5l4 7H14M10 4.5h4"/></g>`,
+  tileMic: `<g transform="scale(1.25)"><rect fill="#000" x="5.5" y="1.5" width="5" height="8.5" rx="2.5"/><path ${STROKE} stroke-width="1.5" d="M3.5 7.5a4.5 4.5 0 0 0 9 0M8 12v2.5"/></g>`,
+  tileBell: `<path fill="#000" transform="scale(1.25)" d="M8 1.5a4.5 4.5 0 0 0-4.5 4.5v3L2 11.5h12L12.5 9V6A4.5 4.5 0 0 0 8 1.5ZM6 12.5a2 2 0 0 0 4 0Z"/>`,
+  tileAppearance: `<g transform="scale(1.25)"><circle ${STROKE} stroke-width="1.5" cx="8" cy="8" r="5.5"/><path fill="#000" d="M8 2.5a5.5 5.5 0 0 1 0 11Z"/></g>`,
+  tileSpark: `<path fill="#000" transform="scale(1.25)" d="M8 1.5l1.3 4.2 4.2 1.3-4.2 1.3L8 12.5 6.7 8.3 2.5 7l4.2-1.3Z"/>`,
 } as const;
 
 /** The icons Jot draws. */

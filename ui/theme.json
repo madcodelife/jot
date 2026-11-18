@@ -46,7 +46,23 @@
       "control": "#0000000f",
       "switch-off": "#00000024",
       "claude-ink": "#a64818",
-      "thumb": "#ffffff"
+      "thumb": "#ffffff",
+      "sys-bg": "#f5f5f7",
+      "sys-sidebar": "#e8e8ec00",
+      "sys-fg": "#1b1d24",
+      "sys-muted": "#86868b",
+      "sys-line": "#00000017",
+      "sys-group": "#ffffff",
+      "sys-group-edge": "#0000000f",
+      "sys-selection": "#00000014",
+      "sys-field": "#0000000d",
+      "sys-button": "#ffffff",
+      "sys-button-edge": "#00000024",
+      "sys-switch-off": "#d9d9de",
+      "sys-thumb": "#ffffff",
+      "sys-accent": "#007aff",
+      "sys-ok": "#34c759",
+      "sys-red": "#d70015"
     },
     "dark": {
       "primary": "#4a4fd6",
@@ -92,7 +108,23 @@
       "control": "#ffffff1a",
       "switch-off": "#ffffff29",
       "claude-ink": "#f39a6a",
-      "thumb": "#636366"
+      "thumb": "#636366",
+      "sys-bg": "#1c1c1e",
+      "sys-sidebar": "#26262900",
+      "sys-fg": "#f1f2f6",
+      "sys-muted": "#98989d",
+      "sys-line": "#ffffff14",
+      "sys-group": "#2a2a2d",
+      "sys-group-edge": "#ffffff0d",
+      "sys-selection": "#ffffff1a",
+      "sys-field": "#ffffff12",
+      "sys-button": "#555558",
+      "sys-button-edge": "#ffffff14",
+      "sys-switch-off": "#48484c",
+      "sys-thumb": "#ffffff",
+      "sys-accent": "#0a84ff",
+      "sys-ok": "#30d158",
+      "sys-red": "#ff6961"
     }
   }
 }
