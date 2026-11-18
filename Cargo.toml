@@ -3,6 +3,7 @@ name = "nsh-app-jot"
 version = "0.1.0"
 edition = "2024"
 publish = false
+license = "MIT"
 
 [workspace]
 members = ["store", "mcp"]

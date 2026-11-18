@@ -3,6 +3,7 @@ name = "jot-store"
 version = "0.1.0"
 edition = "2024"
 publish = false
+license = "MIT"
 description = "Jot's notes folder: format, listing, search, to-dos, atomic writes and folder watching"
 
 [dependencies]
