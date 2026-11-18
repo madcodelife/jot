@@ -14,8 +14,8 @@ objc2-foundation = { version = "0.3.2", default-features = false, features = ["s
 trash = "5"
 
 [dependencies]
-nsh-core = { path = "/Users/madcodelife/Workspace/longbridge/nsh.worktrees/jot-nsh/crates/nsh-core" }
-nsh-base = { path = "/Users/madcodelife/Workspace/longbridge/nsh.worktrees/jot-nsh/crates/nsh-base" }
+nsh-core = "0.6.0"
+nsh-base = "0.6.0"
 jot-store = { path = "store" }
 jiff = "0.2.43"
 # Channels from other threads (the folder watcher, the reminders' thread,
