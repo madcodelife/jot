@@ -710,3 +710,56 @@ async fn notes_not_downloaded_are_waited_for() {
     assert!(out.ends_with("landed\n"), "{out}");
     assert!(!placeholder.exists());
 }
+
+#[tokio::test]
+async fn todos_in_fenced_code_are_not_listed() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Store::open(dir.path()).unwrap();
+    // A shell snippet and a Markdown sample kept in a note: their task-looking lines are code.
+    fs::write(
+        dir.path().join("Setup.md"),
+        "- [ ] 装好开发环境\n```sh\n- [ ] not a to-do\n```\n````md\n```\n- [ ] sample\n```js\n````\n- [ ] 跑一遍测试\n",
+    )
+    .unwrap();
+
+    let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
+    let server = tokio::spawn(async move {
+        JotServer::new(store)
+            .with_clock(friday_morning)
+            .serve(server_transport)
+            .await
+            .unwrap()
+            .waiting()
+            .await
+            .unwrap();
+    });
+    let client = Client("claude-ai").serve(client_transport).await.unwrap();
+
+    let (is_error, text) = call(&client, "list_todos", serde_json::json!({ "range": "all" })).await;
+    assert!(!is_error, "{text}");
+    assert!(text.contains("2 to-dos:"), "{text}");
+    assert!(
+        text.contains("装好开发环境") && text.contains("跑一遍测试"),
+        "{text}"
+    );
+    assert!(
+        !text.contains("not a to-do") && !text.contains("sample"),
+        "{text}"
+    );
+    // Nor can one be ticked: the file stays as it was.
+    let (is_error, text) = call(
+        &client,
+        "complete_todo",
+        serde_json::json!({ "note": "Setup", "text": "sample" }),
+    )
+    .await;
+    assert!(is_error, "{text}");
+    assert!(
+        fs::read_to_string(dir.path().join("Setup.md"))
+            .unwrap()
+            .contains("- [ ] sample")
+    );
+
+    client.cancel().await.unwrap();
+    server.await.unwrap();
+}

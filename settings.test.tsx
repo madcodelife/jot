@@ -201,7 +201,7 @@ test("a retired theme stored by an earlier version shows as its successor, and i
   app.dispose();
 });
 
-test("every theme reads at WCAG AA in both appearances: text, the selected row, to-dos, reminders, headings, AI apps' names, matches", () => {
+test("every theme reads at WCAG AA in both appearances: text, the selected row, to-dos, reminders, headings, AI apps' names, matches, selected text", () => {
   for (const name of THEMES) {
     for (const dark of [false, true]) {
       const v = themeVars(name).cssVars[dark ? "dark" : "light"] as Record<string, string>;
@@ -223,6 +223,8 @@ test("every theme reads at WCAG AA in both appearances: text, the selected row, 
         ["overdue chip", v.late, chip(v.late)],
         ["AI app's name", v["agent-ink"], surface],
         ["search match", v["mark-fg"], v.mark],
+        // Selected text in a note is ink (headings, links, to-dos and chips too) on the selection's fill.
+        ["selected text in a note", v["paper-fg"], on(`${v["paper-fg"].slice(0, 7)}24`, paper)],
       ];
       for (const [what, fg, bg] of pairs) {
         const ratio = contrast(fg, bg);
@@ -511,6 +513,30 @@ test("a note's headings take the theme's heading colour, in each appearance", as
     const v = themeVars(name).cssVars[look] as Record<string, string>;
     expect(app.spanStyle("id:editor >> text:周六去公园")?.color).toBe(`${v.heading}ff`);
     expect(app.spanStyle("id:editor >> text:带上相机")?.color).toBe(`${v["paper-fg"]}ff`);
+    app.dispose();
+  }
+});
+
+test("selected text in a note is ink on the selection, its heading, to-do box and reminder chip too, in each appearance", async () => {
+  for (const [name, look] of [["one", "dark"], ["github", "light"], ["gruvbox", "dark"]] as const) {
+    const dir = folder(`selection-${name}`);
+    new Notes(dir).create("选中", "## 周六去公园\n- [ ] 带上相机 ⏰ 2026-11-14 09:00\n看 [地图](https://example.com)");
+    const app = await openJot(dir, { "jot.theme": name, "jot.appearance": look });
+    // Return in the search field opens the note with the keys in its text.
+    await app.type("id:search", "选中");
+    await app.submit("id:search");
+    await app.waitFor("id:paper-title");
+    await app.wait(500);
+    const v = themeVars(name).cssVars[look] as Record<string, string>;
+    const ink = `${v["paper-fg"]}ff`;
+    expect(app.spanStyle("id:editor >> text:周六去公园")?.color).toBe(`${v.heading}ff`);
+    await app.keyboard.press("mod+a");
+    await app.wait(300);
+    for (const words of ["周六去公园", "[ ]", "2026-11-14 09:00", "地图"]) {
+      const style = app.spanStyle(`id:editor >> text:${words}`);
+      expect(style?.color).toBe(ink);
+      expect(style?.backgroundColor ?? "#00000000").toMatch(/00$/);
+    }
     app.dispose();
   }
 });

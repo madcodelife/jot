@@ -17,6 +17,7 @@ import { Button, Editor, type EditorDecoration, type EditorPosition, type Editor
 import { t } from "nsh/i18n";
 import { When, type Conflict } from "jot/native";
 import { caretOnTodo, openDuePicker, setEditorDue } from "../app/due";
+import { continuation, fencedLines, isFence, lineMarks, type MarkKind } from "../app/markdown";
 import { whenOptions } from "../app/settings";
 import { allNotes, errorMessage, lastWritten, notes, now, opened, refresh, revision, save, setEditorFlush, showFlash } from "../app/store";
 import { taskLine, toggledLine, withDue } from "../app/tasks";
@@ -64,11 +65,30 @@ export function Paper() {
 /** The paper's margins (the design's 30 / 37 points): the title and the body share the side ones. */
 const PAPER_X = 37;
 const PAPER_BOTTOM = 30;
-/** A Markdown heading line (ATX: up to three spaces, one to six `#`, then a space or the end). */
-const HEADING = /^ {0,3}#{1,6}(?=[ \t]|$)/;
+/** Room the title keeps on its right for what sits at the paper's top right: the microphone and "Saved", or "Listening…" with its language. */
+const STATUS_ROOM = { saved: 80, savedMic: 108, listening: 168 };
+/** How the editor draws each kind of Markdown mark (app/markdown.ts): the syntax muted, the words in their colour. */
+const MARK_CLASS: Record<MarkKind, string> = {
+  syntax: "text-paper-muted",
+  heading: "text-heading font-semibold",
+  link: "text-accent-ink",
+  code: "bg-paper-fg/7",
+};
+
+/** Selected text: ink, with no fill of its own over the selection's. */
+const SELECTED = "text-paper-fg bg-transparent";
 
 /** A line of `text`, by index. */
 const lineAt = (text: string, line: number) => text.split("\n")[line] ?? "";
+
+/** The to-do line `line` of `text` is, unless it is in fenced code: there it is code, as the store reads it too. */
+function taskAt(text: string, line: number) {
+  const lines = text.split("\n");
+  return fencedLines(lines)[line] ? null : taskLine(lines[line] ?? "");
+}
+
+/** Whether line `line` of `text` is in fenced code (its fences too). */
+const inCode = (text: string, line: number) => fencedLines(text.split("\n"))[line] ?? false;
 
 /** The position just past the text's end. */
 function endOf(text: string) {
@@ -125,6 +145,12 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   const interim = signal<{ line: number; start: number; end: number } | null>(null);
   /** The primary selection, as the editor last reported it. */
   let selection: EditorSelection | null = null;
+  /** The caret, while there is one and nothing is selected (Return goes on with a list from it). */
+  const caret = signal<EditorPosition | null>(null);
+  /** What is selected, by range (start before end): the text there is drawn in ink. */
+  const selected = signal<{ start: EditorPosition; end: EditorPosition }[]>([]);
+  /** The caret before the last move, in case the editor reports the move before the edit that made it. */
+  let caretBefore: EditorPosition | null = null;
   /** A dictation is typing: its interim words are not saved, the final ones are. */
   let dictating = false;
   let editor: EditorRef | undefined;
@@ -158,7 +184,10 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   }
 
   function changed(value: string) {
+    const before = untracked(text);
     text.set(value);
+    // Return on a list line: the next item's marker follows as an edit of its own (reported back here).
+    if (continueList(before, value)) return;
     clearTimeout(saveTimer);
     if (!dictating) saveTimer = setTimeout(saveNow, T.timing.saveAfter);
     // The live chip waits for a pause, so it does not flicker under typing.
@@ -170,7 +199,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   function findPhrase() {
     const line = untracked(caretLine);
     const content = lineAt(untracked(text), line);
-    if (/⏰ \d{4}-\d\d-\d\d \d\d:\d\d/.test(content)) return phrase.set(null);
+    if (/⏰ \d{4}-\d\d-\d\d \d\d:\d\d/.test(content) || inCode(untracked(text), line)) return phrase.set(null);
     const match = When.parse(content, whenOptions());
     phrase.set(match ? { line, start: match.start, end: match.end } : null);
   }
@@ -178,7 +207,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   /** Writes the line's time phrase as an absolute time (` ⏰ 2026-11-14 09:00`), once the caret has left it. */
   function normalize(line: number) {
     const before = lineAt(untracked(text), line);
-    if (!before) return;
+    if (!before || inCode(untracked(text), line)) return;
     const after = When.normalizeLine(before, whenOptions());
     if (after === null || after === before || !editor) return;
     editor.edit([{ range: { start: { line, column: 0 }, end: { line, column: before.length } }, text: after }]);
@@ -187,7 +216,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
 
   function toggleLine(line: number) {
     const content = lineAt(untracked(text), line);
-    const task = taskLine(content);
+    const task = taskAt(untracked(text), line);
     if (!task || !editor) return;
     const next = toggledLine(content, !task.done, new Date(untracked(now)));
     editor.edit([{ range: { start: { line, column: 0 }, end: { line, column: content.length } }, text: next }]);
@@ -251,7 +280,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
    */
   function pickDueAt(line: number): boolean {
     const content = lineAt(untracked(text), line);
-    const task = taskLine(content);
+    const task = taskAt(untracked(text), line);
     if (!task || task.done || !editor) return false;
     const column = task.due ? task.due.start : content.length;
     const end = task.due ? task.due.end : content.length;
@@ -268,7 +297,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   function writeDue(line: number, before: string, due: Date | null) {
     const content = lineAt(untracked(text), line);
     if (!editor) return;
-    if (taskLine(content) === null || content !== before) {
+    if (taskAt(untracked(text), line) === null || content !== before) {
       showNotice("conflict", t("due.changed"));
       return;
     }
@@ -292,7 +321,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   setEditorDue(dueSide);
   // Whether the caret is on an open to-do: the action panel offers "Reminder Time…" then.
   effect(() => {
-    const task = taskLine(lineAt(text(), caretLine()));
+    const task = taskAt(text(), caretLine());
     caretOnTodo.set(!!task && !task.done);
   });
   cleanup(() => {
@@ -325,6 +354,14 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   let lastLine = untracked(caretLine);
   function selectionChanged(selections: EditorSelection[]) {
     selection = selections[selections.length - 1] ?? null;
+    const only = selections.length === 1 ? selections[0] : null;
+    caretBefore = untracked(caret);
+    selected.set(
+      selections
+        .filter((s) => s.anchor.line !== s.head.line || s.anchor.column !== s.head.column)
+        .map((s) => (before(s.anchor, s.head) ? { start: s.anchor, end: s.head } : { start: s.head, end: s.anchor })),
+    );
+    caret.set(only && only.anchor.line === only.head.line && only.anchor.column === only.head.column ? only.head : null);
     const line = selections[0]?.head.line ?? 0;
     if (line === lastLine) return;
     const left = lastLine;
@@ -332,6 +369,35 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     caretLine.set(line);
     phrase.set(null);
     normalize(left);
+  }
+
+  /**
+   * Return on a list item, a to-do or a quote line goes on with it (`continuation`), or ends the list on an empty
+   * one. The editor binds Return itself while it has the focus and NSH 0.6 lets no app binding before it, so Jot
+   * follows its line break: when the text changed by a break (and the indent it keeps) typed at the caret, the new
+   * line gets its marker as a second edit, which undo takes back first. An input method commits no bare break.
+   */
+  function continueList(before: string, after: string): boolean {
+    if (!editor || dictating) return false;
+    for (const at of [caretBefore, untracked(caret)]) {
+      if (!at) continue;
+      const lines = before.split("\n");
+      const line = lines[at.line];
+      if (line === undefined || at.column > line.length) continue;
+      const offset = lines.slice(0, at.line).reduce((n, l) => n + l.length + 1, 0) + at.column;
+      const typed = after.length - before.length;
+      if (typed < 1 || after.slice(0, offset) !== before.slice(0, offset) || after.slice(offset + typed) !== before.slice(offset)) continue;
+      const indent = after.slice(offset, offset + typed);
+      if (!/^\n[ \t]*$/.test(indent) || fencedLines(lines)[at.line]) return false;
+      const next = continuation(line, at.column);
+      if (!next) return false;
+      const broken = indent.slice(1) + line.slice(at.column);
+      editor.edit([{ range: { start: { line: at.line, column: 0 }, end: { line: at.line + 1, column: broken.length } }, text: next.text }]);
+      const to = { line: at.line + next.caret.line, column: next.caret.column };
+      editor.setSelections([{ anchor: to, head: to }]);
+      return true;
+    }
+    return false;
   }
 
   /** Reads the versions iCloud Drive kept (none for most notes, at a glance). */
@@ -392,7 +458,10 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
         // Added at the end (an AI app's `append`): put the tail after the caret's text, which stays.
         const tail = disk.slice(onDisk.length);
         const at = endOf(mine);
+        const kept = selection;
         editor.edit([{ range: { start: at, end: at }, text: tail }]);
+        // A caret at the very end would be pushed past the new text: it stays where it was.
+        if (kept) editor.setSelections([kept]);
         onDisk = disk;
         if (dirty) {
           // What was typed and the tail are saved together.
@@ -414,15 +483,20 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   const decorations = computed<EditorDecoration[]>(() => {
     const out: EditorDecoration[] = [];
     const lines = text().split("\n");
+    const fenced = fencedLines(lines);
     const at = now();
     lines.forEach((content, line) => {
-      const heading = HEADING.exec(content);
-      if (heading) out.push({ range: { start: { line, column: heading.index }, end: { line, column: content.length } }, class: "text-heading" });
-      const task = taskLine(content);
-      if (!task) return;
       const span = (start: number, end: number) => ({ start: { line, column: start }, end: { line, column: end } });
+      // The Markdown's marks muted and its headings, links and code set apart; fenced code is the highlighter's,
+      // its fences muted.
+      if (!fenced[line]) for (const m of lineMarks(content)) out.push({ range: span(m.start, m.end), class: MARK_CLASS[m.kind] });
+      else if (isFence(content)) out.push({ range: span(0, content.length), class: MARK_CLASS.syntax });
+      const task = fenced[line] ? null : taskLine(content);
+      if (!task) return;
       out.push({ range: span(task.box.start, task.box.end), class: task.done ? "text-paper-muted font-semibold" : "text-accent-ink font-semibold" });
-      if (task.done) out.push({ range: span(task.rest.start, task.stamp?.start ?? task.rest.end), class: "text-paper-muted line-through" });
+      // The line through the words only, not the space before the stamp.
+      const struck = content.slice(0, task.stamp?.start ?? task.rest.end).trimEnd().length;
+      if (task.done && struck > task.rest.start) out.push({ range: span(task.rest.start, struck), class: "text-paper-muted line-through" });
       if (task.due) {
         const late = !task.done && (parseDue(task.due.at)?.getTime() ?? Infinity) < at;
         out.push({
@@ -443,16 +517,40 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
         class: "bg-due/13 text-due font-semibold",
       });
     }
+    // Selected text is ink on the selection's own fill, without the chips' and code's: the colours above sit at
+    // AA on the paper with no room for a fill under them (settings.test.tsx checks the ink). The editor styles a
+    // stretch by the decoration starting last there, so each one in the selection gets its part inked again.
+    const styled = out.slice();
+    for (const range of selected()) {
+      out.push({ range, class: SELECTED });
+      for (const d of styled) {
+        const start = before(d.range.start, range.start) ? range.start : d.range.start;
+        const end = before(d.range.end, range.end) ? d.range.end : range.end;
+        if (!before(end, start)) out.push({ range: { start, end }, class: SELECTED });
+      }
+    }
     return out;
   });
 
   return (
     <View testID="paper" class={`flex-1 bg-paper ${fade()}`} style={{ borderRadius: T.radius.paper, borderCurve: "continuous", overflow: "hidden" }}>
-      <View style={{ paddingTop: 30, paddingLeft: PAPER_X, paddingRight: speechAvailable() ? PAPER_X + 30 : PAPER_X }}>
-        <Text testID="paper-title" class="font-bold text-paper-fg" style={{ numberOfLines: 2, fontSize: T.type.title, letterSpacing: -0.6, lineHeight: 33 }}>
+      <View style={{ paddingTop: 30, paddingLeft: PAPER_X, paddingRight: PAPER_X }}>
+        <Text
+          testID="paper-title"
+          role="header"
+          class="font-bold text-paper-fg"
+          // Clear of the microphone and "Saved" (or "Listening…") at the top right, which a long title would run under.
+          style={{
+            numberOfLines: 2,
+            fontSize: T.type.title,
+            letterSpacing: -0.6,
+            lineHeight: 33,
+            marginRight: (listening() === "editor" ? STATUS_ROOM.listening : speechAvailable() ? STATUS_ROOM.savedMic : STATUS_ROOM.saved) - PAPER_X,
+          }}
+        >
           {title}
         </Text>
-        <View class="flex-row items-center" style={{ gap: 6, marginTop: 9, marginBottom: 14 }}>
+        <View testID="paper-meta" class="flex-row items-center" style={{ gap: 5, marginTop: 9, marginBottom: 14 }}>
           <If when={meta()?.source}>
             <View class="flex-row items-center" style={{ gap: 4 }}>
               <Icon name="spark" size={12} tint={token("agent")} />
@@ -464,8 +562,15 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
               ·
             </Text>
           </If>
-          <Text testID="paper-meta" class="text-paper-muted" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
-            {`${meta() ? age(meta()!.modified, now()) : t("time.just_now")} · ${title}.md`}
+          {/* When, then the file: each "·" with the same room around it. */}
+          <Text class="text-paper-muted" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 0 }}>
+            {meta() ? age(meta()!.modified, now()) : t("time.just_now")}
+          </Text>
+          <Text class="text-paper-muted" style={{ fontSize: T.type.meta }}>
+            ·
+          </Text>
+          <Text class="text-paper-muted" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
+            {`${title}.md`}
           </Text>
         </View>
         <If when={downloading()}>
@@ -537,13 +642,16 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
         folding={false}
         activeLine={false}
         indentGuides={false}
+        // Prose, not code: a bracket or a quote typed is one character.
+        autoClose={false}
         softWrap
         scrollBeyondLastLine={false}
         fontFamily="system-ui"
         fontSize={T.type.body}
         lineHeight={T.type.bodyLine}
         decorations={decorations()}
-        classes={{ content: "text-paper-fg", caret: "bg-primary", selection: "bg-primary/25", placeholder: "text-paper-muted" }}
+        // No caret while the note is read-only (not downloaded yet): there is nothing to type into.
+        classes={{ content: "text-paper-fg", caret: downloading() ? "bg-transparent" : "bg-primary", selection: "bg-paper-fg/14", placeholder: "text-paper-muted" }}
         // The text area's padding is the paper's margins: the body starts where the title does and keeps the same room on the right.
         styles={{ content: { paddingLeft: PAPER_X, paddingRight: PAPER_X, paddingTop: 2, paddingBottom: PAPER_BOTTOM } }}
         onChange={({ value }) => changed(value)}
@@ -553,7 +661,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
           saveNow();
         }}
         onTextPress={({ position, clicks }) => {
-          const task = taskLine(lineAt(untracked(text), position.line));
+          const task = taskAt(untracked(text), position.line);
           if (clicks !== 1 || !task) return;
           if (position.column >= task.box.start && position.column <= task.box.end) toggleLine(position.line);
           // The time chip: the picker opens over it.
@@ -603,7 +711,13 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
 function VersionsBar(props: { version: Conflict; more: number; onSettle: (choice: "mine" | "theirs" | "both") => void }) {
   const device = () => props.version.device ?? t("paper.other_device");
   const choice = (id: "mine" | "theirs" | "both", label: string) => (
-    <Button testID={`paper-versions-${id}`} class="px-2 py-1" onPress={() => props.onSettle(id)}>
+    // On the paper's own colour, so the accent reads at AA over the bar's tint in every theme.
+    <Button
+      testID={`paper-versions-${id}`}
+      class="bg-paper border border-late/25 active:opacity-70"
+      style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: T.radius.action, borderCurve: "continuous" }}
+      onPress={() => props.onSettle(id)}
+    >
       <Text class="font-semibold text-accent-ink" style={{ fontSize: 12.5 }}>
         {label}
       </Text>
@@ -614,14 +728,15 @@ function VersionsBar(props: { version: Conflict; more: number; onSettle: (choice
       testID="paper-versions"
       role="alert"
       class="bg-late/10 border border-late/25"
-      style={{ gap: 4, marginBottom: 12, paddingVertical: 8, paddingHorizontal: 12, borderRadius: T.radius.chip, borderCurve: "continuous" }}
+      // A card of a few lines: a row's corners, not a pill's (the chip's radius rounded it into a stadium).
+      style={{ gap: 8, marginBottom: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: T.radius.row, borderCurve: "continuous" }}
     >
       <Text class="text-paper-fg" style={{ fontSize: 12.5, lineHeight: 17 }}>
         {props.more > 0
           ? t("paper.versions_more", { device: device(), when: age(props.version.modified, now()), more: props.more })
           : t("paper.versions", { device: device(), when: age(props.version.modified, now()) })}
       </Text>
-      <View class="flex-row items-center" style={{ gap: 4, marginLeft: -8, flexWrap: "wrap" }}>
+      <View class="flex-row items-center" style={{ gap: 6, flexWrap: "wrap" }}>
         {choice("mine", t("paper.keep_mine"))}
         {choice("theirs", t("paper.keep_theirs"))}
         {choice("both", t("paper.keep_both"))}

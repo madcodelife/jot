@@ -131,3 +131,26 @@ test("today's row says what is overdue when nothing is left today, and never 'no
   expect(shown).not.toContain("今天的都做完了");
   app.dispose();
 });
+
+test("a search match is a highlighter mark on other rows, underlined and bold on the selected one (no block that reads as selected text)", async () => {
+  const dir = folder("match");
+  const n = new Notes(dir);
+  n.create("护照到期", "明年五月去换护照");
+  n.create("护照照片", "白底两寸");
+  const app = await openJot(dir);
+  await app.waitFor("id:search");
+  await app.type("id:search", "护照");
+  await app.waitFor("id:row:护照照片");
+  await app.keyboard.press("down");
+  await app.wait(200);
+  const rowOf = async (title: string) => app.spanStyle(`id:row:${title} >> text:护照 >> nth=0`);
+  const styles = [await rowOf("护照到期"), await rowOf("护照照片")];
+  const selected = styles.find((s) => s.underline);
+  const other = styles.find((s) => !s.underline);
+  expect(selected).toBeDefined();
+  expect(other).toBeDefined();
+  expect(selected?.fontWeight).toBeGreaterThan(500);
+  expect(selected?.backgroundColor ?? "#00000000").toMatch(/00$/);
+  expect(other?.backgroundColor ?? "").not.toMatch(/00$/);
+  app.dispose();
+});

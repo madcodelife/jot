@@ -104,11 +104,17 @@ export function plainSnippet(text: string): string {
       // Reminders and stamps, also when the snippet's end cuts into one.
       .replace(/⏰ ?\d{0,4}(?:-\d{0,2}){0,2}(?: \d{0,2}(?::\d{0,2})?)?/g, " ")
       .replace(/✅ ?\d{0,4}(?:-\d{0,2}){0,2}/g, " ")
-      // List, quote and heading markers at a line's start, nested ones too (`> - `).
-      .replace(/(^|[\s…])(?:(?:#{1,6}|>+|[-*+])(?: +|$))+/g, "$1")
+      // List, quote and heading markers at a line's start, nested ones too (`> - `); the store's preview is one line
+      // already, so a marker after any space. Not a sign between numbers: `2 * 3`, `5 - 3`, `1 + 1` stay.
+      .replace(/(^|[\s…])(?:(?:#{1,6}|>+|[-*+])(?: +|$))+/g, (markers, lead: string, at: number, all: string) =>
+        /^\s[-*+] +$/.test(markers) && /[\d)]/.test(all[at - 1] ?? "") && /[\d(]/.test(all[at + markers.length] ?? "") ? markers : lead,
+      )
       .replace(/!?\[([^\]]*)\]\(([^)\s]*)\)/g, "$1")
       .replace(/`+/g, "")
-      .replace(/\*\*|~~/g, "")
+      // Bold and struck words keep their words; a pair of marks around them goes, a lone one (`2 ** 10`) stays.
+      .replace(/(\*\*|~~)(?=\S)(.*?\S)\1/g, "$2")
+      // A single star or underscore around words (`*斜体*`, `_it_`), not a lone one (`2 * 3`, `snake_case`).
+      .replace(/(^|[^\w*])([*_])(?=\S)([^*_\n]*?\S)\2(?![\w*])/g, "$1$3")
       // What the removals leave: runs of spaces, empty lines, a cut mark apart from its text.
       .replace(/\s+/g, " ")
       .replace(/·(?: ·)+/g, "·")

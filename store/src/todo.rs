@@ -211,22 +211,37 @@ fn lines(body: &str) -> impl Iterator<Item = (&str, &str)> {
         .map(|line| (line, line.trim_end_matches(['\n', '\r'])))
 }
 
-/// The task lines of a body outside code fences, with their line numbers.
+/// A fence's run of backticks or tildes (three or more), if `line` opens or closes fenced code: indented by up to
+/// three spaces, as CommonMark has it (deeper is an indented code line, not a fence).
+fn fence_run(line: &str) -> Option<&str> {
+    let rest = line.trim_start_matches(' ');
+    if line.len() - rest.len() > 3 {
+        return None;
+    }
+    let mark = rest.chars().next().filter(|c| *c == '`' || *c == '~')?;
+    let run = &rest[..rest.find(|c| c != mark).unwrap_or(rest.len())];
+    (run.len() >= 3).then_some(run)
+}
+
+/// The task lines of a body outside fenced code, with their line numbers. A fence closes on a line of the same
+/// character, at least as long, with nothing after it (```` ```js ```` inside a block is code); one left open
+/// runs to the end. The editor draws the same lines as code (`app/markdown.ts`'s `fencedLines`).
 fn task_lines(body: &str) -> impl Iterator<Item = (usize, TaskLine)> + '_ {
     let mut fence: Option<&str> = None;
     lines(body)
         .enumerate()
         .filter_map(move |(index, (_, line))| {
-            let trimmed = line.trim_start();
-            let marker = ["```", "~~~"]
-                .into_iter()
-                .find(|marker| trimmed.starts_with(marker));
-            match (fence, marker) {
-                (None, Some(marker)) => {
-                    fence = Some(marker);
+            let run = fence_run(line);
+            match (fence, run) {
+                (None, Some(run)) => {
+                    fence = Some(run);
                     return None;
                 }
-                (Some(open), Some(marker)) if open == marker => {
+                (Some(open), Some(run))
+                    if run.as_bytes()[0] == open.as_bytes()[0]
+                        && run.len() >= open.len()
+                        && line.trim() == run =>
+                {
                     fence = None;
                     return None;
                 }
@@ -612,6 +627,32 @@ mod tests {
         ] {
             assert_eq!(TaskLine::parse(line), None, "{line:?}");
         }
+    }
+
+    #[test]
+    fn task_lines_in_fenced_code_are_no_todos() {
+        let lines = |body: &str| {
+            task_lines(body)
+                .map(|(line, task)| (line, task.text))
+                .collect::<Vec<_>>()
+        };
+        // A longer fence holds a shorter one, and a fence with words after it (```js) does not close one.
+        assert_eq!(
+            lines("````md\n```\n- [ ] a\n```\n````\n- [ ] b\n"),
+            [(5, "b".to_owned())]
+        );
+        assert_eq!(
+            lines("```\n```js\n- [ ] a\n```\n- [ ] b\n"),
+            [(4, "b".to_owned())]
+        );
+        // Tildes close only on tildes; up to three spaces of indent; four is no fence.
+        assert_eq!(
+            lines("~~~\n```\n- [ ] a\n~~~\n   ```\n- [ ] b\n   ```\n- [ ] c\n"),
+            [(7, "c".to_owned())]
+        );
+        assert_eq!(lines("    ```\n- [ ] a\n"), [(1, "a".to_owned())]);
+        // One left open runs to the end.
+        assert_eq!(lines("- [ ] a\n```\n- [ ] b\n"), [(0, "a".to_owned())]);
     }
 
     #[test]
