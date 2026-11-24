@@ -1,6 +1,6 @@
 //! macOS: the Accessibility permission, AppKit's event monitors, the
 //! main dispatch queue for the hold's timer, and the keyboard input source
-//! (Carbon's Text Input Sources).
+//! (Carbon's Text Input Sources), and whether iCloud Drive is on.
 
 use std::cell::{Cell, RefCell};
 use std::ffi::c_void;
@@ -11,7 +11,7 @@ use block2::RcBlock;
 use objc2::rc::Retained;
 use objc2::runtime::AnyObject;
 use objc2_app_kit::{NSEvent, NSEventMask, NSEventModifierFlags, NSEventType, NSWorkspace};
-use objc2_foundation::{NSDictionary, NSNumber, NSString, NSURL};
+use objc2_foundation::{NSDictionary, NSFileManager, NSNumber, NSString, NSURL};
 
 use crate::summon::{HOLD, Modifiers, SummonKey, Summoner};
 
@@ -267,4 +267,18 @@ fn first_string(array: CfRef) -> Option<String> {
         let tag = (*first.cast::<NSString>()).to_string();
         (!tag.is_empty()).then_some(tag)
     }
+}
+
+/// iCloud Drive's root folder, and whether it is on: its folder is there and the user is signed in to iCloud
+/// (`ubiquityIdentityToken`, which needs no entitlement). `NSFileManager`'s shared instance may be called from
+/// any thread.
+pub(crate) fn icloud_drive() -> crate::folder::Drive {
+    let root = std::env::var_os("HOME").map(|home| {
+        std::path::PathBuf::from(home).join("Library/Mobile Documents/com~apple~CloudDocs")
+    });
+    let on = root.as_ref().is_some_and(|root| root.is_dir())
+        && NSFileManager::defaultManager()
+            .ubiquityIdentityToken()
+            .is_some();
+    crate::folder::Drive { root, on }
 }

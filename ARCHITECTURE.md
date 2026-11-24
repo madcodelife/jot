@@ -22,6 +22,48 @@ The root `Cargo.toml` is the app crate and the workspace (`members = ["store", "
 - Writes are atomic: a temp file in the same folder, then rename.
 - `modified` is the file's mtime.
 
+## A synced folder (iCloud Drive; store/src/cloud.rs)
+
+Jot does no syncing itself; the folder may sit in iCloud Drive (Settings › General › iCloud Drive moves it there,
+below). Two things a synced folder does that a local one does not:
+
+- **Notes not on this Mac.** With "Optimize Mac Storage" on, iCloud Drive moves notes it thinks unused off the Mac.
+  On macOS 14 and later (iCloud Drive is a File Provider) the file stays under its own name as a *dataless* file:
+  `stat` works and shows its size and dates, `st_flags` has `SF_DATALESS` (0x40000000), and the first read
+  downloads it, blocking the reader as long as that takes (indefinitely offline). Older systems left a hidden
+  placeholder, `.<title>.md.icloud`, in its place. jot-store handles both and never waits:
+  - reads go through `Cloud::read`, which turns the thread's dataless materialization off
+    (`setiopolicy_np(IOPOL_TYPE_VFS_MATERIALIZE_DATALESS_FILES, IOPOL_SCOPE_THREAD, OFF)`) so a dataless file fails
+    at once with `EDEADLK` instead of downloading; the flag is also checked first;
+  - such a note is listed all the same, `NoteMeta::downloading` set, its preview empty, its source the user, its
+    body empty (search matches its title only, `todos` has none of its to-dos until it is here), and the system is
+    asked for it: `NSFileManager startDownloadingUbiquitousItemAtURL:` (another File Provider, which that call
+    refuses, gets a thread of its own that reads one byte: one per file at a time);
+  - anything that changes it (`write`, `append`, the to-do edits, `trash`; `rename` of a placeholder) fails with
+    `StoreError::NotDownloaded` and leaves it as it is; renaming a dataless file needs no download and works;
+  - the watcher also reports placeholders coming and going; the app reads the folder again every 2 s while a note
+    is downloading, as a file filled in place may not reach the watcher.
+- **Conflicts.** When a note changed on two devices before either synced, iCloud keeps one version as the file and
+  the others as unresolved conflict versions (`NSFileVersion`); `Store::conflicts` lists them (checked with the
+  URL's `NSURLUbiquitousItemHasUnresolvedConflictsKey` first: about a millisecond, so `read` paths can afford it)
+  and `Store::resolve` settles one: keep this Mac's, use the other (its whole file replaces the note), or keep
+  both (the other becomes a note of its own, `Title (iPhone)`, numbered when taken, dated when it was saved). The
+  version is then marked resolved (`NSFileVersion.resolved`); other versions are left to iCloud. Two devices
+  creating the same title each keep theirs, the second as `Title 2.md`: two notes, nothing lost, nothing to do.
+
+No `NSFileCoordinator`. Jot writes with a temporary file renamed over the note (`write_file`), without file
+coordination: iCloud Drive on macOS 14+ is a File Provider that sees every change to its folder, coordinated or
+not, and the atomic rename means it never uploads half a note. A coordinated write would block the caller (the
+engine thread, for the editor's autosave) while another process holds the file, for a download for instance, which
+Jot must never do. The race left (a version from another device landing between Jot's read and its rename) ends as
+an iCloud conflict, which Jot shows and lets the user settle, so nothing is lost. Checked on macOS 27 with iCloud
+Drive: renamed-over writes upload (`NSURLUbiquitousItemIsUploadedKey`) and leave no conflict version.
+
+`Cloud` is the seam (`cloud::system()`: iCloud through Foundation on macOS, nothing elsewhere); the tests stand
+in for it (`store/src/cloud_tests.rs`: placeholders as real files, dataless files and conflict versions faked).
+`on_icloud_drive` (ignored) runs the store on a real iCloud Drive folder: `JOT_ICLOUD_DIR=<a test folder in iCloud
+Drive> cargo test -p jot-store on_icloud_drive -- --ignored --nocapture`.
+
 ## jot-store API (store/src/lib.rs)
 
 ```rust
@@ -56,11 +98,25 @@ impl Store {
     pub fn restore(&self, trashed: &Trashed) -> Result<NoteMeta, StoreError>;
     /// The note's file, if any.
     pub fn path(&self, title: &str) -> Result<Option<PathBuf>, StoreError>;
-    /// Calls `on_change` (debounced ~150 ms) when `.md` files in the folder change. Dropping the `Watcher` stops it.
+    /// Calls `on_change` (debounced ~150 ms) when `.md` files in the folder change, or an older iCloud Drive's
+    /// placeholders of them. Dropping the `Watcher` stops it.
     pub fn watch(&self, on_change: impl Fn() + Send + 'static) -> Result<Watcher, StoreError>;
+    /// The other versions iCloud kept in a conflict, newest first (empty for most notes). `NotFound`.
+    pub fn conflicts(&self, title: &str) -> Result<Vec<Conflict>, StoreError>;
+    /// Settles the conflict version `id`. `Changed` when it is settled already.
+    pub fn resolve(&self, title: &str, id: &str, resolution: Resolution) -> Result<Resolved, StoreError>;
+    /// Moves every note into `to`, never over a note there: the very same text stays here (`same`), another text
+    /// moves in as `Title 2`… (`renamed`); a note not downloaded moves when the move is a rename (one volume),
+    /// else stays (`failed`). Files that are not notes stay. Dates and frontmatter are kept.
+    pub fn move_into(&self, to: &Store) -> Result<Moved, StoreError>;
 }
 
-pub struct NoteMeta { pub title: String, pub modified: SystemTime, pub source: Source, pub preview: String /* first ~120 chars of the body, one line */ }
+pub struct Conflict { pub id: String, pub device: Option<String>, pub modified: SystemTime, pub body: String }  // non_exhaustive
+pub enum Resolution { KeepCurrent, UseOther, KeepBoth { title: String } }
+pub struct Resolved { pub note: NoteMeta, pub copy: Option<NoteMeta> }  // non_exhaustive
+pub struct Moved { pub moved: Vec<String>, pub renamed: Vec<(String, String)>, pub same: Vec<String>, pub failed: Vec<(String, String)> }  // non_exhaustive
+
+pub struct NoteMeta { pub title: String, pub modified: SystemTime, pub source: Source, pub preview: String /* first ~120 chars of the body, one line */, pub downloading: bool /* its text is not on this Mac yet; asked for */ }
 pub struct Note { pub meta: NoteMeta, pub body: String }
 pub struct SearchHit { pub meta: NoteMeta, pub snippet: String /* ~120 chars around the first body match, or the preview */, pub title_match: bool }
 pub struct Trashed { pub title: String, pub in_trash: Option<PathBuf>, pub content: String, pub modified: SystemTime }  // non_exhaustive
@@ -79,7 +135,7 @@ impl Source {
     /// for `agent`; None for the user.
     pub fn label(&self) -> Option<String>;
 }
-pub enum StoreError { InvalidTitle, NotFound, AlreadyExists, Io(std::io::Error) }  // Display + std::error::Error
+pub enum StoreError { InvalidTitle, NotFound, AlreadyExists, NotDownloaded, Io(std::io::Error) }  // Display + std::error::Error
 pub struct Watcher { /* … */ }
 ```
 
@@ -153,6 +209,11 @@ pub mod when {                   // store/src/when/: mod.rs (driver, labels), zh
 ```
 `StoreError` gains `Changed`.
 
+MCP tools (mcp/) never wait on a download unbounded: a tool that needs a note's text (`read_note`, `append_note`,
+`add_todo`, `complete_todo`, `reschedule_todo`) waits up to 20 s for a note iCloud is downloading, then says it is
+still downloading (`NotDownloaded`); listings mark such a note "not downloaded to this Mac yet"; `read_note`
+mentions conflict versions iCloud kept.
+
 MCP tools (mcp/): `create_note` and `add_todo` record the calling app as the new note's `source`
 (`Source::from_client` of the `initialize` handshake's `clientInfo.name`). `add_todo(text, due?, note?)` (`due`: ISO `2026-11-14T09:00` or a phrase `when::parse` reads, in
 Chinese, English or Japanese; without `due`, a phrase in `text` becomes the time),
@@ -160,6 +221,16 @@ Chinese, English or Japanese; without `due`, a phrase in `text` becomes the time
 `reschedule_todo(note, text, due)` (`due` required: ISO or a phrase `when::parse` reads; `null` removes the reminder;
 only the `⏰` part of the line changes). The last two find the open to-do the same way: the exact text, else the one
 whose text holds it; several or none fail, listing the candidates.
+
+## The app and a synced folder
+
+The list shows a note not downloaded with a cloud and "Downloading…"; opened, the editor is read-only and empty,
+says so, and takes the text when it lands. A note with conflict versions shows a bar over its text: "Keep This
+Mac's", "Use the Other", "Keep Both" (the other as `Title (iPhone)`), one version at a time, the open note's edits
+saved first. Settings › General › iCloud Drive: "Move to iCloud Drive…" (disabled, saying why, while iCloud Drive
+is off: `Folder.icloud`), asks first (`AlertDialog`), moves the notes to `~/Library/Mobile
+Documents/com~apple~CloudDocs/Jot` (`moveNotesTo` in app/store.ts: `Folder.moveNotes`, then `changeFolder`, which
+the connected AI apps follow), and says what it did; a folder already in iCloud Drive shows "In iCloud Drive".
 
 ## Packaging (scripts/package-macos.sh)
 
@@ -192,12 +263,17 @@ class Notes {                                   // wraps jot_store::Store
   restore(token: number): NoteMeta;             // ERR_JOT_ALREADY_EXISTS (token stays good), ERR_JOT_NOT_FOUND (unknown / used token)
   path(title: string): string | null;           // the note's file (Folder.reveal shows it)
   watch(onChange: () => void): void;            // folder changed (debounced); replaces the previous listener
+  conflicts(title: string): Conflict[];         // iCloud's conflict versions, newest first
+  resolveConflict(title: string, id: string, choice: "mine" | "theirs" | "both", copyTitle?: string | null): ResolvedConflict;  // ERR_JOT_CHANGED
   todos(): Todo[];
   setTodoDone(note: string, line: number, text: string, done: boolean): NoteMeta;
   setTodoDue(note: string, line: number, text: string, due: string | null /* "YYYY-MM-DDTHH:mm", else TypeError; null removes */): NoteMeta;  // ERR_JOT_CHANGED
   addTodo(text: string, due?: string | null /* "YYYY-MM-DDTHH:mm", else TypeError */, note?: string | null /* "待办" */): Todo;
 }
-interface NoteMeta { title: string; modified: number /* ms since epoch */; source: string | null /* null: the user; else the AI app's name, "Cursor" */; preview: string }
+interface NoteMeta { title: string; modified: number /* ms since epoch */; source: string | null /* null: the user; else the AI app's name, "Cursor" */; preview: string; downloading: boolean /* not on this Mac yet: read-only, empty */ }
+interface Conflict { id: string; device: string | null; modified: number; body: string }
+interface ResolvedConflict { note: NoteMeta; copy: NoteMeta | null }
+// Errors also: ERR_JOT_NOT_DOWNLOADED (the note is not on this Mac yet; nothing was changed).
 interface Note { meta: NoteMeta; body: string }
 interface SearchHit { meta: NoteMeta; snippet: string; titleMatch: boolean }
 interface TrashedNote { title: string; token: number }   // the last 64 trashed per folder can be restored
@@ -219,6 +295,15 @@ class Reminders {                               // fires at due times while the 
 }
 // The reminders' thread reads the folder again when it changes: a to-do given a new time fires at that time, and a
 // snooze of it is dropped (the new time is the reminder now); one whose time was removed fires no more.
+
+module Folder {                                 // the settings' notes folder (src/folder.rs)
+  choose(start: string, button: string): Promise<string | null>;
+  reveal(path: string): Promise<void>;
+  shown(path: string): string;                  // "~/Documents/Jot"
+  icloud(): { path: string | null; available: boolean };   // Jot's folder in iCloud Drive; on = signed in + Drive on
+  moveNotes(from: string, to: string): Promise<MovedNotes>; // Store::move_into, off the engine thread
+}
+interface MovedNotes { moved: string[]; renamed: { from: string; to: string }[]; same: string[]; failed: { title: string; error: string }[] }
 
 module Summon {                                 // gestures of a modifier, system-wide
   isTrusted(): boolean;                         // macOS: Accessibility granted

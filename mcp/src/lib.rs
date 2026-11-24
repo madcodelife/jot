@@ -7,7 +7,7 @@
 
 use std::ffi::OsString;
 use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use jiff::civil::{Date, DateTime};
 use jot_store::{DEFAULT_TODO_NOTE, NoteMeta, Source, Store, StoreError, Todo, when};
@@ -23,6 +23,10 @@ use serde::Deserialize;
 const DEFAULT_LIMIT: usize = 10;
 /// The most notes one call returns.
 const MAX_LIMIT: usize = 50;
+/// How long a tool waits for a note the system is downloading (iCloud Drive moved it off the Mac), and how often
+/// it looks.
+const DOWNLOAD_WAIT: Duration = Duration::from_secs(20);
+const DOWNLOAD_POLL: Duration = Duration::from_millis(250);
 
 const INSTRUCTIONS: &str = "\
 Jot is the user's personal notebook: a folder of Markdown notes they also read and edit themselves in the Jot \
@@ -46,6 +50,8 @@ pub struct JotServer {
     store: Store,
     /// The local wall-clock time; replaced in tests.
     now: fn() -> DateTime,
+    /// How long a tool waits for a note being downloaded; shortened in tests.
+    download_wait: Duration,
     tool_router: ToolRouter<Self>,
 }
 
@@ -170,6 +176,7 @@ impl JotServer {
         Self {
             store,
             now: local_now,
+            download_wait: DOWNLOAD_WAIT,
             tool_router: Self::tool_router(),
         }
     }
@@ -177,6 +184,12 @@ impl JotServer {
     /// The same server reading the local time from `now` instead of the system clock (for tests).
     pub fn with_clock(mut self, now: fn() -> DateTime) -> Self {
         self.now = now;
+        self
+    }
+
+    /// The same server waiting at most `wait` for a note being downloaded (for tests).
+    pub fn with_download_wait(mut self, wait: Duration) -> Self {
+        self.download_wait = wait;
         self
     }
 
@@ -212,9 +225,19 @@ impl JotServer {
         annotations(title = "Read note", read_only_hint = true, open_world_hint = false)
     )]
     async fn read_note(&self, Parameters(params): Parameters<ReadParams>) -> CallToolResult {
-        match self.store.read(&params.title) {
+        match self.read_downloaded(&params.title).await {
             Ok(Some(note)) => {
-                let mut out = format!("# {}\n{}\n\n", note.meta.title, describe(&note.meta));
+                let mut out = format!("# {}\n{}\n", note.meta.title, describe(&note.meta));
+                if let Ok(conflicts) = self.store.conflicts(&note.meta.title)
+                    && !conflicts.is_empty()
+                {
+                    out.push_str(&format!(
+                        "iCloud Drive kept {} of this note from another device, edited at the same time; \
+                         the user can choose which to keep in the Jot app. This is the version on this Mac.\n",
+                        if conflicts.len() == 1 { "another version".to_owned() } else { format!("{} other versions", conflicts.len()) }
+                    ));
+                }
+                out.push('\n');
                 out.push_str(&note.body);
                 text(out)
             }
@@ -301,7 +324,10 @@ impl JotServer {
         if params.text.trim().is_empty() {
             return error("There is no text to append.".to_owned());
         }
-        match self.store.append(&params.title, &params.text) {
+        match self
+            .downloaded(|| self.store.append(&params.title, &params.text))
+            .await
+        {
             Ok(meta) => text(format!("Appended to the note \"{}\".", meta.title)),
             Err(StoreError::NotFound) => not_found(&params.title),
             Err(error) => failure(&error, &params.title),
@@ -360,7 +386,11 @@ impl JotServer {
             .as_deref()
             .map(str::trim)
             .filter(|note| !note.is_empty());
-        match self.store.add_todo(note, &task, due, client_source(&context)) {
+        let source = client_source(&context);
+        match self
+            .downloaded(|| self.store.add_todo(note, &task, due, source.clone()))
+            .await
+        {
             Ok(todo) => {
                 let mut out = format!(
                     "Added the to-do \"{}\" to the note \"{}\"",
@@ -466,7 +496,10 @@ impl JotServer {
         &self,
         Parameters(params): Parameters<CompleteTodoParams>,
     ) -> CallToolResult {
-        let todo = match self.find_open_todo(&params.note, &params.text, "check off") {
+        let todo = match self
+            .find_open_todo(&params.note, &params.text, "check off")
+            .await
+        {
             Ok(Found::Open(todo)) => todo,
             Ok(Found::Done(done)) => {
                 return text(format!(
@@ -480,9 +513,13 @@ impl JotServer {
             }
             Err(result) => return result,
         };
+        let today = (self.now)().date();
         match self
-            .store
-            .set_todo_done(&todo.note, todo.line, &todo.text, true, (self.now)().date())
+            .downloaded(|| {
+                self.store
+                    .set_todo_done(&todo.note, todo.line, &todo.text, true, today)
+            })
+            .await
         {
             Ok(_) => text(format!(
                 "Checked off \"{}\" in the note \"{}\".",
@@ -537,7 +574,10 @@ impl JotServer {
                 }
             },
         };
-        let todo = match self.find_open_todo(&params.note, &params.text, "reschedule") {
+        let todo = match self
+            .find_open_todo(&params.note, &params.text, "reschedule")
+            .await
+        {
             Ok(Found::Open(todo)) => todo,
             Ok(Found::Done(done)) => {
                 return error(format!(
@@ -562,8 +602,11 @@ impl JotServer {
             });
         }
         match self
-            .store
-            .set_todo_due(&todo.note, todo.line, &todo.text, due)
+            .downloaded(|| {
+                self.store
+                    .set_todo_due(&todo.note, todo.line, &todo.text, due)
+            })
+            .await
         {
             Ok(_) => {
                 let was = todo
@@ -597,10 +640,36 @@ impl JotServer {
 }
 
 impl JotServer {
+    /// Runs `op` again while the note it needs is being downloaded (`NotDownloaded`), for `download_wait` at most.
+    async fn downloaded<T>(
+        &self,
+        mut op: impl FnMut() -> Result<T, StoreError>,
+    ) -> Result<T, StoreError> {
+        let deadline = Instant::now() + self.download_wait;
+        loop {
+            match op() {
+                Err(StoreError::NotDownloaded) if Instant::now() < deadline => {
+                    tokio::time::sleep(DOWNLOAD_POLL).await;
+                }
+                result => return result,
+            }
+        }
+    }
+
+    /// The note titled `title`, waiting for it while it is being downloaded; `NotDownloaded` when it is still not
+    /// here.
+    async fn read_downloaded(&self, title: &str) -> Result<Option<jot_store::Note>, StoreError> {
+        self.downloaded(|| match self.store.read(title) {
+            Ok(Some(note)) if note.meta.downloading => Err(StoreError::NotDownloaded),
+            result => result,
+        })
+        .await
+    }
+
     /// The open to-do of `note` that `wanted` names: the one whose text it is, else the one whose text holds it
     /// (case-insensitive). When none is open, a checked one that reads exactly so; else the error to return,
     /// listing the candidates (`verb` says what the caller does, for the message).
-    fn find_open_todo(
+    async fn find_open_todo(
         &self,
         note: &str,
         wanted: &str,
@@ -612,7 +681,8 @@ impl JotServer {
                 "Say which to-do: pass its text as list_todos showed it.".to_owned(),
             ));
         }
-        let meta = match self.store.read(note) {
+        // Its to-dos are read from its text: the note has to be here.
+        let meta = match self.read_downloaded(note).await {
             Ok(Some(found)) => found.meta,
             Ok(None) => {
                 return Err(error(format!(
@@ -759,11 +829,22 @@ fn push_entry(out: &mut String, meta: &NoteMeta, excerpt: &str) {
 
 /// Who is writing: the app on the other end, by the name it gave in `initialize` (`clientInfo.name`).
 fn client_source(context: &RequestContext<RoleServer>) -> Source {
-    let name = context.peer.peer_info().map(|info| info.client_info.name.clone());
+    let name = context
+        .peer
+        .peer_info()
+        .map(|info| info.client_info.name.clone());
     Source::from_client(name.as_deref().unwrap_or(""))
 }
 
 fn describe(meta: &NoteMeta) -> String {
+    if meta.downloading {
+        // Who wrote it is in its text, which is not here yet.
+        return format!(
+            "Modified {} · not downloaded to this Mac yet (iCloud Drive is downloading it; only its title was \
+             searched)",
+            format_time(meta.modified)
+        );
+    }
     let author = meta.source.label().unwrap_or_else(|| "the user".to_owned());
     format!(
         "Modified {} · written by {author}",
@@ -903,6 +984,11 @@ fn failure(failure: &StoreError, title: &str) -> CallToolResult {
         )),
         StoreError::Changed => error(format!(
             "The note \"{}\" changed while Jot was updating it. Try again.",
+            title.trim()
+        )),
+        StoreError::NotDownloaded => error(format!(
+            "The note \"{}\" is in iCloud Drive and not downloaded to this Mac yet; it is downloading now. Try \
+             again in a moment.",
             title.trim()
         )),
         StoreError::Io(io) => error(format!(

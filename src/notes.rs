@@ -4,7 +4,7 @@ use std::fmt::Display;
 use std::path::PathBuf;
 use std::time::UNIX_EPOCH;
 
-use jot_store::{Source, Store, StoreError, Trashed, Watcher};
+use jot_store::{Resolution, Source, Store, StoreError, Trashed, Watcher};
 use nsh_core::element::io_code;
 use nsh_core::prelude::*;
 
@@ -14,7 +14,11 @@ use crate::relay::relay;
 /// Every member runs at once and throws an `Error` when it fails, with a
 /// `code`: `ERR_JOT_INVALID_TITLE`, `ERR_JOT_NOT_FOUND`,
 /// `ERR_JOT_ALREADY_EXISTS`, `ERR_JOT_CHANGED` (a to-do line changed
-/// since it was read), or the file system's (`EACCES`, `ENOSPC`, ...).
+/// since it was read), `ERR_JOT_NOT_DOWNLOADED` (the note's text is not on
+/// this Mac yet: iCloud Drive is downloading it), or the file system's
+/// (`EACCES`, `ENOSPC`, ...). Nothing here waits for a download: a note not
+/// downloaded is listed (`downloading`), asked for, and reported by `watch`
+/// when it lands.
 #[class]
 pub struct Notes {
     store: Store,
@@ -217,6 +221,51 @@ impl Notes {
         Ok(path.map(|path| path.to_string_lossy().into_owned()))
     }
 
+    /// The other versions of the note iCloud Drive kept when it changed on
+    /// two devices at once, newest first; empty when there are none.
+    /// Throws `ERR_JOT_NOT_FOUND`.
+    pub fn conflicts(&self, title: String) -> Result<Vec<Conflict>, JsError> {
+        let conflicts = self.store.conflicts(&title).map_err(|e| {
+            store_error(
+                e,
+                format_args!("cannot read the versions of the note {title:?}"),
+            )
+        })?;
+        Ok(conflicts.into_iter().map(Conflict::from).collect())
+    }
+
+    /// Settles the conflict version `id` of the note: `"mine"` keeps the
+    /// note as it is, `"theirs"` makes the version the note, `"both"` keeps
+    /// the note and makes the version a note of its own titled `copyTitle`
+    /// (or `copyTitle 2`… when taken). Throws `ERR_JOT_CHANGED` when the
+    /// version is settled already, `ERR_JOT_NOT_FOUND`,
+    /// `ERR_JOT_NOT_DOWNLOADED`.
+    pub fn resolve_conflict(
+        &mut self,
+        title: String,
+        id: String,
+        choice: ConflictChoice,
+        copy_title: Option<String>,
+    ) -> Result<ResolvedConflict, JsError> {
+        let resolution = match choice {
+            ConflictChoice::Mine => Resolution::KeepCurrent,
+            ConflictChoice::Theirs => Resolution::UseOther,
+            ConflictChoice::Both => Resolution::KeepBoth {
+                title: copy_title.unwrap_or_else(|| format!("{title} 2")),
+            },
+        };
+        let resolved = self.store.resolve(&title, &id, resolution).map_err(|e| {
+            store_error(
+                e,
+                format_args!("cannot settle the versions of the note {title:?}"),
+            )
+        })?;
+        Ok(ResolvedConflict {
+            note: resolved.note.into(),
+            copy: resolved.copy.map(NoteMeta::from),
+        })
+    }
+
     /// Calls `onChange` when notes in the folder change, by the app or
     /// anything else (Claude, a sync client), a moment after the changes
     /// settle. Replaces the listener of an earlier call.
@@ -318,21 +367,77 @@ pub struct NoteMeta {
     pub source: Option<String>,
     /// The start of the body, on one line.
     pub preview: String,
+    /// Its text is not on this Mac yet (iCloud Drive moved it off): it is
+    /// being downloaded, and `watch` reports it when it lands. Till then its
+    /// `preview` is empty, `source` null, and it cannot be changed
+    /// (`ERR_JOT_NOT_DOWNLOADED`).
+    pub downloading: bool,
+}
+
+/// A time as TS gets it: milliseconds since the Unix epoch.
+fn millis(time: std::time::SystemTime) -> f64 {
+    let millis = match time.duration_since(UNIX_EPOCH) {
+        Ok(since) => since.as_secs_f64() * 1000.0,
+        Err(before) => -before.duration().as_secs_f64() * 1000.0,
+    };
+    millis.floor()
 }
 
 impl From<jot_store::NoteMeta> for NoteMeta {
     fn from(meta: jot_store::NoteMeta) -> Self {
-        let modified = match meta.modified.duration_since(UNIX_EPOCH) {
-            Ok(since) => since.as_secs_f64() * 1000.0,
-            Err(before) => -before.duration().as_secs_f64() * 1000.0,
-        };
         NoteMeta {
             title: meta.title,
-            modified: modified.floor(),
+            modified: millis(meta.modified),
             source: meta.source.label(),
             preview: meta.preview,
+            downloading: meta.downloading,
         }
     }
+}
+
+/// Another version of a note, kept by iCloud Drive when the note changed on
+/// two devices at once.
+#[derive(Debug, Clone, PartialEq, JsObject)]
+pub struct Conflict {
+    /// What `Notes.resolveConflict` takes.
+    pub id: String,
+    /// The device it was saved on ("Floyd’s iPhone"), or `null`.
+    pub device: Option<String>,
+    /// When it was saved, in milliseconds since the Unix epoch.
+    pub modified: f64,
+    /// Its Markdown after the frontmatter.
+    pub body: String,
+}
+
+impl From<jot_store::Conflict> for Conflict {
+    fn from(conflict: jot_store::Conflict) -> Self {
+        Conflict {
+            id: conflict.id,
+            device: conflict.device,
+            modified: millis(conflict.modified),
+            body: conflict.body,
+        }
+    }
+}
+
+/// Which version of a note in conflict to keep.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PropEnum)]
+pub enum ConflictChoice {
+    /// The note as it is on this Mac.
+    Mine,
+    /// The other device's version.
+    Theirs,
+    /// Both: the other version becomes a note of its own.
+    Both,
+}
+
+/// What `Notes.resolveConflict` did.
+#[derive(Debug, Clone, PartialEq, JsObject)]
+pub struct ResolvedConflict {
+    /// The note.
+    pub note: NoteMeta,
+    /// The other version's own note, for `"both"`.
+    pub copy: Option<NoteMeta>,
 }
 
 /// A note `Notes.trash` moved to the system trash.
@@ -479,7 +584,11 @@ pub(crate) fn store_error(error: StoreError, doing: impl Display) -> JsError {
         ),
         StoreError::Changed => (
             Some("ERR_JOT_CHANGED"),
-            "the line changed since it was read".to_owned(),
+            "it changed since it was read".to_owned(),
+        ),
+        StoreError::NotDownloaded => (
+            Some("ERR_JOT_NOT_DOWNLOADED"),
+            "it is not downloaded to this Mac yet (iCloud Drive is downloading it)".to_owned(),
         ),
         StoreError::Io(io) => (io_code(io), io.to_string()),
     };

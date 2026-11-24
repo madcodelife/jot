@@ -41,6 +41,7 @@ footer:
 
 list:
   blank: 空白笔记
+  downloading: "正在下载…"
   create: 新建「%{title}」
   create_hint: 回车直接开始写
   today:
@@ -86,6 +87,16 @@ paper:
   conflict: 这条笔记在别处改过了
   view_end: 查看 ↓
   use_theirs: 用那边的
+  downloading: "这条笔记还没下载到这台 Mac，正在下载…"
+  other_device: "另一台设备"
+  versions: "%{device} 上也同时改过这条笔记（%{when}），iCloud 留下了两个版本。留哪个？"
+  versions_more: "%{device} 上也同时改过这条笔记（%{when}），iCloud 还留着另外 %{more} 个版本。先看这一个：留哪个？"
+  keep_mine: "留这台 Mac 上的"
+  keep_theirs: "用另一个"
+  keep_both: "两个都留"
+  copy_title: "%{title}（%{device}）"
+  kept_both: "另一个版本存成了「%{title}」"
+  resolve_failed: "没能处理这两个版本：%{error}"
 
 time:
   just_now: 刚刚
@@ -123,6 +134,31 @@ settings:
     choose: 选择
     reveal: 在访达中显示
     failed: 没能打开这个文件夹：%{error}
+  icloud:
+    label: "iCloud 云盘"
+    move: "放到 iCloud 云盘…"
+    moving: "正在移动…"
+    hint: "把笔记移到 iCloud 云盘，在 iPhone、iPad 和其他 Mac 上也能看到。"
+    off: "iCloud 云盘没有打开：在「系统设置」›「Apple 账户」›「iCloud」里打开「iCloud 云盘」。"
+    on: "笔记在 iCloud 云盘里，会同步到你的其他设备。"
+    synced: "已在 iCloud 云盘"
+    confirm_title: "把笔记移到 iCloud 云盘？"
+    confirm: "%{from} 里的笔记会移到 %{to}，以后 Jot 和连接的 AI 应用都用那个文件夹。那里已有的笔记不会被覆盖：同名的加上编号另存。"
+    confirm_move: "移到 iCloud 云盘"
+    cancel: "取消"
+    moved:
+      one: "已把 %{count} 条笔记移到 iCloud 云盘。"
+      other: "已把 %{count} 条笔记移到 iCloud 云盘。"
+    renamed:
+      one: "「%{from}」和那里的笔记同名，存成了「%{to}」。"
+      other: "%{count} 条和那里的笔记同名，加上编号另存了，比如「%{to}」。"
+    same:
+      one: "%{count} 条那里已有一模一样的，留在了 %{folder}。"
+      other: "%{count} 条那里已有一模一样的，留在了 %{folder}。"
+    failed_some:
+      one: "%{count} 条没能移动，还在 %{folder}：%{error}"
+      other: "%{count} 条没能移动，还在 %{folder}：%{error}"
+    failed: "没能移到 iCloud 云盘：%{error}"
   summon:
     double: 连按两下 %{key}
     on: 已开启

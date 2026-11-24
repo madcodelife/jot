@@ -40,6 +40,7 @@ footer:
 
 list:
   blank: 空のメモ
+  downloading: "ダウンロード中…"
   create: 「%{title}」を作成
   create_hint: Return ですぐに書き始められます
   today:
@@ -85,6 +86,16 @@ paper:
   conflict: このメモはほかの場所で変更されました
   view_end: 表示 ↓
   use_theirs: あちらを使う
+  downloading: "このメモはまだこの Mac にありません。ダウンロード中…"
+  other_device: "別のデバイス"
+  versions: "このメモは %{device} でも同時に変更され（%{when}）、iCloud に両方の版が残っています。どちらを残しますか？"
+  versions_more: "このメモは %{device} でも同時に変更され（%{when}）、iCloud にはほかに %{more} 件の版が残っています。まずこの版：どちらを残しますか？"
+  keep_mine: "この Mac の版を残す"
+  keep_theirs: "もう一方を使う"
+  keep_both: "両方残す"
+  copy_title: "%{title}（%{device}）"
+  kept_both: "もう一方の版を「%{title}」として保存しました"
+  resolve_failed: "版を整理できませんでした：%{error}"
 
 time:
   just_now: たった今
@@ -122,6 +133,31 @@ settings:
     choose: 選択
     reveal: Finder に表示
     failed: このフォルダを開けませんでした：%{error}
+  icloud:
+    label: "iCloud Drive"
+    move: "iCloud Drive に移動…"
+    moving: "移動中…"
+    hint: "メモを iCloud Drive に移すと、iPhone、iPad、ほかの Mac でも見られます。"
+    off: "iCloud Drive がオフです。「システム設定」›「Apple アカウント」›「iCloud」でオンにしてください。"
+    on: "メモは iCloud Drive にあり、ほかのデバイスと同期されます。"
+    synced: "iCloud Drive にあります"
+    confirm_title: "メモを iCloud Drive に移動しますか？"
+    confirm: "%{from} のメモを %{to} に移し、以後 Jot と接続中の AI アプリはそのフォルダを使います。移動先のメモは上書きしません。同じタイトルのメモは番号を付けて保存します。"
+    confirm_move: "iCloud Drive に移動"
+    cancel: "キャンセル"
+    moved:
+      one: "%{count} 件のメモを iCloud Drive に移しました。"
+      other: "%{count} 件のメモを iCloud Drive に移しました。"
+    renamed:
+      one: "「%{from}」は移動先のメモと同じタイトルだったので「%{to}」として保存しました。"
+      other: "%{count} 件は移動先のメモと同じタイトルだったので、「%{to}」のように番号を付けて保存しました。"
+    same:
+      one: "%{count} 件は移動先にまったく同じメモがあったので、%{folder} に残しました。"
+      other: "%{count} 件は移動先にまったく同じメモがあったので、%{folder} に残しました。"
+    failed_some:
+      one: "%{count} 件は移動できず、%{folder} に残っています：%{error}"
+      other: "%{count} 件は移動できず、%{folder} に残っています：%{error}"
+    failed: "iCloud Drive に移動できませんでした：%{error}"
   summon:
     double: "%{key} を 2 回押す"
     on: オン

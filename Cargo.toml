@@ -36,6 +36,7 @@ objc2 = "0.6.5"
 block2 = "0.6.2"
 objc2-foundation = { workspace = true, features = [
   "NSDictionary",
+  "NSFileManager",
   "NSObject",
   "NSString",
   "NSURL",

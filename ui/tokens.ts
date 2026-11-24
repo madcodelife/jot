@@ -131,6 +131,9 @@ export interface PlatformTokens {
     noticeFor: number;
     /** "Moved to the trash" stays this long, and the undo key with it. */
     undoFor: number;
+    /** While a note is downloading (iCloud Drive), the folder is read again this often: a file filling in place may
+     * not reach the watcher. */
+    downloadPoll: number;
   };
   /** How keys are written (symbols on Apple platforms, words elsewhere), and the summon keys. */
   /** Keys as keycaps: one string per key, a combination as several (shown side by side, no "+"). */
@@ -222,6 +225,7 @@ const TIMING = {
   islandHold: 1600,
   noticeFor: 5000,
   undoFor: 5000,
+  downloadPoll: 2000,
 };
 
 /** Fluent and libadwaita do not overshoot: the same responses at damping 1. */

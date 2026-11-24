@@ -12,7 +12,7 @@ use std::time::SystemTime;
 
 use jiff::civil::{Date, DateTime};
 
-use crate::{NoteMeta, Source, Store, StoreError, clean_title, load};
+use crate::{NoteMeta, Source, Store, StoreError, clean_title};
 
 /// The note `add_todo` writes to when the caller names none.
 pub const DEFAULT_TODO_NOTE: &str = "待办";
@@ -242,7 +242,7 @@ impl Store {
     pub fn todos(&self) -> Result<Vec<Todo>, StoreError> {
         let mut found: Vec<(SystemTime, Todo)> = Vec::new();
         for entry in self.entries()? {
-            let (meta, body) = match load(&entry) {
+            let (meta, body) = match self.load(&entry) {
                 Ok(note) => note,
                 Err(StoreError::Io(error)) if error.kind() == io::ErrorKind::NotFound => continue,
                 Err(error) => return Err(error),
