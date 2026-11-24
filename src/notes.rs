@@ -306,24 +306,6 @@ impl Notes {
     }
 }
 
-/// Who created a note.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PropEnum)]
-pub enum NoteSource {
-    /// Written in the app or any editor.
-    User,
-    /// Created by Claude through the MCP server.
-    Claude,
-}
-
-impl From<Source> for NoteSource {
-    fn from(source: Source) -> Self {
-        match source {
-            Source::User => NoteSource::User,
-            Source::Claude => NoteSource::Claude,
-        }
-    }
-}
-
 /// What a listing shows of a note.
 #[derive(Debug, Clone, PartialEq, JsObject)]
 pub struct NoteMeta {
@@ -331,8 +313,9 @@ pub struct NoteMeta {
     pub title: String,
     /// When the file last changed, in milliseconds since the Unix epoch.
     pub modified: f64,
-    /// Who created the note.
-    pub source: NoteSource,
+    /// Who created the note: `null` for the user, else the AI app's name to show (`"Claude"`, `"Cursor"`,
+    /// `"VS Code"`, or the name an unknown app gave itself).
+    pub source: Option<String>,
     /// The start of the body, on one line.
     pub preview: String,
 }
@@ -346,7 +329,7 @@ impl From<jot_store::NoteMeta> for NoteMeta {
         NoteMeta {
             title: meta.title,
             modified: modified.floor(),
-            source: meta.source.into(),
+            source: meta.source.label(),
             preview: meta.preview,
         }
     }

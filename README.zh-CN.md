@@ -6,9 +6,10 @@
 
 # Jot
 
-Jot 是一个和 Claude 共用的 macOS 速记本。在任何地方连按两下 ⌥，就会弹出一个浮窗；浮窗里只有一个输入框，它既是搜索框，
+Jot 是一个你和 AI 应用共用的 macOS 速记本。在任何地方连按两下 ⌥，就会弹出一个浮窗；浮窗里只有一个输入框，它既是搜索框，
 也是新笔记的标题：打几个字，要么找到以前记过的，要么按回车直接新建一条。笔记是你选定的文件夹里的普通 Markdown 文件，
-待办和提醒就写在笔记里。`jot-mcp` 是一个小小的 MCP 服务器，让 Claude 也能搜索、读取、追加同一批笔记，你和 Claude 共用一个本子。
+待办和提醒就写在笔记里。`jot-mcp` 是一个小小的 MCP 服务器，让你的 AI 应用（Claude、Cursor、Codex……）也能搜索、读取、
+追加同一批笔记，你和它们共用一个本子。
 
 ## 功能
 
@@ -20,39 +21,63 @@ Jot 是一个和 Claude 共用的 macOS 速记本。在任何地方连按两下 
   （或 `/todo`）列出所有没勾掉的待办，按时间分组；⇧⌘D 不用打字就能改提醒时间。
 - **语音输入**：按住 ⌥ 说话，写进搜索框或笔记；在任何 App 里连按两下 ⌥ 并按住，记一条速记。
 - **操作面板**：在一行上按 ⌘K，可以打开、重命名、复制、在访达中显示或移到废纸篓（可撤销）。
-- **Claude**：Claude 写的笔记带 Claude 标记，一写进来就出现在列表里。
+- **AI 应用**：在设置里一键连接 Claude Code、Claude、Cursor、VS Code、Windsurf、Codex 或 Gemini CLI。AI 应用写的笔记
+  带上它的名字（Claude、Cursor……），一写进来就出现在列表里。
 - 深浅色外观、多套浮窗主题，界面支持简体中文、繁体中文、英文和日文。
 
 ## 笔记怎么存
 
 - 一条笔记就是笔记文件夹（默认 `~/Documents/Jot`，可在设置里改）下的一个 `.md` 文件，文件名就是标题。
-- Claude 新建的笔记开头有 YAML frontmatter：`source: claude`；你自己写的笔记没有。其他 frontmatter 原样保留。
+- AI 应用新建的笔记开头有 YAML frontmatter，记下是谁写的：`source: claude`、`source: cursor`，Jot 不认识的应用写成
+  `source: "agent:<名字>"`（取应用连接时报的名字）；你自己写的笔记没有。只有这几种值才算 AI 写的：你自己写的
+  `source`（剪藏的网址、书名）还是你的。其他 frontmatter 原样保留。
 - 提醒在文件里存成绝对时间：`- [ ] 交房租 ⏰ 2026-11-14 09:00`（和 Obsidian 的 Reminder 插件同一写法）；
   勾掉的待办记下完成日期：`- [x] 交房租 ✅ 2026-11-14`。
 - Jot 自己不做同步：把文件夹放进 iCloud 云盘、Dropbox 或 Syncthing 即可。
 
-## Claude 与 MCP
+## AI 应用与 MCP
 
-`jot-mcp` 是一个 stdio MCP 服务器，直接读写笔记文件夹，App 开不开都能用。它从不删除或覆盖笔记。
+`jot-mcp` 是一个 stdio MCP 服务器，直接读写笔记文件夹，App 开不开都能用。它从不删除或覆盖笔记。Jot.app 里自带它
+（`Jot.app/Contents/MacOS/jot-mcp`）。
+
+### 在设置里连接
+
+设置 → AI 应用列出这台 Mac 上装了的 AI 应用和各自的状态，点一下就能连接或断开：
+
+| 应用 | Jot 怎么登记 |
+|---|---|
+| Claude Code | `claude mcp add --scope user jot -- …`（Jot 自己在 `~/.local/bin`、Homebrew、npm 和 Bun 的目录里找 `claude`） |
+| Claude（桌面版） | `~/Library/Application Support/Claude/claude_desktop_config.json` 的 `mcpServers.jot` |
+| Cursor | `~/.cursor/mcp.json` 的 `mcpServers.jot` |
+| VS Code | `~/Library/Application Support/Code/User/mcp.json` 的 `servers.jot`（`"type": "stdio"`） |
+| Windsurf | `~/.codeium/windsurf/mcp_config.json` 的 `mcpServers.jot` |
+| Codex | `~/.codex/config.toml` 的 `[mcp_servers.jot]` |
+| Gemini CLI | `~/.gemini/settings.json` 的 `mcpServers.jot` |
+| Zed | 手动：把条目复制进 `~/.config/zed/settings.json` 的 `context_servers` |
+
+Jot 只改 `jot` 这一项，文件里其他设置不变：TOML 文件连排版和注释都保留；JSON 文件保留键的顺序、缩进和换行符，但整份会
+重新写出，其他格式（比如写在一行里的数组）可能变。第一次改之前，Jot 在旁边留一份原文件（`<文件名>.jot.bak`），之后一直
+保留这份。解析不了的文件（比如带注释的 JSON）它绝不重写，而是给出条目让你复制；找不到 `claude` 命令时 Claude Code
+也一样。在设置里换了笔记文件夹，已连接的应用都会跟着更新。应用当时开着的话，重启一下才会载入 Jot。macOS 从临时位置
+运行 Jot 时（直接从「下载」里打开），Jot 不做任何连接：先把它拖进「应用程序」。
+
+### 手动设置
+
+其他 MCP 应用，在这一页复制命令或 JSON 即可。从源码目录手动登记：
 
 ```sh
 cargo build --release -p jot-mcp
-claude mcp add jot -- <jot-mcp 路径> --dir <笔记文件夹>
-# 例如：
-claude mcp add jot -- "$PWD/target/release/jot-mcp" --dir ~/Documents/Jot
+claude mcp add --scope user jot -- "$PWD/target/release/jot-mcp" --dir ~/Documents/Jot
 ```
 
 文件夹取 `--dir`，没有时取环境变量 `JOT_DIR`，再没有就是 `~/Documents/Jot`；开头的 `~` 由 `jot-mcp` 自己展开，
-因为 MCP 客户端启动它时不经过 shell。给 `claude mcp add` 加上 `--scope user`，所有项目里都能用 Jot。
-
-Claude Desktop：把服务器加到 `~/Library/Application Support/Claude/claude_desktop_config.json`（设置 → 开发者 →
-编辑配置），写上可执行文件的绝对路径，然后重启 Claude Desktop：
+因为 MCP 客户端启动它时不经过 shell。大多数应用接受同样的 JSON 条目，写上可执行文件的绝对路径：
 
 ```json
 {
   "mcpServers": {
     "jot": {
-      "command": "/absolute/path/to/jot-mcp",
+      "command": "/Applications/Jot.app/Contents/MacOS/jot-mcp",
       "args": ["--dir", "~/Documents/Jot"]
     }
   }
@@ -66,14 +91,14 @@ Claude Desktop：把服务器加到 `~/Library/Application Support/Claude/claude
 | `search_notes(query, limit?)` | 按标题和正文搜索 |
 | `read_note(title)` | 读出一条笔记的全文 |
 | `recent_notes(limit?)` | 最近修改的笔记 |
-| `create_note(title, body)` | 新建笔记，标记为 `source: claude` |
+| `create_note(title, body)` | 新建笔记，标上应用的名字（`source: cursor`） |
 | `append_note(title, text)` | 往已有笔记末尾追加 |
 | `add_todo(text, due?, note?)` | 加一条待办；`due` 是 ISO 本地时间，或 `明天 9点`、`tomorrow 3pm` 这类说法 |
 | `list_todos(range?)` | 没勾掉的待办：`overdue`、`today`、`upcoming` 或 `all`（默认今天的和已过期的） |
 | `complete_todo(note, text)` | 勾掉一条待办；写出待办里独一无二的一段就够了 |
 | `reschedule_todo(note, text, due)` | 改一条待办的提醒时间；`null` 移除提醒 |
 
-然后就可以对 Claude 说「把这个命令记到 Jot」「提醒我周五交周报」「我今天有什么要做的」。
+然后就可以对应用说「把这个命令记到 Jot」「提醒我周五交周报」「我今天有什么要做的」。
 
 ## 构建
 
@@ -85,8 +110,13 @@ Jot 依赖 crates.io 上的 NSH 0.6.0。先装同一版本（0.6.0）的 `nsh` �
 nsh run                       # 构建并运行 App
 nsh check                     # cargo check，再检查 TSX 的类型
 nsh test                      # 先跑 Rust 测试，再无界面地跑 TSX 测试
-nsh package --target macos    # 打包出 Jot.app
+scripts/package-macos.sh      # 打包出 Jot.app，里面带着 jot-mcp
 ```
+
+`scripts/package-macos.sh` 先编 `jot-mcp`，再跑 `nsh package --target macos`（参数原样传过去：`--arch universal`、
+`--out`、`--name`……），把 `jot-mcp` 放进 `Jot.app/Contents/MacOS`，然后重新签名（默认 ad hoc；`SIGN_IDENTITY` 换别的
+身份，这时带安全时间戳和 hardened runtime）。它用 `PATH` 里的 `nsh`，或 `NSH=/path/to/nsh` 指定的。开发时 `nsh run`
+（debug 构建）会在 cargo 的 target 目录里找 `jot-mcp`：先 `cargo build -p jot-mcp` 一次，就能在设置里连接应用。
 
 目前只支持 macOS。
 
@@ -100,6 +130,7 @@ locales/   翻译
 src/       App 的 Rust crate（`jot/native`）
 store/     jot-store：笔记文件夹、待办和时间说法，纯 Rust
 mcp/       jot-mcp，MCP 服务器
+scripts/   打包脚本
 design/    可交互的设计稿和 logo
 ```
 

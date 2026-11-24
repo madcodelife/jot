@@ -10,7 +10,7 @@ use rmcp::transport::stdio;
 const USAGE: &str = "\
 Usage: jot-mcp [--dir <path>]
 
-Serves a Jot notes folder to Claude (or any MCP client) over stdio.
+Serves a Jot notes folder to an AI app (any MCP client: Claude, Cursor, Codex, …) over stdio.
 
 The folder is --dir, else the JOT_DIR environment variable, else ~/Documents/Jot.";
 

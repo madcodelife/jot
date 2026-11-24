@@ -31,7 +31,8 @@ import {
 import { Radio, RadioGroup, Tab, Tabs } from "nsh/base";
 import { Application, displays, Window, type Display, type WindowRef } from "nsh/desktop";
 import { t } from "nsh/i18n";
-import { Folder, Summon } from "jot/native";
+import { Connections, Folder, Summon, type AiClient } from "jot/native";
+import { aiBusy, aiClients, aiErrors, refreshClients, toggleClient } from "../app/connections";
 import { LANGUAGES } from "../app/i18n";
 import {
   appearance,
@@ -64,11 +65,11 @@ import { fade, swatch, THEMES, type Appearance, type ThemeName } from "./themes"
 import { T } from "./tokens";
 
 /** The pages: the sidebar's, in its order, and the app card's "about". */
-export type SettingsTab = "general" | "summon" | "voice" | "reminders" | "appearance" | "claude" | "about";
+export type SettingsTab = "general" | "summon" | "voice" | "reminders" | "appearance" | "ai" | "about";
 
 type Page = { id: Exclude<SettingsTab, "about">; icon: IconName; tile: string };
 
-/** The sidebar's pages, each on a tile of its colour (System Settings' own, by kind). Claude stands apart, after a gap. */
+/** The sidebar's pages, each on a tile of its colour (System Settings' own, by kind). The AI apps stand apart, after a gap. */
 const PAGES: readonly Page[] = [
   { id: "general", icon: "tileGear", tile: "#8e8e93" },
   { id: "summon", icon: "tileOption", tile: "#5e5ce6" },
@@ -76,7 +77,7 @@ const PAGES: readonly Page[] = [
   { id: "reminders", icon: "tileBell", tile: "#ff3b30" },
   { id: "appearance", icon: "tileAppearance", tile: "#1c1c1e" },
 ];
-const CLAUDE: Page = { id: "claude", icon: "tileSpark", tile: "#d97757" };
+const AI: Page = { id: "ai", icon: "tileSpark", tile: "#af52de" };
 
 /** The window's size (fixed), the sidebar's width, and the strip the traffic lights and the page's title share. */
 const WIDTH = 715;
@@ -181,7 +182,7 @@ function Sidebar() {
           {(page) => <SidebarRow page={page()} onPress={() => select(page().id)} />}
         </Each>
         <View style={{ height: 10 }} />
-        <SidebarRow page={CLAUDE} onPress={() => select("claude")} />
+        <SidebarRow page={AI} onPress={() => select("ai")} />
       </Tabs>
     </View>
   );
@@ -244,8 +245,8 @@ function Pane() {
       <If when={shownTab() === "appearance"}>
         <AppearancePane />
       </If>
-      <If when={shownTab() === "claude"}>
-        <ClaudePane />
+      <If when={shownTab() === "ai"}>
+        <AiPane />
       </If>
       <If when={shownTab() === "about"}>
         <AboutPane />
@@ -677,45 +678,176 @@ function ThemeDot(props: { name: ThemeName }) {
   );
 }
 
-// ——— Claude ———
+// ——— AI apps ———
 
-/** `path` as a shell word: as it is when it is plain, else in single quotes. */
-const shellWord = (path: string) => (/^[\w@%+=:,./-]+$/.test(path) ? path : `'${path.replace(/'/g, `'\\''`)}'`);
-
-function ClaudePane() {
+/** A copy button: "Copied" for a moment after a press. */
+function CopyButton(props: { text: () => string; testID: string; label?: string }) {
   const copied = signal(false);
-  let copiedTimer: ReturnType<typeof setTimeout> | undefined;
-  const command = () => `claude mcp add jot -- ${t("settings.claude.placeholder")} --dir ${shellWord(folderPath() ?? folderShown())}`;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   async function copy() {
-    await Clipboard.writeText(untracked(command));
+    await Clipboard.writeText(untracked(props.text));
     copied.set(true);
-    clearTimeout(copiedTimer);
-    copiedTimer = setTimeout(() => copied.set(false), 1600);
+    clearTimeout(timer);
+    timer = setTimeout(() => copied.set(false), 1600);
   }
   return (
-    <>
-      <Group>
-        <Row label={t("settings.claude.intro")} />
-        <View style={{ paddingHorizontal: 12, paddingTop: 10, paddingBottom: 12, gap: 8 }}>
-          <View class={`absolute bg-sys-line ${fade()}`} style={{ top: 0, left: 12, right: 12, height: 0.5 }} />
+    <PushButton
+      testID={props.testID}
+      icon={copied() ? "check" : "copy"}
+      label={copied() ? t("settings.ai.copied") : (props.label ?? t("settings.ai.copy"))}
+      onPress={() => void copy()}
+    />
+  );
+}
+
+/** Text to copy, in a monospaced well with its copy button. */
+function CodeWell(props: { text: string; testID: string }) {
+  return (
+    <View class={`flex-row items-center bg-sys-field ${fade()}`} style={{ gap: 8, paddingVertical: 7, paddingLeft: 10, paddingRight: 6, borderRadius: 7, borderCurve: "continuous" }}>
+      <Text testID={props.testID} class="flex-1 font-mono text-sys-fg" style={{ fontSize: 11.5, lineHeight: 17, userSelect: "text" }}>
+        {props.text}
+      </Text>
+      <CopyButton testID={`${props.testID}-copy`} text={() => props.text} />
+    </View>
+  );
+}
+
+/** How an app stands, in words, and the dot's colour. */
+function aiState(client: AiClient): { label: string; tone: "ok" | "warn" | "off" } {
+  if (client.connected && client.current) return { label: t("settings.ai.connected"), tone: "ok" };
+  if (client.connected) return { label: t("settings.ai.elsewhere"), tone: "warn" };
+  if (client.manual) return { label: t("settings.ai.manual"), tone: "off" };
+  return { label: t("settings.ai.not_connected"), tone: "off" };
+}
+
+/** Why an app is set up by hand, and how; first that it stayed on its old folder when it is connected to one. */
+function manualHint(client: AiClient): string | null {
+  const why = (() => {
+    switch (client.manual) {
+      case "no-cli":
+        return t("settings.ai.no_cli");
+      case "unreadable":
+        return t("settings.ai.unreadable", { file: client.config });
+      case "unsupported":
+        return t("settings.ai.unsupported", { file: client.config });
+      default:
+        return null;
+    }
+  })();
+  if (why === null) return null;
+  return client.connected && !client.current ? `${t("settings.ai.not_moved")} ${why}` : why;
+}
+
+/** An installed app: its name, its state, and what can be done (connect, disconnect, update, or copy the setup). */
+function AiRow(props: { client: AiClient; divider: boolean; server: boolean; dir: string }) {
+  const c = () => props.client;
+  const state = () => aiState(c());
+  const busy = () => aiBusy()[c().id] === true;
+  const error = () => aiErrors()[c().id] ?? null;
+  const hint = () => error() ?? manualHint(c()) ?? (c().connected && c().current ? t("settings.ai.restart", { app: c().name }) : c().config);
+  return (
+    <View testID={`settings-ai:${c().id}`} class="flex-row items-center" style={{ minHeight: 44, paddingVertical: 8, paddingHorizontal: 12, gap: 12 }}>
+      <If when={props.divider}>
+        <View class={`absolute bg-sys-line ${fade()}`} style={{ top: 0, left: 12, right: 12, height: 0.5 }} />
+      </If>
+      <View class="flex-1" style={{ minWidth: 0, gap: 2 }}>
+        <View class="flex-row items-center" style={{ gap: 8 }}>
           <Text class="text-sys-fg" style={{ fontSize: FORM.label }}>
-            {t("settings.claude.how")}
+            {c().name}
           </Text>
-          <View class={`flex-row items-center bg-sys-field ${fade()}`} style={{ gap: 8, paddingVertical: 7, paddingLeft: 10, paddingRight: 6, borderRadius: 7, borderCurve: "continuous" }}>
-            <Text testID="settings-claude-command" class="flex-1 font-mono text-sys-fg" style={{ fontSize: 11.5, lineHeight: 17, userSelect: "text" }}>
-              {command()}
-            </Text>
-            <PushButton
-              testID="settings-copy"
-              icon={copied() ? "check" : "copy"}
-              label={copied() ? t("settings.claude.copied") : t("settings.claude.copy")}
-              onPress={() => void copy()}
+          <View testID={`settings-ai-state:${c().id}`} class="flex-row items-center" style={{ gap: 5 }}>
+            <View
+              class={state().tone === "ok" ? "bg-sys-ok" : state().tone === "warn" ? "bg-sys-warn" : "bg-sys-muted"}
+              style={{ width: 7, height: 7, borderRadius: 3.5, opacity: state().tone === "off" ? 0.5 : 1 }}
             />
+            <Text class="text-sys-muted" style={{ fontSize: FORM.hint }}>
+              {state().label}
+            </Text>
           </View>
-          <Hint>{t("settings.claude.path_note")}</Hint>
+        </View>
+        <Hint tone={error() ? "late" : undefined}>{hint()}</Hint>
+      </View>
+      <If
+        when={!c().manual}
+        else={<CopyButton testID={`settings-ai-copy:${c().id}`} text={() => props.client.snippet} label={t("settings.ai.copy_setup")} />}
+      >
+        <View class="flex-row items-center" style={{ gap: 6 }}>
+          <If when={c().connected && !c().current}>
+            <PushButton
+              testID={`settings-ai-update:${c().id}`}
+              label={t("settings.ai.update")}
+              disabled={busy() || !props.server}
+              onPress={() => void toggleClient(c().id, props.dir, true)}
+            />
+          </If>
+          <PushButton
+            testID={`settings-ai-toggle:${c().id}`}
+            label={c().connected ? t("settings.ai.disconnect") : t("settings.ai.connect")}
+            primary={!c().connected}
+            disabled={busy() || (!c().connected && !props.server)}
+            onPress={() => void toggleClient(c().id, props.dir, !c().connected)}
+          />
+        </View>
+      </If>
+    </View>
+  );
+}
+
+function AiPane() {
+  const dir = () => folderPath() ?? folderShown();
+  // From App Translocation's temporary path nothing is connected (Jot must be in Applications first).
+  const translocated = Connections.translocated();
+  const server = Connections.server() !== null && !translocated;
+  const generic = () => Connections.generic(dir());
+  // Read again whenever the page shows or the folder changes.
+  effect(() => {
+    const folder = dir();
+    untracked(() => void refreshClients(folder));
+  });
+  const installed = () => (aiClients() ?? []).filter((c) => c.installed);
+  return (
+    <>
+      <Text class="text-sys-muted" style={{ fontSize: FORM.hint, lineHeight: 15, marginBottom: 2, marginHorizontal: 2 }}>
+        {t("settings.ai.intro")}
+      </Text>
+      <If
+        when={translocated}
+        else={
+          <If when={!server}>
+            <Footnote tone="late" testID="settings-ai-no-server">
+              {t("settings.ai.no_server")}
+            </Footnote>
+          </If>
+        }
+      >
+        <Footnote tone="late" testID="settings-ai-translocated">
+          {t("settings.ai.translocated")}
+        </Footnote>
+      </If>
+      <SectionTitle>{t("settings.ai.apps")}</SectionTitle>
+      <Group testID="settings-ai-apps">
+        <If when={aiClients() !== null} else={<Row label={t("settings.ai.looking")} />}>
+          <If when={installed().length > 0} else={<Row testID="settings-ai-none" label={t("settings.ai.none")} />}>
+            <Each of={installed()} key={(c) => c.id}>
+              {(client, index) => <AiRow client={client()} divider={index() > 0} server={server} dir={dir()} />}
+            </Each>
+          </If>
+        </If>
+      </Group>
+      <SectionTitle>{t("settings.ai.other")}</SectionTitle>
+      <Group testID="settings-ai-other">
+        <View style={{ paddingHorizontal: 12, paddingTop: 10, paddingBottom: 12, gap: 8 }}>
+          <Text class="text-sys-fg" style={{ fontSize: FORM.label }}>
+            {t("settings.ai.command")}
+          </Text>
+          <CodeWell testID="settings-ai-command" text={generic().command} />
+          <Text class="text-sys-fg" style={{ fontSize: FORM.label, marginTop: 4 }}>
+            {t("settings.ai.json")}
+          </Text>
+          <CodeWell testID="settings-ai-json" text={generic().json} />
         </View>
       </Group>
-      <Footnote>{t("settings.claude.then")}</Footnote>
+      <Footnote>{t("settings.ai.then")}</Footnote>
     </>
   );
 }

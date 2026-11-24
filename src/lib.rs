@@ -10,10 +10,15 @@
 //! - [`Folder`]: the system's folder dialog, and a folder shown in Finder.
 //! - [`InputSource`]: the language of the keyboard input source, which
 //!   dictation listens for.
+//! - [`Connections`]: the AI apps Jot's MCP server is registered with
+//!   (`connect`: one table of apps, their configuration files edited in
+//!   place).
 //!
 //! Platform code lives in `platform/<os>.rs` behind one interface, so
 //! `App.tsx` never checks the platform for these.
 
+mod connect;
+mod connections;
 mod folder;
 mod input_source;
 mod notes;
@@ -30,9 +35,10 @@ mod when;
 
 use nsh_core::prelude::*;
 
+pub use connections::{AiClient, Connections, GenericSetup, ManualReason};
 pub use folder::Folder;
 pub use input_source::InputSource;
-pub use notes::{Note, NoteMeta, NoteSource, Notes, SearchHit, Todo, TrashedNote};
+pub use notes::{Note, NoteMeta, Notes, SearchHit, Todo, TrashedNote};
 pub use reminders::{DueEvent, Reminders};
 pub use summon::{Summon, SummonKey};
 pub use when::{When, WhenMatch};
@@ -46,5 +52,6 @@ fn native(registry: &mut Registry) {
         .module::<When>()
         .module::<Summon>()
         .module::<Folder>()
-        .module::<InputSource>();
+        .module::<InputSource>()
+        .module::<Connections>();
 }

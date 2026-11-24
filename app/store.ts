@@ -7,6 +7,7 @@ import { t } from "nsh/i18n";
 import { Folder, Notes, Reminders, Summon, type DueEvent, type NoteMeta, type Todo, type TrashedNote } from "jot/native";
 import { morphNext } from "../ui/motion";
 import { T } from "../ui/tokens";
+import { syncClients } from "./connections";
 import { todoKeyword, todoKeywords } from "./i18n";
 import { groupOf, parseDue, type TodoGroup } from "./time";
 
@@ -51,7 +52,7 @@ export const query = signal("");
 export const selected = signal(0);
 /** The note open in the editor; `token` changes on each opening (the editor reloads), `line` is where its caret goes. */
 export const opened = signal<{ title: string; line: number | null; focus: boolean; token: number } | null>(null);
-/** A row that just arrived from Claude: it glows once. */
+/** A row that just arrived from an AI app: it glows once. */
 export const arriving = signal<string | null>(null);
 /** A short message in the footer (a title the folder cannot take). */
 export const notice = signal<string | null>(null);
@@ -81,7 +82,7 @@ export const flash = signal<string | null>(null);
 /** The note whose title is being edited in its row (the action panel's "Rename"). */
 export const renaming = signal<string | null>(null);
 
-/** Notes Jot itself created this run: not Claude's arrivals. */
+/** Notes Jot itself created this run: not an AI app's arrivals. */
 const createdHere = new Set<string>();
 /** What Jot last wrote per note: the folder's echo of its own saves is not an outside change. */
 export const lastWritten = new Map<string, string>();
@@ -226,6 +227,8 @@ export function changeFolder(dir: string) {
   const n = new Notes(dir);
   useFolder(n);
   void Storage.setItem(DIR_KEY, dir);
+  // The AI apps connected to the old folder follow.
+  void syncClients(n.dir);
 }
 
 /** What fires when to-dos come due (App.tsx's), and the folder's reminders running it. */
@@ -260,19 +263,19 @@ export async function firstRun(): Promise<boolean> {
   return true;
 }
 
-/** Listeners to notes Claude wrote (the island shows them). */
-const arrivals = new Set<(title: string) => void>();
-export function onClaudeNote(listener: (title: string) => void): () => void {
+/** Listeners to notes an AI app wrote, with the app's name (the island shows them). */
+const arrivals = new Set<(title: string, agent: string) => void>();
+export function onAgentNote(listener: (title: string, agent: string) => void): () => void {
   arrivals.add(listener);
   return () => arrivals.delete(listener);
 }
 
-/** The folder changed on disk: read it again, and tell apart the notes Claude just wrote. */
+/** The folder changed on disk: read it again, and tell apart the notes an AI app just wrote. */
 function folderChanged() {
   const n = notes();
   if (!n) return;
   const list = n.list();
-  const fresh = list.filter((m) => !known.has(m.title) && !createdHere.has(m.title) && m.source === "claude");
+  const fresh = list.filter((m) => !known.has(m.title) && !createdHere.has(m.title) && m.source !== null);
   known = new Set(list.map((m) => m.title));
   if (fresh.length) {
     if (untracked(stage) === "list" && !untracked(query).trim()) morphNext(T.spring.drop);
@@ -280,7 +283,7 @@ function folderChanged() {
     setTimeout(() => arriving.set(null), 1600);
   }
   revision.update((r) => r + 1);
-  for (const m of fresh) for (const l of arrivals) l(m.title);
+  for (const m of fresh) for (const l of arrivals) l(m.title, m.source ?? "");
 }
 
 /** Jot changed the folder itself: read it again now, rather than at the watcher's echo. */
@@ -552,7 +555,7 @@ export function undoTrash() {
     return;
   }
   gone.delete(meta.title.toLowerCase());
-  // Back from the trash is no arrival of Claude's, whoever wrote it.
+  // Back from the trash is no AI app's arrival, whoever wrote it.
   known.add(meta.title);
   createdHere.add(meta.title);
   morphNext(T.spring.drop);
@@ -621,7 +624,7 @@ export function finishRename(to: string | null) {
     );
     return;
   }
-  // The new name is no note of Claude's arriving.
+  // The new name is no AI app's note arriving.
   known.delete(from);
   known.add(meta.title);
   createdHere.add(meta.title);

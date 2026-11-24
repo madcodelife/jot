@@ -19,8 +19,8 @@
       "code": "#f2f3f6",
       "mark": "#ffd84a",
       "mark-fg": "#16171b",
-      "claude": "#e8743b",
-      "claude-light": "#ffb183",
+      "agent": "#e8743b",
+      "agent-light": "#ffb183",
       "ok": "#2bb24c",
       "warn": "#d98a00",
       "danger": "#d93d3d",
@@ -45,7 +45,7 @@
       "group-edge": "#00000012",
       "control": "#0000000f",
       "switch-off": "#00000024",
-      "claude-ink": "#a64818",
+      "agent-ink": "#a64818",
       "thumb": "#ffffff",
       "sys-bg": "#f5f5f7",
       "sys-sidebar": "#e8e8ec00",
@@ -62,6 +62,7 @@
       "sys-thumb": "#ffffff",
       "sys-accent": "#007aff",
       "sys-ok": "#34c759",
+      "sys-warn": "#ff9500",
       "sys-red": "#d70015"
     },
     "dark": {
@@ -81,8 +82,8 @@
       "code": "#25262d",
       "mark": "#ffd23a",
       "mark-fg": "#16171b",
-      "claude": "#f08a55",
-      "claude-light": "#ffb183",
+      "agent": "#f08a55",
+      "agent-light": "#ffb183",
       "ok": "#3ccf62",
       "warn": "#f0a72a",
       "danger": "#ff6b6b",
@@ -107,7 +108,7 @@
       "group-edge": "#ffffff12",
       "control": "#ffffff1a",
       "switch-off": "#ffffff29",
-      "claude-ink": "#f39a6a",
+      "agent-ink": "#f39a6a",
       "thumb": "#636366",
       "sys-bg": "#1c1c1e",
       "sys-sidebar": "#26262900",
@@ -124,6 +125,7 @@
       "sys-thumb": "#ffffff",
       "sys-accent": "#0a84ff",
       "sys-ok": "#30d158",
+      "sys-warn": "#ff9f0a",
       "sys-red": "#ff6961"
     }
   }

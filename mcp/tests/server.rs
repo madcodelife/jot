@@ -6,16 +6,20 @@ use std::fs;
 use jiff::civil::{DateTime, date};
 use jot_mcp::JotServer;
 use jot_store::Store;
-use rmcp::model::{CallToolRequestParams, CallToolResult, ClientConfig};
+use rmcp::model::{CallToolRequestParams, CallToolResult, ClientConfig, Implementation};
 use rmcp::service::RunningService;
 use rmcp::{ClientHandler, RoleClient, ServiceExt as _};
 
-#[derive(Debug, Clone, Default)]
-struct Client;
+/// An MCP client that calls itself by the name it holds (`clientInfo.name`), as Claude Desktop calls itself
+/// `claude-ai`.
+#[derive(Debug, Clone)]
+struct Client(&'static str);
 
 impl ClientHandler for Client {
     fn get_info(&self) -> ClientConfig {
-        ClientConfig::default()
+        let mut config = ClientConfig::default();
+        config.client_info = Implementation::new(self.0, "1.0.0");
+        config
     }
 }
 
@@ -57,7 +61,7 @@ async fn create_search_read_append() {
             .await
             .unwrap();
     });
-    let client = Client.serve(client_transport).await.unwrap();
+    let client = Client("claude-ai").serve(client_transport).await.unwrap();
 
     let info = client.peer_info().unwrap();
     assert_eq!(info.server_info.as_ref().unwrap().name, "jot");
@@ -222,7 +226,7 @@ async fn add_list_complete_todos() {
             .await
             .unwrap();
     });
-    let client = Client.serve(client_transport).await.unwrap();
+    let client = Client("claude-ai").serve(client_transport).await.unwrap();
     let todo_note = dir.path().join("待办.md");
 
     // Add: an ISO time, a phrase in the text, a phrase as `due`, another note, no time.
@@ -447,7 +451,7 @@ async fn reschedule_todos() {
             .await
             .unwrap();
     });
-    let client = Client.serve(client_transport).await.unwrap();
+    let client = Client("claude-ai").serve(client_transport).await.unwrap();
 
     // The schema asks for `due`, null allowed.
     let tool = client
@@ -577,4 +581,78 @@ async fn reschedule_todos() {
 
     client.cancel().await.unwrap();
     server.await.unwrap();
+}
+
+#[tokio::test]
+async fn notes_are_marked_with_the_client_that_wrote_them() {
+    let dir = tempfile::tempdir().unwrap();
+    for (name, key) in [
+        ("cursor-vscode", "source: cursor"),
+        ("claude-code", "source: claude-code"),
+        ("Goose: nightly", "source: \"agent:Goose: nightly\""),
+    ] {
+        let store = Store::open(dir.path()).unwrap();
+        let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
+        tokio::spawn(async move {
+            JotServer::new(store)
+                .serve(server_transport)
+                .await
+                .unwrap()
+                .waiting()
+                .await
+                .unwrap();
+        });
+        let client = Client(name).serve(client_transport).await.unwrap();
+        let (failed, text) = call(
+            &client,
+            "create_note",
+            serde_json::json!({ "title": name.replace(':', ""), "body": "x" }),
+        )
+        .await;
+        assert!(!failed, "{text}");
+        let file = dir.path().join(format!("{}.md", name.replace(':', "")));
+        assert_eq!(
+            fs::read_to_string(&file).unwrap(),
+            format!("---\n{key}\n---\nx")
+        );
+        let (_, text) = call(
+            &client,
+            "add_todo",
+            serde_json::json!({ "text": "a", "note": format!("todo {name}").replace(':', "") }),
+        )
+        .await;
+        assert!(text.contains("Added"), "{text}");
+        let todo = dir
+            .path()
+            .join(format!("todo {}.md", name.replace(':', "")));
+        assert!(
+            fs::read_to_string(&todo)
+                .unwrap()
+                .starts_with(&format!("---\n{key}\n---\n"))
+        );
+        client.cancel().await.unwrap();
+    }
+    // Search says who wrote each note, by the app's name; a clipped page's `source` is the user's.
+    fs::write(
+        dir.path().join("Clipped.md"),
+        "---\nsource: \"https://example.com/a\"\n---\nx",
+    )
+    .unwrap();
+    let store = Store::open(dir.path()).unwrap();
+    let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
+    tokio::spawn(async move {
+        let _ = JotServer::new(store)
+            .serve(server_transport)
+            .await
+            .unwrap()
+            .waiting()
+            .await;
+    });
+    let client = Client("claude-ai").serve(client_transport).await.unwrap();
+    let (_, text) = call(&client, "recent_notes", serde_json::json!({})).await;
+    assert!(text.contains("written by Cursor"), "{text}");
+    assert!(text.contains("written by Claude Code"), "{text}");
+    assert!(text.contains("written by Goose: nightly"), "{text}");
+    assert!(!text.contains("example.com"), "{text}");
+    client.cancel().await.unwrap();
 }

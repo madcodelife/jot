@@ -2,7 +2,7 @@
 
 ```
 store/   jot-store   pure Rust: the notes folder's format, listing, search, atomic writes, folder watching
-mcp/     jot-mcp     stdio MCP server for Claude, on jot-store
+mcp/     jot-mcp     stdio MCP server for AI apps, on jot-store
 src/     nsh-app-jot the app's Rust crate (`jot/native`): wraps jot-store as a class for App.tsx
 App.tsx              the UI (NSH, TSX)
 ```
@@ -15,8 +15,10 @@ The root `Cargo.toml` is the app crate and the workspace (`members = ["store", "
 - The title is the file stem. A title is trimmed; `/`, `\`, `:` and control characters become `-`; an empty
   title, `.` / `..`, or a title starting with `.` is rejected (`StoreError::InvalidTitle`). Titles compare
   case-insensitively for existence checks (macOS file systems are case-insensitive).
-- Optional YAML frontmatter at the very top (`---` lines). The only key Jot writes is `source: claude`, on notes
-  created through MCP. Unknown keys are preserved on every write. `body` never includes the frontmatter.
+- Optional YAML frontmatter at the very top (`---` lines). The only key Jot writes is `source`, on notes created
+  through MCP: the app that created it (`source: cursor`, `source: "agent:Goose"`). Only the values Jot writes mark
+  a note as an app's; any other `source` (a web clipper's URL, a book) is the user's. Unknown keys are preserved on
+  every write. `body` never includes the frontmatter.
 - Writes are atomic: a temp file in the same folder, then rename.
 - `modified` is the file's mtime.
 
@@ -62,12 +64,31 @@ pub struct NoteMeta { pub title: String, pub modified: SystemTime, pub source: S
 pub struct Note { pub meta: NoteMeta, pub body: String }
 pub struct SearchHit { pub meta: NoteMeta, pub snippet: String /* ~120 chars around the first body match, or the preview */, pub title_match: bool }
 pub struct Trashed { pub title: String, pub in_trash: Option<PathBuf>, pub content: String, pub modified: SystemTime }  // non_exhaustive
-pub enum Source { User, Claude }
+/// Who created a note: the user, or an AI app by its key (`claude`, `claude-code`, `cursor`, `codex`, `vscode`,
+/// `windsurf`, `gemini`, `zed`; `agent` for one that gave no name) or, for an app Jot does not know,
+/// `agent:<the name it gave itself>`.
+pub enum Source { User, Agent(String) }
+impl Source {
+    pub fn agent(key: impl Into<String>) -> Source;
+    /// From an MCP client's `clientInfo.name`: Claude's apps by their exact names (`claude-ai` → `claude`,
+    /// `claude-code`; a `claude-dev` is not Claude), the others by what their names contain (`cursor-vscode` →
+    /// `cursor`, `Visual Studio Code` → `vscode`, …); any other as `agent:<name>` (one line, ≤ 64 chars, no quotes or
+    /// backslashes).
+    pub fn from_client(name: &str) -> Source;
+    /// The name shown: "Claude", "Claude Code", "Cursor", "VS Code", "Gemini CLI", …, the name after `agent:`, "AI"
+    /// for `agent`; None for the user.
+    pub fn label(&self) -> Option<String>;
+}
 pub enum StoreError { InvalidTitle, NotFound, AlreadyExists, Io(std::io::Error) }  // Display + std::error::Error
 pub struct Watcher { /* … */ }
 ```
 
-Structs derive `Debug, Clone` (and `PartialEq` where it makes sense); `Source` is `Copy`.
+Structs derive `Debug, Clone` (and `PartialEq` where it makes sense). The frontmatter's `source` is written as the
+key, double-quoted unless YAML reads it as that plain string (`cursor`; but `"agent:Goose"`, and never a bare `true`,
+`null`, number or `-…`). Reading takes the top-level `source` line only (not an indented one), its value unquoted and
+without a trailing `# comment`: a known key or `agent` in any case is that app (`Claude` → `claude`: notes from before
+the apps were told apart say `claude`), `agent:<name>` the app of that name, and anything else (URLs, book titles,
+`user`, empty) the user. An older Jot reads `source: cursor` and the like as the user's (it knew `claude` only).
 
 ## To-dos (store/src/todo.rs, part of jot-store)
 
@@ -132,12 +153,23 @@ pub mod when {                   // store/src/when/: mod.rs (driver, labels), zh
 ```
 `StoreError` gains `Changed`.
 
-MCP tools (mcp/): `add_todo(text, due?, note?)` (`due`: ISO `2026-11-14T09:00` or a phrase `when::parse` reads, in
+MCP tools (mcp/): `create_note` and `add_todo` record the calling app as the new note's `source`
+(`Source::from_client` of the `initialize` handshake's `clientInfo.name`). `add_todo(text, due?, note?)` (`due`: ISO `2026-11-14T09:00` or a phrase `when::parse` reads, in
 Chinese, English or Japanese; without `due`, a phrase in `text` becomes the time),
 `list_todos(range?)` (`overdue` | `today` | `upcoming` | `all`, default `today`+`overdue`), `complete_todo(note, text)`,
 `reschedule_todo(note, text, due)` (`due` required: ISO or a phrase `when::parse` reads; `null` removes the reminder;
 only the `⏰` part of the line changes). The last two find the open to-do the same way: the exact text, else the one
 whose text holds it; several or none fail, listing the candidates.
+
+## Packaging (scripts/package-macos.sh)
+
+NSH's `nsh package` bundles its runner and the app's assets only, so the script builds `jot-mcp` (in cargo's
+`target_directory` from `cargo metadata`; lipo'd for `--arch universal`), removes `<out>/<name>.app` (`--name`, else
+nsh.json's), runs `nsh package --target macos` with its options (paths taken from the caller's folder; no ENTRY: it
+packages this checkout; `--arch` is `arm64`, `x86_64` or `universal`), copies `jot-mcp` to
+`<name>.app/Contents/MacOS/jot-mcp`, signs it, signs the bundle again keeping its entitlements, and verifies
+(`codesign --verify --deep --strict`). `NSH` picks the CLI (0.6.0), `SIGN_IDENTITY` the identity: ad hoc by default;
+any other signs both with `--timestamp --options runtime`, as notarization asks.
 
 ## The app's Rust face (`jot/native`, src/)
 
@@ -165,7 +197,7 @@ class Notes {                                   // wraps jot_store::Store
   setTodoDue(note: string, line: number, text: string, due: string | null /* "YYYY-MM-DDTHH:mm", else TypeError; null removes */): NoteMeta;  // ERR_JOT_CHANGED
   addTodo(text: string, due?: string | null /* "YYYY-MM-DDTHH:mm", else TypeError */, note?: string | null /* "待办" */): Todo;
 }
-interface NoteMeta { title: string; modified: number /* ms since epoch */; source: "user" | "claude"; preview: string }
+interface NoteMeta { title: string; modified: number /* ms since epoch */; source: string | null /* null: the user; else the AI app's name, "Cursor" */; preview: string }
 interface Note { meta: NoteMeta; body: string }
 interface SearchHit { meta: NoteMeta; snippet: string; titleMatch: boolean }
 interface TrashedNote { title: string; token: number }   // the last 64 trashed per folder can be restored
@@ -197,6 +229,42 @@ module Summon {                                 // gestures of a modifier, syste
   // Replaces the previous handlers; the key may differ from onDoubleTap's.
   onDoubleTapHold(key: "option" | "control", handlers: { start: () => void; end: (event: { cancelled: boolean }) => void }): void;
 }
+
+module Connections {                            // the AI apps jot-mcp is registered with (src/connect.rs, src/connections.rs)
+  server(): string | null;                      // jot-mcp: beside the executable (Jot.app/Contents/MacOS), else (debug builds only) this checkout's target/{release,debug}
+  translocated(): boolean;                      // Jot runs from App Translocation's temporary path: nothing is connected (move it to Applications)
+  clients(dir: string): Promise<AiClient[]>;    // every known app, its state for the notes folder `dir`
+  connect(id: string, dir: string): Promise<AiClient>;     // registers `jot-mcp --dir <dir>`; rejects with why
+  disconnect(id: string, dir: string): Promise<AiClient>;  // takes the `jot` entry out
+  sync(dir: string): Promise<AiClient[]>;       // the folder changed: re-registers every connected app Jot can write (one it cannot stays connected elsewhere, `manual` saying why)
+  generic(dir: string): { command: string; json: string }; // for any other app: the command line, the mcpServers JSON
+}
+interface AiClient {
+  id: string;            // "claude-code" | "claude-desktop" | "cursor" | "vscode" | "windsurf" | "codex" | "gemini" | "zed"
+  name: string;          // "Claude Code", "Claude", …
+  installed: boolean;    // its app bundle or its settings folder is there
+  connected: boolean;    // its configuration has `jot`
+  current: boolean;      // … with this folder and this jot-mcp
+  manual: "no-cli" | "unreadable" | "unsupported" | null;  // why Jot cannot do it itself (then: copy `snippet`)
+  config: string;        // "~/.cursor/mcp.json"
+  snippet: string;       // Claude Code's command, else the entry its file takes
+  error: string | null;  // sync's failure for it
+}
+// One table (`connect::CLIENTS`) lists the apps: id, name, markers under ~ and app bundles that say it is installed,
+// its configuration file and its form: Claude Code through its CLI (`claude mcp remove/add --scope user`; when `add`
+// fails after `remove`, the old entry is put back with `claude mcp add-json` and the error says whether it was;
+// `claude` looked for in ~/.local/bin, ~/.claude/local, /opt/homebrew/bin, /usr/local/bin, ~/.npm-global/bin,
+// ~/.bun/bin, run with a PATH that has node, its output read as it runs, 30 s at most), JSON files (`mcpServers` /
+// VS Code's `servers` with "type": "stdio" / Zed's `context_servers`, read only), Codex's TOML (`[mcp_servers.jot]`,
+// edited with toml_edit, layout and comments kept). Writes change the `jot` entry only (an entry there keeps its other
+// keys); a JSON file is written out again keeping its data, key order, indentation, CRLF and final newline, not its
+// other formatting. A file that does not parse strictly, or whose servers are not an object / table, is refused (JSON
+// with comments is read for the state, never written). Before Jot's first change the file is copied to
+// `<file>.jot.bak` (kept from then on: copied again only when the file has no `jot`, or the backup is gone); the new
+// file is a temporary one of its own beside it (`create_new`, the old permissions) renamed over it (a symlink is
+// followed; a hard link is not kept). One change at a time per process (a lock around connect, disconnect, sync).
+// A translocated Jot connects nothing; sync then keeps each app's command and moves the folder only. Tests run on a
+// temporary home (`Env`).
 
 module InputSource {                            // the keyboard input source selected now
   // Its first language, BCP 47 ("zh-Hans" for Pinyin, "ja", "en"); null where the platform does not say.

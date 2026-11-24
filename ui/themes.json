@@ -44,7 +44,7 @@
       "paper-fg": "#231e18",
       "paper-muted": "#776b5c",
       "code": "#f4eee2",
-      "claude": "#d0632a",
+      "agent": "#d0632a",
       "window": "#f7f3ea",
       "window-fg": "#231e18",
       "window-muted": "#6c6152",
@@ -53,7 +53,7 @@
       "group-edge": "#3b2a1614",
       "control": "#3b2a1612",
       "switch-off": "#3b2a1626",
-      "claude-ink": "#a84a17",
+      "agent-ink": "#a84a17",
       "thumb": "#fffdf8"
     },
     "dark": {
@@ -74,7 +74,7 @@
       "paper-fg": "#ece4d6",
       "paper-muted": "#a6998a",
       "code": "#2b2620",
-      "claude": "#f08a55",
+      "agent": "#f08a55",
       "window": "#27231e",
       "window-fg": "#f2ebdf",
       "window-muted": "#a89c8c",
@@ -83,7 +83,7 @@
       "group-edge": "#fff6e612",
       "control": "#fff6e61a",
       "switch-off": "#fff6e629",
-      "claude-ink": "#f39a6a",
+      "agent-ink": "#f39a6a",
       "thumb": "#6a6156"
     }
   },
@@ -117,7 +117,7 @@
       "paper-fg": "#18211b",
       "paper-muted": "#66736a",
       "code": "#eef3ec",
-      "claude": "#e0703a",
+      "agent": "#e0703a",
       "window": "#f3f6f2",
       "window-fg": "#18211b",
       "window-muted": "#5e6b61",
@@ -126,7 +126,7 @@
       "group-edge": "#17201a12",
       "control": "#17201a0f",
       "switch-off": "#17201a24",
-      "claude-ink": "#a04815"
+      "agent-ink": "#a04815"
     },
     "dark": {
       "primary": "#2a7046",
@@ -146,7 +146,7 @@
       "paper-fg": "#e6ede7",
       "paper-muted": "#93a196",
       "code": "#232b25",
-      "claude": "#f08a55",
+      "agent": "#f08a55",
       "window": "#222824",
       "window-fg": "#e9f0ea",
       "window-muted": "#9aa69d",
@@ -155,7 +155,7 @@
       "group-edge": "#ffffff12",
       "control": "#ffffff1a",
       "switch-off": "#ffffff29",
-      "claude-ink": "#f39a6a"
+      "agent-ink": "#f39a6a"
     }
   },
   "dusk": {
@@ -188,7 +188,7 @@
       "paper-fg": "#1e1928",
       "paper-muted": "#706980",
       "code": "#f1eef7",
-      "claude": "#e8743b",
+      "agent": "#e8743b",
       "window": "#f6f4fa",
       "window-fg": "#1e1928",
       "window-muted": "#676075",
@@ -197,7 +197,7 @@
       "group-edge": "#1c172612",
       "control": "#1c17260f",
       "switch-off": "#1c172624",
-      "claude-ink": "#a44a1a"
+      "agent-ink": "#a44a1a"
     },
     "dark": {
       "primary": "#6a4ecf",
@@ -217,7 +217,7 @@
       "paper-fg": "#ebe6f5",
       "paper-muted": "#a097b3",
       "code": "#28232f",
-      "claude": "#f08a55",
+      "agent": "#f08a55",
       "window": "#25212d",
       "window-fg": "#eee9f8",
       "window-muted": "#a59db6",
@@ -226,7 +226,7 @@
       "group-edge": "#ffffff12",
       "control": "#ffffff1a",
       "switch-off": "#ffffff29",
-      "claude-ink": "#f39a6a"
+      "agent-ink": "#f39a6a"
     }
   },
   "coral": {
@@ -259,7 +259,7 @@
       "paper-fg": "#26181c",
       "paper-muted": "#7d666c",
       "code": "#fbefee",
-      "claude": "#e0743a",
+      "agent": "#e0743a",
       "window": "#fbf5f4",
       "window-fg": "#26181c",
       "window-muted": "#735f65",
@@ -268,7 +268,7 @@
       "group-edge": "#25161a12",
       "control": "#25161a0f",
       "switch-off": "#25161a24",
-      "claude-ink": "#9e4a1a"
+      "agent-ink": "#9e4a1a"
     },
     "dark": {
       "primary": "#b83a58",
@@ -288,7 +288,7 @@
       "paper-fg": "#f3e7ea",
       "paper-muted": "#ad979d",
       "code": "#2e2226",
-      "claude": "#f08a55",
+      "agent": "#f08a55",
       "window": "#2a2023",
       "window-fg": "#f8ecee",
       "window-muted": "#b29ca2",
@@ -297,7 +297,7 @@
       "group-edge": "#ffffff12",
       "control": "#ffffff1a",
       "switch-off": "#ffffff29",
-      "claude-ink": "#f39a6a"
+      "agent-ink": "#f39a6a"
     }
   },
   "contrast": {
@@ -333,8 +333,8 @@
       "code": "#ededed",
       "mark": "#ffd400",
       "mark-fg": "#000000",
-      "claude": "#943600",
-      "claude-light": "#ff9a5c",
+      "agent": "#943600",
+      "agent-light": "#ff9a5c",
       "ok": "#007a24",
       "warn": "#8a5200",
       "danger": "#8a0009",
@@ -350,7 +350,7 @@
       "group-edge": "#000000",
       "control": "#0000001f",
       "switch-off": "#6b6b6b",
-      "claude-ink": "#943600",
+      "agent-ink": "#943600",
       "thumb": "#ffffff"
     },
     "dark": {
@@ -374,8 +374,8 @@
       "code": "#1c1c1c",
       "mark": "#ffd400",
       "mark-fg": "#000000",
-      "claude": "#ffa36b",
-      "claude-light": "#ffc49e",
+      "agent": "#ffa36b",
+      "agent-light": "#ffc49e",
       "ok": "#5ee07a",
       "warn": "#ffc94d",
       "danger": "#ff9090",
@@ -391,7 +391,7 @@
       "group-edge": "#ffffff",
       "control": "#ffffff29",
       "switch-off": "#9a9a9a",
-      "claude-ink": "#ffa36b",
+      "agent-ink": "#ffa36b",
       "thumb": "#000000"
     }
   }

@@ -382,7 +382,7 @@ impl Store {
                     })?;
                     break (meta, line);
                 }
-                None => match self.create(&title, &format!("{new_line}\n"), source) {
+                None => match self.create(&title, &format!("{new_line}\n"), source.clone()) {
                     Ok(meta) => break (meta, 0),
                     // Created by someone else in between: append to theirs.
                     Err(StoreError::AlreadyExists) if attempts < 3 => continue,
@@ -828,7 +828,7 @@ mod tests {
 
         // Creates 待办 with the source.
         let todo = store
-            .add_todo(None, " 交房租\n给房东 ", Some(due), Source::Claude)
+            .add_todo(None, " 交房租\n给房东 ", Some(due), Source::agent("claude"))
             .unwrap();
         assert_eq!(
             todo,
@@ -861,7 +861,7 @@ mod tests {
         let notes = store.root().join("Notes.md");
         fs::write(&notes, "# Notes\nsome text\n\n").unwrap();
         let todo = store
-            .add_todo(Some("notes"), "回电话", None, Source::Claude)
+            .add_todo(Some("notes"), "回电话", None, Source::agent("claude"))
             .unwrap();
         assert_eq!((todo.note.as_str(), todo.line), ("Notes", 3));
         assert_eq!(

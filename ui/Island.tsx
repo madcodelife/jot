@@ -1,6 +1,6 @@
 // The island: a black shape hanging from the top of the screen (from the
 // notch where there is one, the menu bar's middle where there is none). It
-// grows to say that Claude is writing a note to Jot, then that it is saved,
+// grows to say that an AI app is writing a note to Jot, then that it is saved,
 // and to show a reminder that can be ticked where it is. A quick note said
 // anywhere (the double press of ⌥ held) opens it as dictation: a breathing
 // dot and the words as they come, then where they were filed. Everything
@@ -21,7 +21,7 @@ import { listening, listeningLang, PRIVACY_URL } from "../app/voice";
 import { Breathing, LanguageTag } from "./Voice";
 
 /** What the island says. */
-type IslandEvent = { kind: "write"; title: string } | { kind: "remind"; todo: Todo } | { kind: "dictate" };
+type IslandEvent = { kind: "write"; title: string; agent: string } | { kind: "remind"; todo: Todo } | { kind: "dictate" };
 
 /** A quick note's dictation: listening (the words so far), filed, or failed. */
 export type Dictation =
@@ -47,9 +47,9 @@ const done = signal(false);
 /** Write: how much of the title has been "typed". */
 const typed = signal(0);
 
-/** Claude wrote a note: the island shows it being written, then saved. */
-export function showClaudeWrite(title: string) {
-  enqueue({ kind: "write", title });
+/** An AI app (`agent`, its name: "Claude", "Cursor") wrote a note: the island shows it being written, then saved. */
+export function showAgentWrite(title: string, agent: string) {
+  enqueue({ kind: "write", title, agent });
 }
 
 /** A to-do is due: the island shows it, with its checkbox. */
@@ -303,7 +303,7 @@ function IslandContent(props: { event: IslandEvent }) {
           height: 46,
           borderRadius: 23,
           backgroundImage: write()
-            ? `radial-gradient(circle at 35% 30%, ${token("claude-light")}, ${token("claude")} 60%)`
+            ? `radial-gradient(circle at 35% 30%, ${token("agent-light")}, ${token("agent")} 60%)`
             : `radial-gradient(circle at 35% 30%, ${token("primary")}, ${token("primary")})`,
         }}
       >
@@ -315,8 +315,8 @@ function IslandContent(props: { event: IslandEvent }) {
         <Text class="text-island-muted" style={{ numberOfLines: 1, fontSize: T.type.islandLabel }}>
           {write()
             ? done()
-              ? t("island.written")
-              : t("island.writing")
+              ? t("island.written", { agent: write()!.agent })
+              : t("island.writing", { agent: write()!.agent })
             : done()
               ? t("island.done")
               : t("island.remind", { time: due() ? hm(due()!) : t("island.now"), note: remind()?.todo.note ?? "" })}
@@ -353,7 +353,7 @@ function IslandContent(props: { event: IslandEvent }) {
   );
 }
 
-/** A ring turning while Claude writes. */
+/** A ring turning while an AI app writes. */
 function Spinner() {
   const turn = createAnimatedValue(0);
   effect(() => {

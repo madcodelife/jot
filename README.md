@@ -6,11 +6,11 @@
 
 # Jot
 
-Jot is a quick-notes app for macOS that you share with Claude. Double-press ⌥ anywhere and a floating panel appears;
-its one field is both the search box and the title of a new note, so you type, and either find what you wrote before
-or press Return to start a new note. Notes are plain Markdown files in a folder you choose. To-dos and reminders live
-inside those notes, and `jot-mcp`, a small MCP server, lets Claude search, read and add to the same notes, so you and
-Claude keep one notebook between you.
+Jot is a quick-notes app for macOS that you share with your AI apps. Double-press ⌥ anywhere and a floating panel
+appears; its one field is both the search box and the title of a new note, so you type, and either find what you wrote
+before or press Return to start a new note. Notes are plain Markdown files in a folder you choose. To-dos and reminders
+live inside those notes, and `jot-mcp`, a small MCP server, lets your AI apps (Claude, Cursor, Codex, …) search, read
+and add to the same notes, so you and they keep one notebook between you.
 
 ## Features
 
@@ -25,43 +25,69 @@ Claude keep one notebook between you.
   due; ⇧⌘D changes a reminder's time without typing.
 - **Dictation**: hold ⌥ to talk into the search field or a note; double-press and hold ⌥ in any app for a quick note.
 - **Actions**: ⌘K on a row to open, rename, copy, show in Finder or move to the Trash (with undo).
-- **Claude**: notes Claude writes are marked as Claude's, and appear in the list the moment they land.
+- **AI apps**: connect Claude Code, Claude, Cursor, VS Code, Windsurf, Codex or Gemini CLI from Settings in one
+  click. A note an AI app writes carries its name (Claude, Cursor, …) and appears in the list the moment it lands.
 - Light and dark appearance, several panel themes, English, Simplified and Traditional Chinese and Japanese.
 
 ## How notes are stored
 
 - One note is one `.md` file directly in the notes folder (`~/Documents/Jot` by default, changeable in Settings). The
   file name is the title.
-- Notes Claude creates start with YAML frontmatter, `source: claude`; your own notes have none. Other frontmatter is
-  kept as it is.
+- Notes an AI app creates start with YAML frontmatter that names it, `source: claude`, `source: cursor`, or
+  `source: "agent:<name>"` for an app Jot doesn't know (the name the app gives itself when it connects); your own
+  notes have none. Only these values mark a note as an app's: a `source` of your own (a web clipper's URL, a book) is
+  yours. Other frontmatter is kept as it is.
 - A reminder is written into the file as an absolute time, `- [ ] pay rent ⏰ 2026-11-14 09:00` (the same form as
   Obsidian's Reminder plugin); a checked to-do gets its completion date, `- [x] pay rent ✅ 2026-11-14`.
 - Jot does no syncing itself: put the folder in iCloud Drive, Dropbox or Syncthing.
 
-## Claude and MCP
+## AI apps and MCP
 
 `jot-mcp` is a stdio MCP server that reads and writes the notes folder directly, whether or not the app is running.
-It never deletes or overwrites a note.
+It never deletes or overwrites a note. Jot.app carries it inside (`Jot.app/Contents/MacOS/jot-mcp`).
+
+### Connecting from Settings
+
+Settings → AI Apps lists the AI apps installed on this Mac, each with its state, and connects or disconnects each in
+one click:
+
+| App | How Jot registers itself |
+|---|---|
+| Claude Code | `claude mcp add --scope user jot -- …` (Jot finds `claude` in `~/.local/bin`, Homebrew, npm's and Bun's folders) |
+| Claude (desktop) | `mcpServers.jot` in `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Cursor | `mcpServers.jot` in `~/.cursor/mcp.json` |
+| VS Code | `servers.jot` (`"type": "stdio"`) in `~/Library/Application Support/Code/User/mcp.json` |
+| Windsurf | `mcpServers.jot` in `~/.codeium/windsurf/mcp_config.json` |
+| Codex | `[mcp_servers.jot]` in `~/.codex/config.toml` |
+| Gemini CLI | `mcpServers.jot` in `~/.gemini/settings.json` |
+| Zed | by hand: copy the entry into `context_servers` of `~/.config/zed/settings.json` |
+
+Jot changes the `jot` entry only. The rest of the file keeps its settings; a TOML file keeps its layout and comments,
+a JSON file its key order, indentation and line endings (it is written out again, so other formatting, such as a
+one-line array, may change). Before its first change Jot copies the file beside it (`<file>.jot.bak`) and keeps that
+copy. A file it cannot parse (JSON with comments, say) it never rewrites: the page offers the entry to copy instead, as
+it does for Claude Code when `claude` is not found. When you change the notes folder, every connected app follows.
+Restart an app that was open for it to load Jot. Jot connects nothing while macOS runs it from a temporary location
+(opened straight from Downloads): move it to Applications first.
+
+### By hand
+
+For any other MCP app, the page shows the command and the JSON to copy. Or, from a checkout:
 
 ```sh
 cargo build --release -p jot-mcp
-claude mcp add jot -- <path to jot-mcp> --dir <notes folder>
-# for example:
-claude mcp add jot -- "$PWD/target/release/jot-mcp" --dir ~/Documents/Jot
+claude mcp add --scope user jot -- "$PWD/target/release/jot-mcp" --dir ~/Documents/Jot
 ```
 
 The folder is `--dir`, else the `JOT_DIR` environment variable, else `~/Documents/Jot`; `jot-mcp` expands a leading `~`
-itself, since MCP clients start it without a shell. Add `--scope user` to `claude mcp add` to use Jot in every
-project.
-
-For Claude Desktop, add the server to `~/Library/Application Support/Claude/claude_desktop_config.json` (Settings →
-Developer → Edit Config) with the binary's absolute path, then restart Claude Desktop:
+itself, since MCP clients start it without a shell. Most apps take the same JSON entry, with the binary's absolute
+path:
 
 ```json
 {
   "mcpServers": {
     "jot": {
-      "command": "/absolute/path/to/jot-mcp",
+      "command": "/Applications/Jot.app/Contents/MacOS/jot-mcp",
       "args": ["--dir", "~/Documents/Jot"]
     }
   }
@@ -75,14 +101,14 @@ Tools:
 | `search_notes(query, limit?)` | Search titles and bodies |
 | `read_note(title)` | Read a note in full |
 | `recent_notes(limit?)` | The most recently modified notes |
-| `create_note(title, body)` | Create a note, marked `source: claude` |
+| `create_note(title, body)` | Create a note, marked with the app's name (`source: cursor`) |
 | `append_note(title, text)` | Append to an existing note |
 | `add_todo(text, due?, note?)` | Add a to-do; `due` is an ISO local time or a phrase such as `tomorrow 3pm` or `明天 9点` |
 | `list_todos(range?)` | Open to-dos: `overdue`, `today`, `upcoming` or `all` (default: today's and overdue) |
 | `complete_todo(note, text)` | Check off a to-do; a unique part of its text is enough |
 | `reschedule_todo(note, text, due)` | Change a to-do's reminder time; `null` removes it |
 
-Then ask Claude things like "jot this command down", "remind me to send the weekly report on Friday" or "what's on my
+Then ask the app things like "jot this command down", "remind me to send the weekly report on Friday" or "what's on my
 list today?".
 
 ## Building
@@ -97,8 +123,14 @@ Jot builds against the NSH 0.6.0 crates from crates.io. Install the `nsh` CLI of
 nsh run                       # build and run the app
 nsh check                     # cargo check, then type-check the TSX
 nsh test                      # Rust tests, then the TSX tests, headless
-nsh package --target macos    # build Jot.app
+scripts/package-macos.sh      # build Jot.app, with jot-mcp inside
 ```
+
+`scripts/package-macos.sh` builds `jot-mcp`, runs `nsh package --target macos` (it passes on its options: `--arch
+universal`, `--out`, `--name`, …), puts `jot-mcp` in `Jot.app/Contents/MacOS` and signs both again (ad hoc;
+`SIGN_IDENTITY` for another identity, then with a secure timestamp and the hardened runtime). It runs the `nsh` on your
+`PATH`, or `NSH=/path/to/nsh`. While developing, `nsh run` (a debug build) finds `jot-mcp` in cargo's target folder:
+build it once with `cargo build -p jot-mcp` to connect apps from Settings.
 
 Only macOS is supported for now.
 
@@ -112,6 +144,7 @@ locales/   translations
 src/       the app's Rust crate (`jot/native`)
 store/     jot-store: the notes folder, to-dos and time phrases, in plain Rust
 mcp/       jot-mcp, the MCP server
+scripts/   packaging
 design/    the interactive design draft and the logo
 ```
 

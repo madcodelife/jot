@@ -25,7 +25,7 @@ search:
 empty:
   title: 還沒有筆記
   first: 輸入一個標題，按 %{keys} 就是第一則。
-  claude: 也可以在 Claude 裡說「記到 Jot」。
+  agent: 也可以讓 AI App 幫你「記到 Jot」。
 
 keys:
   actions: 動作
@@ -75,12 +75,12 @@ note:
   rename_failed: 無法重新命名「%{title}」：%{error}
 
 paper:
-  by_claude: Claude 記的
+  by_agent: "%{agent} 記的"
   saved: 已儲存
   placeholder: 寫點什麼…
   label: 筆記「%{title}」
   save_failed: 無法儲存：%{error}
-  appended: Claude 在結尾加了一段，你的游標沒有動
+  appended: 結尾新加了一段，你的游標沒有動
   conflict: 這則筆記在別處改過了
   view_end: 查看 ↓
   use_theirs: 用那邊的
@@ -97,8 +97,8 @@ time:
   yesterday: 昨天
 
 island:
-  writing: Claude · 正在記到 Jot
-  written: Claude · 已記下
+  writing: "%{agent} · 正在記到 Jot"
+  written: "%{agent} · 已記下"
   done: 已完成
   remind: 提醒 · %{time} · %{note}
   now: 現在
@@ -112,7 +112,7 @@ settings:
     voice: 語音
     appearance: 外觀
     reminders: 提醒
-    claude: Claude
+    ai: AI App
     about: 關於
   folder:
     label: 筆記資料夾
@@ -158,22 +158,40 @@ settings:
     notifications: 桌面通知
     notifications_hint: 到時跳出系統通知
     island: 瀏海處的動態島
-    island_hint: 到時和 Claude 記筆記時，從瀏海處展開
+    island_hint: 到時和 AI App 記筆記時，從瀏海處展開
     island_no_notch: 這個螢幕沒有瀏海
     default_time: 預設提醒時間
     time: 時間
     default_time_hint: 只寫日期時用這個時間，例如「明天繳房租」。
-  claude:
-    intro: Claude 能讀寫這個資料夾裡的筆記。
-    how: 在終端機執行這行指令，把 Jot 接到 Claude Code：
+  ai:
+    intro: 把這台 Mac 上的 AI App 接到 Jot，它們就能搜尋、讀取和新增這個資料夾裡的筆記，也能幫你管待辦。
+    apps: 這台 Mac 上的 App
+    looking: 正在尋找 App…
+    none: 這台 Mac 上沒有找到支援的 AI App。其他 App 可以用下面的通用設定。
+    connected: 已連線
+    not_connected: 未連線
+    elsewhere: 連線的是另一個資料夾
+    manual: 需要手動設定
+    connect: 連線
+    disconnect: 中斷連線
+    update: 更新
     copy: 拷貝
     copied: 已拷貝
-    placeholder: "<jot-mcp 路徑>"
-    path_note: "<jot-mcp 路徑> 是佔位：打包時會換成 App 裡 jot-mcp 的位置。"
-    then: 之後在 Claude 裡說「記到 Jot」或「我今天有什麼要做的」。
+    copy_setup: 拷貝設定
+    restart: 如果 %{app} 開著，重新開啟才會載入 Jot。
+    no_cli: 沒找到 claude 指令。拷貝這行指令，到終端機執行。
+    unreadable: "%{file} 裡有註解或讀不懂，Jot 不會改它。拷貝設定，自己加進去。"
+    unsupported: "拷貝設定，加到 %{file} 裡。"
+    not_moved: 它還連著之前的資料夾，Jot 沒辦法替它換過來。
+    no_server: 在 Jot 旁邊沒找到 jot-mcp。開發時先執行「cargo build -p jot-mcp」，再打開這一頁。
+    translocated: Jot 現在是從「下載項目」之類的暫時位置打開的，連線後路徑會失效。先把 Jot 拖進「應用程式」資料夾，再從那裡打開它。
+    other: 其他 App
+    command: 指令
+    json: 設定
+    then: 之後在 App 裡說「記到 Jot」或「我今天有什麼要做的」。
   about:
     title: 關於 Jot
-    tagline: 你和 Claude 共用的速記本
+    tagline: 你和 AI 共用的速記本
     version: 版本 %{version}（%{build}）
     built_with: 以 Native Shell 打造
     open: 打開

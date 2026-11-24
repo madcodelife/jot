@@ -1,6 +1,8 @@
-//! Jot's MCP server: lets Claude search, read and add to the user's notes folder, and keep their to-dos.
+//! Jot's MCP server: lets an AI app (Claude, Claude Code, Cursor, Codex, …) search, read and add to the user's notes
+//! folder, and keep their to-dos.
 //!
-//! The tools never delete or overwrite: Claude can create a note (marked `source: claude`), append to one, add
+//! The tools never delete or overwrite: the app can create a note (marked with its name from the MCP `initialize`
+//! handshake, `source: cursor`: `jot_store::Source::from_client`), append to one, add
 //! a to-do, check one off or move its reminder time, so what the user wrote stays as it is.
 
 use std::ffi::OsString;
@@ -12,7 +14,8 @@ use jot_store::{DEFAULT_TODO_NOTE, NoteMeta, Source, Store, StoreError, Todo, wh
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerConfig};
-use rmcp::{ServerHandler, tool, tool_handler, tool_router};
+use rmcp::service::RequestContext;
+use rmcp::{RoleServer, ServerHandler, tool, tool_handler, tool_router};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
@@ -242,7 +245,7 @@ impl JotServer {
     }
 
     #[tool(
-        description = "Create a new note in the user's Jot, marked as written by Claude. Use it when the user \
+        description = "Create a new note in the user's Jot, marked as written by your app. Use it when the user \
             asks to note, save, jot down or remember something in Jot (\"记一下\", \"记到 Jot\") and no note on that \
             subject exists yet. Keep it short and to the point; do not paste the conversation. Fails if a note \
             with this title exists: then use append_note.",
@@ -254,10 +257,14 @@ impl JotServer {
             open_world_hint = false
         )
     )]
-    async fn create_note(&self, Parameters(params): Parameters<CreateParams>) -> CallToolResult {
+    async fn create_note(
+        &self,
+        Parameters(params): Parameters<CreateParams>,
+        context: RequestContext<RoleServer>,
+    ) -> CallToolResult {
         match self
             .store
-            .create(&params.title, &params.body, Source::Claude)
+            .create(&params.title, &params.body, client_source(&context))
         {
             Ok(meta) => {
                 let mut out = format!("Created the note \"{}\".", meta.title);
@@ -316,7 +323,11 @@ impl JotServer {
             open_world_hint = false
         )
     )]
-    async fn add_todo(&self, Parameters(params): Parameters<AddTodoParams>) -> CallToolResult {
+    async fn add_todo(
+        &self,
+        Parameters(params): Parameters<AddTodoParams>,
+        context: RequestContext<RoleServer>,
+    ) -> CallToolResult {
         let now = (self.now)();
         let mut task = params.text.trim().to_owned();
         let due = match params
@@ -349,7 +360,7 @@ impl JotServer {
             .as_deref()
             .map(str::trim)
             .filter(|note| !note.is_empty());
-        match self.store.add_todo(note, &task, due, Source::Claude) {
+        match self.store.add_todo(note, &task, due, client_source(&context)) {
             Ok(todo) => {
                 let mut out = format!(
                     "Added the to-do \"{}\" to the note \"{}\"",
@@ -746,11 +757,14 @@ fn push_entry(out: &mut String, meta: &NoteMeta, excerpt: &str) {
     }
 }
 
+/// Who is writing: the app on the other end, by the name it gave in `initialize` (`clientInfo.name`).
+fn client_source(context: &RequestContext<RoleServer>) -> Source {
+    let name = context.peer.peer_info().map(|info| info.client_info.name.clone());
+    Source::from_client(name.as_deref().unwrap_or(""))
+}
+
 fn describe(meta: &NoteMeta) -> String {
-    let author = match meta.source {
-        Source::User => "the user",
-        Source::Claude => "Claude",
-    };
+    let author = meta.source.label().unwrap_or_else(|| "the user".to_owned());
     format!(
         "Modified {} · written by {author}",
         format_time(meta.modified)
@@ -831,7 +845,7 @@ fn without(text: &str, range: std::ops::Range<usize>) -> String {
     out.trim().to_owned()
 }
 
-/// `Sat 2026-11-14 09:00`: the weekday helps Claude say "Saturday".
+/// `Sat 2026-11-14 09:00`: the weekday helps the model say "Saturday".
 fn format_due(at: DateTime) -> String {
     at.strftime("%a %Y-%m-%d %H:%M").to_string()
 }
