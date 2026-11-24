@@ -4,7 +4,7 @@
 // time, and dictation's hold key and language. The notes folder is the store's (`jot.dir`, `app/store.ts`).
 import { batch, signal, Storage, untracked } from "nsh";
 import { setLocale } from "nsh/i18n";
-import { applyAppearance, applyTheme, THEMES, type Appearance, type ThemeName } from "../ui/themes";
+import { applyAppearance, applyTheme, RETIRED, themeFromStored, type Appearance, type ThemeName } from "../ui/themes";
 import { LANGUAGES, shownLanguage, type Language } from "./i18n";
 
 /** "system": the user's language; otherwise one of Jot's. */
@@ -51,7 +51,6 @@ export const defaultTime = signal("09:00");
 
 const isLanguage = (v: string | null): v is LanguageChoice => v === "system" || LANGUAGES.some((l) => l.value === v);
 const isAppearance = (v: string | null): v is Appearance => v === "system" || v === "light" || v === "dark";
-const isTheme = (v: string | null): v is ThemeName => THEMES.includes(v as ThemeName);
 const isTime = (v: string | null): v is string => v !== null && /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
 const isSpeechLanguage = (v: string | null): v is SpeechLanguageChoice => v === "auto" || SPEECH_LANGUAGES.some((l) => l.value === v);
 const flag = (v: string | null, fallback: boolean) => (v === null ? fallback : v === "1");
@@ -71,7 +70,7 @@ export async function loadSettings() {
   batch(() => {
     if (isLanguage(lang)) language.set(lang);
     if (isAppearance(look)) appearance.set(look);
-    if (isTheme(palette)) theme.set(palette);
+    theme.set(themeFromStored(palette));
     notificationsOn.set(flag(notify, true));
     islandOn.set(flag(island, true));
     if (isTime(time)) defaultTime.set(time);
@@ -81,6 +80,9 @@ export async function loadSettings() {
   applyLanguage(untracked(language));
   applyAppearance(untracked(appearance), { animate: false });
   applyTheme(untracked(theme), { animate: false });
+  // A retired theme is stored as its successor from now on. A name Jot does not know (a later version's theme)
+  // shows as the default but stays stored, so that version still finds it.
+  if (palette !== null && Object.prototype.hasOwnProperty.call(RETIRED, palette)) void Storage.setItem(KEYS.theme, untracked(theme));
 }
 
 function applyLanguage(choice: LanguageChoice) {

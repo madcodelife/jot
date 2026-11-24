@@ -3,9 +3,32 @@
 // in the app's storage (`jot.*`). Opened in Simplified Chinese with a 24-hour
 // clock, Jot's reference copy.
 import { expect, open, test } from "nsh/test";
+import { drawsSurface, swatch, themeFromStored, themeVars, THEMES, type ThemeName } from "./ui/themes";
+import { Notes } from "jot/native";
 
 /** A fresh, empty notes folder. */
 const folder = (name: string) => `/tmp/jot-settings-${name}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+
+/** `#rrggbb` of `fg` (`#rrggbb` or `#rrggbbaa`) drawn over the opaque `bg`. */
+function flatten(fg: string, bg: string): string {
+  const ch = (h: string, i: number) => Number.parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
+  const alpha = fg.length === 9 ? ch(fg, 3) / 255 : 1;
+  const mix = (i: number) => Math.round(ch(fg, i) * alpha + ch(bg, i) * (1 - alpha));
+  return `#${[0, 1, 2].map((i) => mix(i).toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** WCAG's contrast ratio of two opaque colours. */
+function contrast(a: string, b: string): number {
+  const lum = (h: string) => {
+    const [r, g, bl] = [0, 1, 2].map((i) => {
+      const v = Number.parseInt(h.slice(1 + i * 2, 3 + i * 2), 16) / 255;
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+  };
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
 
 /** The AI apps' stand-ins: no test reads or writes the machine's own configuration files. */
 const CONNECTIONS = {
@@ -123,8 +146,8 @@ test("a theme recolors the panel, not the settings window, and is kept", async (
   await openSettings(app, "appearance");
   const settings = color(app, "外观");
 
-  await app.press("id:theme:paper");
-  await app.waitUntil(() => app.storage()["jot.theme"] === "paper");
+  await app.press("id:theme:gruvbox");
+  await app.waitUntil(() => app.storage()["jot.theme"] === "gruvbox");
   expect(color(app, "外观")).toBe(settings);
 
   // Back to the default.
@@ -134,10 +157,111 @@ test("a theme recolors the panel, not the settings window, and is kept", async (
   app.dispose();
 
   // The panel shows in the kept theme's colors.
-  const paper = await openJot(folder("theme-paper"), { "jot.theme": "paper" });
-  await paper.waitFor("id:empty");
-  expect(panelColor(paper)).not.toBe(panel);
-  paper.dispose();
+  const kept = await openJot(folder("theme-kept"), { "jot.theme": "gruvbox" });
+  await kept.waitFor("id:empty");
+  expect(panelColor(kept)).not.toBe(panel);
+  kept.dispose();
+});
+
+test("the settings offer Jot's themes in order: the default, those after VS Code themes, high contrast", async () => {
+  expect([...THEMES]).toEqual(["default", "github", "one", "dracula", "tokyo", "catppuccin", "gruvbox", "contrast"]);
+  const app = await openJot(folder("theme-names"));
+  await openSettings(app, "appearance");
+  const shown = app.texts();
+  for (const name of ["默认", "GitHub", "One", "Dracula", "Tokyo Night", "Catppuccin", "Gruvbox", "高对比"]) expect(shown).toContain(name);
+  app.dispose();
+});
+
+test("a retired theme stored by an earlier version shows as its successor, and is kept so; an unknown one as the default", async () => {
+  expect(themeFromStored("paper")).toBe("gruvbox");
+  expect(themeFromStored("dusk")).toBe("dracula");
+  expect(themeFromStored("coral")).toBe("catppuccin");
+  expect(themeFromStored("moss")).toBe("default");
+  expect(themeFromStored("solarized")).toBe("default");
+  expect(themeFromStored("constructor")).toBe("default");
+  expect(themeFromStored(null)).toBe("default");
+  for (const name of THEMES) expect(themeFromStored(name)).toBe(name);
+
+  // The panel's surface is the theme's (headless runs draw it without native glass, so every theme's fill shows).
+  const fill = (name: ThemeName) => themeVars(name).cssVars.light["glass-fill"];
+  for (const [stored, shown] of [["paper", "gruvbox"], ["dusk", "dracula"], ["coral", "catppuccin"], ["moss", "default"]] as const) {
+    const app = await openJot(folder(`retired-${stored}`), { "jot.theme": stored });
+    await app.waitFor("id:empty");
+    expect(app.viewStyle("id:panel")?.backgroundColor).toBe(fill(shown));
+    await app.waitUntil(() => app.storage()["jot.theme"] === shown);
+    app.dispose();
+  }
+
+  // A name this version does not know (a later version's theme) shows as the default and stays stored.
+  const app = await openJot(folder("unknown-theme"), { "jot.theme": "solarized" });
+  await app.waitFor("id:empty");
+  expect(app.viewStyle("id:panel")?.backgroundColor).toBe(fill("default"));
+  await app.wait(300);
+  expect(app.storage()["jot.theme"]).toBe("solarized");
+  app.dispose();
+});
+
+test("every theme reads at WCAG AA in both appearances: text, the selected row, to-dos, reminders, headings, AI apps' names, matches", () => {
+  for (const name of THEMES) {
+    for (const dark of [false, true]) {
+      const v = themeVars(name).cssVars[dark ? "dark" : "light"] as Record<string, string>;
+      // The panel's surface as the card shows it (the default's glass is drawn, not a colour: its card's stands in).
+      const surface = swatch(name, dark).surface;
+      const paper = v.paper;
+      const on = (fg: string, bg: string) => flatten(fg, bg);
+      const chip = (c: string) => flatten(`${c.slice(0, 7)}21`, paper);
+      const pairs: [string, string, string][] = [
+        ["text on the panel", on(v["glass-fg"], surface), surface],
+        ["secondary text on the panel", on(v["glass-muted"], surface), surface],
+        ["text on the paper", v["paper-fg"], paper],
+        ["secondary text on the paper", v["paper-muted"], paper],
+        ["heading", v.heading, paper],
+        ["selected row", v["on-accent"], v.primary],
+        ["selected row's second line", on(v["on-accent-muted"], v.primary), v.primary],
+        ["to-do box", v["accent-ink"], paper],
+        ["reminder chip", v.due, chip(v.due)],
+        ["overdue chip", v.late, chip(v.late)],
+        ["AI app's name", v["agent-ink"], surface],
+        ["search match", v["mark-fg"], v.mark],
+      ];
+      for (const [what, fg, bg] of pairs) {
+        const ratio = contrast(fg, bg);
+        if (ratio < 4.5) throw new Error(`${name} ${dark ? "dark" : "light"}: ${what} ${fg} on ${bg} is ${ratio.toFixed(2)}`);
+      }
+    }
+  }
+});
+
+test("each theme's card in the settings shows its colours in the appearance shown, and the panel takes its surface", async () => {
+  const app = await openJot(folder("theme-card"));
+  await app.waitFor("id:empty");
+  await openSettings(app, "appearance");
+  const surface = (name: string) => app.viewStyle(`id:theme-card:${name}`)?.backgroundColor;
+
+  // Each card in its theme's light surface, every one its own.
+  for (const name of THEMES) expect(surface(name)).toBe(`${swatch(name, false).surface}ff`);
+  expect(new Set(THEMES.map(surface)).size).toBe(THEMES.length);
+
+  // Dark: the cards follow.
+  await app.press("id:settings-appearance:dark");
+  await app.waitUntil(() => surface("gruvbox") === `${swatch("gruvbox", true).surface}ff`);
+  for (const name of THEMES) expect(surface(name)).toBe(`${swatch(name, true).surface}ff`);
+  await app.press("id:theme:gruvbox");
+  await app.waitUntil(() => app.storage()["jot.theme"] === "gruvbox");
+  app.dispose();
+
+  // The panel then shows in the theme's own surface.
+  const kept = await openJot(folder("theme-surface"), { "jot.theme": "gruvbox", "jot.appearance": "dark" });
+  await kept.waitFor("id:empty");
+  expect(kept.viewStyle("id:panel")?.backgroundColor).toBe("#1d2021f0");
+  kept.dispose();
+});
+
+test("About credits the themes the colours come from", async () => {
+  const app = await openJot(folder("about-credit"));
+  await openSettings(app, "about");
+  expect(app.texts().join("\n")).toContain("主题配色参考 GitHub Theme、One Dark Pro、Atom One Light、Dracula、Tokyo Night、Catppuccin 和 Gruvbox（MIT）。");
+  app.dispose();
 });
 
 test("the language changes every window's words at once, and is kept", async () => {
@@ -374,6 +498,21 @@ test("after a folder change the AI page shows the apps as the sync left them", a
   await later(400);
   expect(app.shows("id:settings-ai-state:cursor >> text:已连接")).toBe(true);
   app.dispose();
+});
+
+test("a note's headings take the theme's heading colour, in each appearance", async () => {
+  for (const [name, look] of [["dracula", "light"], ["gruvbox", "dark"], ["default", "light"]] as const) {
+    const dir = folder(`heading-${name}`);
+    new Notes(dir).create("周末计划", "## 周六去公园\n\n带上相机。");
+    const app = await openJot(dir, { "jot.theme": name, "jot.appearance": look });
+    await app.waitFor("id:row:周末计划");
+    await app.press("id:row:周末计划");
+    await app.waitFor("id:paper-title");
+    const v = themeVars(name).cssVars[look] as Record<string, string>;
+    expect(app.spanStyle("id:editor >> text:周六去公园")?.color).toBe(`${v.heading}ff`);
+    expect(app.spanStyle("id:editor >> text:带上相机")?.color).toBe(`${v["paper-fg"]}ff`);
+    app.dispose();
+  }
 });
 
 /** iCloud Drive's root on a made-up home, and Jot's folder in it. */

@@ -1,5 +1,9 @@
 // Jot's themes: each a palette with a light and a dark half (`themes.json`,
-// over the base in `theme.json`, which is "default"). The appearance (light,
+// over the base in `theme.json`, which is "default"). Besides Jot's own indigo
+// and the high-contrast one, they take their colours from popular VS Code
+// themes (GitHub, One Dark Pro and Atom One Light, Dracula and Alucard, Tokyo
+// Night, Catppuccin, Gruvbox; all MIT), picked for a notes panel rather than
+// an editor and held to WCAG AA. The appearance (light,
 // dark or the system's) picks the half; the theme is applied at run time
 // with `setTheme`. A change crossfades: for a moment the surfaces carry a
 // colour transition (`fade()`), so the new colours ease in instead of
@@ -9,10 +13,20 @@ import base from "./theme.json";
 import palettes from "./themes.json";
 
 /** A theme's name, as the settings store it. */
-export type ThemeName = "default" | "paper" | "moss" | "dusk" | "coral" | "contrast";
+export type ThemeName = "default" | "github" | "one" | "dracula" | "tokyo" | "catppuccin" | "gruvbox" | "contrast";
 
 /** The themes, in the order the settings show them. */
-export const THEMES: readonly ThemeName[] = ["default", "paper", "moss", "dusk", "coral", "contrast"];
+export const THEMES: readonly ThemeName[] = ["default", "github", "one", "dracula", "tokyo", "catppuccin", "gruvbox", "contrast"];
+
+/** The themes earlier versions had, each with the one that took its place. */
+export const RETIRED: Readonly<Record<string, ThemeName>> = { paper: "gruvbox", dusk: "dracula", coral: "catppuccin", moss: "default" };
+
+/** The theme a stored name means: itself, a retired theme's successor, else the default. */
+export function themeFromStored(stored: string | null): ThemeName {
+  if (stored === null) return "default";
+  if (THEMES.includes(stored as ThemeName)) return stored as ThemeName;
+  return Object.prototype.hasOwnProperty.call(RETIRED, stored) ? RETIRED[stored] : "default";
+}
 
 /** Light, dark, or the system's. */
 export type Appearance = "system" | "light" | "dark";
@@ -21,8 +35,8 @@ type Vars = Record<string, string>;
 interface Palette {
   /** No glass: opaque surfaces (high contrast). */
   solid: boolean;
-  /** The theme card's two colours per appearance: its surface and its accent. */
-  swatch: { light: [string, string]; dark: [string, string] };
+  /** The theme card's surface per appearance: the panel's colour, opaque. */
+  swatch: { light: string; dark: string };
   light: Vars;
   dark: Vars;
 }
@@ -41,11 +55,24 @@ export function themeVars(name: ThemeName) {
   };
 }
 
-/** A theme's colours for its card in the settings: the surface, the accent, the text, and its paper. */
+/** A theme's colours for its card in the settings, a small panel drawn in them: the surface, the accent and what sits on it, the text, the paper and its text, a reminder's and an AI app's colours. */
 export function swatch(name: ThemeName, dark: boolean) {
   const vars = themeVars(name).cssVars[dark ? "dark" : "light"];
-  const [surface, accent] = PALETTES[name].swatch[dark ? "dark" : "light"];
-  return { surface, accent, ink: vars["glass-fg"], muted: vars["glass-muted"], paper: vars.paper, line: vars["glass-line"] };
+  return {
+    surface: PALETTES[name].swatch[dark ? "dark" : "light"],
+    /** The selected row's fill, as the list draws it. */
+    accent: vars.primary,
+    onAccent: vars["on-accent"],
+    ink: vars["glass-fg"],
+    muted: vars["glass-muted"],
+    line: vars["glass-line"],
+    paper: vars.paper,
+    paperInk: vars["paper-fg"],
+    paperMuted: vars["paper-muted"],
+    box: vars["accent-ink"],
+    due: vars.due,
+    agent: vars.agent,
+  };
 }
 
 /** The theme shown. */
@@ -54,8 +81,18 @@ export const activeTheme = signal<ThemeName>("default");
 /** The theme draws without glass: opaque surfaces and hard edges. */
 export const solidTheme = computed(() => PALETTES[activeTheme()].solid);
 
-/** The theme tints the native glass (its `glass-tint` is not clear). */
-export const tintedGlass = computed(() => !/00$/i.test((PALETTES[activeTheme()].light["glass-tint"] ?? "#00000000").slice(-2)));
+/** Theme `name` tints the glass (its `glass-tint` is not clear). */
+const tints = (name: ThemeName) => !/00$/i.test((PALETTES[name].light["glass-tint"] ?? "#00000000").slice(-2));
+
+/**
+ * Theme `name` draws its own surface (`glass-fill`) on the floating layer: always without native glass, and over it
+ * for a solid theme or one that tints it. The tint alone comes out all but grey on Liquid Glass, so a coloured theme
+ * without its fill changed nothing but the accent. Only the default theme lets the glass be its surface.
+ */
+export const drawsSurface = (name: ThemeName, nativeGlass: boolean) => !nativeGlass || PALETTES[name].solid || tints(name);
+
+/** The theme tints the native glass. */
+export const tintedGlass = computed(() => tints(activeTheme()));
 
 /** A colour change is under way: surfaces ease into the new colours. */
 const fading = signal(false);

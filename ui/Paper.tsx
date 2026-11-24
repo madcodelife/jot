@@ -64,6 +64,8 @@ export function Paper() {
 /** The paper's margins (the design's 30 / 37 points): the title and the body share the side ones. */
 const PAPER_X = 37;
 const PAPER_BOTTOM = 30;
+/** A Markdown heading line (ATX: up to three spaces, one to six `#`, then a space or the end). */
+const HEADING = /^ {0,3}#{1,6}(?=[ \t]|$)/;
 
 /** A line of `text`, by index. */
 const lineAt = (text: string, line: number) => text.split("\n")[line] ?? "";
@@ -407,12 +409,15 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     });
   });
 
-  // Task lines, reminders and done stamps, styled where they are; the live phrase as a chip.
+  // Headings in the theme's heading colour (the editor's own Markdown colours are the same in every theme); task
+  // lines, reminders and done stamps, styled where they are; the live phrase as a chip.
   const decorations = computed<EditorDecoration[]>(() => {
     const out: EditorDecoration[] = [];
     const lines = text().split("\n");
     const at = now();
     lines.forEach((content, line) => {
+      const heading = HEADING.exec(content);
+      if (heading) out.push({ range: { start: { line, column: heading.index }, end: { line, column: content.length } }, class: "text-heading" });
       const task = taskLine(content);
       if (!task) return;
       const span = (start: number, end: number) => ({ start: { line, column: start }, end: { line, column: end } });

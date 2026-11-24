@@ -7,7 +7,7 @@
 // same screens pick them up when those targets are built (their colors are
 // the theme's for now: see `colors` below).
 import { platform, token } from "nsh";
-import { solidTheme, tintedGlass } from "./themes";
+import { activeTheme, drawsSurface, solidTheme, tintedGlass } from "./themes";
 
 /** A spring as SwiftUI states it: how long it takes and how much it bounces. */
 export interface Spring {
@@ -385,5 +385,5 @@ export function materialStyle() {
   return {};
 }
 
-/** The fill drawn under the material: none over native glass (it hides the effect), the translucent tint elsewhere, the opaque surface of a solid theme. Reactive. */
-export const materialFill = () => (nativeGlass && !solidTheme() ? "bg-transparent" : "bg-glass-fill");
+/** The fill drawn with the material: the theme's own surface where it draws one (`drawsSurface`), else none, so the native glass shows. Reactive. */
+export const materialFill = () => (drawsSurface(activeTheme(), nativeGlass) ? "bg-glass-fill" : "bg-transparent");

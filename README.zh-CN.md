@@ -23,7 +23,8 @@ Jot 是一个你和 AI 应用共用的 macOS 速记本。在任何地方连按�
 - **操作面板**：在一行上按 ⌘K，可以打开、重命名、复制、在访达中显示或移到废纸篓（可撤销）。
 - **AI 应用**：在设置里一键连接 Claude Code、Claude、Cursor、VS Code、Windsurf、Codex 或 Gemini CLI。AI 应用写的笔记
   带上它的名字（Claude、Cursor……），一写进来就出现在列表里。
-- 深浅色外观、多套浮窗主题，界面支持简体中文、繁体中文、英文和日文。
+- 深浅色外观；浮窗主题有 Jot 自己的默认（靛蓝）、GitHub、One、Dracula、Tokyo Night、Catppuccin、Gruvbox 和高对比，
+  每套都有浅色和深色。界面支持简体中文、繁体中文、英文和日文。
 
 ## 笔记怎么存
 
@@ -137,6 +138,17 @@ design/    可交互的设计稿和 logo
 ```
 
 [ARCHITECTURE.md](ARCHITECTURE.md) 介绍各个 crate 和它们的 API；[PRODUCT.md](PRODUCT.md) 是产品定义（英文）。
+
+## 致谢
+
+主题配色参考以下 VS Code 主题，均为 MIT 许可证：
+[GitHub Theme](https://github.com/primer/github-vscode-theme)、
+[One Dark Pro](https://github.com/Binaryify/OneDark-Pro) 与 [Atom One Light](https://github.com/akamud/vscode-theme-onelight)、
+[Dracula](https://github.com/dracula/visual-studio-code)（浅色版 Alucard 取自
+[Dracula 规范](https://github.com/dracula/dracula-theme)）、
+[Tokyo Night](https://github.com/enkia/tokyo-night-vscode-theme)、
+[Catppuccin](https://github.com/catppuccin/vscode) 和 [Gruvbox](https://github.com/jdinhify/vscode-theme-gruvbox)。
+Jot 按笔记浮窗而不是代码编辑器挑选颜色，部分颜色为达到 WCAG AA 对比度做了微调。
 
 ## 许可证
 

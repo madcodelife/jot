@@ -661,12 +661,13 @@ function AppearancePane() {
       <SectionTitle>{t("settings.theme.label")}</SectionTitle>
       <Group>
         <RadioGroup
+          testID="settings-theme"
           accessibilityLabel={t("settings.theme.label")}
-          class="flex-row"
-          style={{ paddingVertical: 12, paddingHorizontal: 6 }}
+          class="flex-row flex-wrap"
+          style={{ rowGap: 10, columnGap: CARD.gap, paddingTop: 12, paddingBottom: 10, paddingHorizontal: CARD.inset }}
         >
           <Each of={[...THEMES]} key={(name) => name}>
-            {(name) => <ThemeDot name={name()} />}
+            {(name) => <ThemeCard name={name()} />}
           </Each>
         </RadioGroup>
       </Group>
@@ -719,36 +720,81 @@ function AppearanceThumb(props: { value: Appearance; label: string }) {
   );
 }
 
-/** A theme as a dot in its accent, ringed in the system's accent when chosen, its name under it. */
-function ThemeDot(props: { name: ThemeName }) {
-  const dark = () => colorScheme() === "dark";
+/** The theme cards: three to a row across the group. */
+const CARD = { width: 133, height: 78, gap: 12, inset: 12 } as const;
+
+/**
+ * A theme as a small panel drawn in its colours for the appearance shown (its surface, a selected row in its accent,
+ * the list's text, a note's paper with a to-do, its reminder and an AI app's mark), ringed in the system's accent when
+ * chosen, its name under it. The panel itself hides while the settings have the focus, so the cards are where a
+ * theme shows as it is chosen.
+ */
+function ThemeCard(props: { name: ThemeName }) {
+  const c = () => swatch(props.name, colorScheme() === "dark");
   const chosen = () => theme() === props.name;
-  const contrast = props.name === "contrast";
+  const bar = (color: string, width: number | `${number}%`, height = 3) => (
+    <View style={{ width, height, borderRadius: height / 2, backgroundColor: color }} />
+  );
   return (
     <Radio
       testID={`theme:${props.name}`}
       checked={chosen()}
       onChange={() => setThemeName(props.name)}
       accessibilityLabel={t(`theme.${props.name}`)}
-      class="flex-1"
-      style={{ alignItems: "center", gap: 5 }}
+      style={{ width: CARD.width, alignItems: "center", gap: 5 }}
     >
       <View
         class={chosen() ? "border-sys-accent" : "border-transparent"}
-        style={{ width: 36, height: 36, borderWidth: 2.5, borderRadius: 18, alignItems: "center", justifyContent: "center" }}
+        style={{ alignSelf: "stretch", padding: 0, borderWidth: 2.5, borderRadius: 10, borderCurve: "continuous" }}
       >
         <View
+          testID={`theme-card:${props.name}`}
+          class="flex-row border-sys-button-edge"
           style={{
-            width: 26,
-            height: 26,
-            borderRadius: 13,
-            backgroundColor: contrast ? (dark() ? "#ffffff" : "#000000") : swatch(props.name, dark()).accent,
-            borderWidth: contrast ? 3 : 0.5,
-            borderColor: contrast ? (dark() ? "#000000" : "#ffffff") : "#0000001a",
+            height: CARD.height,
+            gap: 5,
+            padding: 6,
+            borderWidth: 0.5,
+            borderRadius: 7,
+            borderCurve: "continuous",
+            overflow: "hidden",
+            backgroundColor: c().surface,
           }}
-        />
+        >
+          <View style={{ width: "40%", gap: 6 }}>
+            <View style={{ height: 13, borderRadius: 3, justifyContent: "center", paddingHorizontal: 4, backgroundColor: c().accent }}>
+              {bar(c().onAccent, "75%")}
+            </View>
+            <View style={{ gap: 3, paddingHorizontal: 4 }}>
+              {bar(c().ink, "80%")}
+              {bar(c().muted, "55%", 2)}
+            </View>
+            <View style={{ gap: 3, paddingHorizontal: 4 }}>
+              <View class="flex-row items-center" style={{ gap: 3 }}>
+                {bar(c().ink, "60%")}
+                <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: c().agent }} />
+              </View>
+              {bar(c().muted, "45%", 2)}
+            </View>
+          </View>
+          <View style={{ flex: 1, gap: 5, padding: 6, borderRadius: 4, backgroundColor: c().paper }}>
+            {bar(c().paperInk, "70%", 4)}
+            {bar(c().paperMuted, "45%", 2)}
+            <View class="flex-row items-center" style={{ gap: 3, marginTop: 2 }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, borderWidth: 1, borderColor: c().box }} />
+              {bar(c().paperInk, "35%")}
+              <View style={{ width: 16, height: 6, borderRadius: 2, backgroundColor: `${c().due.slice(0, 7)}26`, justifyContent: "center", paddingHorizontal: 2 }}>
+                {bar(c().due, "100%", 2)}
+              </View>
+            </View>
+            <View class="flex-row items-center" style={{ gap: 3 }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, borderWidth: 1, borderColor: c().box }} />
+              {bar(c().paperInk, "50%")}
+            </View>
+          </View>
+        </View>
       </View>
-      <Text class={chosen() ? "text-sys-fg" : "text-sys-muted"} style={{ fontSize: 11, numberOfLines: 1 }}>
+      <Text class={chosen() ? "font-medium text-sys-fg" : "text-sys-muted"} style={{ fontSize: 11, numberOfLines: 1 }}>
         {t(`theme.${props.name}`)}
       </Text>
     </Radio>
@@ -964,6 +1010,7 @@ function AboutPane() {
           />
         </Row>
       </Group>
+      <Footnote testID="settings-themes-credit">{t("settings.about.themes_credit")}</Footnote>
     </>
   );
 }

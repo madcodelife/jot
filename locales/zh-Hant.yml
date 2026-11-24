@@ -50,6 +50,9 @@ list:
   late:
     one: "%{count} 件已過期"
     other: "%{count} 件已過期"
+  late_title:
+    one: "%{count} 件待辦已過期"
+    other: "%{count} 件待辦已過期"
   all_done: 今天的都完成了
   next: 下一件 %{time} %{text}
   see_all: 按 Return 查看所有待辦
@@ -231,13 +234,16 @@ settings:
     version: 版本 %{version}（%{build}）
     built_with: 以 Native Shell 打造
     open: 打開
+    themes_credit: 主題配色參考 GitHub Theme、One Dark Pro、Atom One Light、Dracula、Tokyo Night、Catppuccin 和 Gruvbox（MIT）。
 
 theme:
   default: 預設
-  paper: 紙墨
-  moss: 苔綠
-  dusk: 暮紫
-  coral: 珊瑚
+  github: GitHub
+  one: One
+  dracula: Dracula
+  tokyo: Tokyo Night
+  catppuccin: Catppuccin
+  gruvbox: Gruvbox
   contrast: 高對比
 
 voice:

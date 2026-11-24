@@ -130,7 +130,7 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
       <View class="flex-1" style={{ minWidth: 0 }}>
         <If when={props.row.kind === "summary"}>
           <Text class={`font-semibold ${title()}`} style={{ numberOfLines: 1, fontSize: T.type.row }}>
-            {summary().left ? tn("list.today", summary().left) : t("list.today_none")}
+            {summaryTitle(summary())}
           </Text>
           <If when={!props.compact}>
             <Text class={sub()} style={{ numberOfLines: 1, fontSize: T.type.snippet }}>
@@ -247,9 +247,16 @@ function RowIcon(props: { row: Row; onAccent: boolean }) {
   );
 }
 
-/** The summary row's second line: what is overdue, and what comes next. */
+/** The summary row's title: today's open to-dos; with none left, what is overdue, else whether today's are done or there were none. */
+function summaryTitle(s: TodaySummary): string {
+  if (s.left) return tn("list.today", s.left);
+  if (s.late) return tn("list.late_title", s.late);
+  return s.total ? t("list.all_done") : t("list.today_none");
+}
+
+/** The summary row's second line: what is overdue and what comes next; with nothing left today, how today stands under an overdue title. */
 function summaryLine(s: TodaySummary): string {
-  if (!s.left) return s.late ? tn("list.late", s.late) : t("list.all_done");
+  if (!s.left) return s.late ? (s.total ? t("list.all_done") : t("list.today_none")) : t("list.see_all");
   const parts: string[] = [];
   if (s.late) parts.push(tn("list.late", s.late));
   if (s.next) parts.push(t("list.next", { time: hm(s.next.due), text: s.next.text }));
