@@ -2,9 +2,9 @@
 // button, a push button and a time field. Each
 // is an `nsh/base` component (behavior, focus, keys, accessibility), drawn
 // from the `sys-*` tokens, which no Jot theme overrides: they follow the
-// appearance, in the system's accent, as macOS's own settings do. Only a
-// `primary` push button (the panel's Undo) takes the theme's accent. Motion
-// is the app's springs (`ui/motion.ts`).
+// appearance, in the system's accent, as macOS's own settings do (a
+// `primary` push button too: the settings are the system's, the themes only
+// dress the panel). Motion is the app's springs (`ui/motion.ts`).
 import { createAnimatedValue, effect, Text, token, untracked, View, type JSX } from "nsh";
 import { Button, Select, Switch, TimeField } from "nsh/base";
 import { Icon, type IconName } from "./icons";
@@ -15,9 +15,13 @@ import { T } from "./tokens";
 /** The type of the settings: macOS's 13-point controls, 11-point captions. */
 export const FORM = { label: 13, hint: 11, control: 13, height: 24, radius: 6 } as const;
 
-/** A switch: 34 × 20, a white knob that springs across, the track in the system's accent when on. */
+/**
+ * A switch as macOS 26's settings draw one (measured): a 36 × 16 track, a white 21 × 12 capsule knob 2 in from its
+ * top and bottom and 1.5 from its ends that springs across, the track a faint fill of the label color when off and
+ * the system's accent when on.
+ */
 export function MacSwitch(props: { checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean; label: string; testID?: string }) {
-  const travel = 14;
+  const travel = 36 - 2 * 1.5 - 21;
   const x = createAnimatedValue(props.checked ? travel : 0);
   effect(() => {
     const to = props.checked ? travel : 0;
@@ -33,20 +37,24 @@ export function MacSwitch(props: { checked: boolean; onChange: (checked: boolean
       hitSlop={6}
       disabledStyle={{ opacity: 0.4 }}
       trackClass={`bg-sys-switch-off checked:bg-sys-accent transition-colors ${fade()}`}
-      trackStyle={{ width: 34, height: 20, borderRadius: 10, padding: 2 }}
+      trackStyle={{ width: 36, height: 16, borderRadius: 8, paddingVertical: 2, paddingHorizontal: 1.5 }}
       thumbStyle={{
-        width: 16,
-        height: 16,
-        borderRadius: 8,
-        backgroundColor: "#ffffff",
-        boxShadow: [{ x: 0, y: 1, blur: 2.5, color: "#0000003d" }],
+        width: 21,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: token("sys-thumb"),
+        boxShadow: [{ x: 0, y: 0.5, blur: 1.5, color: "#00000033" }],
         transform: [{ translateX: x }],
       }}
     />
   );
 }
 
-/** A pop-up button: the choice and a pair of chevrons on an accent plate; its menu marks the choice with a check, as macOS's do. */
+/**
+ * A pop-up button as macOS 26's settings draw one (measured): the choice in plain text, no plate and no edge, then a
+ * 20-point gray circle (a push button's fill) with dark up-and-down chevrons. Its menu marks the choice with a check,
+ * as macOS's do.
+ */
 export function PopupButton<V extends string>(props: {
   items: readonly { value: V; title: string }[];
   value: V;
@@ -66,7 +74,7 @@ export function PopupButton<V extends string>(props: {
       accessibilityLabel={props.label}
       offset={4}
       align="end"
-      popupClass="bg-sys-group border border-sys-line"
+      popupClass="bg-sys-menu border border-sys-menu-edge"
       popupStyle={{
         padding: 5,
         minWidth: 180,
@@ -86,15 +94,12 @@ export function PopupButton<V extends string>(props: {
         </View>
       )}
       trigger={
-        <View
-          class={`flex-row items-center bg-sys-button border border-sys-button-edge hover:opacity-90 ${fade()}`}
-          style={{ height: FORM.height - 2, gap: 6, paddingLeft: 9, paddingRight: 3, borderRadius: FORM.radius, borderCurve: "continuous", boxShadow: [{ x: 0, y: 0.5, blur: 1, color: "#00000014" }] }}
-        >
+        <View class="flex-row items-center" style={{ height: FORM.height, gap: 11, paddingRight: 3 }}>
           <Text class="text-sys-fg" style={{ fontSize: FORM.control, numberOfLines: 1 }}>
             {title()}
           </Text>
-          <View class="items-center justify-center bg-sys-accent" style={{ width: 16, height: 16, borderRadius: 4 }}>
-            <Icon name="chevrons" size={12} tint="#ffffff" />
+          <View class={`items-center justify-center bg-sys-push ${fade()}`} style={{ width: 20, height: 20, borderRadius: 10 }}>
+            <Icon name="chevrons" size={13} tint={token("sys-push-fg")} />
           </View>
         </View>
       }
@@ -102,7 +107,12 @@ export function PopupButton<V extends string>(props: {
   );
 }
 
-/** A push button, its label (and an icon) in the window's text color; `primary` fills it with the theme's accent. */
+/**
+ * A push button as macOS 26 draws one in its settings (measured from AppKit's and SwiftUI's own): 24 high, a plain
+ * 6-point circular corner, no edge, a light fill of the label color (8%, darker pressed, fainter disabled) and no hover
+ * change. `primary` is the default button: filled with the system's accent, its label white; disabled, it is gray like
+ * any other. The keyboard's ring hugs it, in the system's focus color.
+ */
 export function PushButton(props: {
   label: string;
   onPress: () => void;
@@ -112,29 +122,33 @@ export function PushButton(props: {
   testID?: string;
   accessibilityLabel?: string;
 }) {
+  const ink = () => (props.disabled ? "sys-push-disabled-fg" : props.primary ? "sys-on-accent" : "sys-push-fg");
+  const inkClass = () => (props.disabled ? "text-sys-push-disabled-fg" : props.primary ? "text-sys-on-accent" : "text-sys-push-fg");
   return (
     <Button
       testID={props.testID}
       onPress={props.onPress}
       disabled={props.disabled}
       accessibilityLabel={props.accessibilityLabel}
-      class={`flex-row items-center border ${fade()} ${
-        props.primary ? "bg-primary border-primary active:opacity-80" : "bg-sys-button border-sys-button-edge hover:opacity-90 active:opacity-70"
+      class={`flex-row items-center justify-center disabled:bg-sys-push-disabled ${fade()} ${
+        props.primary ? "bg-sys-accent active:bg-sys-accent-pressed" : "bg-sys-push active:bg-sys-push-pressed"
       }`}
-      disabledStyle={{ opacity: 0.4 }}
-      style={{ height: FORM.height, gap: 5, paddingHorizontal: 10, borderRadius: FORM.radius, borderCurve: "continuous" }}
+      focusVisibleStyle={{ outlineStyle: "solid", outlineWidth: 3, outlineOffset: 0, outlineColor: token("sys-focus") }}
+      style={{ height: FORM.height, gap: 5, paddingHorizontal: 12, borderRadius: FORM.radius }}
     >
-      <If when={props.icon}>
-        {(name) => <Icon name={name()} size={13} tint={props.primary ? token("on-accent") : token("sys-fg")} />}
-      </If>
-      <Text class={props.primary ? "text-on-accent font-medium" : "text-sys-fg"} style={{ fontSize: FORM.control, numberOfLines: 1 }}>
+      <If when={props.icon}>{(name) => <Icon name={name()} size={13} tint={token(ink())} />}</If>
+      <Text class={inkClass()} style={{ fontSize: FORM.control, numberOfLines: 1 }}>
         {props.label}
       </Text>
     </Button>
   );
 }
 
-/** A time of day typed or stepped (`HH:mm`), the segment being edited in the system's accent. */
+/**
+ * A time of day typed or stepped (`HH:mm`) in a text field's outline, as macOS's time field: no fill, a faint edge,
+ * the segment being edited on the selected-content blue. (macOS puts a stepper inside the field; NSH's `TimeField`
+ * has no place for one, and the arrow keys step the segment.)
+ */
 export function TimeInput(props: { value: string; onChange: (value: string) => void; label: string; hourCycle: "h12" | "h23"; testID?: string }) {
   return (
     <TimeField
@@ -143,9 +157,9 @@ export function TimeInput(props: { value: string; onChange: (value: string) => v
       hourCycle={props.hourCycle}
       onChange={({ value }) => props.onChange(value)}
       accessibilityLabel={props.label}
-      class={`flex-row items-center bg-sys-button border border-sys-button-edge ${fade()}`}
-      style={{ height: FORM.height - 2, paddingHorizontal: 7, borderRadius: FORM.radius, borderCurve: "continuous" }}
-      segmentClass="text-sys-fg focus:bg-sys-accent focus:text-white"
+      class={`flex-row items-center bg-sys-input border border-sys-input-edge ${fade()}`}
+      style={{ height: FORM.height, paddingHorizontal: 7, borderRadius: FORM.radius }}
+      segmentClass="text-sys-fg focus:bg-sys-selected-content focus:text-sys-on-accent"
       segmentStyle={{ fontSize: FORM.control, fontVariant: ["tabular-nums"], paddingHorizontal: 2, borderRadius: 3 }}
       separatorClass="text-sys-muted"
       separatorStyle={{ fontSize: FORM.control }}
