@@ -178,11 +178,14 @@ locales/   翻译
 src/       App 的 Rust crate（`jot/native`）
 store/     jot-store：笔记文件夹、待办和时间说法，纯 Rust
 mcp/       jot-mcp，MCP 服务器
+tests/     App 的 TSX 测试（`nsh test`，无界面运行）
 scripts/   打包脚本
+assets/    App 图标
+docs/      架构说明和产品定义
 design/    可交互的设计稿和 logo
 ```
 
-[ARCHITECTURE.md](ARCHITECTURE.md) 介绍各个 crate 和它们的 API；[PRODUCT.md](PRODUCT.md) 是产品定义（英文）。
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) 介绍各个 crate 和它们的 API；[docs/PRODUCT.md](docs/PRODUCT.md) 是产品定义（英文）。
 
 ## 致谢
 

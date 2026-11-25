@@ -191,11 +191,9 @@ fn run(
                 return;
             }
         }
-        if rescan {
-            if let Some(fresh) = open_todos(store) {
-                drop_rescheduled(&mut lock(snoozes), &todos, &fresh);
-                todos = fresh;
-            }
+        if rescan && let Some(fresh) = open_todos(store) {
+            drop_rescheduled(&mut lock(snoozes), &todos, &fresh);
+            todos = fresh;
         }
     }
 }
@@ -245,13 +243,12 @@ fn take_due(
         let found = todos
             .iter()
             .find(|todo| todo.note == snooze.note && todo.line == snooze.line);
-        if let Some(todo) = found {
-            if !due
+        if let Some(todo) = found
+            && !due
                 .iter()
                 .any(|d| d.note == todo.note && d.line == todo.line)
-            {
-                due.push(todo.clone());
-            }
+        {
+            due.push(todo.clone());
         }
     }
     due.sort_by_key(|todo| todo.due);

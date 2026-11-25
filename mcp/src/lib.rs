@@ -815,6 +815,8 @@ impl JotServer {
     /// The open to-do of `note` that `wanted` names: the one whose text it is, else the one whose text holds it
     /// (case-insensitive). When none is open, a checked one that reads exactly so; else the error to return,
     /// listing the candidates (`verb` says what the caller does, for the message).
+    // The error is the tool's reply, handed back as is on a rare path: boxing it buys nothing.
+    #[allow(clippy::result_large_err)]
     async fn find_open_todo(
         &self,
         note: &str,

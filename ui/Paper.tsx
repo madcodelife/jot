@@ -534,7 +534,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
       });
     }
     // Selected text is ink on the selection's own fill, without the chips' and code's: the colours above sit at
-    // AA on the paper with no room for a fill under them (settings.test.tsx checks the ink). The editor styles a
+    // AA on the paper with no room for a fill under them (tests/settings.test.tsx checks the ink). The editor styles a
     // stretch by the decoration starting last there, so each one in the selection gets its part inked again.
     const styled = out.slice();
     for (const range of selected()) {

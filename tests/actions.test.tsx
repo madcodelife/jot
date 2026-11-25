@@ -9,7 +9,7 @@ import { Notes } from "jot/native";
 const folder = (name: string) => `/tmp/jot-test-${name}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
 const openJot = (dir: string) =>
-  open("./App.tsx", {
+  open("../App.tsx", {
     platform: "macos",
     width: 1200,
     height: 800,

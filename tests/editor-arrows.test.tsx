@@ -5,7 +5,7 @@ import { Notes } from "jot/native";
 test("the arrow keys move the caret in the opened note", async () => {
   const dir = `/tmp/jot-arrows-${Date.now()}`;
   new Notes(dir).create("arrows", "abc\ndef\nghi");
-  const app = await open("./App.tsx", { platform: "macos", width: 1200, height: 800, reducedMotion: true, locale: "zh-CN", storage: { "jot.dir": dir },
+  const app = await open("../App.tsx", { platform: "macos", width: 1200, height: 800, reducedMotion: true, locale: "zh-CN", storage: { "jot.dir": dir },
     modules: { "jot/native": { "Summon.isTrusted": true, "Summon.requestTrust": null, "Summon.onDoubleTap": null } } });
   await app.waitFor("id:search");
   await app.type("id:search", "arrows");
