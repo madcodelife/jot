@@ -73,13 +73,13 @@ type Page = { id: Exclude<SettingsTab, "about">; icon: IconName; tile: string };
 
 /** The sidebar's pages, each on a tile of its colour (System Settings' own, by kind). The AI apps stand apart, after a gap. */
 const PAGES: readonly Page[] = [
-  { id: "general", icon: "tileGear", tile: "#8e8e93" },
-  { id: "summon", icon: "tileOption", tile: "#5e5ce6" },
-  { id: "voice", icon: "tileMic", tile: "#ff375f" },
-  { id: "reminders", icon: "tileBell", tile: "#ff3b30" },
-  { id: "appearance", icon: "tileAppearance", tile: "#1c1c1e" },
+  { id: "general", icon: "gear", tile: "#8e8e93" },
+  { id: "summon", icon: "option", tile: "#5e5ce6" },
+  { id: "voice", icon: "mic", tile: "#ff375f" },
+  { id: "reminders", icon: "bell", tile: "#ff3b30" },
+  { id: "appearance", icon: "appearance", tile: "#1c1c1e" },
 ];
-const AI: Page = { id: "ai", icon: "tileSpark", tile: "#af52de" };
+const AI: Page = { id: "ai", icon: "spark", tile: "#af52de" };
 
 /** The window's size (fixed), the sidebar's width, and the strip the traffic lights and the page's title share. */
 const WIDTH = 715;
