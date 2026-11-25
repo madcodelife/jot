@@ -15,15 +15,13 @@ permissions:
   contents: read
 
 env:
-  # Jot builds against the NSH 0.6 crates; the CLI must be of the same version.
-  NSH_VERSION: v0.6.0
   CARGO_TERM_COLOR: always
 
 jobs:
   test:
     name: Check and test
     runs-on: macos-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
@@ -33,9 +31,19 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      - name: Which NSH
+        id: nsh
+        run: echo "which=$(scripts/install-nsh.sh --which)" >> "$GITHUB_OUTPUT"
+
+      # A commit of NSH is built from source: keep the build for the next run.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nsh
+          key: nsh-${{ runner.os }}-${{ runner.arch }}-${{ steps.nsh.outputs.which }}
+
       - name: Install NSH
         run: |
-          curl -fsSL "https://github.com/longbridge/nsh/releases/download/$NSH_VERSION/install.sh" | sh
+          scripts/install-nsh.sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: rustfmt
@@ -53,7 +61,7 @@ jobs:
   package:
     name: Package Jot.app
     runs-on: macos-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     needs: test
     permissions:
       contents: write
@@ -68,9 +76,19 @@ jobs:
         with:
           key: package
 
+      - name: Which NSH
+        id: nsh
+        run: echo "which=$(scripts/install-nsh.sh --which)" >> "$GITHUB_OUTPUT"
+
+      # A commit of NSH is built from source: keep the build for the next run.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nsh
+          key: nsh-${{ runner.os }}-${{ runner.arch }}-${{ steps.nsh.outputs.which }}
+
       - name: Install NSH
         run: |
-          curl -fsSL "https://github.com/longbridge/nsh/releases/download/$NSH_VERSION/install.sh" | sh
+          scripts/install-nsh.sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Package
