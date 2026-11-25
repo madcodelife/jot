@@ -14,7 +14,7 @@
 // both (the other as a note of its own).
 // A locked note is read-only: the header says "Locked" with a padlock, and a
 // click there unlocks it; nothing edits it (typing, ticks, times, dictation).
-import { cleanup, computed, createAnimatedValue, effect, Notifications, signal, Text, token, untracked, View } from "nsh";
+import { cleanup, computed, createAnimatedValue, effect, keymap, Notifications, signal, Text, token, untracked, View } from "nsh";
 import { Button, Editor, type EditorDecoration, type EditorPosition, type EditorRef, type EditorSelection } from "nsh/base";
 import { t } from "nsh/i18n";
 import { When, type Conflict } from "jot/native";
@@ -151,8 +151,8 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   const caret = signal<EditorPosition | null>(null);
   /** What is selected, by range (start before end): the text there is drawn in ink. */
   const selected = signal<{ start: EditorPosition; end: EditorPosition }[]>([]);
-  /** The caret before the last move, in case the editor reports the move before the edit that made it. */
-  let caretBefore: EditorPosition | null = null;
+  /** The editor has the keyboard focus: its ⌘↩ and Return are Jot's then. */
+  const focused = signal(false);
   /** A dictation is typing: its interim words are not saved, the final ones are. */
   let dictating = false;
   let editor: EditorRef | undefined;
@@ -190,10 +190,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   }
 
   function changed(value: string) {
-    const before = untracked(text);
     text.set(value);
-    // Return on a list line: the next item's marker follows as an edit of its own (reported back here).
-    if (continueList(before, value)) return;
     clearTimeout(saveTimer);
     if (!dictating) saveTimer = setTimeout(saveNow, T.timing.saveAfter);
     // The live chip waits for a pause, so it does not flicker under typing.
@@ -363,7 +360,6 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   function selectionChanged(selections: EditorSelection[]) {
     selection = selections[selections.length - 1] ?? null;
     const only = selections.length === 1 ? selections[0] : null;
-    caretBefore = untracked(caret);
     selected.set(
       selections
         .filter((s) => s.anchor.line !== s.head.line || s.anchor.column !== s.head.column)
@@ -380,33 +376,45 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   }
 
   /**
-   * Return on a list item, a to-do or a quote line goes on with it (`continuation`), or ends the list on an empty
-   * one. The editor binds Return itself while it has the focus and NSH 0.6 lets no app binding before it, so Jot
-   * follows its line break: when the text changed by a break (and the indent it keeps) typed at the caret, the new
-   * line gets its marker as a second edit, which undo takes back first. An input method commits no bare break.
+   * What Return does at the caret on a list item, a to-do or a quote line outside fenced code (`continuation`): the
+   * next item, or the list's end on an empty one. `null` elsewhere, with a selection or several carets: a line break.
    */
-  function continueList(before: string, after: string): boolean {
-    if (!editor || dictating || untracked(readOnly)) return false;
-    for (const at of [caretBefore, untracked(caret)]) {
-      if (!at) continue;
-      const lines = before.split("\n");
-      const line = lines[at.line];
-      if (line === undefined || at.column > line.length) continue;
-      const offset = lines.slice(0, at.line).reduce((n, l) => n + l.length + 1, 0) + at.column;
-      const typed = after.length - before.length;
-      if (typed < 1 || after.slice(0, offset) !== before.slice(0, offset) || after.slice(offset + typed) !== before.slice(offset)) continue;
-      const indent = after.slice(offset, offset + typed);
-      if (!/^\n[ \t]*$/.test(indent) || fencedLines(lines)[at.line]) return false;
-      const next = continuation(line, at.column);
-      if (!next) return false;
-      const broken = indent.slice(1) + line.slice(at.column);
-      editor.edit([{ range: { start: { line: at.line, column: 0 }, end: { line: at.line + 1, column: broken.length } }, text: next.text }]);
-      const to = { line: at.line + next.caret.line, column: next.caret.column };
-      editor.setSelections([{ anchor: to, head: to }]);
-      return true;
-    }
-    return false;
+  function itemReturn(body: string, at: EditorPosition | null) {
+    if (!at || untracked(readOnly)) return null;
+    const lines = body.split("\n");
+    const line = lines[at.line];
+    if (line === undefined || fencedLines(lines)[at.line]) return null;
+    return continuation(line, at.column);
   }
+
+  /** Return on an item line: its continuation as one edit, which one undo takes back; elsewhere the editor's break. */
+  function pressReturn() {
+    if (!editor) return;
+    const at = untracked(caret);
+    const next = dictating ? null : itemReturn(untracked(text), at);
+    if (!at || !next) {
+      editor.run("newline");
+      return;
+    }
+    const end = lineAt(untracked(text), at.line).length;
+    editor.edit([{ range: { start: { line: at.line, column: 0 }, end: { line: at.line, column: end } }, text: next.text }]);
+    const to = { line: at.line + next.caret.line, column: next.caret.column };
+    editor.setSelections([{ anchor: to, head: to }]);
+  }
+
+  // The editor binds ⌘↩ (a line below) and Return itself; while it has the focus, Jot's come first (`overFocused`).
+  // ⌘↩ ticks the caret's to-do, and does nothing on another line. Return is Jot's only while the caret is on an item
+  // line, so a line break elsewhere stays the editor's own; ⇧↩ is always a plain break. An input method composing
+  // (pinyin) keeps Return: NSH gives no binding a key then, and Return commits the letters.
+  const onItem = computed(() => focused() && !readOnly() && itemReturn(text(), caret()) !== null);
+  effect(() => {
+    if (!focused()) return;
+    return keymap.bind("mod+enter", () => toggleLine(untracked(caretLine)), { when: "always", overFocused: true });
+  });
+  effect(() => {
+    if (!onItem()) return;
+    return keymap.bind("enter", pressReturn, { when: "always", repeat: true, overFocused: true });
+  });
 
   /** Reads the versions iCloud Drive kept (none for most notes, at a glance). */
   function readVersions() {
@@ -681,7 +689,9 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
         styles={{ content: { paddingLeft: PAPER_X, paddingRight: PAPER_X, paddingTop: 2, paddingBottom: PAPER_BOTTOM } }}
         onChange={({ value }) => changed(value)}
         onSelectionChange={({ selections }) => selectionChanged(selections)}
+        onFocus={() => focused.set(true)}
         onBlur={() => {
+          focused.set(false);
           normalize(untracked(caretLine));
           saveNow();
         }}

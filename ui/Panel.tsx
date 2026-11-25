@@ -213,7 +213,8 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
   const radius = () => (stage() === "capsule" ? T.radius.capsule : T.radius.panel);
   const fieldFocused = signal(true);
 
-  // Escape: one step back. ⌘↩: tick the caret's task, tick the selected to-do, or make a note of the query.
+  // Escape: one step back. ⌘↩: tick the caret's task, tick the selected to-do, or make a note of the query (with
+  // the note's text focused, the note's own ⌘↩ comes before the editor's and this one: ui/Paper.tsx).
   keymap.bind(
     {
       // Escape while dictating takes back what was said; otherwise one step back.

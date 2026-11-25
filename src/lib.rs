@@ -36,7 +36,9 @@ mod reminders;
 mod summon;
 mod when;
 
+// `nsh-extra` is here for TSX (dictation's `Speech`); no Rust uses it.
 use nsh_core::prelude::*;
+use nsh_extra as _;
 
 pub use ai_access::AiAccess;
 pub use connections::{AiClient, Connections, GenericSetup, ManualReason};

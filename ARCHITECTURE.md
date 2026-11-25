@@ -336,7 +336,9 @@ NSH's `nsh package` bundles its runner and the app's assets only, so the script 
 nsh.json's), runs `nsh package --target macos` with its options (paths taken from the caller's folder; no ENTRY: it
 packages this checkout; `--arch` is `arm64`, `x86_64` or `universal`), copies `jot-mcp` to
 `<name>.app/Contents/MacOS/jot-mcp`, signs it, signs the bundle again keeping its entitlements, and verifies
-(`codesign --verify --deep --strict`). `NSH` picks the CLI (0.6.0), `SIGN_IDENTITY` the identity: ad hoc by default;
+(`codesign --verify --deep --strict`). `NSH` picks the CLI, which must be the NSH `Cargo.toml`'s `nsh-core` names (a
+commit of NSH's repository, `rev`, which a nightly CLI's `--version` names; or a crates.io release; it warns
+otherwise), `SIGN_IDENTITY` the identity: ad hoc by default;
 any other signs both with `--timestamp --options runtime`, as notarization asks.
 
 ## The app's Rust face (`jot/native`, src/)
@@ -463,10 +465,25 @@ module InputSource {                            // the keyboard input source sel
   language(): Promise<string | null>;
 }
 ```
+Dictation listens with `nsh-extra`'s `Speech` (`import { Speech } from "nsh-extra"`; `Cargo.toml` turns on its
+`speech` feature, which brings the macOS microphone entitlement); headless tests speak through its fake,
+`app.fake("nsh-extra/speech", …)`.
 Dictation's language (`app/speechlang.ts`, pure): switched to while listening (the language tag, ⌘L: 中 → EN → 日 →
 繁, kept for the run) › chosen in the settings › on "auto", the input source's when it is Chinese or Japanese › the
 first of the user's languages that is Chinese, Japanese or English with a region › Jot's language in its usual region.
 The notch comes from NSH: `displays()` → `cutouts` (`nsh/desktop`).
+
+## The open note's Return and ⌘↩ (ui/Paper.tsx)
+
+NSH's `Editor` binds Return (a line break) and ⌘↩ (a line below) itself while it has the focus, before the app's
+bindings; Jot takes them with `keymap.bind`'s `overFocused`, bound while the editor has the focus (`onFocus` /
+`onBlur`). ⌘↩ ticks or unticks the caret's to-do and does nothing on another line (the panel's own ⌘↩, which does
+the same while the note's text has no focus, is in ui/Panel.tsx). Return is bound only while the caret is on a list
+item, a to-do or a quote line outside fenced code with nothing selected (`continuation` in app/markdown.ts says what it
+does there), so a line break elsewhere is the editor's own; it writes the line and the next item's start as one
+`editor.edit`, which one undo takes back, and falls back to the editor's `newline` command when the caret has left
+such a line before the key arrives. ⇧↩ is never bound: a plain break. While an input method composes (pinyin), NSH
+gives the bindings no key, so Return commits the letters.
 
 ## The reminder time picker (app/due.ts, ui/DuePicker.tsx)
 

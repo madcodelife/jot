@@ -138,7 +138,20 @@ claude mcp add --scope user jot -- "$PWD/target/release/jot-mcp" --dir ~/Documen
 
 Jot 用 [NSH](https://github.com/longbridge/nsh) 构建：界面是 TSX，笔记存储、提醒和平台相关的代码是 Rust。
 
-Jot 依赖 crates.io 上的 NSH 0.6.0。先装同一版本（0.6.0）的 `nsh` 命令行（见 [NSH 的安装说明](https://github.com/longbridge/nsh)），然后：
+Jot 依赖 NSH 主分支的提交 `2964346`（`Cargo.toml` 里的 `nsh-core` 和 `nsh-extra`），不是正式版：打开的笔记里 ⌘↩ 和
+回车要用 `keymap.bind` 的 `overFocused`，还没有哪个正式版带它。`nsh` 命令行必须是同一个提交。NSH 的 `nightly` 发布就是
+从它编的；这个 tag 每晚都会移动，先确认它仍指向 `2964346`（`gh release view nightly -R longbridge/nsh --json
+targetCommitish`），再装进单独的目录，不动 `PATH` 里的 `nsh`（NSH 的 `install.sh` 会替换它）：
+
+```sh
+gh release download nightly -R longbridge/nsh -p 'nsh-macos-arm64.tar.gz*'
+shasum -a 256 -c nsh-macos-arm64.tar.gz.sha256
+mkdir -p ~/.local/nsh-2964346
+tar xzf nsh-macos-arm64.tar.gz -C ~/.local/nsh-2964346 --strip-components 1
+~/.local/nsh-2964346/bin/nsh --version   # nsh 0.6.0 (2964346 nightly 2026-11-24)
+```
+
+nightly 移走以后，就从 NSH 仓库编这个提交的命令行。然后用这个 `nsh`：
 
 ```sh
 nsh run                       # 构建并运行 App
@@ -149,7 +162,7 @@ scripts/package-macos.sh      # 打包出 Jot.app，里面带着 jot-mcp
 
 `scripts/package-macos.sh` 先编 `jot-mcp`，再跑 `nsh package --target macos`（参数原样传过去：`--arch universal`、
 `--out`、`--name`……），把 `jot-mcp` 放进 `Jot.app/Contents/MacOS`，然后重新签名（默认 ad hoc；`SIGN_IDENTITY` 换别的
-身份，这时带安全时间戳和 hardened runtime）。它用 `PATH` 里的 `nsh`，或 `NSH=/path/to/nsh` 指定的。开发时 `nsh run`
+身份，这时带安全时间戳和 hardened runtime）。它用 `PATH` 里的 `nsh`，或 `NSH=/path/to/nsh` 指定的（`NSH=~/.local/nsh-2964346/bin/nsh`），不是 `Cargo.toml` 写的那个 NSH 时会警告。开发时 `nsh run`
 （debug 构建）会在 cargo 的 target 目录里找 `jot-mcp`：先 `cargo build -p jot-mcp` 一次，就能在设置里连接应用。
 
 目前只支持 macOS。

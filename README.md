@@ -157,8 +157,21 @@ mistakes, not against a program determined to change it.
 Jot is built with [NSH](https://github.com/longbridge/nsh): the UI is TSX, and the notes store, the reminders and the
 platform code are Rust.
 
-Jot builds against the NSH 0.6.0 crates from crates.io. Install the `nsh` CLI of the same version, 0.6.0 (see
-[NSH's installation guide](https://github.com/longbridge/nsh)), then:
+Jot builds against NSH's main branch at commit `2964346` (`Cargo.toml`'s `nsh-core` and `nsh-extra`), not a
+release: the open note's ⌘↩ and Return need `keymap.bind`'s `overFocused`, which no release has yet. The `nsh` CLI must
+be the same commit. NSH's `nightly` release was built from it; its tag moves every night, so check that it still points
+at `2964346` (`gh release view nightly -R longbridge/nsh --json targetCommitish`), then install it in a folder of its
+own, leaving the `nsh` on your `PATH` alone (NSH's `install.sh` would replace it):
+
+```sh
+gh release download nightly -R longbridge/nsh -p 'nsh-macos-arm64.tar.gz*'
+shasum -a 256 -c nsh-macos-arm64.tar.gz.sha256
+mkdir -p ~/.local/nsh-2964346
+tar xzf nsh-macos-arm64.tar.gz -C ~/.local/nsh-2964346 --strip-components 1
+~/.local/nsh-2964346/bin/nsh --version   # nsh 0.6.0 (2964346 nightly 2026-11-24)
+```
+
+Once the nightly has moved on, build that commit's CLI from NSH's repository instead. Then, with that `nsh`:
 
 ```sh
 nsh run                       # build and run the app
@@ -170,7 +183,8 @@ scripts/package-macos.sh      # build Jot.app, with jot-mcp inside
 `scripts/package-macos.sh` builds `jot-mcp`, runs `nsh package --target macos` (it passes on its options: `--arch
 universal`, `--out`, `--name`, …), puts `jot-mcp` in `Jot.app/Contents/MacOS` and signs both again (ad hoc;
 `SIGN_IDENTITY` for another identity, then with a secure timestamp and the hardened runtime). It runs the `nsh` on your
-`PATH`, or `NSH=/path/to/nsh`. While developing, `nsh run` (a debug build) finds `jot-mcp` in cargo's target folder:
+`PATH`, or `NSH=/path/to/nsh` (`NSH=~/.local/nsh-2964346/bin/nsh`), and warns when that is not the NSH `Cargo.toml`
+names. While developing, `nsh run` (a debug build) finds `jot-mcp` in cargo's target folder:
 build it once with `cargo build -p jot-mcp` to connect apps from Settings.
 
 Only macOS is supported for now.
