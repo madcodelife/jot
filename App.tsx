@@ -23,7 +23,7 @@ import {
   firstRun,
   notice,
   now,
-  onClaudeNote,
+  onAgentNote,
   notes,
   open,
   openFolder,
@@ -34,7 +34,7 @@ import {
   toggle,
   trusted,
 } from "./app/store";
-import { dismissDictation, IslandWindow, settleDictation, showClaudeWrite, showDictation, showReminder, updateDictation } from "./ui/Island";
+import { dismissDictation, IslandWindow, settleDictation, showAgentWrite, showDictation, showReminder, updateDictation } from "./ui/Island";
 import { PanelWindow } from "./ui/Panel";
 import { openSettings, SettingsWindow } from "./ui/Settings";
 import { T } from "./ui/tokens";
@@ -148,8 +148,8 @@ function App() {
 
   // Notes Claude writes: the island says so, while the settings keep it on.
   if (hasIsland) {
-    onClaudeNote((title) => {
-      if (untracked(islandOn)) showClaudeWrite(title);
+    onAgentNote((title, agent) => {
+      if (untracked(islandOn)) showAgentWrite(title, agent);
     });
   }
 

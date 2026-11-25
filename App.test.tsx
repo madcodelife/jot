@@ -82,3 +82,28 @@ test("Escape steps back: from the to-do view to the notes, then hides the panel"
   await app.waitUntil(() => !app.shows("id:search"));
   app.dispose();
 });
+
+test("only notes an AI app wrote count as its arrivals: a clipped page's or a book's source is the user's", async () => {
+  const dir = folder("source");
+  const app = await openJot(dir);
+  await app.waitFor("id:search");
+  const notes = new Notes(dir);
+  // As a web clipper and a reading note write them, from outside Jot.
+  notes.create("剪藏", '---\nsource: "https://example.com/a"\n---\n正文');
+  notes.create("读书", "---\nsource: 某本书\n---\n摘抄");
+  await app.waitFor("id:row:剪藏");
+  await app.waitFor("id:row:读书");
+  expect(app.count("id:note-agent")).toBe(0);
+  expect(app.texts().some((s) => s.includes("example.com") || s.includes("某本书 ·"))).toBe(false);
+  // The island says nothing of them.
+  expect(app.texts().some((s) => s.includes("正在记到 Jot") || s.includes("已记下"))).toBe(false);
+
+  // One an AI app wrote is shown as its.
+  notes.create("命令", "---\nsource: cursor\n---\nls -la");
+  await app.waitFor("id:row:命令");
+  await app.waitUntil(() => app.count("id:note-agent") === 1);
+  expect(app.texts()).toContain("Cursor");
+  // The island shows it (so its silence above was not for want of an island).
+  await app.waitUntil(() => app.texts().some((s) => s.startsWith("Cursor · ")));
+  app.dispose();
+});

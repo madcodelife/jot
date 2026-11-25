@@ -380,7 +380,7 @@ function EmptyNotes() {
         {t("empty.first", { keys: T.keys.enter.join(" ") })}
       </Text>
       <Text class="text-glass-muted text-center" style={{ fontSize: T.type.snippet }}>
-        {t("empty.claude")}
+        {t("empty.agent")}
       </Text>
     </View>
   );

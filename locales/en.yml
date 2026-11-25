@@ -26,7 +26,7 @@ search:
 empty:
   title: No notes yet
   first: Type a title and press %{keys} to start your first.
-  claude: Or ask Claude to “jot this down.”
+  agent: Or ask your AI app to “jot this down.”
 
 keys:
   actions: Actions
@@ -77,12 +77,12 @@ note:
   rename_failed: "Couldn’t rename “%{title}”: %{error}"
 
 paper:
-  by_claude: By Claude
+  by_agent: By %{agent}
   saved: Saved
   placeholder: Start writing…
   label: Note “%{title}”
   save_failed: "Couldn’t save: %{error}"
-  appended: Claude added to the end. Your cursor stayed put.
+  appended: Text was added at the end. Your cursor stayed put.
   conflict: This note changed somewhere else
   view_end: Show ↓
   use_theirs: Use Theirs
@@ -99,8 +99,8 @@ time:
   yesterday: Yesterday
 
 island:
-  writing: Claude · Writing to Jot
-  written: Claude · Saved to Jot
+  writing: "%{agent} · Writing to Jot"
+  written: "%{agent} · Saved to Jot"
   done: Done
   remind: Reminder · %{time} · %{note}
   now: Now
@@ -114,7 +114,7 @@ settings:
     voice: Voice
     appearance: Appearance
     reminders: Reminders
-    claude: Claude
+    ai: AI Apps
     about: About
   folder:
     label: Notes Folder
@@ -160,22 +160,40 @@ settings:
     notifications: Notifications
     notifications_hint: Show a notification when a to-do is due
     island: Notch Island
-    island_hint: Opens from the notch for reminders and Claude’s notes
+    island_hint: Opens from the notch for reminders and notes from AI apps
     island_no_notch: This display has no notch
     default_time: Default Time
     time: Time
     default_time_hint: Used when a reminder has a date but no time, like “pay rent tomorrow”.
-  claude:
-    intro: Claude can read and write the notes in this folder.
-    how: "To connect Jot to Claude Code, run this in Terminal:"
+  ai:
+    intro: Connect the AI apps on this Mac to Jot. They can then search, read and add to the notes in this folder, and keep your to-dos.
+    apps: Apps on This Mac
+    looking: Looking for apps…
+    none: No supported AI apps found on this Mac. Use the setup below for any other app.
+    connected: Connected
+    not_connected: Not connected
+    elsewhere: Connected to another folder
+    manual: Set up by hand
+    connect: Connect
+    disconnect: Disconnect
+    update: Update
     copy: Copy
     copied: Copied
-    placeholder: "<jot-mcp path>"
-    path_note: "<jot-mcp path> is a placeholder: the packaged app will fill in where jot-mcp lives."
-    then: Then ask Claude to “jot this down” or “what’s on my list today?”
+    copy_setup: Copy Setup
+    restart: If %{app} is open, restart it to load Jot.
+    no_cli: "The claude command wasn’t found. Copy the command and run it in Terminal."
+    unreadable: "%{file} has comments or can’t be read, so Jot won’t change it. Copy the setup and add it yourself."
+    unsupported: "Copy the setup into %{file}."
+    not_moved: "It’s still connected to the previous folder: Jot can’t move it."
+    no_server: "jot-mcp wasn’t found next to Jot. While developing, build it with “cargo build -p jot-mcp” and open this page again."
+    translocated: "Jot is running from a temporary location (opened from Downloads, say), which apps can’t keep. Drag Jot to the Applications folder and open it from there first."
+    other: Other Apps
+    command: Command
+    json: Configuration
+    then: Then ask the app to “jot this down” or “what’s on my list today?”
   about:
     title: About Jot
-    tagline: A notebook you share with Claude
+    tagline: A notebook you share with your AI
     version: Version %{version} (%{build})
     built_with: Built with Native Shell
     open: Open

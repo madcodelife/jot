@@ -3,7 +3,7 @@
 ## In one sentence
 
 A quick-notes notebook you summon with a shortcut: the input field is both the search field and the new note's title;
-you and Claude share the notebook, so Claude can write into it and read from it too.
+you share the notebook with your AI apps (Claude, Cursor, Codex, …), so they can write into it and read from it too.
 
 ## Why
 
@@ -22,7 +22,8 @@ you and Claude share the notebook, so Claude can write into it and read from it 
    modified first.
 3. ↑↓ select, Return opens; when nothing matches, Return creates a note with what you typed as its title.
 4. Below is the editor, with Markdown highlighting and autosave as you type; there is no save button.
-5. Notes Claude wrote carry a small mark in the list; while the app is open, new notes appear immediately.
+5. Notes an AI app wrote carry its name in the list (Claude, Cursor, …); while the app is open, new notes appear
+   immediately.
 
 ## To-dos and reminders
 
@@ -50,18 +51,19 @@ Jot is still a notebook: to-dos live in notes, not in a separate task manager.
 - The to-do view: typing "todo" (待办 in Chinese, or `/todo`) in the search field lists every open to-do, grouped as
   overdue, today, tomorrow, later and without a time; each shows the note it is in. When the panel has just been
   summoned and nothing is typed yet, the top of the list has a row "3 to-dos today"; Return opens the to-do view.
-- Claude: say "remind me to send the weekly report on Friday" and Claude writes a to-do with a time; ask "what do I
-  have to do today" and Claude lists them; say "move paying rent to Friday" and Claude changes its time.
+- AI apps: say "remind me to send the weekly report on Friday" and the app writes a to-do with a time; ask "what do I
+  have to do today" and it lists them; say "move paying rent to Friday" and it changes its time.
 
 Not doing: projects, priorities, tag-style contexts, complex recurrence rules, assigning to other people.
 
 ## Storage
 
 - Notes are `.md` files in a folder (`~/Documents/Jot` by default, changeable); the file name is the title.
-- YAML frontmatter at the top records the source: `source: claude`. Notes the user writes get none.
+- YAML frontmatter at the top records the source: `source: claude`, `source: cursor`, `source: "agent:<name>"`. Notes
+  the user writes get none, and a `source` the user wrote (a clipped page's URL) still means the user.
 - Jot does no syncing of its own; iCloud Drive, Dropbox or Syncthing handle it.
 
-## MCP for Claude
+## MCP for AI apps
 
 `jot-mcp`: a stdio MCP server (Rust) that reads and writes the notes folder directly, so it works whether or not the
 app is running.
@@ -71,26 +73,34 @@ app is running.
 | `search_notes(query, limit?)` | Searches titles and bodies; returns titles, snippets and modified times |
 | `read_note(title)` | Reads a note's full text |
 | `recent_notes(limit?)` | Lists the most recently modified notes |
-| `create_note(title, body)` | Creates a note; fails if the title exists, suggesting `append_note` instead |
+| `create_note(title, body)` | Creates a note, marked with the app's name; fails if the title exists, suggesting `append_note` instead |
 | `append_note(title, text)` | Appends a paragraph to the end of an existing note |
 | `add_todo(text, due?, note?)` | Adds a to-do; `due` is an ISO time, and without `note` it goes to the note "待办" (To-dos) |
 | `list_todos(range?)` | Lists open to-dos: `overdue` / `today` / `upcoming` / `all`, with their times and notes |
 | `complete_todo(note, text)` | Checks off a to-do (only its checkbox changes; nothing is deleted) |
 | `reschedule_todo(note, text, due)` | Changes the reminder time of an open to-do (only its `⏰` part); `due` is an ISO time or a phrase such as 周五 9点 ("Friday 9 o'clock"), `null` removes the reminder |
 
-The first version offers no delete or overwrite, so Claude cannot damage what the user wrote. Setup:
-`claude mcp add jot -- <path to jot-mcp> --dir <notes folder>`; a one-click "Connect Claude" will come to the app's
-settings later.
+The first version offers no delete or overwrite, so an AI app cannot damage what the user wrote.
+
+Setup is one click: Settings → AI Apps lists the AI apps installed on the Mac (Claude Code, Claude, Cursor, VS Code,
+Windsurf, Codex, Gemini CLI; Zed by hand) with their state, and connects or disconnects each; `jot-mcp` ships inside
+Jot.app. Jot edits only its own entry in each app's configuration, keeps the file as it was before Jot beside it, and
+never rewrites a file it cannot parse (it offers the entry to copy instead). Run from a temporary location (opened
+from Downloads), it connects nothing and asks to be moved to Applications. Changing the notes folder updates every connected app. For
+any other MCP app the page gives the command and the JSON entry to copy; by hand,
+`claude mcp add --scope user jot -- <path to jot-mcp> --dir <notes folder>`.
+
+A note an AI app creates records which app it was (`source: cursor`, from the name the app gives when it connects), and
+the list, the note and the notch island show that name: "By Cursor", "Claude · Saved to Jot".
 
 ## What the first version does and doesn't do
 
 Does: the macOS desktop (NSH's AppKit backend), resident in the tray, the floating panel summoned by double-pressing ⌥,
-search-to-create, editing with autosave, watching the folder for changes, to-dos and desktop reminders, `jot-mcp`,
-light and dark themes.
+search-to-create, editing with autosave, watching the folder for changes, to-dos and desktop reminders, `jot-mcp`
+and one-click connection to the AI apps on the Mac, light and dark themes.
 
 Not yet: Windows, Linux and phones (the next step, from the same code; due reminders on phones wait for scheduled
-notifications in NSH), syncing of its own, tags and nested folders, rich text, scratch blocks and inline calculation,
-one-click Claude connection in the app.
+notifications in NSH), syncing of its own, tags and nested folders, rich text, scratch blocks and inline calculation.
 
 ## Design tone
 
@@ -101,5 +111,7 @@ loses focus.
 ## Acceptance
 
 - From pressing the shortcut to being able to type, there is no perceptible delay.
-- Saying "save this command to Jot" in Claude Code makes the note appear in the app's list at once, with Claude's mark.
-- Asking "did I save the wifi password in Jot?" in Claude Code, Claude finds it and reads it out.
+- Saying "save this command to Jot" in Claude Code makes the note appear in the app's list at once, marked "Claude Code".
+- Asking "did I save the wifi password in Jot?" in Claude Code, it finds it and reads it out.
+- Settings → AI Apps → Connect on Cursor (or any listed app) makes Jot's tools available there after a restart of the
+  app, and changing the notes folder moves the connection along.

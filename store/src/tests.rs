@@ -90,8 +90,10 @@ fn create_and_read() {
 #[test]
 fn claude_notes_get_frontmatter() {
     let (_dir, store) = store();
-    let meta = store.create("Command", "ls -la", Source::Claude).unwrap();
-    assert_eq!(meta.source, Source::Claude);
+    let meta = store
+        .create("Command", "ls -la", Source::agent("claude"))
+        .unwrap();
+    assert_eq!(meta.source, Source::agent("claude"));
     assert_eq!(
         fs::read_to_string(store.root().join("Command.md")).unwrap(),
         "---\nsource: claude\n---\nls -la"
@@ -108,7 +110,7 @@ fn create_fails_on_an_existing_title_in_any_case() {
     for title in ["Groceries", "groceries", "GROCERIES", " Groceries "] {
         assert!(
             matches!(
-                store.create(title, "eggs", Source::Claude),
+                store.create(title, "eggs", Source::agent("claude")),
                 Err(StoreError::AlreadyExists)
             ),
             "{title:?}"
@@ -129,7 +131,7 @@ fn unknown_frontmatter_is_kept_on_every_write() {
 
     let note = store.read("Meta").unwrap().unwrap();
     assert_eq!(note.body, "first");
-    assert_eq!(note.meta.source, Source::Claude);
+    assert_eq!(note.meta.source, Source::agent("claude"));
 
     store.write("Meta", "second").unwrap();
     assert_eq!(
@@ -160,13 +162,31 @@ fn frontmatter_edge_cases() {
     )
     .unwrap();
     let note = store.read("Crlf").unwrap().unwrap();
-    assert_eq!(note.meta.source, Source::Claude);
+    assert_eq!(note.meta.source, Source::agent("claude"));
     assert_eq!(note.body, "body\r\n");
     store.write("Crlf", "new").unwrap();
     assert_eq!(
         fs::read_to_string(store.root().join("Crlf.md")).unwrap(),
         "---\r\nsource: \"Claude\"\r\n---\r\nnew"
     );
+
+    // A web clipper's or a reading note's `source` is the user's, as is one in a nested map.
+    for (name, frontmatter) in [
+        ("Clip", "source: \"https://example.com/a\""),
+        ("Book", "source: 某本书 # 第三章"),
+        ("Nested", "meta:\n  source: claude"),
+    ] {
+        fs::write(
+            store.root().join(format!("{name}.md")),
+            format!("---\n{frontmatter}\n---\nbody"),
+        )
+        .unwrap();
+        assert_eq!(
+            store.read(name).unwrap().unwrap().meta.source,
+            Source::User,
+            "{name}"
+        );
+    }
 
     // A closing line at the end of the file.
     fs::write(store.root().join("Bare.md"), "---\nk: v\n---").unwrap();
@@ -297,7 +317,7 @@ fn restore_rebuilds_a_note_from_its_text() {
     };
     let meta = store.restore(&trashed).unwrap();
     assert_eq!(meta.title, "Kept");
-    assert_eq!(meta.source, Source::Claude);
+    assert_eq!(meta.source, Source::agent("claude"));
     assert_eq!(meta.modified, modified);
     assert_eq!(
         fs::read_to_string(store.root().join("Kept.md")).unwrap(),
@@ -328,7 +348,7 @@ fn trash_fails_for_a_missing_note() {
 fn trash_moves_a_note_to_the_trash_and_restore_brings_it_back() {
     let (_dir, store) = store();
     store
-        .create("Passport", "Expires in May", Source::Claude)
+        .create("Passport", "Expires in May", Source::agent("claude"))
         .unwrap();
     touch(&store, "Passport", 1_700_000_000);
 
@@ -351,7 +371,7 @@ fn trash_moves_a_note_to_the_trash_and_restore_brings_it_back() {
     let meta = store.restore(&trashed).unwrap();
     assert!(!in_trash.exists(), "moved back out of the trash");
     assert_eq!(meta.title, "Passport");
-    assert_eq!(meta.source, Source::Claude);
+    assert_eq!(meta.source, Source::agent("claude"));
     assert_eq!(
         meta.modified,
         SystemTime::UNIX_EPOCH + Duration::from_secs(1_700_000_000)
@@ -365,7 +385,7 @@ fn trash_moves_a_note_to_the_trash_and_restore_brings_it_back() {
     let trashed = store.trash("Passport").unwrap();
     fs::remove_file(trashed.in_trash.as_ref().unwrap()).unwrap();
     let meta = store.restore(&trashed).unwrap();
-    assert_eq!(meta.source, Source::Claude);
+    assert_eq!(meta.source, Source::agent("claude"));
     assert_eq!(
         store.read("Passport").unwrap().unwrap().body,
         "Expires in May"
@@ -376,7 +396,7 @@ fn trash_moves_a_note_to_the_trash_and_restore_brings_it_back() {
 fn list_ignores_other_files_and_sorts_newest_first() {
     let (_dir, store) = store();
     store.create("A", "a", Source::User).unwrap();
-    store.create("B", "b", Source::Claude).unwrap();
+    store.create("B", "b", Source::agent("claude")).unwrap();
     store.create("C", "c", Source::User).unwrap();
     touch(&store, "A", 200);
     touch(&store, "B", 300);
@@ -388,7 +408,7 @@ fn list_ignores_other_files_and_sorts_newest_first() {
 
     let notes = store.list().unwrap();
     assert_eq!(titles(&notes), ["B", "A", "C"]);
-    assert_eq!(notes[0].source, Source::Claude);
+    assert_eq!(notes[0].source, Source::agent("claude"));
     assert_eq!(
         notes[1].modified,
         SystemTime::UNIX_EPOCH + Duration::from_secs(200)
@@ -497,7 +517,9 @@ fn search_snippets_show_the_first_match() {
 #[test]
 fn writes_are_atomic_and_leave_no_temporary_files() {
     let (_dir, store) = store();
-    store.create("Note", "one", Source::Claude).unwrap();
+    store
+        .create("Note", "one", Source::agent("claude"))
+        .unwrap();
     store.write("Note", "two").unwrap();
     store.append("Note", "three").unwrap();
     store.write("Other", "x").unwrap();

@@ -25,7 +25,7 @@ search:
 empty:
   title: メモはまだありません
   first: タイトルを入力して %{keys} を押すと、最初のメモができます。
-  claude: Claude に「Jot にメモして」と頼むこともできます。
+  agent: AI アプリに「Jot にメモして」と頼むこともできます。
 
 keys:
   actions: アクション
@@ -76,12 +76,12 @@ note:
   rename_failed: 「%{title}」の名前を変更できませんでした：%{error}
 
 paper:
-  by_claude: Claude が作成
+  by_agent: "%{agent} が作成"
   saved: 保存済み
   placeholder: 書き始める…
   label: メモ「%{title}」
   save_failed: 保存できませんでした：%{error}
-  appended: Claude が末尾に追記しました。カーソルはそのままです
+  appended: 末尾に追記されました。カーソルはそのままです
   conflict: このメモはほかの場所で変更されました
   view_end: 表示 ↓
   use_theirs: あちらを使う
@@ -98,8 +98,8 @@ time:
   yesterday: 昨日
 
 island:
-  writing: Claude · Jot に書き込み中
-  written: Claude · 保存しました
+  writing: "%{agent} · Jot に書き込み中"
+  written: "%{agent} · 保存しました"
   done: 完了
   remind: リマインダー · %{time} · %{note}
   now: 今
@@ -113,7 +113,7 @@ settings:
     voice: 音声
     appearance: 外観
     reminders: リマインダー
-    claude: Claude
+    ai: AI アプリ
     about: 情報
   folder:
     label: メモのフォルダ
@@ -159,22 +159,40 @@ settings:
     notifications: 通知
     notifications_hint: 期限が来たらシステムの通知を表示します
     island: ノッチのアイランド
-    island_hint: リマインダーや Claude のメモをノッチから表示します
+    island_hint: リマインダーや AI アプリのメモをノッチから表示します
     island_no_notch: このディスプレイにはノッチがありません
     default_time: デフォルトの時刻
     time: 時刻
     default_time_hint: 「明日 家賃」のように日付だけのときに使う時刻。
-  claude:
-    intro: Claude はこのフォルダのメモを読み書きできます。
-    how: Jot を Claude Code につなぐには、ターミナルでこのコマンドを実行します：
+  ai:
+    intro: この Mac の AI アプリを Jot につなぐと、このフォルダのメモを検索・読み込み・追記でき、やることも管理できます。
+    apps: この Mac のアプリ
+    looking: アプリを探しています…
+    none: この Mac に対応する AI アプリが見つかりません。ほかのアプリには下の共通設定を使えます。
+    connected: 接続済み
+    not_connected: 未接続
+    elsewhere: 別のフォルダに接続中
+    manual: 手動で設定
+    connect: 接続
+    disconnect: 接続解除
+    update: 更新
     copy: コピー
     copied: コピーしました
-    placeholder: "<jot-mcp のパス>"
-    path_note: "<jot-mcp のパス> は仮の値です。パッケージ化のときにアプリ内の jot-mcp の場所に置き換わります。"
-    then: あとは Claude に「Jot にメモして」「今日やることは？」と話しかけるだけです。
+    copy_setup: 設定をコピー
+    restart: "%{app} を開いている場合は、再起動すると Jot が読み込まれます。"
+    no_cli: claude コマンドが見つかりません。コマンドをコピーしてターミナルで実行してください。
+    unreadable: "%{file} にコメントがあるか読み込めないため、Jot は変更しません。設定をコピーして追加してください。"
+    unsupported: "設定をコピーして %{file} に追加してください。"
+    not_moved: まだ前のフォルダに接続されています。Jot からは切り替えられません。
+    no_server: Jot の隣に jot-mcp が見つかりません。開発中は「cargo build -p jot-mcp」でビルドしてから、このページを開き直してください。
+    translocated: Jot は「ダウンロード」などの一時的な場所から開かれているため、接続してもパスが使えなくなります。先に Jot を「アプリケーション」フォルダにドラッグし、そこから開いてください。
+    other: ほかのアプリ
+    command: コマンド
+    json: 設定
+    then: あとはアプリに「Jot にメモして」「今日やることは？」と話しかけるだけです。
   about:
     title: Jot について
-    tagline: Claude と共有するメモ帳
+    tagline: AI と共有するメモ帳
     version: バージョン %{version}（%{build}）
     built_with: Native Shell で構築
     open: 開く

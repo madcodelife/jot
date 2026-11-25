@@ -1,7 +1,7 @@
 //! Jot's notes folder.
 //!
 //! A note is one `.md` file directly in the folder; its title is the file stem. A note may start with YAML
-//! frontmatter between `---` lines: Jot reads `source: claude` from it and keeps everything else untouched.
+//! frontmatter between `---` lines: Jot reads `source` (who created the note) from it and keeps everything else untouched.
 //! Every write goes to a temporary file in the same folder that is then renamed over the note, so readers
 //! (the app, the MCP server, sync clients) never see half a file.
 
@@ -15,11 +15,13 @@ use std::time::{Duration, SystemTime};
 use notify_debouncer_mini::notify::{self, RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{DebounceEventResult, Debouncer, new_debouncer};
 
+mod source;
 mod todo;
 mod trash;
 pub mod when;
 
 pub use jiff::civil::DateTime;
+pub use source::Source;
 pub use todo::{DEFAULT_TODO_NOTE, Todo};
 pub use trash::Trashed;
 
@@ -38,15 +40,6 @@ pub struct Store {
     root: PathBuf,
 }
 
-/// Who created a note.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Source {
-    /// Written by the user (no `source` key in the frontmatter).
-    #[default]
-    User,
-    /// Created by Claude through the MCP server (`source: claude`).
-    Claude,
-}
 
 /// What a listing shows of a note.
 #[derive(Debug, Clone, PartialEq)]
@@ -256,12 +249,9 @@ impl Store {
         if self.find(&title)?.is_some() {
             return Err(StoreError::AlreadyExists);
         }
-        let header = match source {
-            Source::User => "",
-            Source::Claude => "---\nsource: claude\n---\n",
-        };
+        let header = source.header();
         let path = self.path_for(&title);
-        self.write_file(&path, &compose(header, body), None)?;
+        self.write_file(&path, &compose(&header, body), None)?;
         let (meta, _) = load(&Entry { title, path })?;
         Ok(meta)
     }
@@ -517,7 +507,7 @@ fn load(entry: &Entry) -> Result<(NoteMeta, String), StoreError> {
     let content = retry(|| fs::read_to_string(&entry.path))?;
     let modified = retry(|| fs::metadata(&entry.path))?.modified()?;
     let parts = split(&content);
-    let source = parts.frontmatter.map(source_of).unwrap_or_default();
+    let source = parts.frontmatter.map(Source::of_frontmatter).unwrap_or_default();
     let meta = NoteMeta {
         title: entry.title.clone(),
         modified,
@@ -573,21 +563,6 @@ fn compose(header: &str, body: &str) -> String {
     }
     content.push_str(body);
     content
-}
-
-fn source_of(frontmatter: &str) -> Source {
-    for line in frontmatter.lines() {
-        if let Some((key, value)) = line.split_once(':')
-            && key.trim() == "source"
-            && value
-                .trim()
-                .trim_matches(['"', '\''])
-                .eq_ignore_ascii_case("claude")
-        {
-            return Source::Claude;
-        }
-    }
-    Source::User
 }
 
 /// Collapses whitespace and keeps the first `max` characters, ending with `…` when cut.

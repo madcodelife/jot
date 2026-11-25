@@ -16,12 +16,19 @@ trash = "5"
 
 [dependencies]
 nsh-core = "0.6.0"
-nsh-base = "0.6.0"
 jot-store = { path = "store" }
 jiff = "0.2.43"
 # Channels from other threads (the folder watcher, the reminders' thread,
 # AppKit's monitors) to tasks on the engine thread.
 tokio = { version = "1", default-features = false, features = ["sync"] }
+# The AI apps' configuration files (`connect`): edited in place, their keys
+# kept in order (JSON) and their comments and layout kept (TOML).
+serde = "1"
+serde_json = { version = "1", features = ["preserve_order"] }
+toml_edit = "0.25"
+
+[dev-dependencies]
+tempfile = "3"
 
 # The versions NSH's workspace uses, default features off as there.
 [target.'cfg(target_os = "macos")'.dependencies]

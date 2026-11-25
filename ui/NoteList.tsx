@@ -75,7 +75,7 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
     ]).start();
   });
 
-  // A note Claude just wrote: a ring in Claude's orange that fades.
+  // A note an AI app just wrote: a ring in the agents' orange that fades.
   effect(() => {
     const row = props.row;
     if (row.kind !== "note" || arriving() !== row.meta.title) return;
@@ -120,7 +120,7 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
       }}
     >
       <View
-        class="absolute inset-0 border-2 border-claude"
+        class="absolute inset-0 border-2 border-agent"
         style={{ borderRadius: T.radius.row, opacity: glow, pointerEvents: "none" }}
       />
       <If when={T.selection === "bar" && isSelected()}>
@@ -190,13 +190,16 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
           {(row: () => NoteRow) => (
             // The mark and the time keep their widths and the design's gap; the title and snippet give way.
             <View class="flex-row items-center" style={{ gap: 10, flexShrink: 0, marginLeft: 4 }}>
-              <If when={row().meta.source === "claude"}>
-                <Text
-                  class={`font-medium ${onAccent() ? "text-on-accent-muted" : "text-claude-ink"}`}
-                  style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 0 }}
-                >
-                  Claude
-                </Text>
+              <If when={row().meta.source}>
+                {(agent) => (
+                  <Text
+                    testID="note-agent"
+                    class={`font-medium ${onAccent() ? "text-on-accent-muted" : "text-agent-ink"}`}
+                    style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 0, maxWidth: 120 }}
+                  >
+                    {agent()}
+                  </Text>
+                )}
               </If>
               <Text class={sub()} style={{ numberOfLines: 1, fontSize: T.type.meta, fontVariant: ["tabular-nums"], flexShrink: 0 }}>
                 {age(row().meta.modified, now())}
@@ -212,27 +215,27 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
   );
 }
 
-/** The row's icon tile: a document, Claude's spark, the to-do list, or a plus. */
+/** The row's icon tile: a document, an AI app's spark, the to-do list, or a plus. */
 function RowIcon(props: { row: Row; onAccent: boolean }) {
-  const claude = () => props.row.kind === "note" && props.row.meta.source === "claude";
+  const byAgent = () => props.row.kind === "note" && props.row.meta.source !== null;
   const tile = () =>
     props.onAccent
       ? "bg-on-accent-fill"
-      : claude()
-        ? "bg-claude/20"
+      : byAgent()
+        ? "bg-agent/20"
         : props.row.kind === "summary"
           ? "bg-primary/15"
           : "bg-glass-hover";
   const tint = () =>
     props.onAccent
       ? token("on-accent")
-      : claude()
-        ? token("claude")
+      : byAgent()
+        ? token("agent")
         : props.row.kind === "summary"
           ? token("accent-ink")
           : token("glass-fg");
   const name = (): IconName =>
-    props.row.kind === "summary" ? "list" : props.row.kind === "create" ? "plus" : claude() ? "spark" : "doc";
+    props.row.kind === "summary" ? "list" : props.row.kind === "create" ? "plus" : byAgent() ? "spark" : "doc";
   return (
     <View
       class={`items-center justify-center ${tile()}`}

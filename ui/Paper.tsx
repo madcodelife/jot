@@ -3,7 +3,7 @@
 // their boxes, due times and done stamps styled, and the box ticks with a
 // click or ⌘↩; a time phrase being typed ("明天 9 点") lights up as a chip
 // and becomes an absolute time when the caret leaves the line. Changes made
-// elsewhere (Claude appending to the note) come in without moving the caret.
+// elsewhere (an AI app appending to the note) come in without moving the caret.
 // Dictation (⌥ held, or the microphone at the top right) types at the caret:
 // the words still being recognized show faint, and turn to ink when final.
 // Pressing a time chip (or ⇧⌘D on a to-do line) opens the reminder time
@@ -108,7 +108,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   const caretLine = signal(props.line ?? 0);
   /** A time phrase on the caret's line, shown as a chip after a pause in typing. */
   const phrase = signal<{ line: number; start: number; end: number } | null>(null);
-  /** A notice over the note's foot: Claude added to it, or it changed in a way Jot could not merge. */
+  /** A notice over the note's foot: text was added to its end from outside, or it changed in a way Jot could not merge. */
   const notice = signal<{ kind: "append" | "conflict"; text: string } | null>(null);
   const savedOpacity = createAnimatedValue(0);
   /** The words of a dictation still being recognized: drawn faint. */
@@ -333,7 +333,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
       const mine = text();
       const dirty = mine !== onDisk;
       if (disk.startsWith(onDisk) && editor) {
-        // Added at the end (Claude's `append`): put the tail after the caret's text, which stays.
+        // Added at the end (an AI app's `append`): put the tail after the caret's text, which stays.
         const tail = disk.slice(onDisk.length);
         const at = endOf(mine);
         editor.edit([{ range: { start: at, end: at }, text: tail }]);
@@ -394,11 +394,11 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
           {title}
         </Text>
         <View class="flex-row items-center" style={{ gap: 6, marginTop: 9, marginBottom: 14 }}>
-          <If when={meta()?.source === "claude"}>
+          <If when={meta()?.source}>
             <View class="flex-row items-center" style={{ gap: 4 }}>
-              <Icon name="spark" size={12} tint={token("claude")} />
-              <Text class="font-semibold text-claude-ink" style={{ fontSize: T.type.meta }}>
-                {t("paper.by_claude")}
+              <Icon name="spark" size={12} tint={token("agent")} />
+              <Text testID="paper-agent" class="font-semibold text-agent-ink" style={{ fontSize: T.type.meta }}>
+                {t("paper.by_agent", { agent: meta()?.source ?? "" })}
               </Text>
             </View>
             <Text class="text-paper-muted" style={{ fontSize: T.type.meta }}>
@@ -498,7 +498,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
               class="flex-row items-center bg-glass-fill border border-glass-line"
               style={{ gap: 8, paddingVertical: 6, paddingLeft: 14, paddingRight: 6, borderRadius: T.radius.chip, borderCurve: "continuous" }}
             >
-              <Icon name="spark" size={12} tint={token("claude")} />
+              <Icon name="spark" size={12} tint={token("agent")} />
               <Text class="text-glass-fg" style={{ fontSize: 12.5 }}>
                 {n().text}
               </Text>
