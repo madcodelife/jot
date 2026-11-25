@@ -7,7 +7,7 @@ license = "MIT"
 description = "A stdio MCP server that lets AI apps search, read and add to a Jot notes folder"
 
 [dependencies]
-jiff = "0.2.43"
+jiff = "1.0.0"
 jot-store = { path = "../store" }
 rmcp = { version = "3.10", features = ["server", "macros", "transport-io"] }
 schemars = "1"
