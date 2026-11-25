@@ -28,7 +28,7 @@ function access(initial = false) {
 }
 
 const openJot = (dir: string, modules: Record<string, unknown> = access().modules) =>
-  open("./App.tsx", {
+  open("../App.tsx", {
     platform: "macos",
     width: 1200,
     height: 800,

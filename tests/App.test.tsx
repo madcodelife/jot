@@ -10,7 +10,7 @@ const folder = (name: string) => `/tmp/jot-test-${name}-${Date.now()}-${Math.flo
 
 /** Opens Jot on `dir`, as on its first run. */
 const openJot = (dir: string) =>
-  open("./App.tsx", {
+  open("../App.tsx", {
     platform: "macos",
     width: 1200,
     height: 800,

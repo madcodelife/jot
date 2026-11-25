@@ -10,9 +10,9 @@
 // function, tested alone.
 import { expect, open, test } from "nsh/test";
 import { Notes } from "jot/native";
-import { fileQuickNote, todoText } from "./app/quicknote";
-import { chooseSpeechLang, inputSpeechLang, nextSpeechLang, speechLangMark } from "./app/speechlang";
-import { joinSpoken } from "./app/spoken";
+import { fileQuickNote, todoText } from "../app/quicknote";
+import { chooseSpeechLang, inputSpeechLang, nextSpeechLang, speechLangMark } from "../app/speechlang";
+import { joinSpoken } from "../app/spoken";
 
 /** A fresh, empty notes folder. */
 const folder = (name: string) => `/tmp/jot-voice-${name}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
@@ -22,7 +22,7 @@ const openJot = async (
   storage: Record<string, string> = {},
   options: { input?: string | null; locale?: string; languages?: string[] } = {},
 ) => {
-  const app = await open("./App.tsx", {
+  const app = await open("../App.tsx", {
     platform: "macos",
     width: 1200,
     height: 800,
