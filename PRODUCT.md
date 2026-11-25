@@ -76,6 +76,11 @@ Not doing: projects, priorities, tag-style contexts, complex recurrence rules, a
 `jot-mcp`: a stdio MCP server (Rust) that reads and writes the notes folder directly, so it works whether or not the
 app is running.
 
+Its instructions tell the model to search the notes not only when the user asks about them, but also before guessing
+at or asking for a fact about the user's own things that the conversation does not give: which machine, its address
+or login, an account, an earlier decision. "Check my Ubuntu machine" should find the note with its login before the
+model tries usernames.
+
 | Tool | What it does |
 |---|---|
 | `search_notes(query, limit?)` | Searches titles and bodies; returns titles, snippets and modified times |
