@@ -43,5 +43,9 @@
       ]
     },
     "speech": true
+  },
+  "dependencies": {
+    "nsh-icon": "^0.2.2",
+    "nsh-icon-lucide": "^0.2.2"
   }
 }
