@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  # Jot builds against the NSH 0.6 crates; the CLI must be of the same version.
+  NSH_VERSION: v0.6.0
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Check and test
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install NSH
+        run: |
+          curl -fsSL "https://github.com/longbridge/nsh/releases/download/$NSH_VERSION/install.sh" | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: rustfmt
+        run: cargo fmt --all --check
+
+      - name: nsh check
+        run: nsh check
+
+      - name: clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: nsh test
+        run: nsh test
+
+  package:
+    name: Package Jot.app
+    runs-on: macos-latest
+    timeout-minutes: 60
+    needs: test
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: package
+
+      - name: Install NSH
+        run: |
+          curl -fsSL "https://github.com/longbridge/nsh/releases/download/$NSH_VERSION/install.sh" | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Package
+        run: |
+          set -- --arch universal --out dist --build "$GITHUB_RUN_NUMBER"
+          # A release tag (v1.2.0) sets the version; otherwise nsh.json's stays.
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            set -- "$@" --app-version "${GITHUB_REF_NAME#v}"
+          fi
+          scripts/package-macos.sh "$@"
+
+      - name: Zip
+        id: zip
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            label="$GITHUB_REF_NAME"
+          else
+            label="$(git rev-parse --short HEAD)"
+          fi
+          zip="Jot-$label-macos-universal.zip"
+          ditto -c -k --keepParent dist/Jot.app "dist/$zip"
+          echo "zip=$zip" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.zip.outputs.zip }}
+          path: dist/${{ steps.zip.outputs.zip }}
+          if-no-files-found: error
+
+      - name: Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ZIP: ${{ steps.zip.outputs.zip }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "dist/$ZIP" --title "Jot ${GITHUB_REF_NAME#v}" --generate-notes \
+            || gh release upload "$GITHUB_REF_NAME" "dist/$ZIP" --clobber
