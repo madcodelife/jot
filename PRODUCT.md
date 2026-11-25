@@ -58,7 +58,10 @@ Not doing: projects, priorities, tag-style contexts, complex recurrence rules, a
 
 ## Storage
 
-- Notes are `.md` files in a folder (`~/Documents/Jot` by default, changeable); the file name is the title.
+- Notes are `.md` files in a folder; the file name is the title. The folder is changeable; by default it is `iCloud
+  Drive/Jot` where iCloud Drive is on, so notes reach the user's other devices and outlive the Mac without a setup
+  step, else `~/Documents/Jot`. A Mac that ran Jot before keeps `~/Documents/Jot`, and the folder chosen on the first
+  run is remembered: turning iCloud Drive off or on later never moves Jot.
 - YAML frontmatter at the top records the source: `source: claude`, `source: cursor`, `source: "agent:<name>"`. Notes
   the user writes get none, and a `source` the user wrote (a clipped page's URL) still means the user. A locked note
   also has `locked: true` (below).
