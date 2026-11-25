@@ -25,6 +25,9 @@ const CONNECTIONS = {
   },
 };
 
+/** iCloud Drive's stand-in: off, so no test reads the machine's own account. */
+const NO_ICLOUD = { "Folder.icloud": { path: "/tmp/jot-settings-no-icloud/Jot", available: false } };
+
 /** An AI app as `Connections` reports it. */
 const aiClient = (id: string, name: string, over: Record<string, unknown> = {}) => ({
   id,
@@ -55,6 +58,7 @@ const openJot = (dir: string, storage: Record<string, string> = {}, modules: Rec
         "Summon.requestTrust": null,
         "Summon.onDoubleTap": null,
         ...CONNECTIONS,
+        ...NO_ICLOUD,
         ...modules,
       },
     },
@@ -369,5 +373,97 @@ test("after a folder change the AI page shows the apps as the sync left them", a
   await app.waitFor("id:settings-ai-state:cursor >> text:已连接", { timeout: 3000 });
   await later(400);
   expect(app.shows("id:settings-ai-state:cursor >> text:已连接")).toBe(true);
+  app.dispose();
+});
+
+/** iCloud Drive's root on a made-up home, and Jot's folder in it. */
+const drive = (name: string) => {
+  const root = `${folder(name)}/Library/Mobile Documents/com~apple~CloudDocs`;
+  return { root, jot: `${root}/Jot` };
+};
+
+test("with iCloud Drive off, the move to it is disabled and says why", async () => {
+  const { jot } = drive("icloud-off");
+  const app = await openJot(folder("icloud-off-notes"), {}, { "Folder.icloud": { path: jot, available: false } });
+  await openSettings(app);
+  await app.waitFor("id:settings-icloud");
+  expect(app.texts()).toContain("iCloud 云盘没有打开：在「系统设置」›「Apple 账户」›「iCloud」里打开「iCloud 云盘」。");
+  expect(app.enabled("id:settings-icloud-move")).toBe(false);
+  expect(app.dialogs()).toEqual([]);
+  app.dispose();
+});
+
+test("moving to iCloud Drive asks first, moves the notes, switches the folder and says what it did", async () => {
+  const { jot } = drive("icloud-move");
+  const from = folder("icloud-move-notes");
+  const moves: [string, string][] = [];
+  const syncs: string[] = [];
+  const app = await openJot(from, {}, {
+    "Folder.icloud": { path: jot, available: true },
+    "Folder.moveNotes": async (source: string, target: string) => {
+      moves.push([source, target]);
+      return { moved: ["A", "B"], renamed: [{ from: "Plan", to: "Plan 2" }], same: ["Same"], failed: [] };
+    },
+    "Connections.sync": async (dir: string) => {
+      syncs.push(dir);
+      return [];
+    },
+  });
+  await openSettings(app);
+  await app.waitFor("id:settings-icloud-move");
+  expect(app.texts()).toContain("把笔记移到 iCloud 云盘，在 iPhone、iPad 和其他 Mac 上也能看到。");
+
+  // Cancelled: nothing moves.
+  app.onDialog(() => "取消");
+  await app.press("id:settings-icloud-move");
+  await app.waitUntil(() => app.dialogs().length === 1);
+  expect(app.dialogs()[0]).toMatchObject({ title: "把笔记移到 iCloud 云盘？", buttons: ["移到 iCloud 云盘", "取消"] });
+  expect(app.dialogs()[0].message).toContain("加上编号另存");
+  expect(moves).toEqual([]);
+  expect(app.storage()["jot.dir"]).toBe(from);
+
+  // Confirmed: moved, and the folder follows.
+  app.onDialog(() => "移到 iCloud 云盘");
+  await app.press("id:settings-icloud-move");
+  await app.waitFor("id:settings-icloud-report");
+  expect(moves).toEqual([[from, jot]]);
+  expect(app.storage()["jot.dir"]).toBe(jot);
+  expect(syncs).toContain(jot);
+  const report = app.texts().find((text) => text.startsWith("已把 3 条笔记移到 iCloud 云盘。"));
+  expect(report).toContain("「Plan」和那里的笔记同名，存成了「Plan 2」。");
+  expect(report).toContain("1 条那里已有一模一样的");
+  // Now it is there.
+  await app.waitFor("id:settings-icloud-on");
+  expect(app.shows("id:settings-icloud-move")).toBe(false);
+  expect(app.texts()).toContain("笔记在 iCloud 云盘里，会同步到你的其他设备。");
+  app.dispose();
+});
+
+test("a move that fails keeps the folder and says why", async () => {
+  const { jot } = drive("icloud-fail");
+  const from = folder("icloud-fail-notes");
+  const app = await openJot(from, {}, {
+    "Folder.icloud": { path: jot, available: true },
+    "Folder.moveNotes": async () => {
+      throw new Error("cannot move the notes: disk full");
+    },
+  });
+  app.onDialog(() => "移到 iCloud 云盘");
+  await openSettings(app);
+  await app.press("id:settings-icloud-move");
+  await app.waitFor("id:settings-icloud-report");
+  expect(app.texts().some((text) => text.startsWith("没能移到 iCloud 云盘：") && text.includes("disk full"))).toBe(true);
+  expect(app.storage()["jot.dir"]).toBe(from);
+  expect(app.enabled("id:settings-icloud-move")).toBe(true);
+  app.dispose();
+});
+
+test("a notes folder already in iCloud Drive shows so, with nothing to move", async () => {
+  const { root, jot } = drive("icloud-there");
+  const app = await openJot(`${root}/Notes`, {}, { "Folder.icloud": { path: jot, available: true } });
+  await openSettings(app);
+  await app.waitFor("id:settings-icloud-on");
+  expect(app.shows("id:settings-icloud-move")).toBe(false);
+  expect(app.texts()).toContain("已在 iCloud 云盘");
   app.dispose();
 });

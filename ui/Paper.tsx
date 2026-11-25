@@ -8,13 +8,17 @@
 // the words still being recognized show faint, and turn to ink when final.
 // Pressing a time chip (or ⇧⌘D on a to-do line) opens the reminder time
 // picker over it; the time it picks is one edit, which undo takes back.
+// A note iCloud Drive has not downloaded yet shows read-only, empty, saying
+// so, and fills in when it lands; one iCloud kept two versions of (changed
+// on two devices at once) shows a bar to choose: this Mac's, the other, or
+// both (the other as a note of its own).
 import { cleanup, computed, createAnimatedValue, effect, Notifications, signal, Text, token, untracked, View } from "nsh";
 import { Button, Editor, type EditorDecoration, type EditorPosition, type EditorRef, type EditorSelection } from "nsh/base";
 import { t } from "nsh/i18n";
-import { When } from "jot/native";
+import { When, type Conflict } from "jot/native";
 import { caretOnTodo, openDuePicker, setEditorDue } from "../app/due";
 import { whenOptions } from "../app/settings";
-import { allNotes, errorMessage, lastWritten, notes, now, opened, revision, save, setEditorFlush } from "../app/store";
+import { allNotes, errorMessage, lastWritten, notes, now, opened, refresh, revision, save, setEditorFlush, showFlash } from "../app/store";
 import { taskLine, toggledLine, withDue } from "../app/tasks";
 import { age, parseDue } from "../app/time";
 import { cancelVoice, joinSpoken, listening, listeningLang, speechAvailable, startVoice, stopVoice, voiceError } from "../app/voice";
@@ -100,6 +104,10 @@ function askToNotify() {
 function NotePaper(props: { title: string; line: number | null; focus: boolean }) {
   const title = props.title;
   const first = untracked(notes)?.read(title) ?? null;
+  /** Its text is not on this Mac yet (iCloud Drive is downloading it): the editor waits, read-only. */
+  const downloading = signal(first?.meta.downloading ?? false);
+  /** The other versions iCloud Drive kept of it, newest first: the bar offers the first. */
+  const versions = signal<Conflict[]>([]);
   /** The editor's text, as it last reported it. */
   const text = signal(first?.body ?? "");
   /** The text as the file has it (what Jot wrote last, or what came from outside). */
@@ -129,7 +137,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     clearTimeout(saveTimer);
     saveTimer = undefined;
     const body = untracked(text);
-    if (body === onDisk) return;
+    if (body === onDisk || untracked(downloading)) return;
     try {
       save(title, body);
       onDisk = body;
@@ -324,11 +332,57 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     normalize(left);
   }
 
+  /** Reads the versions iCloud Drive kept (none for most notes, at a glance). */
+  function readVersions() {
+    try {
+      versions.set(untracked(notes)?.conflicts(title) ?? []);
+    } catch {
+      versions.set([]);
+    }
+  }
+
+  /** The bar's choice for the version shown: this Mac's, the other one, or both. The note's pending edits are saved first. */
+  function settle(version: Conflict, choice: "mine" | "theirs" | "both") {
+    const n = untracked(notes);
+    if (!n) return;
+    saveNow();
+    const device = version.device ?? t("paper.other_device");
+    try {
+      const done = n.resolveConflict(title, version.id, choice, t("paper.copy_title", { title, device }));
+      if (choice === "theirs") {
+        const body = n.read(title)?.body ?? "";
+        lastWritten.set(title, body);
+        onDisk = body;
+        editor?.setValue(body);
+      }
+      if (done.copy) showFlash(t("paper.kept_both", { title: done.copy.title }));
+    } catch (error) {
+      showNotice("conflict", t("paper.resolve_failed", { error: errorMessage(error) }));
+    }
+    readVersions();
+    refresh();
+  }
+
   // The file changed outside the editor (the folder's watcher bumps `revision`).
   effect(() => {
     revision();
     untracked(() => {
-      const disk = notes()?.read(title)?.body;
+      const note = notes()?.read(title);
+      if (note?.meta.downloading) {
+        downloading.set(true);
+        return;
+      }
+      if (note && downloading()) {
+        // It landed: the editor takes its text, as if just opened.
+        downloading.set(false);
+        onDisk = note.body;
+        lastWritten.set(title, note.body);
+        editor?.setValue(note.body);
+        readVersions();
+        return;
+      }
+      readVersions();
+      const disk = note?.body;
       if (disk === undefined || disk === onDisk || disk === text() || disk === lastWritten.get(title)) return;
       const mine = text();
       const dirty = mine !== onDisk;
@@ -409,6 +463,17 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
             {`${meta() ? age(meta()!.modified, now()) : t("time.just_now")} · ${title}.md`}
           </Text>
         </View>
+        <If when={downloading()}>
+          <View testID="paper-downloading" class="flex-row items-center" style={{ gap: 6, marginBottom: 10 }}>
+            <Icon name="cloud" size={14} tint={token("paper-muted")} />
+            <Text class="text-paper-muted" style={{ fontSize: T.type.meta }}>
+              {t("paper.downloading")}
+            </Text>
+          </View>
+        </If>
+        <If when={downloading() ? undefined : versions()[0]}>
+          {(version) => <VersionsBar version={version()} more={versions().length - 1} onSettle={(choice) => settle(version(), choice)} />}
+        </If>
         <View class="absolute flex-row items-center" style={{ right: speechAvailable() ? 14 : 22, top: speechAvailable() ? 15 : 22, gap: 8 }}>
           <If
             when={listening() === "editor"}
@@ -459,7 +524,8 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
         class="flex-1"
         defaultValue={text()}
         language="markdown"
-        placeholder={t("paper.placeholder")}
+        readOnly={downloading()}
+        placeholder={downloading() ? "" : t("paper.placeholder")}
         accessibilityLabel={t("paper.label", { title })}
         autoFocus={props.focus}
         lineNumbers={false}
@@ -524,6 +590,37 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
           </View>
         )}
       </If>
+    </View>
+  );
+}
+
+/** iCloud Drive kept another version of the note (changed on two devices at once): which to keep. */
+function VersionsBar(props: { version: Conflict; more: number; onSettle: (choice: "mine" | "theirs" | "both") => void }) {
+  const device = () => props.version.device ?? t("paper.other_device");
+  const choice = (id: "mine" | "theirs" | "both", label: string) => (
+    <Button testID={`paper-versions-${id}`} class="px-2 py-1" onPress={() => props.onSettle(id)}>
+      <Text class="font-semibold text-accent-ink" style={{ fontSize: 12.5 }}>
+        {label}
+      </Text>
+    </Button>
+  );
+  return (
+    <View
+      testID="paper-versions"
+      role="alert"
+      class="bg-late/10 border border-late/25"
+      style={{ gap: 4, marginBottom: 12, paddingVertical: 8, paddingHorizontal: 12, borderRadius: T.radius.chip, borderCurve: "continuous" }}
+    >
+      <Text class="text-paper-fg" style={{ fontSize: 12.5, lineHeight: 17 }}>
+        {props.more > 0
+          ? t("paper.versions_more", { device: device(), when: age(props.version.modified, now()), more: props.more })
+          : t("paper.versions", { device: device(), when: age(props.version.modified, now()) })}
+      </Text>
+      <View class="flex-row items-center" style={{ gap: 4, marginLeft: -8, flexWrap: "wrap" }}>
+        {choice("mine", t("paper.keep_mine"))}
+        {choice("theirs", t("paper.keep_theirs"))}
+        {choice("both", t("paper.keep_both"))}
+      </View>
     </View>
   );
 }

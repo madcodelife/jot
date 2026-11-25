@@ -656,3 +656,57 @@ async fn notes_are_marked_with_the_client_that_wrote_them() {
     assert!(!text.contains("example.com"), "{text}");
     client.cancel().await.unwrap();
 }
+
+/// A note iCloud Drive moved off the Mac (an older system's placeholder, `.Away.md.icloud`): listed as not
+/// downloaded, and read once it lands; a tool that needs its text waits for it a while, then says so.
+#[tokio::test]
+async fn notes_not_downloaded_are_waited_for() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Store::open(dir.path()).unwrap();
+    let placeholder = dir.path().join(".Away.md.icloud");
+    fs::write(&placeholder, "bplist00").unwrap();
+
+    let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
+    tokio::spawn(async move {
+        JotServer::new(store)
+            .with_download_wait(std::time::Duration::from_millis(1500))
+            .serve(server_transport)
+            .await
+            .unwrap()
+            .waiting()
+            .await
+            .unwrap();
+    });
+    let client = Client("cursor-vscode")
+        .serve(client_transport)
+        .await
+        .unwrap();
+
+    let (failed, out) = call(&client, "recent_notes", serde_json::json!({})).await;
+    assert!(!failed, "{out}");
+    assert!(out.contains("## Away"), "{out}");
+    assert!(out.contains("not downloaded"), "{out}");
+
+    // Still not here after the wait: the tool says so, and nothing was written.
+    let (failed, out) = call(
+        &client,
+        "append_note",
+        serde_json::json!({ "title": "Away", "text": "more" }),
+    )
+    .await;
+    assert!(failed, "{out}");
+    assert!(out.contains("not downloaded"), "{out}");
+    assert!(!dir.path().join("Away.md").exists());
+
+    // It lands while the tool waits.
+    let root = dir.path().to_owned();
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+        fs::write(root.join("Away.md"), "landed\n").unwrap();
+        fs::remove_file(root.join(".Away.md.icloud")).unwrap();
+    });
+    let (failed, out) = call(&client, "read_note", serde_json::json!({ "title": "Away" })).await;
+    assert!(!failed, "{out}");
+    assert!(out.ends_with("landed\n"), "{out}");
+    assert!(!placeholder.exists());
+}

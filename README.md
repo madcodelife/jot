@@ -39,7 +39,11 @@ and add to the same notes, so you and they keep one notebook between you.
   yours. Other frontmatter is kept as it is.
 - A reminder is written into the file as an absolute time, `- [ ] pay rent ⏰ 2026-11-14 09:00` (the same form as
   Obsidian's Reminder plugin); a checked to-do gets its completion date, `- [x] pay rent ✅ 2026-11-14`.
-- Jot does no syncing itself: put the folder in iCloud Drive, Dropbox or Syncthing.
+- Jot does no syncing itself: put the folder in iCloud Drive, Dropbox or Syncthing. Settings → General → "Move to
+  iCloud Drive…" moves the notes to `iCloud Drive/Jot` (never over a note there: one of the same title is kept with
+  a number) and switches to it; connected AI apps follow. A note iCloud moved off the Mac stays in the list,
+  marked "Downloading…", and fills in when it is back; a note changed on two devices at once offers to keep this
+  Mac's version, the other, or both.
 
 ## AI apps and MCP
 

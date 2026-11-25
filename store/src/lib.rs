@@ -4,23 +4,32 @@
 //! frontmatter between `---` lines: Jot reads `source` (who created the note) from it and keeps everything else untouched.
 //! Every write goes to a temporary file in the same folder that is then renamed over the note, so readers
 //! (the app, the MCP server, sync clients) never see half a file.
+//!
+//! The folder may be synced (iCloud Drive): a note whose text is not on this Mac yet is listed all the same,
+//! marked `downloading`, and asked for; nothing here waits for a download. See `cloud`.
 
 use std::cmp::Reverse;
 use std::fmt;
 use std::fs;
 use std::io::{self, Write as _};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
 use notify_debouncer_mini::notify::{self, RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{DebounceEventResult, Debouncer, new_debouncer};
 
+mod cloud;
+mod conflict;
+mod moving;
 mod source;
 mod todo;
 mod trash;
 pub mod when;
 
+pub use conflict::{Conflict, Resolution, Resolved};
 pub use jiff::civil::DateTime;
+pub use moving::Moved;
 pub use source::Source;
 pub use todo::{DEFAULT_TODO_NOTE, Todo};
 pub use trash::Trashed;
@@ -35,11 +44,20 @@ const EXTENSION: &str = "md";
 const DEBOUNCE: Duration = Duration::from_millis(150);
 
 /// A notes folder.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Store {
     root: PathBuf,
+    /// How the folder is synced: what is downloaded, and the versions kept in a conflict.
+    cloud: Arc<dyn cloud::Cloud>,
 }
 
+impl PartialEq for Store {
+    fn eq(&self, other: &Self) -> bool {
+        self.root == other.root
+    }
+}
+
+impl Eq for Store {}
 
 /// What a listing shows of a note.
 #[derive(Debug, Clone, PartialEq)]
@@ -52,6 +70,9 @@ pub struct NoteMeta {
     pub source: Source,
     /// The first ~120 characters of the body, on one line.
     pub preview: String,
+    /// Its text is not on this Mac yet (a synced folder moved it off): the system was asked for it, and the folder's
+    /// watcher reports it when it lands. Till then `preview` is empty, `source` is the user and the body is empty.
+    pub downloading: bool,
 }
 
 /// A note with its body.
@@ -86,6 +107,9 @@ pub enum StoreError {
     AlreadyExists,
     /// The line a to-do was at no longer holds that to-do: the note changed since it was read.
     Changed,
+    /// The note's text is not on this Mac yet (a synced folder moved it off); it is being downloaded. Nothing was
+    /// changed: try again once it is here.
+    NotDownloaded,
     /// The file system failed.
     Io(io::Error),
 }
@@ -97,6 +121,9 @@ impl fmt::Display for StoreError {
             StoreError::NotFound => f.write_str("note not found"),
             StoreError::AlreadyExists => f.write_str("a note with this title already exists"),
             StoreError::Changed => f.write_str("the note changed since it was read"),
+            StoreError::NotDownloaded => {
+                f.write_str("the note is not downloaded to this Mac yet; it is being downloaded")
+            }
             StoreError::Io(error) => write!(f, "{error}"),
         }
     }
@@ -140,15 +167,36 @@ impl fmt::Debug for Watcher {
 /// A note file found in the folder.
 struct Entry {
     title: String,
+    /// Where its file is (or, for a placeholder, will be once downloaded).
     path: PathBuf,
+    /// An older iCloud Drive's hidden placeholder (`.Title.md.icloud`), standing for a file not downloaded yet.
+    placeholder: Option<PathBuf>,
+}
+
+impl Entry {
+    fn new(title: String, path: PathBuf) -> Entry {
+        Entry {
+            title,
+            path,
+            placeholder: None,
+        }
+    }
+
+    /// The file that is in the folder: the note's, or its placeholder.
+    fn file(&self) -> &Path {
+        self.placeholder.as_deref().unwrap_or(&self.path)
+    }
 }
 
 impl Store {
     /// Opens the folder, creating it if missing.
     pub fn open(root: impl Into<PathBuf>) -> Result<Store, StoreError> {
-        let root = root.into();
+        Store::with_cloud(root.into(), cloud::system())
+    }
+
+    fn with_cloud(root: PathBuf, cloud: Arc<dyn cloud::Cloud>) -> Result<Store, StoreError> {
         fs::create_dir_all(&root)?;
-        Ok(Store { root })
+        Ok(Store { root, cloud })
     }
 
     /// The notes folder.
@@ -160,7 +208,7 @@ impl Store {
     pub fn list(&self) -> Result<Vec<NoteMeta>, StoreError> {
         let mut notes = Vec::new();
         for entry in self.entries()? {
-            match load(&entry) {
+            match self.load(&entry) {
                 Ok((meta, _)) => notes.push(meta),
                 // Deleted between the listing and the read.
                 Err(StoreError::Io(error)) if error.kind() == io::ErrorKind::NotFound => {}
@@ -196,7 +244,7 @@ impl Store {
 
         let mut hits = Vec::new();
         for entry in self.entries()? {
-            let (meta, body) = match load(&entry) {
+            let (meta, body) = match self.load(&entry) {
                 Ok(note) => note,
                 Err(StoreError::Io(error)) if error.kind() == io::ErrorKind::NotFound => continue,
                 Err(error) => return Err(error),
@@ -236,7 +284,7 @@ impl Store {
         let Some(entry) = self.find(&clean_title(title)?)? else {
             return Ok(None);
         };
-        match load(&entry) {
+        match self.load(&entry) {
             Ok((meta, body)) => Ok(Some(Note { meta, body })),
             Err(StoreError::Io(error)) if error.kind() == io::ErrorKind::NotFound => Ok(None),
             Err(error) => Err(error),
@@ -252,7 +300,7 @@ impl Store {
         let header = source.header();
         let path = self.path_for(&title);
         self.write_file(&path, &compose(&header, body), None)?;
-        let (meta, _) = load(&Entry { title, path })?;
+        let (meta, _) = self.load(&Entry::new(title, path))?;
         Ok(meta)
     }
 
@@ -293,11 +341,15 @@ impl Store {
         {
             return Err(StoreError::AlreadyExists);
         }
+        if source.placeholder.is_some() {
+            self.cloud.download(&source.path);
+            return Err(StoreError::NotDownloaded);
+        }
         let path = self.path_for(&to);
         if path != source.path {
             fs::rename(&source.path, &path)?;
         }
-        let (meta, _) = load(&Entry { title: to, path })?;
+        let (meta, _) = self.load(&Entry::new(to, path))?;
         Ok(meta)
     }
 
@@ -306,7 +358,7 @@ impl Store {
         let entry = self
             .find(&clean_title(title)?)?
             .ok_or(StoreError::NotFound)?;
-        fs::remove_file(&entry.path)?;
+        fs::remove_file(entry.file())?;
         Ok(())
     }
 
@@ -316,7 +368,10 @@ impl Store {
         let mut debouncer =
             new_debouncer(DEBOUNCE, move |result: DebounceEventResult| match result {
                 Ok(events) => {
-                    if events.iter().any(|event| is_note_path(&event.path)) {
+                    // A placeholder coming or going is a note leaving the Mac or arriving.
+                    if events.iter().any(|event| {
+                        is_note_path(&event.path) || cloud::placeholder_title(&event.path).is_some()
+                    }) {
                         on_change();
                     }
                 }
@@ -338,9 +393,18 @@ impl Store {
 
     fn entries_once(&self) -> io::Result<Vec<Entry>> {
         let mut entries = Vec::new();
+        let mut placeholders = Vec::new();
         for dir_entry in fs::read_dir(&self.root)? {
             let dir_entry = dir_entry?;
             let path = dir_entry.path();
+            if let Some(title) = cloud::placeholder_title(&path) {
+                placeholders.push(Entry {
+                    path: self.path_for(title),
+                    title: title.to_owned(),
+                    placeholder: Some(path),
+                });
+                continue;
+            }
             if !is_note_path(&path) {
                 continue;
             }
@@ -353,10 +417,13 @@ impl Store {
             let Some(title) = path.file_stem().and_then(|stem| stem.to_str()) else {
                 continue;
             };
-            entries.push(Entry {
-                title: title.to_owned(),
-                path,
-            });
+            entries.push(Entry::new(title.to_owned(), path));
+        }
+        // A placeholder whose file is here too is on its way out (downloaded, or just being moved off).
+        for placeholder in placeholders {
+            if !entries.iter().any(|entry| entry.title == placeholder.title) {
+                entries.push(placeholder);
+            }
         }
         Ok(entries)
     }
@@ -396,16 +463,15 @@ impl Store {
         entry: Entry,
         edit: impl FnOnce(&str) -> Result<Option<String>, StoreError>,
     ) -> Result<NoteMeta, StoreError> {
-        let content = match retry(|| fs::read_to_string(&entry.path)) {
-            Ok(content) => content,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => {
-                return Err(StoreError::NotFound);
+        let content = self.text(&entry).map_err(|error| match error {
+            StoreError::Io(error) if error.kind() == io::ErrorKind::NotFound => {
+                StoreError::NotFound
             }
-            Err(error) => return Err(error.into()),
-        };
+            error => error,
+        })?;
         let parts = split(&content);
         let Some(body) = edit(parts.body)? else {
-            let (meta, _) = load(&entry)?;
+            let (meta, _) = self.load(&entry)?;
             return Ok(meta);
         };
         let permissions = retry(|| fs::metadata(&entry.path))?.permissions();
@@ -414,8 +480,56 @@ impl Store {
             &compose(parts.header, &body),
             Some(permissions),
         )?;
-        let (meta, _) = load(&entry)?;
+        let (meta, _) = self.load(&entry)?;
         Ok(meta)
+    }
+
+    /// The note file's whole text; `NotDownloaded` (the download asked for) when it is not on this Mac.
+    fn text(&self, entry: &Entry) -> Result<String, StoreError> {
+        if entry.placeholder.is_none()
+            && let Some(content) = retry(|| self.cloud.read(&entry.path))?
+        {
+            return Ok(content);
+        }
+        self.cloud.download(&entry.path);
+        Err(StoreError::NotDownloaded)
+    }
+
+    /// Reads a note file into its metadata and body. A note not on this Mac comes back `downloading`, its body
+    /// empty, and is asked for.
+    fn load(&self, entry: &Entry) -> Result<(NoteMeta, String), StoreError> {
+        let metadata = retry(|| fs::metadata(entry.file()))?;
+        let modified = metadata.modified()?;
+        let content =
+            if entry.placeholder.is_some() || self.cloud.is_dataless(&entry.path, &metadata) {
+                None
+            } else {
+                retry(|| self.cloud.read(&entry.path))?
+            };
+        let Some(content) = content else {
+            self.cloud.download(&entry.path);
+            let meta = NoteMeta {
+                title: entry.title.clone(),
+                modified,
+                source: Source::User,
+                preview: String::new(),
+                downloading: true,
+            };
+            return Ok((meta, String::new()));
+        };
+        let parts = split(&content);
+        let source = parts
+            .frontmatter
+            .map(Source::of_frontmatter)
+            .unwrap_or_default();
+        let meta = NoteMeta {
+            title: entry.title.clone(),
+            modified,
+            source,
+            preview: one_line(parts.body, PREVIEW_CHARS),
+            downloading: false,
+        };
+        Ok((meta, parts.body.to_owned()))
     }
 
     /// Writes `content` to a temporary file in the folder and renames it to `path`. Without `permissions`
@@ -500,21 +614,6 @@ fn retry<T>(mut call: impl FnMut() -> io::Result<T>) -> io::Result<T> {
             result => return result,
         }
     }
-}
-
-/// Reads a note file into its metadata and body.
-fn load(entry: &Entry) -> Result<(NoteMeta, String), StoreError> {
-    let content = retry(|| fs::read_to_string(&entry.path))?;
-    let modified = retry(|| fs::metadata(&entry.path))?.modified()?;
-    let parts = split(&content);
-    let source = parts.frontmatter.map(Source::of_frontmatter).unwrap_or_default();
-    let meta = NoteMeta {
-        title: entry.title.clone(),
-        modified,
-        source,
-        preview: one_line(parts.body, PREVIEW_CHARS),
-    };
-    Ok((meta, parts.body.to_owned()))
 }
 
 /// A note file's text split at the frontmatter.
@@ -641,5 +740,7 @@ impl Lowered {
     }
 }
 
+#[cfg(test)]
+mod cloud_tests;
 #[cfg(test)]
 mod tests;

@@ -1,6 +1,6 @@
 //! Platforms without a native implementation yet: no permission is
-//! needed, double taps and holds are not heard, and the input source's
-//! language is unknown.
+//! needed, double taps and holds are not heard, the input source's
+//! language is unknown, and there is no iCloud Drive.
 
 use crate::summon::SummonKey;
 
@@ -26,4 +26,12 @@ pub(crate) fn watch_double_tap_hold(
 /// Not known here: dictation falls back to the user's languages.
 pub(crate) fn input_language() -> Option<String> {
     None
+}
+
+/// No iCloud Drive here.
+pub(crate) fn icloud_drive() -> crate::folder::Drive {
+    crate::folder::Drive {
+        root: None,
+        on: false,
+    }
 }

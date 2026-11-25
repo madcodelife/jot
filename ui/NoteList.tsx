@@ -157,7 +157,7 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
               </If>
               <If when={!props.compact}>
                 <Highlight
-                  text={plainSnippet(row().snippet) || t("list.blank")}
+                  text={row().meta.downloading ? t("list.downloading") : plainSnippet(row().snippet) || t("list.blank")}
                   terms={row().terms}
                   selected={onAccent()}
                   size={T.type.snippet}
@@ -234,8 +234,9 @@ function RowIcon(props: { row: Row; onAccent: boolean }) {
         : props.row.kind === "summary"
           ? token("accent-ink")
           : token("glass-fg");
+  const downloading = () => props.row.kind === "note" && props.row.meta.downloading;
   const name = (): IconName =>
-    props.row.kind === "summary" ? "list" : props.row.kind === "create" ? "plus" : byAgent() ? "spark" : "doc";
+    props.row.kind === "summary" ? "list" : props.row.kind === "create" ? "plus" : downloading() ? "cloud" : byAgent() ? "spark" : "doc";
   return (
     <View
       class={`items-center justify-center ${tile()}`}

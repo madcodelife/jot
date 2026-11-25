@@ -4,7 +4,7 @@
 // them, so every change goes through one place.
 import { batch, computed, platform, reduceMotion, signal, Storage, untracked } from "nsh";
 import { t } from "nsh/i18n";
-import { Folder, Notes, Reminders, Summon, type DueEvent, type NoteMeta, type Todo, type TrashedNote } from "jot/native";
+import { Folder, Notes, Reminders, Summon, type DueEvent, type MovedNotes, type NoteMeta, type Todo, type TrashedNote } from "jot/native";
 import { morphNext } from "../ui/motion";
 import { T } from "../ui/tokens";
 import { syncClients } from "./connections";
@@ -130,8 +130,22 @@ export const todoMode = computed(() => isTodoQuery(query()));
 /** Every note, newest first. */
 export const allNotes = computed<NoteMeta[]>(() => {
   revision();
-  return notes()?.list() ?? [];
+  const list = notes()?.list() ?? [];
+  if (list.some((m) => m.downloading)) checkDownloads();
+  return list;
 });
+
+let downloadTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Notes are downloading (iCloud Drive moved them off the Mac, and Jot asked for them): the folder is read again in a
+ * moment, and again while one still is. The watcher reports most of them landing; a file filled in place may slip by. */
+function checkDownloads() {
+  if (downloadTimer !== undefined) return;
+  downloadTimer = setTimeout(() => {
+    downloadTimer = undefined;
+    refresh();
+  }, T.timing.downloadPoll);
+}
 
 /** Every to-do of every note. */
 export const allTodos = computed<Todo[]>(() => {
@@ -220,6 +234,20 @@ function useFolder(n: Notes): Notes {
   restartReminders();
   refresh();
   return n;
+}
+
+/**
+ * Moves the notes into the folder `dir` (the settings' "Move to iCloud Drive"), never over a note there, then makes
+ * it the notes folder (the AI apps follow). The open note's last edits go along. Rejects, the folder unchanged, when
+ * the notes cannot be moved; throws when the new folder cannot be opened.
+ */
+export async function moveNotesTo(dir: string): Promise<MovedNotes> {
+  const from = untracked(folderPath);
+  if (!from) throw new Error(untracked(folderError) ?? "no notes folder");
+  flushEditor?.();
+  const moved = await Folder.moveNotes(from, dir);
+  changeFolder(dir);
+  return moved;
 }
 
 /** Moves Jot to the folder at `dir` (the settings' "Change…"): opened, watched, remembered. Throws when it cannot be opened. */

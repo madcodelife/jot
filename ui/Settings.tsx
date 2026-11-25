@@ -28,12 +28,12 @@ import {
   type Bounds,
   type JSX,
 } from "nsh";
-import { Radio, RadioGroup, Tab, Tabs } from "nsh/base";
+import { AlertDialog, Radio, RadioGroup, Tab, Tabs } from "nsh/base";
 import { Application, displays, Window, type Display, type WindowRef } from "nsh/desktop";
 import { t } from "nsh/i18n";
-import { Connections, Folder, Summon, type AiClient } from "jot/native";
+import { Connections, Folder, Summon, type AiClient, type MovedNotes } from "jot/native";
 import { aiBusy, aiClients, aiErrors, refreshClients, toggleClient } from "../app/connections";
-import { LANGUAGES } from "../app/i18n";
+import { LANGUAGES, tn } from "../app/i18n";
 import {
   appearance,
   defaultTime,
@@ -56,7 +56,7 @@ import {
   type SpeechLanguageChoice,
 } from "../app/settings";
 import { PRIVACY_URL, speechAvailable, speechDenied } from "../app/voice";
-import { changeFolder, errorMessage, folderPath, folderShown, trusted } from "../app/store";
+import { changeFolder, errorMessage, folderPath, folderShown, moveNotesTo, trusted } from "../app/store";
 import appIcon from "./app-icon.svg";
 import { FORM, Hint, MacSwitch, PopupButton, PushButton, TimeInput } from "./controls";
 import { Icon, type IconName } from "./icons";
@@ -370,6 +370,75 @@ async function chooseFolder() {
   }
 }
 
+/** The move to iCloud Drive: under way, and what it last did (or why it failed). */
+const moving = signal(false);
+const moveReport = signal<{ text: string; failed: boolean } | null>(null);
+
+/** Whether `dir` is in iCloud Drive (the folder holding Jot's, `root`). */
+const inDrive = (dir: string | null, root: string) => !!dir && (dir === root || dir.startsWith(`${root}/`));
+
+/** What the move did, in a sentence or a few. */
+function movedText(moved: MovedNotes, from: string): string {
+  const parts = [tn("settings.icloud.moved", moved.moved.length + moved.renamed.length)];
+  if (moved.renamed.length) parts.push(tn("settings.icloud.renamed", moved.renamed.length, { from: moved.renamed[0].from, to: moved.renamed[0].to }));
+  if (moved.same.length) parts.push(tn("settings.icloud.same", moved.same.length, { folder: from }));
+  if (moved.failed.length) parts.push(tn("settings.icloud.failed_some", moved.failed.length, { folder: from, error: moved.failed[0].error }));
+  return parts.join(" ");
+}
+
+/** "Move to iCloud Drive": asks first, then moves the notes there and makes it the notes folder. */
+async function moveToDrive(to: string) {
+  const from = untracked(folderShown);
+  const { action } = await AlertDialog.show({
+    title: t("settings.icloud.confirm_title"),
+    description: t("settings.icloud.confirm", { from, to: Folder.shown(to) }),
+    actions: [
+      { id: "move", label: t("settings.icloud.confirm_move") },
+      { id: "cancel", label: t("settings.icloud.cancel"), role: "cancel" },
+    ],
+    closeOnEscape: true,
+  });
+  if (action !== "move") return;
+  moving.set(true);
+  moveReport.set(null);
+  try {
+    const moved = await moveNotesTo(to);
+    moveReport.set({ text: movedText(moved, from), failed: moved.failed.length > 0 });
+    folderFailed.set(null);
+  } catch (error) {
+    moveReport.set({ text: t("settings.icloud.failed", { error: errorMessage(error) }), failed: true });
+  } finally {
+    moving.set(false);
+  }
+}
+
+/** The notes folder's iCloud Drive row: where it is, or the button that moves it there (off, with why, while iCloud Drive is). */
+function DriveRow() {
+  const drive = Folder.icloud();
+  const path = drive.path;
+  if (!path) return null;
+  const root = path.slice(0, path.lastIndexOf("/"));
+  const there = () => inDrive(folderPath(), root);
+  const hint = () => (there() ? t("settings.icloud.on") : drive.available ? t("settings.icloud.hint") : t("settings.icloud.off"));
+  return (
+    <Row divider testID="settings-icloud" label={t("settings.icloud.label")} hint={hint()}>
+      <If
+        when={there()}
+        else={
+          <PushButton
+            testID="settings-icloud-move"
+            label={moving() ? t("settings.icloud.moving") : t("settings.icloud.move")}
+            disabled={!drive.available || moving()}
+            onPress={() => void moveToDrive(path)}
+          />
+        }
+      >
+        <Status testID="settings-icloud-on" label={t("settings.icloud.synced")} />
+      </If>
+    </Row>
+  );
+}
+
 function GeneralPane() {
   // Read when the page shows: the user may change it in System Settings meanwhile.
   const atLogin = signal(false);
@@ -404,9 +473,17 @@ function GeneralPane() {
           <PushButton testID="settings-reveal" label={t("settings.folder.reveal")} onPress={() => void Folder.reveal(untracked(folderPath) ?? "").catch(() => {})} />
           <PushButton testID="settings-change-folder" label={t("settings.folder.change")} onPress={() => void chooseFolder()} />
         </View>
+        <DriveRow />
       </Group>
       <If when={folderFailed()} else={<Footnote>{t("settings.folder.hint")}</Footnote>}>
         {(message) => <Footnote tone="late">{message()}</Footnote>}
+      </If>
+      <If when={moveReport()}>
+        {(report) => (
+          <Footnote testID="settings-icloud-report" tone={report().failed ? "late" : "muted"}>
+            {report().text}
+          </Footnote>
+        )}
       </If>
 
       <SectionTitle>{t("settings.startup.label")}</SectionTitle>

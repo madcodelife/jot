@@ -10,7 +10,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-use crate::{Entry, NoteMeta, Store, StoreError, clean_title, load};
+use crate::{Entry, NoteMeta, Store, StoreError, clean_title};
 
 /// A note moved to the system trash: what it takes to bring it back.
 #[derive(Debug, Clone, PartialEq)]
@@ -32,7 +32,11 @@ impl Store {
         let entry = self
             .find(&clean_title(title)?)?
             .ok_or(StoreError::NotFound)?;
-        let content = crate::retry(|| fs::read_to_string(&entry.path)).map_err(not_found)?;
+        // Its text goes along, to rebuild it from: a note not downloaded yet stays (`NotDownloaded`).
+        let content = self.text(&entry).map_err(|error| match error {
+            StoreError::Io(error) => not_found(error),
+            error => error,
+        })?;
         let modified = crate::retry(|| fs::metadata(&entry.path))?.modified()?;
         let in_trash = move_to_trash(&entry.path)?;
         Ok(Trashed {
@@ -63,13 +67,16 @@ impl Store {
                 .open(&path)?
                 .set_modified(trashed.modified)?;
         }
-        let (meta, _) = load(&Entry { title, path })?;
+        let (meta, _) = self.load(&Entry::new(title, path))?;
         Ok(meta)
     }
 
-    /// The note's file, if there is a note with this title (compared case-insensitively).
+    /// The note's file, if there is a note with this title (compared case-insensitively): its placeholder for a
+    /// note an older iCloud Drive has not downloaded.
     pub fn path(&self, title: &str) -> Result<Option<PathBuf>, StoreError> {
-        Ok(self.find(&clean_title(title)?)?.map(|entry| entry.path))
+        Ok(self
+            .find(&clean_title(title)?)?
+            .map(|entry| entry.file().to_owned()))
     }
 }
 

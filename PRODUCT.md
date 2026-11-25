@@ -61,7 +61,11 @@ Not doing: projects, priorities, tag-style contexts, complex recurrence rules, a
 - Notes are `.md` files in a folder (`~/Documents/Jot` by default, changeable); the file name is the title.
 - YAML frontmatter at the top records the source: `source: claude`, `source: cursor`, `source: "agent:<name>"`. Notes
   the user writes get none, and a `source` the user wrote (a clipped page's URL) still means the user.
-- Jot does no syncing of its own; iCloud Drive, Dropbox or Syncthing handle it.
+- Jot does no syncing of its own; iCloud Drive, Dropbox or Syncthing handle it. Settings can move the notes into
+  iCloud Drive in one step (asking first; nothing there is overwritten). A synced folder must never lose a note:
+  one iCloud moved off the Mac is still listed and searchable by title, downloads when needed and is read-only till
+  then; nothing waits on a download. A note changed on two devices at once shows both versions' choice: keep this
+  Mac's, use the other, or keep both.
 
 ## MCP for AI apps
 

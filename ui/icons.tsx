@@ -16,6 +16,8 @@ const PATHS = {
   alarm: `<g ${STROKE} stroke-width="1.8"><circle cx="10" cy="11" r="6"/><path d="M10 8v3.2l2 1.3M3.5 4.5 5.5 3M16.5 4.5 14.5 3"/></g>`,
   pen: `<g ${STROKE} stroke-width="1.7"><path d="M4 15.5 13.8 5.7a1.6 1.6 0 0 1 2.3 2.3L6.3 17.8 3 18.5z"/><path d="M12.4 7.1l2.3 2.3"/></g>`,
   mic: `<g ${STROKE} stroke-width="1.8"><rect x="7" y="2.2" width="6" height="10.3" rx="3"/><path d="M4.4 9.6a5.6 5.6 0 0 0 11.2 0M10 15.2v2.6"/></g>`,
+  // A note iCloud Drive is downloading: a cloud with an arrow down.
+  cloud: `<g ${STROKE} stroke-width="1.6"><path d="M6.2 15.5H14a3.6 3.6 0 0 0 .5-7.15A5 5 0 0 0 4.9 9.1 3.2 3.2 0 0 0 6.2 15.5z"/><path d="M10 9.3v4.4M8.2 12l1.8 1.8 1.8-1.8"/></g>`,
   eye: `<g ${STROKE} stroke-width="1.8"><path d="M1.8 10S5 4.5 10 4.5 18.2 10 18.2 10 15 15.5 10 15.5 1.8 10 1.8 10z"/><circle cx="10" cy="10" r="2.6"/></g>`,
   // The settings' toolbar and rows.
   gear: `<g ${STROKE} stroke-width="1.6"><circle cx="10" cy="10" r="2.6"/><path d="M10 1.8v2.3M10 15.9v2.3M18.2 10h-2.3M4.1 10H1.8M15.8 4.2l-1.6 1.6M5.8 14.2l-1.6 1.6M15.8 15.8l-1.6-1.6M5.8 5.8 4.2 4.2"/><circle cx="10" cy="10" r="5.4"/></g>`,

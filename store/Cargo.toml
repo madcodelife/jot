@@ -12,7 +12,18 @@ notify-debouncer-mini = "0.7"
 tempfile = "3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-objc2-foundation = { workspace = true, features = ["NSError", "NSFileManager", "NSString", "NSURL"] }
+# The trash, and iCloud Drive: downloading a note, the versions kept in a conflict.
+objc2-foundation = { workspace = true, features = [
+  "NSArray",
+  "NSDate",
+  "NSEnumerator",
+  "NSError",
+  "NSFileManager",
+  "NSFileVersion",
+  "NSString",
+  "NSURL",
+  "NSValue",
+] }
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 trash.workspace = true

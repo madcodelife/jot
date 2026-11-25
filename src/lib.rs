@@ -36,9 +36,11 @@ mod when;
 use nsh_core::prelude::*;
 
 pub use connections::{AiClient, Connections, GenericSetup, ManualReason};
-pub use folder::Folder;
+pub use folder::{FailedNote, Folder, ICloudDrive, MovedNotes, RenamedNote};
 pub use input_source::InputSource;
-pub use notes::{Note, NoteMeta, Notes, SearchHit, Todo, TrashedNote};
+pub use notes::{
+    Conflict, ConflictChoice, Note, NoteMeta, Notes, ResolvedConflict, SearchHit, Todo, TrashedNote,
+};
 pub use reminders::{DueEvent, Reminders};
 pub use summon::{Summon, SummonKey};
 pub use when::{When, WhenMatch};

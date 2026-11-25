@@ -41,6 +41,7 @@ footer:
 
 list:
   blank: Empty note
+  downloading: "Downloading…"
   create: Create “%{title}”
   create_hint: Press Return to start writing
   today:
@@ -86,6 +87,16 @@ paper:
   conflict: This note changed somewhere else
   view_end: Show ↓
   use_theirs: Use Theirs
+  downloading: "This note isn’t on this Mac yet. Downloading…"
+  other_device: "another device"
+  versions: "This note was also changed on %{device} at the same time (%{when}), and iCloud kept both versions. Which one stays?"
+  versions_more: "This note was also changed on %{device} at the same time (%{when}); iCloud kept %{more} more versions too. This one first: which stays?"
+  keep_mine: "Keep This Mac’s"
+  keep_theirs: "Use the Other"
+  keep_both: "Keep Both"
+  copy_title: "%{title} (%{device})"
+  kept_both: "Saved the other version as “%{title}”"
+  resolve_failed: "Couldn’t settle the versions: %{error}"
 
 time:
   just_now: Just now
@@ -123,6 +134,31 @@ settings:
     choose: Choose
     reveal: Show in Finder
     failed: "Couldn’t open that folder: %{error}"
+  icloud:
+    label: "iCloud Drive"
+    move: "Move to iCloud Drive…"
+    moving: "Moving…"
+    hint: "Move your notes to iCloud Drive to see them on your iPhone, iPad and other Macs."
+    off: "iCloud Drive is off. Turn it on in System Settings › Apple Account › iCloud."
+    on: "Your notes are in iCloud Drive and sync to your other devices."
+    synced: "In iCloud Drive"
+    confirm_title: "Move your notes to iCloud Drive?"
+    confirm: "The notes in %{from} move to %{to}, and Jot and your connected AI apps use that folder from now on. Notes already there are never replaced: one with the same title is saved with a number."
+    confirm_move: "Move to iCloud Drive"
+    cancel: "Cancel"
+    moved:
+      one: "Moved 1 note to iCloud Drive."
+      other: "Moved %{count} notes to iCloud Drive."
+    renamed:
+      one: "“%{from}” had the same title as a note there and was saved as “%{to}”."
+      other: "%{count} had the same titles as notes there and were saved with a number, like “%{to}”."
+    same:
+      one: "1 was already there, word for word, and stayed in %{folder}."
+      other: "%{count} were already there, word for word, and stayed in %{folder}."
+    failed_some:
+      one: "1 couldn’t be moved and is still in %{folder}: %{error}"
+      other: "%{count} couldn’t be moved and are still in %{folder}: %{error}"
+    failed: "Couldn’t move to iCloud Drive: %{error}"
   summon:
     double: Double-press %{key}
     on: "On"

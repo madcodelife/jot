@@ -40,6 +40,7 @@ footer:
 
 list:
   blank: 空白筆記
+  downloading: "正在下載…"
   create: 新增「%{title}」
   create_hint: 按 Return 直接開始寫
   today:
@@ -84,6 +85,16 @@ paper:
   conflict: 這則筆記在別處改過了
   view_end: 查看 ↓
   use_theirs: 用那邊的
+  downloading: "這則筆記還沒下載到這台 Mac，正在下載…"
+  other_device: "另一台裝置"
+  versions: "%{device} 上也同時改過這則筆記（%{when}），iCloud 留下了兩個版本。留哪個？"
+  versions_more: "%{device} 上也同時改過這則筆記（%{when}），iCloud 還留著另外 %{more} 個版本。先看這一個：留哪個？"
+  keep_mine: "留這台 Mac 上的"
+  keep_theirs: "用另一個"
+  keep_both: "兩個都留"
+  copy_title: "%{title}（%{device}）"
+  kept_both: "另一個版本存成了「%{title}」"
+  resolve_failed: "無法處理這兩個版本：%{error}"
 
 time:
   just_now: 剛剛
@@ -121,6 +132,31 @@ settings:
     choose: 選擇
     reveal: 在 Finder 中顯示
     failed: 無法開啟這個資料夾：%{error}
+  icloud:
+    label: "iCloud 雲碟"
+    move: "放到 iCloud 雲碟…"
+    moving: "正在移動…"
+    hint: "把筆記移到 iCloud 雲碟，在 iPhone、iPad 和其他 Mac 上也能看到。"
+    off: "iCloud 雲碟沒有開啟：在「系統設定」›「Apple 帳號」›「iCloud」裡開啟「iCloud 雲碟」。"
+    on: "筆記在 iCloud 雲碟裡，會同步到你的其他裝置。"
+    synced: "已在 iCloud 雲碟"
+    confirm_title: "把筆記移到 iCloud 雲碟？"
+    confirm: "%{from} 裡的筆記會移到 %{to}，之後 Jot 和連接的 AI 應用程式都用那個資料夾。那裡已有的筆記不會被覆蓋：同名的加上編號另存。"
+    confirm_move: "移到 iCloud 雲碟"
+    cancel: "取消"
+    moved:
+      one: "已把 %{count} 則筆記移到 iCloud 雲碟。"
+      other: "已把 %{count} 則筆記移到 iCloud 雲碟。"
+    renamed:
+      one: "「%{from}」和那裡的筆記同名，存成了「%{to}」。"
+      other: "%{count} 則和那裡的筆記同名，加上編號另存了，例如「%{to}」。"
+    same:
+      one: "%{count} 則那裡已有一模一樣的，留在了 %{folder}。"
+      other: "%{count} 則那裡已有一模一樣的，留在了 %{folder}。"
+    failed_some:
+      one: "%{count} 則無法移動，還在 %{folder}：%{error}"
+      other: "%{count} 則無法移動，還在 %{folder}：%{error}"
+    failed: "無法移到 iCloud 雲碟：%{error}"
   summon:
     double: 連按兩下 %{key}
     on: 已開啟
