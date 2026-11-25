@@ -26,7 +26,7 @@ curl -fsSL https://madcodelife.github.io/jot/install.sh | sh
 
 - **随处呼出**：连按两下 ⌥（需要辅助功能权限；没授权时用备用快捷键）。按 Esc 或失去焦点时浮窗自动收起。
 - **搜索即新建**：边输入边按标题和正文过滤，最近修改的排前面；搜不到时按回车，就以输入内容为标题新建。
-- **用 Markdown 写**：边写边高亮、边写边保存。没有保存按钮，也没有预览模式。
+- **用 Markdown 写**：边写边实时预览（像 Typora 那样，光标所在处才显示 Markdown 符号）、边写边保存。没有保存按钮，也没有单独的预览模式：所见即所得。
 - **待办长在笔记里**：`- [ ] 内容` 就是一条待办。写上时间，比如 `- [ ] 交房租 明天 9:00`，它就成了提醒，到点弹桌面通知
   （有刘海的 Mac 上还会从灵动岛弹出）。中文、英文、日文的时间说法都认（`tomorrow 9am`、`明日 9時`）。输入「待办」
   （或 `/todo`）列出所有没勾掉的待办，按时间分组；⇧⌘D 不用打字就能改提醒时间。
@@ -150,9 +150,9 @@ claude mcp add --scope user jot -- "$PWD/target/release/jot-mcp" --dir ~/Documen
 
 Jot 用 [NSH](https://github.com/longbridge/nsh) 构建：界面是 TSX，笔记存储、提醒和平台相关的代码是 Rust。
 
-Jot 依赖 crates.io 上的 NSH 0.7.0（`Cargo.toml` 里的 `nsh-core` 和 `nsh-extra`），`nsh` 命令行必须是同一个版本。
-`scripts/install-nsh.sh` 会装上 `Cargo.lock` 锁定的那个（正式版，或从源码编 NSH 仓库的某个提交），CI 也用它；也可以看
-[NSH 的安装说明](https://github.com/longbridge/nsh)。然后：
+Jot 依赖 NSH 仓库的提交 `8328505`（`Cargo.toml` 里的 `nsh-core` 和 `nsh-extra`），不是正式版：笔记的实时预览要用编辑器装饰的
+label 和字号，0.7.0 还没有，等 NSH 发了包含它们的版本再换回 crates.io。`nsh` 命令行必须是同一个提交。
+`scripts/install-nsh.sh` 会装上 `Cargo.lock` 锁定的那个（这里是从源码编译这个提交，比较慢；正式版则用它的安装脚本），CI 也用它。然后：
 
 ```sh
 nsh run                       # 构建并运行 App

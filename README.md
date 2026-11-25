@@ -29,7 +29,8 @@ again to update; your notes are not touched. Options go after `sh -s --`: `--ver
   panel hides again on Esc or when it loses focus.
 - **Search is create**: results filter by title and body as you type, most recent first; when nothing matches, Return
   creates a note with that title.
-- **Write in Markdown**: highlighted as you type, saved as you type. No save button, no preview mode.
+- **Write in Markdown**: previewed live as you type, as Typora does (the syntax shows where the caret is), saved as
+  you type. No save button, and no separate preview mode: what you see is what you write.
 - **To-dos in your notes**: `- [ ] text` is a to-do. Write a time, `- [ ] pay rent tomorrow 9am`, and it becomes a
   reminder with a desktop notification (and the notch island on Macs that have one). Times are read in English,
   Chinese and Japanese (`明天 9:00`, `明日 9時`). Type `todo` (or `/todo`) for every open to-do, grouped by when it is
@@ -168,9 +169,10 @@ mistakes, not against a program determined to change it.
 Jot is built with [NSH](https://github.com/longbridge/nsh): the UI is TSX, and the notes store, the reminders and the
 platform code are Rust.
 
-Jot builds against the NSH 0.7.0 crates from crates.io (`Cargo.toml`'s `nsh-core` and `nsh-extra`), and the `nsh` CLI
-must be the same version. `scripts/install-nsh.sh` installs the one `Cargo.lock` pins (a release, or a commit of NSH's
-repository built from source), as CI does; or see [NSH's installation guide](https://github.com/longbridge/nsh). Then:
+Jot builds against NSH's repository at commit `8328505` (`Cargo.toml`'s `nsh-core` and `nsh-extra`), not a release: the
+note's live preview needs the editor decorations' labels and font sizes, which no release has yet (0.7.0 lacks them).
+The `nsh` CLI must be the same commit. `scripts/install-nsh.sh` installs the one `Cargo.lock` pins (here that commit,
+built from source, which takes a while; for a release, its installer), as CI does. Then:
 
 ```sh
 nsh run                       # build and run the app

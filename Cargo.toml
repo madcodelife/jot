@@ -17,12 +17,14 @@ trash = "5"
 [dependencies]
 nsh-icon-lucide = "0.2.2"
 nsh-icon = "0.2.2"
-# The open note's ⌘↩ and Return need `keymap.bind`'s `overFocused`, new in 0.7.0. The `nsh` CLI must be the same
-# version (README, Building).
-nsh-core = "0.7.0"
+# NSH's repository at a commit of its main branch, not a release: the open note's live preview needs `EditorDecoration`'s
+# `label` / `labelClass` / `labelStyle` (NSH #3178) and `fontSize` / `fontFamily` (NSH #3177), new after 0.7.0. The
+# `nsh` CLI must be the same commit (README, Building; `scripts/install-nsh.sh` builds it). Back to crates.io
+# (`nsh-core = "<version>"`) once a release of NSH has them.
+nsh-core = { git = "https://github.com/longbridge/nsh", rev = "8328505341a0145ba69a46c961ab7f7244ed444a" }
 # Dictation's `Speech` (TSX: `import { Speech } from "nsh-extra"`), out of NSH's runtime since 0.6. NSH links a Rust
-# nshm the app's crate depends on. The same version as nsh-core.
-nsh-extra = { version = "0.7.0", features = ["speech"] }
+# nshm the app's crate depends on. The same commit as nsh-core, and the same move back to crates.io.
+nsh-extra = { git = "https://github.com/longbridge/nsh", rev = "8328505341a0145ba69a46c961ab7f7244ed444a", features = ["speech"] }
 jot-store = { path = "store" }
 jiff = "1.0.0"
 # Channels from other threads (the folder watcher, the reminders' thread,
@@ -55,3 +57,7 @@ objc2-app-kit = { version = "0.3.2", default-features = false, features = [
   "NSEvent",
   "NSWorkspace",
 ] }
+
+# nsh-icon and nsh-icon-lucide ask for nsh-core 0.7.0 from crates.io: they build with the same commit as the app's.
+[patch.crates-io]
+nsh-core = { git = "https://github.com/longbridge/nsh", rev = "8328505341a0145ba69a46c961ab7f7244ed444a" }

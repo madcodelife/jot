@@ -1,6 +1,6 @@
 # The app
 
-The app's Rust face (`jot/native`), the open note's keys, row actions and packaging. Part of [the
+The app's Rust face (`jot/native`), the open note's keys and live preview, row actions and packaging. Part of [the
 architecture](architecture.md).
 
 ## The app's Rust face (`jot/native`, src/)
@@ -146,6 +146,39 @@ does there), so a line break elsewhere is the editor's own; it writes the line a
 `editor.edit`, which one undo takes back, and falls back to the editor's `newline` command when the caret has left
 such a line before the key arrives. ⇧↩ is never bound: a plain break. While an input method composes (pinyin), NSH
 gives the bindings no key, so Return commits the letters.
+
+## The open note's live preview (app/markdown.ts, app/ui/Paper.tsx)
+
+The note's text is NSH's `Editor` on the file's Markdown, drawn as Typora draws it: the words as they render, the
+syntax hidden, and the syntax back where the caret is. Nothing of the file changes: a hidden range is an
+`EditorDecoration` with `label: ""` (shown in place of its text), a stand-in one with a label of its own, and a size a
+decoration's `fontSize` / `fontFamily`. `lineMarks(line, touched)` (pure, app/markdown.ts) works out a line's marks and
+labels from what of the line the carets and selections cover; Paper.tsx turns them into decorations. While the editor
+has no focus, no caret counts: everything shows rendered.
+
+- **Leading syntax**: a heading's `#` and its space, a quote's `>`, a list's `-` / `*` / `+`: shown, muted, while a
+  caret or a selection is on the line; hidden otherwise. A bullet then stands for a muted `•`; an ordered item's `1.`
+  stays, muted. A heading with no words keeps its `#`.
+- **Inline syntax**: emphasis's `**` / `__` / `*` / `_` / `~~`, code's backticks, a link's `[` and `](target)` (an
+  image's `![` too): both marks of a span show while a caret or a selection is in it or at either end; hidden
+  otherwise. Its words: bold, italic, struck through, in the link colour (an image shows its alt words, no picture),
+  code in the code font on a faint fill.
+- **Headings**: levels 1 to 3 at 1.5, 1.3 and 1.15 times the body (`T.type.headings`), bold, in the heading colour;
+  4 to 6 bold at the body's size. The row grows with its text (NSH grows the line height in proportion).
+- **To-dos**: `- [ ]` (dash to bracket) is a drawn box, `- [x]` a filled one with a tick (`labelStyle`); its text
+  shows only while a caret or a selection touches it (the caret before the words is past the space, so typing a to-do
+  keeps its box). A press on the box lands at its front or its end: either ticks it, as ⌘↩ does, and the caret goes
+  before the words. The reminder (⏰) and the done stamp (✅) are drawn as before.
+- **Fenced code**: the block's rows tinted (`lineClass`), its text in the code font (`ui-monospace`, NSH's name for
+  the system's monospaced font, at `T.type.code`), coloured by the built-in highlighter. Its fences show while a caret
+  or a selection is in the block; otherwise the opening fence is its language's name (small, muted) or nothing, and
+  the closing one nothing.
+- **Quotes**: the row tinted (`lineClass`). A rule (`---`) stays as written, muted: the editor draws no line across.
+
+Selected text is inked by more decorations over the selection (`SELECTED`); they carry a class alone, so labels and
+sizes stay as they are, and a line a selection covers shows its syntax anyway. Labelled ranges never overlap (NSH
+shows the first of two that do), which `lineMarks` keeps. Dictation's interim words and the time phrase chip are
+drawn as before.
 
 ## Row actions (app/actions.ts)
 

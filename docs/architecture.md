@@ -86,5 +86,6 @@ setting they share is a file the app writes and `jot-mcp` reads ([mcp.md](mcp.md
 - [locks.md](locks.md): locked notes, in the store and in the app.
 - [todos.md](todos.md): to-dos, time phrases (`when`) and the reminder time picker.
 - [mcp.md](mcp.md): `jot-mcp`'s tools, and AI apps removing and rewriting notes.
-- [app.md](app.md): the app's Rust face (`jot/native`), the open note's Return and ⌘↩, row actions, packaging.
+- [app.md](app.md): the app's Rust face (`jot/native`), the open note's Return and ⌘↩, its live Markdown preview, row
+  actions, packaging.
 - [product.md](product.md): the product definition.
