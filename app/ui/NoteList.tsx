@@ -129,7 +129,7 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
       <RowIcon row={props.row} onAccent={onAccent()} />
       <View class="flex-1" style={{ minWidth: 0 }}>
         <If when={props.row.kind === "summary"}>
-          <Text class={`font-semibold ${title()}`} style={{ numberOfLines: 1, fontSize: T.type.row }}>
+          <Text class={title()} style={{ numberOfLines: 1, fontSize: T.type.row }}>
             {summaryTitle(summary())}
           </Text>
           <If when={!props.compact}>
@@ -149,11 +149,11 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
                     terms={row().terms}
                     selected={onAccent()}
                     size={T.type.row}
-                    class={`font-semibold ${title()}`}
+                    class={title()}
                   />
                 }
               >
-                <RenameField title={row().meta.title} class={`font-semibold ${title()}`} />
+                <RenameField title={row().meta.title} class={title()} />
               </If>
               <If when={!props.compact}>
                 <Highlight
@@ -170,7 +170,7 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
         <If when={create()}>
           {(row: () => CreateRow) => (
             <>
-              <Text class={`font-medium ${title()}`} style={{ numberOfLines: 1, fontSize: T.type.row }}>
+              <Text class={title()} style={{ numberOfLines: 1, fontSize: T.type.row }}>
                 {t("list.create", { title: row().title })}
               </Text>
               <If when={!props.compact}>
@@ -197,7 +197,7 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
                 {(agent) => (
                   <Text
                     testID="note-agent"
-                    class={`font-medium ${onAccent() ? "text-on-accent-muted" : "text-agent-ink"}`}
+                    class={onAccent() ? "text-on-accent-muted" : "text-agent-ink"}
                     style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 0, maxWidth: 120 }}
                   >
                     {agent()}

@@ -62,7 +62,7 @@ import { Breathing, LanguageTag, MicButton } from "./Voice";
 import { openSettings } from "./Settings";
 import { fade } from "./themes";
 import { tn } from "../i18n";
-import { keyCaps, T, materialFill, materialStyle } from "./tokens";
+import { keyCaps, T, materialEdge, materialFill, materialStyle } from "./tokens";
 import { TodoView, todoViewHeight } from "./TodoView";
 
 /** The window: as large as the panel grows (a note open), with room for its shadow. */
@@ -277,7 +277,7 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
       testID="panel"
       onKeyDown={(e) => holdKeyDown(e, beginHold)}
       onKeyUp={(e) => holdKeyUp(e)}
-      class={`${materialFill()} border border-glass-edge ${fade()}`}
+      class={`${materialFill()} ${materialEdge()} ${fade()}`}
       style={{
         ...materialStyle(),
         width: panelSize().width,

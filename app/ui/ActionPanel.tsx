@@ -11,7 +11,7 @@ import { focusRequest, stage } from "../store";
 import { springConfig } from "./motion";
 import { Keycaps } from "./parts";
 import { fade } from "./themes";
-import { T, materialFill, materialStyle } from "./tokens";
+import { T, materialEdge, materialFill, materialStyle } from "./tokens";
 
 /** The panel's items for the target and filter (a separator before the destructive ones). */
 const items = computed<Action[]>(() => {
@@ -90,7 +90,7 @@ export function ActionPanel(props: { left: number; top: number; returnFocus: "fi
         testID="actions"
         role="menu"
         accessibilityLabel={t("actions.label")}
-        class={`absolute ${materialFill()} border border-glass-edge ${fade()}`}
+        class={`absolute ${materialFill()} ${materialEdge()} ${fade()}`}
         style={{
           ...materialStyle(),
           left: props.left,

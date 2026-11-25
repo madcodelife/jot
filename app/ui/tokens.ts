@@ -81,7 +81,10 @@ export interface PlatformTokens {
     islandRadius: number;
     islandIdleRadius: number;
   };
-  /** The type ladder, in points (the design's: title 29, field 22, row and body 16, snippet 13, meta 12). */
+  /**
+   * The type ladder, in points. The panel follows Spotlight's: a regular-weight field at 20, rows at 14 with a
+   * 12 snippet and 11 meta, weight kept for headers. The editor keeps its title at 29 and body at 16.
+   */
   type: {
     title: number;
     field: number;
@@ -177,13 +180,13 @@ export interface PlatformTokens {
 
 const APPLE_TYPE = {
   title: 29,
-  field: 22,
-  row: 16,
+  field: 20,
+  row: 14,
   body: 16,
   bodyLine: 26,
-  snippet: 13,
-  meta: 12,
-  todo: 14.5,
+  snippet: 12,
+  meta: 11,
+  todo: 14,
   island: 18,
   islandLabel: 12,
 };
@@ -194,10 +197,10 @@ const SIZE = {
   editorHeight: 499,
   field: 65,
   listTop: 9,
-  row: 52,
-  sidebarRow: 46,
+  row: 48,
+  sidebarRow: 40,
   sidebar: 255,
-  todoRow: 40,
+  todoRow: 36,
   groupHeader: 26,
   todoMaxHeight: 387,
   footer: 39,
@@ -387,3 +390,9 @@ export function materialStyle() {
 
 /** The fill drawn with the material: the theme's own surface where it draws one (`drawsSurface`), else none, so the native glass shows. Reactive. */
 export const materialFill = () => (drawsSurface(activeTheme(), nativeGlass) ? "bg-glass-fill" : "bg-transparent");
+
+/**
+ * The floating layer's rim: none on Liquid Glass, which draws its own lit edge (Spotlight has no other), a hairline
+ * on the blur fallback and on a solid theme, where nothing else marks the edge. Reactive.
+ */
+export const materialEdge = () => (nativeGlass && !solidTheme() ? "" : "border border-glass-edge");

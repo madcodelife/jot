@@ -122,7 +122,7 @@ export function LanguageTag(props: { lang: string; surface: keyof typeof TAG_LOO
       class={`items-center justify-center border ${look().box} active:opacity-70`}
       style={{ height: 20, minWidth: 22, paddingHorizontal: 5, borderRadius: 5, borderCurve: "continuous" }}
     >
-      <Text class={`font-semibold ${look().text}`} style={{ fontSize: T.type.meta - 1, lineHeight: 14 }}>
+      <Text class={`font-semibold ${look().text}`} style={{ fontSize: T.type.meta, lineHeight: 14 }}>
         {speechLangMark(props.lang)}
       </Text>
     </Button>
