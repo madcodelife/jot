@@ -51,6 +51,9 @@ list:
   late:
     one: 1 overdue
     other: "%{count} overdue"
+  late_title:
+    one: 1 overdue to-do
+    other: "%{count} overdue to-dos"
   all_done: All done for today
   next: "Next: %{time} %{text}"
   see_all: Press Return to see all to-dos
@@ -233,13 +236,16 @@ settings:
     version: Version %{version} (%{build})
     built_with: Built with Native Shell
     open: Open
+    themes_credit: "Theme colors after GitHub Theme, One Dark Pro, Atom One Light, Dracula, Tokyo Night, Catppuccin and Gruvbox (MIT)."
 
 theme:
   default: Indigo
-  paper: Paper & Ink
-  moss: Moss
-  dusk: Dusk
-  coral: Coral
+  github: GitHub
+  one: One
+  dracula: Dracula
+  tokyo: Tokyo Night
+  catppuccin: Catppuccin
+  gruvbox: Gruvbox
   contrast: High Contrast
 
 voice:

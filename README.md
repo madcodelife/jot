@@ -27,7 +27,8 @@ and add to the same notes, so you and they keep one notebook between you.
 - **Actions**: ⌘K on a row to open, rename, copy, show in Finder or move to the Trash (with undo).
 - **AI apps**: connect Claude Code, Claude, Cursor, VS Code, Windsurf, Codex or Gemini CLI from Settings in one
   click. A note an AI app writes carries its name (Claude, Cursor, …) and appears in the list the moment it lands.
-- Light and dark appearance, several panel themes, English, Simplified and Traditional Chinese and Japanese.
+- Light and dark appearance; panel themes: Jot's own Indigo, GitHub, One, Dracula, Tokyo Night, Catppuccin, Gruvbox and
+  High Contrast, each with a light and a dark version. English, Simplified and Traditional Chinese and Japanese.
 
 ## How notes are stored
 
@@ -154,6 +155,17 @@ design/    the interactive design draft and the logo
 
 [ARCHITECTURE.md](ARCHITECTURE.md) describes the crates and their APIs; [PRODUCT.md](PRODUCT.md) is the product
 definition.
+
+## Credits
+
+The theme colors are adapted from these VS Code themes, all under the MIT license:
+[GitHub Theme](https://github.com/primer/github-vscode-theme),
+[One Dark Pro](https://github.com/Binaryify/OneDark-Pro) and [Atom One Light](https://github.com/akamud/vscode-theme-onelight),
+[Dracula](https://github.com/dracula/visual-studio-code) (its light version Alucard from the
+[Dracula specification](https://github.com/dracula/dracula-theme)),
+[Tokyo Night](https://github.com/enkia/tokyo-night-vscode-theme),
+[Catppuccin](https://github.com/catppuccin/vscode) and [Gruvbox](https://github.com/jdinhify/vscode-theme-gruvbox).
+Jot picks their colors for a notes panel rather than a code editor and adjusts some to meet WCAG AA contrast.
 
 ## License
 

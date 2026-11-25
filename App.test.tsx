@@ -107,3 +107,27 @@ test("only notes an AI app wrote count as its arrivals: a clipped page's or a bo
   await app.waitUntil(() => app.texts().some((s) => s.startsWith("Cursor · ")));
   app.dispose();
 });
+
+test("today's row says what is overdue when nothing is left today, and never 'nothing due' over an overdue line", async () => {
+  // Only an overdue to-do: the title names it, the line says today has none.
+  const late = folder("summary-late");
+  new Notes(late).create("账单", "- [ ] 交电费 ⏰ 2020-01-01 09:00");
+  let app = await openJot(late);
+  await app.waitFor("id:row:summary");
+  let shown = app.texts();
+  expect(shown).toContain("1 件待办已过期");
+  expect(shown).toContain("今天没有待办");
+  expect(shown).not.toContain("1 件已过期");
+  app.dispose();
+
+  // An open to-do with no time: nothing due today, nothing overdue.
+  const none = folder("summary-none");
+  new Notes(none).create("杂事", "- [ ] 买咖啡豆");
+  app = await openJot(none);
+  await app.waitFor("id:row:summary");
+  shown = app.texts();
+  expect(shown).toContain("今天没有待办");
+  expect(shown).toContain("回车查看全部待办");
+  expect(shown).not.toContain("今天的都做完了");
+  app.dispose();
+});

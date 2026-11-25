@@ -50,6 +50,9 @@ list:
   late:
     one: "期限切れ %{count} 件"
     other: "期限切れ %{count} 件"
+  late_title:
+    one: "期限切れのやること %{count} 件"
+    other: "期限切れのやること %{count} 件"
   all_done: 今日の分はすべて完了
   next: 次は %{time} %{text}
   see_all: Return ですべてのやることを表示
@@ -232,13 +235,16 @@ settings:
     version: バージョン %{version}（%{build}）
     built_with: Native Shell で構築
     open: 開く
+    themes_credit: テーマの配色は GitHub Theme、One Dark Pro、Atom One Light、Dracula、Tokyo Night、Catppuccin、Gruvbox（MIT）を参考にしています。
 
 theme:
   default: インディゴ
-  paper: 紙と墨
-  moss: モス
-  dusk: 夕暮れ
-  coral: コーラル
+  github: GitHub
+  one: One
+  dracula: Dracula
+  tokyo: Tokyo Night
+  catppuccin: Catppuccin
+  gruvbox: Gruvbox
   contrast: ハイコントラスト
 
 voice:
