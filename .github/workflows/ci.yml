@@ -36,7 +36,7 @@ jobs:
         run: echo "which=$(scripts/install-nsh.sh --which)" >> "$GITHUB_OUTPUT"
 
       # A commit of NSH is built from source: keep the build for the next run.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.nsh
           key: nsh-${{ runner.os }}-${{ runner.arch }}-${{ steps.nsh.outputs.which }}
@@ -81,7 +81,7 @@ jobs:
         run: echo "which=$(scripts/install-nsh.sh --which)" >> "$GITHUB_OUTPUT"
 
       # A commit of NSH is built from source: keep the build for the next run.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.nsh
           key: nsh-${{ runner.os }}-${{ runner.arch }}-${{ steps.nsh.outputs.which }}
