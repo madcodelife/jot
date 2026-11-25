@@ -85,8 +85,10 @@ async fn create_search_read_append() {
             "list_todos",
             "read_note",
             "recent_notes",
+            "replace_note",
             "reschedule_todo",
-            "search_notes"
+            "search_notes",
+            "trash_note"
         ]
     );
 

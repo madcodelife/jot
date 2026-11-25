@@ -119,6 +119,7 @@ island:
   remind: 提醒 · %{time} · %{note}
   now: 现在
   writing_label: 正在写
+  locked: 已锁定 · 在 Jot 里解锁这条笔记后才能勾选
 
 settings:
   title: 设置
@@ -230,6 +231,10 @@ settings:
     command: 命令
     json: 配置
     then: 之后在应用里说「记到 Jot」或「我今天有什么要做的」。
+    access: 权限
+    trash_rewrite: 允许 AI 应用把笔记移到废纸篓和改写笔记
+    trash_rewrite_hint: 它们移走的笔记、改写前的笔记都会放进废纸篓，可以从那里找回。锁定的笔记不受影响。
+    trash_rewrite_failed: 没能保存这项设置：%{error}
   about:
     title: 关于 Jot
     tagline: 你和 AI 共用的速记本
@@ -298,6 +303,8 @@ actions:
   due: 提醒时间…
   due_add: 添加提醒…
   due_remove: 移除提醒
+  lock: 锁定
+  unlock: 解锁
 
 trash:
   bin:
@@ -327,3 +334,15 @@ due:
   next_month: 下个月
   changed: 这条待办刚被改过，提醒时间没有改
   failed: 没能改提醒时间：%{error}
+
+lock:
+  locked: 已锁定
+  unlock_label: 「%{title}」已锁定，点按解锁
+  row: 已锁定
+  trash: 「%{title}」已锁定，解锁后才能移到%{bin}
+  rename: 「%{title}」已锁定，解锁后才能重命名
+  todo: 「%{note}」已锁定，解锁后才能改其中的待办
+  failed: 没能锁定「%{title}」：%{error}
+  unlock_failed: 没能解锁「%{title}」：%{error}
+  done: 已锁定「%{title}」
+  undone: 已解锁「%{title}」

@@ -48,6 +48,9 @@ const CONNECTIONS = {
   },
 };
 
+/** The AI apps' permission's stand-in: no test reads or writes the machine's own settings file. */
+const AI_ACCESS = { "AiAccess.allowsTrashAndRewrite": false, "AiAccess.set": null };
+
 /** iCloud Drive's stand-in: off, so no test reads the machine's own account. */
 const NO_ICLOUD = { "Folder.icloud": { path: "/tmp/jot-settings-no-icloud/Jot", available: false } };
 
@@ -82,6 +85,7 @@ const openJot = (dir: string, storage: Record<string, string> = {}, modules: Rec
         "Summon.onDoubleTap": null,
         ...CONNECTIONS,
         ...NO_ICLOUD,
+        ...AI_ACCESS,
         ...modules,
       },
     },

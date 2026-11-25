@@ -12,6 +12,7 @@ import {
   desktopOs,
   checkTodo,
   errorMessage,
+  isLocked,
   notes,
   notice,
   opened,
@@ -24,6 +25,7 @@ import {
   todoItems,
   todoMode,
   renaming,
+  setLocked,
   trashNote,
 } from "./store";
 
@@ -76,20 +78,28 @@ const action = (id: string, label: string, shortcut: string, run: () => void, de
   run,
 });
 
-/** The actions of `target`, in the panel's order; the one on Return first (none in the open note). No to-do, "today" or "new" row can be trashed. */
+/**
+ * The actions of `target`, in the panel's order; the one on Return first (none in the open note). No to-do, "today"
+ * or "new" row can be trashed. A locked note has "Unlock" instead of "Lock", and nothing that changes it but its
+ * trash key, which says to unlock it first.
+ */
 export function actionsFor(target: ActionTarget): Action[] {
   switch (target.kind) {
     case "note": {
       const { title } = target;
+      const locked = isLocked(title);
       return [
         // A note in the list opens on Return; one already open has nothing to open (Escape puts the caret back).
         ...(target.index === null ? [] : [action("open", t("actions.open"), "enter", () => activate(target.index as number))]),
         // In the open note, with the caret on an open to-do: its reminder time.
-        ...(target.index === null && caretOnTodo() ? [action("due", t("actions.due"), T.keys.due, () => void openDueAtCaret())] : []),
+        ...(target.index === null && caretOnTodo() && !locked ? [action("due", t("actions.due"), T.keys.due, () => void openDueAtCaret())] : []),
         action("reveal", t(`actions.reveal.${desktopOs}`), T.keys.reveal, () => revealNote(title)),
-        action("rename", t("actions.rename"), T.keys.rename, () => startRename(title)),
+        ...(locked ? [] : [action("rename", t("actions.rename"), T.keys.rename, () => startRename(title))]),
         action("copy-title", t("actions.copy_title"), T.keys.copyTitle, () => copy(title)),
         action("copy-body", t("actions.copy_body"), T.keys.copyBody, () => copy(untracked(notes)?.read(title)?.body ?? "")),
+        locked
+          ? action("unlock", t("actions.unlock"), "", () => setLocked(title, false))
+          : action("lock", t("actions.lock"), "", () => setLocked(title, true)),
         action("trash", t("actions.trash", { bin: binName() }), T.keys.trashShortcut, () => trashNote(title), true),
       ];
     }

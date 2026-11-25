@@ -119,6 +119,7 @@ island:
   remind: Reminder · %{time} · %{note}
   now: Now
   writing_label: Writing
+  locked: Locked · unlock the note in Jot to check this off
 
 settings:
   title: Settings
@@ -230,6 +231,10 @@ settings:
     command: Command
     json: Configuration
     then: Then ask the app to “jot this down” or “what’s on my list today?”
+    access: Permissions
+    trash_rewrite: Allow AI apps to move notes to the Trash and rewrite notes
+    trash_rewrite_hint: "Notes they remove, and each note as it was before a rewrite, go to the Trash, where you can get them back. Locked notes stay as they are."
+    trash_rewrite_failed: "Couldn’t save this setting: %{error}"
   about:
     title: About Jot
     tagline: A notebook you share with your AI
@@ -297,6 +302,8 @@ actions:
   due: Reminder Time…
   due_add: Add Reminder…
   due_remove: Remove Reminder
+  lock: Lock
+  unlock: Unlock
 
 trash:
   bin:
@@ -326,3 +333,15 @@ due:
   next_month: Next month
   changed: The to-do just changed; its reminder time stays as it was
   failed: "Couldn’t change the reminder time: %{error}"
+
+lock:
+  locked: Locked
+  unlock_label: "“%{title}” is locked. Click to unlock"
+  row: Locked
+  trash: "“%{title}” is locked. Unlock it to move it to the %{bin}"
+  rename: "“%{title}” is locked. Unlock it to rename it"
+  todo: "“%{note}” is locked. Unlock it to change its to-dos"
+  failed: "Couldn’t lock “%{title}”: %{error}"
+  unlock_failed: "Couldn’t unlock “%{title}”: %{error}"
+  done: "Locked “%{title}”"
+  undone: "Unlocked “%{title}”"

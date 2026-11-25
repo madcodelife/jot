@@ -21,7 +21,9 @@ use notify_debouncer_mini::{DebounceEventResult, Debouncer, new_debouncer};
 
 mod cloud;
 mod conflict;
+mod lock;
 mod moving;
+mod settings;
 mod source;
 mod todo;
 mod trash;
@@ -30,9 +32,10 @@ pub mod when;
 pub use conflict::{Conflict, Resolution, Resolved};
 pub use jiff::civil::DateTime;
 pub use moving::Moved;
+pub use settings::AiSettings;
 pub use source::Source;
 pub use todo::{DEFAULT_TODO_NOTE, Todo};
-pub use trash::Trashed;
+pub use trash::{Replaced, Trashed};
 
 /// How many characters of a note's body `NoteMeta::preview` and `SearchHit::snippet` hold.
 const PREVIEW_CHARS: usize = 120;
@@ -49,6 +52,8 @@ pub struct Store {
     root: PathBuf,
     /// How the folder is synced: what is downloaded, and the versions kept in a conflict.
     cloud: Arc<dyn cloud::Cloud>,
+    /// Where trashed notes go: the system trash, or a folder in tests.
+    bin: Arc<dyn trash::Bin>,
 }
 
 impl PartialEq for Store {
@@ -73,6 +78,9 @@ pub struct NoteMeta {
     /// Its text is not on this Mac yet (a synced folder moved it off): the system was asked for it, and the folder's
     /// watcher reports it when it lands. Till then `preview` is empty, `source` is the user and the body is empty.
     pub downloading: bool,
+    /// The note is locked (the file's locked flag, or `locked: true` in its frontmatter): nothing changes it until
+    /// it is unlocked (`StoreError::Locked`). See `lock`.
+    pub locked: bool,
 }
 
 /// A note with its body.
@@ -110,6 +118,8 @@ pub enum StoreError {
     /// The note's text is not on this Mac yet (a synced folder moved it off); it is being downloaded. Nothing was
     /// changed: try again once it is here.
     NotDownloaded,
+    /// The note is locked: it was left as it is. It has to be unlocked (in Jot) first.
+    Locked,
     /// The file system failed.
     Io(io::Error),
 }
@@ -124,6 +134,7 @@ impl fmt::Display for StoreError {
             StoreError::NotDownloaded => {
                 f.write_str("the note is not downloaded to this Mac yet; it is being downloaded")
             }
+            StoreError::Locked => f.write_str("the note is locked"),
             StoreError::Io(error) => write!(f, "{error}"),
         }
     }
@@ -196,7 +207,11 @@ impl Store {
 
     fn with_cloud(root: PathBuf, cloud: Arc<dyn cloud::Cloud>) -> Result<Store, StoreError> {
         fs::create_dir_all(&root)?;
-        Ok(Store { root, cloud })
+        Ok(Store {
+            root,
+            cloud,
+            bin: Arc::new(trash::SystemBin),
+        })
     }
 
     /// The notes folder.
@@ -305,7 +320,7 @@ impl Store {
     }
 
     /// Replaces the body, keeping the frontmatter; creates the note as `Source::User` if missing. The app's
-    /// editor saves with it.
+    /// editor saves with it. Fails with `Locked` for a locked note (as every write does).
     pub fn write(&self, title: &str, body: &str) -> Result<NoteMeta, StoreError> {
         let title = clean_title(title)?;
         let Some(entry) = self.find(&title)? else {
@@ -341,6 +356,7 @@ impl Store {
         {
             return Err(StoreError::AlreadyExists);
         }
+        self.ensure_unlocked(&source, None)?;
         if source.placeholder.is_some() {
             self.cloud.download(&source.path);
             return Err(StoreError::NotDownloaded);
@@ -358,6 +374,7 @@ impl Store {
         let entry = self
             .find(&clean_title(title)?)?
             .ok_or(StoreError::NotFound)?;
+        self.ensure_unlocked(&entry, None)?;
         fs::remove_file(entry.file())?;
         Ok(())
     }
@@ -457,7 +474,7 @@ impl Store {
     }
 
     /// Rewrites a note's body with `edit`, keeping its frontmatter; leaves the file untouched when `edit`
-    /// returns `None` or fails.
+    /// returns `None` or fails, or the note is locked (`Locked`).
     fn try_rewrite(
         &self,
         entry: Entry,
@@ -469,6 +486,7 @@ impl Store {
             }
             error => error,
         })?;
+        self.ensure_unlocked(&entry, Some(&content))?;
         let parts = split(&content);
         let Some(body) = edit(parts.body)? else {
             let (meta, _) = self.load(&entry)?;
@@ -514,6 +532,7 @@ impl Store {
                 source: Source::User,
                 preview: String::new(),
                 downloading: true,
+                locked: lock::is_locked(&metadata, None),
             };
             return Ok((meta, String::new()));
         };
@@ -528,6 +547,7 @@ impl Store {
             source,
             preview: one_line(parts.body, PREVIEW_CHARS),
             downloading: false,
+            locked: lock::is_locked(&metadata, Some(&content)),
         };
         Ok((meta, parts.body.to_owned()))
     }
@@ -563,6 +583,27 @@ impl Store {
                 }
             })?;
         }
+        Ok(())
+    }
+
+    /// Writes `content` over the file at `path` through a temporary file, with these permissions and this
+    /// modification time (set before the rename, so the note never shows another).
+    fn write_file_at(
+        &self,
+        path: &Path,
+        content: &str,
+        permissions: fs::Permissions,
+        modified: SystemTime,
+    ) -> Result<(), StoreError> {
+        let mut builder = tempfile::Builder::new();
+        builder.prefix(".jot-").suffix(".tmp");
+        #[cfg(unix)]
+        builder.permissions(permissions);
+        let mut file = builder.tempfile_in(&self.root)?;
+        file.write_all(content.as_bytes())?;
+        file.as_file().sync_all()?;
+        file.as_file().set_modified(modified)?;
+        file.persist(path).map_err(|error| error.error)?;
         Ok(())
     }
 }
@@ -742,5 +783,7 @@ impl Lowered {
 
 #[cfg(test)]
 mod cloud_tests;
+#[cfg(test)]
+mod lock_tests;
 #[cfg(test)]
 mod tests;

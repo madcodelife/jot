@@ -16,7 +16,8 @@ use crate::relay::relay;
 /// `ERR_JOT_ALREADY_EXISTS`, `ERR_JOT_CHANGED` (a to-do line changed
 /// since it was read), `ERR_JOT_NOT_DOWNLOADED` (the note's text is not on
 /// this Mac yet: iCloud Drive is downloading it), or the file system's
-/// (`EACCES`, `ENOSPC`, ...). Nothing here waits for a download: a note not
+/// (`EACCES`, `ENOSPC`, ...), or `ERR_JOT_LOCKED` (the note is locked:
+/// nothing was changed). Nothing here waits for a download: a note not
 /// downloaded is listed (`downloading`), asked for, and reported by `watch`
 /// when it lands.
 #[class]
@@ -284,6 +285,38 @@ impl Notes {
         Ok(())
     }
 
+    /// Locks the note: `locked: true` in its frontmatter and the file's
+    /// locked flag (Finder's "Locked"), so nothing changes, moves or deletes
+    /// it, Jot and AI apps included, until it is unlocked. Its modification
+    /// time stays. Throws `ERR_JOT_NOT_FOUND`, `ERR_JOT_NOT_DOWNLOADED`.
+    pub fn lock(&mut self, title: String) -> Result<NoteMeta, JsError> {
+        let meta = self
+            .store
+            .lock(&title)
+            .map_err(|e| store_error(e, format_args!("cannot lock the note {title:?}")))?;
+        Ok(meta.into())
+    }
+
+    /// Unlocks the note: the flag cleared, `locked` out of its frontmatter.
+    pub fn unlock(&mut self, title: String) -> Result<NoteMeta, JsError> {
+        let meta = self
+            .store
+            .unlock(&title)
+            .map_err(|e| store_error(e, format_args!("cannot unlock the note {title:?}")))?;
+        Ok(meta.into())
+    }
+
+    /// Brings each note's two marks of a lock in line: the flag back on a
+    /// note whose frontmatter says locked (synced from another Mac, or
+    /// cleared by iCloud Drive as it uploaded the note), `locked: true` on a
+    /// note locked in Finder. Returns the titles it changed. The app calls it
+    /// as the folder changes.
+    pub fn settle_locks(&mut self) -> Result<Vec<String>, JsError> {
+        self.store
+            .settle_locks()
+            .map_err(|e| store_error(e, "cannot settle the locked notes"))
+    }
+
     /// Every to-do in every note: open ones first, by due time (those
     /// without one last), then by the note's last change.
     pub fn todos(&self) -> Result<Vec<Todo>, JsError> {
@@ -372,6 +405,9 @@ pub struct NoteMeta {
     /// `preview` is empty, `source` null, and it cannot be changed
     /// (`ERR_JOT_NOT_DOWNLOADED`).
     pub downloading: bool,
+    /// The note is locked (in Jot or in Finder): read-only until it is
+    /// unlocked; every change throws `ERR_JOT_LOCKED`.
+    pub locked: bool,
 }
 
 /// A time as TS gets it: milliseconds since the Unix epoch.
@@ -391,6 +427,7 @@ impl From<jot_store::NoteMeta> for NoteMeta {
             source: meta.source.label(),
             preview: meta.preview,
             downloading: meta.downloading,
+            locked: meta.locked,
         }
     }
 }
@@ -589,6 +626,10 @@ pub(crate) fn store_error(error: StoreError, doing: impl Display) -> JsError {
         StoreError::NotDownloaded => (
             Some("ERR_JOT_NOT_DOWNLOADED"),
             "it is not downloaded to this Mac yet (iCloud Drive is downloading it)".to_owned(),
+        ),
+        StoreError::Locked => (
+            Some("ERR_JOT_LOCKED"),
+            "it is locked (unlock it first)".to_owned(),
         ),
         StoreError::Io(io) => (io_code(io), io.to_string()),
     };

@@ -35,12 +35,14 @@ import { Connections, Folder, Summon, type AiClient, type MovedNotes } from "jot
 import { aiBusy, aiClients, aiErrors, refreshClients, toggleClient } from "../app/connections";
 import { LANGUAGES, tn } from "../app/i18n";
 import {
+  aiTrashAndRewrite,
   appearance,
   defaultTime,
   holdToTalk,
   islandOn,
   language,
   notificationsOn,
+  setAiTrashAndRewrite,
   setAppearance,
   setDefaultTime,
   setHoldToTalk,
@@ -908,6 +910,30 @@ function AiRow(props: { client: AiClient; divider: boolean; server: boolean; dir
   );
 }
 
+/** What AI apps may do beyond reading and adding: move notes to the Trash and rewrite them (off by default). */
+function AiAccessGroup() {
+  const failed = signal<string | null>(null);
+  return (
+    <Group testID="settings-ai-access">
+      <Row label={t("settings.ai.trash_rewrite")} hint={failed() ?? t("settings.ai.trash_rewrite_hint")} hintTone={failed() ? "late" : "muted"}>
+        <MacSwitch
+          testID="settings-ai-trash-rewrite"
+          label={t("settings.ai.trash_rewrite")}
+          checked={aiTrashAndRewrite()}
+          onChange={(on) => {
+            try {
+              setAiTrashAndRewrite(on);
+              failed.set(null);
+            } catch (error) {
+              failed.set(t("settings.ai.trash_rewrite_failed", { error: errorMessage(error) }));
+            }
+          }}
+        />
+      </Row>
+    </Group>
+  );
+}
+
 function AiPane() {
   const dir = () => folderPath() ?? folderShown();
   // From App Translocation's temporary path nothing is connected (Jot must be in Applications first).
@@ -949,6 +975,8 @@ function AiPane() {
           </If>
         </If>
       </Group>
+      <SectionTitle>{t("settings.ai.access")}</SectionTitle>
+      <AiAccessGroup />
       <SectionTitle>{t("settings.ai.other")}</SectionTitle>
       <Group testID="settings-ai-other">
         <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 12, gap: 8 }}>

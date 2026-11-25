@@ -127,6 +127,9 @@ export const errorMessage = (error: unknown) => (error instanceof Error ? error.
 export const isTodoQuery = (q: string) => todoKeywords().includes(q.trim().toLowerCase());
 export const todoMode = computed(() => isTodoQuery(query()));
 
+/** Whether the note titled `title` is locked (in Jot, in Finder or on another Mac): read-only until it is unlocked. Tracked. */
+export const isLocked = (title: string) => allNotes().some((m) => m.title === title && m.locked);
+
 /** Every note, newest first. */
 export const allNotes = computed<NoteMeta[]>(() => {
   revision();
@@ -213,6 +216,7 @@ export async function openFolder(): Promise<Notes | null> {
 /** Makes `n` the notes folder: watched, its reminders running; the folder before it lets go of its watchers. */
 function useFolder(n: Notes): Notes {
   const before = untracked(notes);
+  settleLocks(n);
   known = new Set(n.list().map((m) => m.title));
   createdHere.clear();
   lastWritten.clear();
@@ -298,10 +302,24 @@ export function onAgentNote(listener: (title: string, agent: string) => void): (
   return () => arrivals.delete(listener);
 }
 
+/**
+ * Puts back the half of a lock that went missing: the file's locked flag on a note whose frontmatter says locked
+ * (synced from another Mac, or cleared by iCloud Drive as it uploaded the note), `locked: true` on a note locked in
+ * Finder. Its own writes come back through the watcher with nothing left to do.
+ */
+function settleLocks(n: Notes) {
+  try {
+    n.settleLocks();
+  } catch {
+    // Not now (a file busy, the folder gone): the folder's next change tries again.
+  }
+}
+
 /** The folder changed on disk: read it again, and tell apart the notes an AI app just wrote. */
 function folderChanged() {
   const n = notes();
   if (!n) return;
+  settleLocks(n);
   const list = n.list();
   const fresh = list.filter((m) => !known.has(m.title) && !createdHere.has(m.title) && m.source !== null);
   known = new Set(list.map((m) => m.title));
@@ -498,8 +516,17 @@ export function checkTodo(todo: Todo) {
   checking.update((s) => new Set([...s, key]));
   try {
     n.setTodoDone(todo.note, todo.line, todo.text, true);
-  } catch {
-    // The line changed under it (`Changed`): the fresh list shows it as it is now.
+  } catch (error) {
+    // A locked note keeps its to-dos as they are; one that changed under it (`Changed`) shows as it is now.
+    if (errorCode(error) === "ERR_JOT_LOCKED") {
+      notice.set(t("lock.todo", { note: todo.note }));
+      checking.update((s) => {
+        const next = new Set(s);
+        next.delete(key);
+        return next;
+      });
+      return;
+    }
   }
   refresh();
   setTimeout(
@@ -538,7 +565,11 @@ export function trashNote(title: string) {
   try {
     note = n.trash(title);
   } catch (error) {
-    notice.set(t("trash.failed", { title, error: errorMessage(error), bin: binName() }));
+    notice.set(
+      errorCode(error) === "ERR_JOT_LOCKED"
+        ? t("lock.trash", { title, bin: binName() })
+        : t("trash.failed", { title, error: errorMessage(error), bin: binName() }),
+    );
     return;
   }
   gone.add(note.title.toLowerCase());
@@ -648,7 +679,9 @@ export function finishRename(to: string | null) {
         ? t("note.rename_taken", { title })
         : code === "ERR_JOT_INVALID_TITLE"
           ? t("note.invalid_title", { title })
-          : t("note.rename_failed", { title: from, error: errorMessage(error) }),
+          : code === "ERR_JOT_LOCKED"
+            ? t("lock.rename", { title: from })
+            : t("note.rename_failed", { title: from, error: errorMessage(error) }),
     );
     return;
   }
@@ -672,4 +705,28 @@ export function finishRename(to: string | null) {
 export function revealNote(title: string) {
   const path = untracked(notes)?.path(title);
   if (path) void Folder.reveal(path).catch((error: unknown) => notice.set(errorMessage(error)));
+}
+
+/**
+ * Locks the note (`lock`) or unlocks it: the open note's last edits are saved first, so they are in what is locked.
+ * Locking makes it read-only, in Jot, in AI apps and for any other program (the file's locked flag). The footer says
+ * so for a moment.
+ */
+export function setLocked(title: string, lock: boolean) {
+  const n = untracked(notes);
+  if (!n) return;
+  if (lock && untracked(opened)?.title.toLowerCase() === title.toLowerCase()) flushEditor?.();
+  let meta: NoteMeta;
+  try {
+    meta = lock ? n.lock(title) : n.unlock(title);
+  } catch (error) {
+    notice.set(t(lock ? "lock.failed" : "lock.unlock_failed", { title, error: errorMessage(error) }));
+    return;
+  }
+  // The frontmatter Jot wrote is no outside change of the open note.
+  const body = n.read(meta.title)?.body;
+  if (body !== undefined) lastWritten.set(meta.title, body);
+  notice.set(null);
+  refresh();
+  showFlash(t(lock ? "lock.done" : "lock.undone", { title: meta.title }));
 }
