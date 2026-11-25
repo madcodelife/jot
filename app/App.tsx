@@ -7,16 +7,17 @@
 // settings window and, on macOS, the island's overlay.
 //
 // Dictation: ⌥ held in the panel (or its microphones) types into the field
-// or the open note (ui/Panel.tsx, ui/Paper.tsx); the double press of ⌥ held
-// anywhere says a quick note, which the island shows and files (below).
+// or the open note (app/ui/Panel.tsx, app/ui/Paper.tsx); the double press
+// of ⌥ held anywhere says a quick note, which the island shows and files
+// (below).
 import { effect, mount, Notifications, platform, untracked } from "nsh";
 import { t } from "nsh/i18n";
 import { GlobalShortcut, Tray } from "nsh/desktop";
 import { Summon, type DueEvent } from "jot/native";
-import { tn, todoKeyword } from "./app/i18n";
-import { holdToTalk, islandOn, loadSettings, notificationsOn, whenOptions } from "./app/settings";
-import { fileQuickNote } from "./app/quicknote";
-import { cancelVoice, detectSpeech, listening, speechAvailable, startVoice, stopVoice, type VoiceSink } from "./app/voice";
+import { tn, todoKeyword } from "./i18n";
+import { holdToTalk, islandOn, loadSettings, notificationsOn, whenOptions } from "./settings";
+import { fileQuickNote } from "./quicknote";
+import { cancelVoice, detectSpeech, listening, speechAvailable, startVoice, stopVoice, type VoiceSink } from "./voice";
 import {
   allNotes,
   clampSelection,
@@ -33,7 +34,7 @@ import {
   summon,
   toggle,
   trusted,
-} from "./app/store";
+} from "./store";
 import { dismissDictation, IslandWindow, settleDictation, showAgentWrite, showDictation, showReminder, updateDictation } from "./ui/Island";
 import { PanelWindow } from "./ui/Panel";
 import { openSettings, SettingsWindow } from "./ui/Settings";

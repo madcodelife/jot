@@ -1,0 +1,173 @@
+# The app
+
+The app's Rust face (`jot/native`), the open note's keys, row actions and packaging. Part of [the
+architecture](architecture.md).
+
+## The app's Rust face (`jot/native`, src/)
+
+What App.tsx imports; the TypeScript is generated from these types. Platform code lives in `src/platform/<os>.rs`
+behind one interface; App.tsx never checks the platform for these.
+
+```ts
+class Notes {                                   // wraps jot_store::Store
+  constructor(dir: string);                     // creates the folder; throws on failure
+  readonly dir: string;
+  list(): NoteMeta[];
+  search(query: string, limit: number): SearchHit[];
+  read(title: string): Note | null;
+  write(title: string, body: string): NoteMeta; // the editor's autosave
+  create(title: string, body: string): NoteMeta;
+  append(title: string, text: string): NoteMeta;   // after one blank line; creates the note (source "user") if missing
+  rename(from: string, to: string): NoteMeta;
+  delete(title: string): void;                  // for good; the app uses trash
+  trash(title: string): TrashedNote;            // to the system trash; ERR_JOT_NOT_FOUND
+  restore(token: number): NoteMeta;             // ERR_JOT_ALREADY_EXISTS (token stays good), ERR_JOT_NOT_FOUND (unknown / used token)
+  path(title: string): string | null;           // the note's file (Folder.reveal shows it)
+  watch(onChange: () => void): void;            // folder changed (debounced); replaces the previous listener
+  conflicts(title: string): Conflict[];         // iCloud's conflict versions, newest first
+  resolveConflict(title: string, id: string, choice: "mine" | "theirs" | "both", copyTitle?: string | null): ResolvedConflict;  // ERR_JOT_CHANGED
+  lock(title: string): NoteMeta;                // locked: true + the file's flag, mtime kept
+  unlock(title: string): NoteMeta;
+  settleLocks(): string[];                      // the missing half of each lock put back (folder opened / changed)
+  todos(): Todo[];
+  setTodoDone(note: string, line: number, text: string, done: boolean): NoteMeta;
+  setTodoDue(note: string, line: number, text: string, due: string | null /* "YYYY-MM-DDTHH:mm", else TypeError; null removes */): NoteMeta;  // ERR_JOT_CHANGED
+  addTodo(text: string, due?: string | null /* "YYYY-MM-DDTHH:mm", else TypeError */, note?: string | null /* "待办" */): Todo;
+}
+interface NoteMeta { title: string; modified: number /* ms since epoch */; source: string | null /* null: the user; else the AI app's name, "Cursor" */; preview: string; downloading: boolean /* not on this Mac yet: read-only, empty */; locked: boolean /* read-only till unlocked */ }
+interface Conflict { id: string; device: string | null; modified: number; body: string }
+interface ResolvedConflict { note: NoteMeta; copy: NoteMeta | null }
+// Errors also: ERR_JOT_NOT_DOWNLOADED (the note is not on this Mac yet; nothing was changed), ERR_JOT_LOCKED (the note
+// is locked; nothing was changed).
+interface Note { meta: NoteMeta; body: string }
+interface SearchHit { meta: NoteMeta; snippet: string; titleMatch: boolean }
+interface TrashedNote { title: string; token: number }   // the last 64 trashed per folder can be restored
+interface Todo { note: string; line: number; text: string; done: boolean; due: string | null /* "2026-11-14T09:00" */; doneOn: string | null }
+
+module When {                                   // phrases of every language are read whatever the locale
+  parse(text: string, options?: WhenOptions): { start: number; end: number; due: string; label: string } | null;   // start/end: UTF-16 offsets
+  normalizeLine(line: string, options?: WhenOptions): string | null;
+}
+interface WhenOptions {
+  locale?: string;       // the label's language: "zh-Hans" (default), "zh-Hant", "en", "ja"; others label in English
+  defaultTime?: string;  // "HH:mm" a date alone means, default "09:00"; anything else throws a TypeError
+}
+
+class Reminders {                               // fires at due times while the app runs
+  constructor(notes: Notes);
+  start(onDue: (event: { todos: Todo[]; missed: boolean }) => void): void;  // missed: they came due while the Mac slept
+  snooze(note: string, line: number, minutes: number): void;               // in memory: fires again later
+}
+// The reminders' thread reads the folder again when it changes: a to-do given a new time fires at that time, and a
+// snooze of it is dropped (the new time is the reminder now); one whose time was removed fires no more.
+
+module Folder {                                 // the settings' notes folder (src/folder.rs)
+  choose(start: string, button: string): Promise<string | null>;
+  reveal(path: string): Promise<void>;
+  shown(path: string): string;                  // "~/Documents/Jot"
+  icloud(): { path: string | null; available: boolean };   // Jot's folder in iCloud Drive; on = signed in + Drive on
+  moveNotes(from: string, to: string): Promise<MovedNotes>; // Store::move_into, off the engine thread
+}
+interface MovedNotes { moved: string[]; renamed: { from: string; to: string }[]; same: string[]; failed: { title: string; error: string }[] }
+
+module Summon {                                 // gestures of a modifier, system-wide
+  isTrusted(): boolean;                         // macOS: Accessibility granted
+  requestTrust(): void;                         // shows the system prompt / opens the pane
+  onDoubleTap(key: "option" | "control", listener: () => void): void;      // replaces the previous listener
+  // Tap, then press again and hold 250 ms: start; released: end. Another key or modifier pressed meanwhile ends it
+  // with cancelled: true (mouse buttons do not). A second press released sooner is a double tap, never both.
+  // Replaces the previous handlers; the key may differ from onDoubleTap's.
+  onDoubleTapHold(key: "option" | "control", handlers: { start: () => void; end: (event: { cancelled: boolean }) => void }): void;
+}
+
+module Connections {                            // the AI apps jot-mcp is registered with (src/connect.rs, src/connections.rs)
+  server(): string | null;                      // jot-mcp: beside the executable (Jot.app/Contents/MacOS), else (debug builds only) this checkout's target/{release,debug}
+  translocated(): boolean;                      // Jot runs from App Translocation's temporary path: nothing is connected (move it to Applications)
+  clients(dir: string): Promise<AiClient[]>;    // every known app, its state for the notes folder `dir`
+  connect(id: string, dir: string): Promise<AiClient>;     // registers `jot-mcp --dir <dir>`; rejects with why
+  disconnect(id: string, dir: string): Promise<AiClient>;  // takes the `jot` entry out
+  sync(dir: string): Promise<AiClient[]>;       // the folder changed: re-registers every connected app Jot can write (one it cannot stays connected elsewhere, `manual` saying why)
+  generic(dir: string): { command: string; json: string }; // for any other app: the command line, the mcpServers JSON
+}
+interface AiClient {
+  id: string;            // "claude-code" | "claude-desktop" | "cursor" | "vscode" | "windsurf" | "codex" | "gemini" | "zed"
+  name: string;          // "Claude Code", "Claude", …
+  installed: boolean;    // its app bundle or its settings folder is there
+  connected: boolean;    // its configuration has `jot`
+  current: boolean;      // … with this folder and this jot-mcp
+  manual: "no-cli" | "unreadable" | "unsupported" | null;  // why Jot cannot do it itself (then: copy `snippet`)
+  config: string;        // "~/.cursor/mcp.json"
+  snippet: string;       // Claude Code's command, else the entry its file takes
+  error: string | null;  // sync's failure for it
+}
+// One table (`connect::CLIENTS`) lists the apps: id, name, markers under ~ and app bundles that say it is installed,
+// its configuration file and its form: Claude Code through its CLI (`claude mcp remove/add --scope user`; when `add`
+// fails after `remove`, the old entry is put back with `claude mcp add-json` and the error says whether it was;
+// `claude` looked for in ~/.local/bin, ~/.claude/local, /opt/homebrew/bin, /usr/local/bin, ~/.npm-global/bin,
+// ~/.bun/bin, run with a PATH that has node, its output read as it runs, 30 s at most), JSON files (`mcpServers` /
+// VS Code's `servers` with "type": "stdio" / Zed's `context_servers`, read only), Codex's TOML (`[mcp_servers.jot]`,
+// edited with toml_edit, layout and comments kept). Writes change the `jot` entry only (an entry there keeps its other
+// keys); a JSON file is written out again keeping its data, key order, indentation, CRLF and final newline, not its
+// other formatting. A file that does not parse strictly, or whose servers are not an object / table, is refused (JSON
+// with comments is read for the state, never written). Before Jot's first change the file is copied to
+// `<file>.jot.bak` (kept from then on: copied again only when the file has no `jot`, or the backup is gone); the new
+// file is a temporary one of its own beside it (`create_new`, the old permissions) renamed over it (a symlink is
+// followed; a hard link is not kept). One change at a time per process (a lock around connect, disconnect, sync).
+// A translocated Jot connects nothing; sync then keeps each app's command and moves the folder only. Tests run on a
+// temporary home (`Env`).
+
+module AiAccess {                                // the AI apps' permission (src/ai_access.rs): ai.json, which jot-mcp reads
+  allowsTrashAndRewrite(): boolean;             // off when the file is missing
+  set(allowTrashAndRewrite: boolean, language: string): void;  // throws when it cannot be written
+}
+
+module InputSource {                            // the keyboard input source selected now
+  // Its first language, BCP 47 ("zh-Hans" for Pinyin, "ja", "en"); null where the platform does not say.
+  // macOS: Carbon's Text Input Sources, read on the main thread (a promise for the hop).
+  language(): Promise<string | null>;
+}
+```
+Dictation listens with `nsh-extra`'s `Speech` (`import { Speech } from "nsh-extra"`; `Cargo.toml` turns on its
+`speech` feature, which brings the macOS microphone entitlement); headless tests speak through its fake,
+`app.fake("nsh-extra/speech", …)`.
+Dictation's language (`app/speechlang.ts`, pure): switched to while listening (the language tag, ⌘L: 中 → EN → 日 →
+繁, kept for the run) › chosen in the settings › on "auto", the input source's when it is Chinese or Japanese › the
+first of the user's languages that is Chinese, Japanese or English with a region › Jot's language in its usual region.
+The notch comes from NSH: `displays()` → `cutouts` (`nsh/desktop`).
+
+## The open note's Return and ⌘↩ (app/ui/Paper.tsx)
+
+NSH's `Editor` binds Return (a line break) and ⌘↩ (a line below) itself while it has the focus, before the app's
+bindings; Jot takes them with `keymap.bind`'s `overFocused`, bound while the editor has the focus (`onFocus` /
+`onBlur`). ⌘↩ ticks or unticks the caret's to-do and does nothing on another line (the panel's own ⌘↩, which does
+the same while the note's text has no focus, is in app/ui/Panel.tsx). Return is bound only while the caret is on a list
+item, a to-do or a quote line outside fenced code with nothing selected (`continuation` in app/markdown.ts says what it
+does there), so a line break elsewhere is the editor's own; it writes the line and the next item's start as one
+`editor.edit`, which one undo takes back, and falls back to the editor's `newline` command when the caret has left
+such a line before the key arrives. ⇧↩ is never bound: a plain break. While an input method composes (pinyin), NSH
+gives the bindings no key, so Return commits the letters.
+
+## Row actions (app/actions.ts)
+
+One list of actions per row kind drives the action panel (⌘K / Ctrl+K, and a right click on a row:
+`app/ui/ActionPanel.tsx`), the footer's primary action (what Return does) and the actions' own keys, which work with the
+panel closed. A note: open ↩, show in Finder ⇧⌘F, rename ⌘R (in place, in its row), copy title ⇧⌘C, copy text
+⇧⌘A, lock / unlock (no key), move to trash ⌃X (Windows / Linux Ctrl+D; keys in `app/ui/tokens.ts`). A locked note has
+"Unlock" for "Lock" and no rename or reminder time; ⌃X on it says to unlock it first (`ERR_JOT_LOCKED`). "New" row: create; today's row: show
+to-dos; a to-do: open its note, tick ⌘↩, its reminder time ⇧⌘D (and "Remove Reminder" when it has one); in the open
+note, the caret's to-do's reminder time ⇧⌘D. Nothing but a note can be trashed. Moving to the trash folds the row away
+and turns the footer into "Moved to the Trash" with Undo for 5 s (`T.timing.undoFor`); while it shows, ⌘Z takes
+the trashed notes back one at a time, the last first (an undo stack); then ⌘Z is the search field's again. With the
+note's text focused, Ctrl+D stays the editor's (select the next occurrence); macOS's ⌃X is no text key.
+
+## Packaging (scripts/package-macos.sh)
+
+NSH's `nsh package` bundles its runner and the app's assets only, so the script builds `jot-mcp` (in cargo's
+`target_directory` from `cargo metadata`; lipo'd for `--arch universal`), removes `<out>/<name>.app` (`--name`, else
+nsh.json's), runs `nsh package --target macos` with its options (paths taken from the caller's folder; no ENTRY: it
+packages this checkout; `--arch` is `arm64`, `x86_64` or `universal`), copies `jot-mcp` to
+`<name>.app/Contents/MacOS/jot-mcp`, signs it, signs the bundle again keeping its entitlements, and verifies
+(`codesign --verify --deep --strict`). `NSH` picks the CLI, which must be the NSH `Cargo.toml`'s `nsh-core` names (a
+commit of NSH's repository, `rev`, which a nightly CLI's `--version` names; or a crates.io release; it warns
+otherwise), `SIGN_IDENTITY` the identity: ad hoc by default;
+any other signs both with `--timestamp --options runtime`, as notarization asks.

@@ -1,5 +1,6 @@
 {
   "name": "Jot",
+  "entry": "app/App.tsx",
   "id": "com.madcodelife.jot",
   "version": "1.0.0",
   "build": 1,
@@ -7,7 +8,7 @@
     "macos": "assets/icon-macos.png"
   },
   "rust": ".",
-  "theme": "ui/theme.json",
+  "theme": "app/ui/theme.json",
   "window": {
     "title": "Jot",
     "defaultVisible": false,

@@ -6,8 +6,8 @@
 import { batch, signal, untracked, type Bounds, type ViewRef } from "nsh";
 import { t } from "nsh/i18n";
 import type { Todo } from "jot/native";
-import { morphNext } from "../ui/motion";
-import { T } from "../ui/tokens";
+import { morphNext } from "./ui/motion";
+import { T } from "./ui/tokens";
 import { errorCode, errorMessage, focusRequest, keySteps, notes, notice, refresh, selected, todoItems } from "./store";
 import { dueValue, parseDue } from "./time";
 

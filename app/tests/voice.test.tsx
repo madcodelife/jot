@@ -10,9 +10,9 @@
 // function, tested alone.
 import { expect, open, test } from "nsh/test";
 import { Notes } from "jot/native";
-import { fileQuickNote, todoText } from "../app/quicknote";
-import { chooseSpeechLang, inputSpeechLang, nextSpeechLang, speechLangMark } from "../app/speechlang";
-import { joinSpoken } from "../app/spoken";
+import { fileQuickNote, todoText } from "../quicknote";
+import { chooseSpeechLang, inputSpeechLang, nextSpeechLang, speechLangMark } from "../speechlang";
+import { joinSpoken } from "../spoken";
 
 /** A fresh, empty notes folder. */
 const folder = (name: string) => `/tmp/jot-voice-${name}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;

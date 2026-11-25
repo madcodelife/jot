@@ -5,10 +5,10 @@
 // alarm a selected row without one shows) opens the reminder time picker.
 import { cleanup, effect, Scroll, Text, token, untracked, View, type ScrollRef, type ViewRef } from "nsh";
 import type { Todo } from "jot/native";
-import { clearTodoAnchor, openTodoDue, setTodoAnchor } from "../app/due";
-import { activate, checking, checkTodo, keySteps, now, selected, todoItems, type TodoItem } from "../app/store";
+import { clearTodoAnchor, openTodoDue, setTodoAnchor } from "../due";
+import { activate, checking, checkTodo, keySteps, now, selected, todoItems, type TodoItem } from "../store";
 import { t } from "nsh/i18n";
-import { dueLabel, groupLabel, parseDue, type TodoGroup } from "../app/time";
+import { dueLabel, groupLabel, parseDue, type TodoGroup } from "../time";
 import { Icon } from "./icons";
 import { TodoCheck } from "./parts";
 import { T } from "./tokens";

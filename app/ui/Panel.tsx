@@ -33,11 +33,11 @@ import {
   renaming,
   undoTrash,
   binName,
-} from "../app/store";
-import { actionShortcuts, actionsReturn, actionsTarget, filteredActions, primaryAction, runShortcut, toggleActions, type Action } from "../app/actions";
+} from "../store";
+import { actionShortcuts, actionsReturn, actionsTarget, filteredActions, primaryAction, runShortcut, toggleActions, type Action } from "../actions";
 import { ActionPanel, actionsHeight } from "./ActionPanel";
 import { DuePicker } from "./DuePicker";
-import { duePicker } from "../app/due";
+import { duePicker } from "../due";
 import { Icon } from "./icons";
 import { fadeTo, springConfig } from "./motion";
 import { NoteList } from "./NoteList";
@@ -57,11 +57,11 @@ import {
   startVoice,
   switchVoiceLanguage,
   toggleVoice,
-} from "../app/voice";
+} from "../voice";
 import { Breathing, LanguageTag, MicButton } from "./Voice";
 import { openSettings } from "./Settings";
 import { fade } from "./themes";
-import { tn } from "../app/i18n";
+import { tn } from "../i18n";
 import { keyCaps, T, materialFill, materialStyle } from "./tokens";
 import { TodoView, todoViewHeight } from "./TodoView";
 
@@ -214,7 +214,7 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
   const fieldFocused = signal(true);
 
   // Escape: one step back. ⌘↩: tick the caret's task, tick the selected to-do, or make a note of the query (with
-  // the note's text focused, the note's own ⌘↩ comes before the editor's and this one: ui/Paper.tsx).
+  // the note's text focused, the note's own ⌘↩ comes before the editor's and this one: app/ui/Paper.tsx).
   keymap.bind(
     {
       // Escape while dictating takes back what was said; otherwise one step back.

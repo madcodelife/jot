@@ -5,7 +5,7 @@
 import { expect, open, test } from "nsh/test";
 import { drawsSurface, swatch, themeFromStored, themeVars, THEMES, type ThemeName } from "../ui/themes";
 import { Notes } from "jot/native";
-import { defaultFolder } from "../app/store";
+import { defaultFolder } from "../store";
 
 /** A fresh, empty notes folder. */
 const folder = (name: string) => `/tmp/jot-settings-${name}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;

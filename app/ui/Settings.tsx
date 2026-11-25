@@ -32,8 +32,8 @@ import { AlertDialog, Radio, RadioGroup, Tab, Tabs } from "nsh/base";
 import { Application, displays, Window, type Display, type WindowRef } from "nsh/desktop";
 import { t } from "nsh/i18n";
 import { Connections, Folder, Summon, type AiClient, type MovedNotes } from "jot/native";
-import { aiBusy, aiClients, aiErrors, refreshClients, toggleClient } from "../app/connections";
-import { LANGUAGES, tn } from "../app/i18n";
+import { aiBusy, aiClients, aiErrors, refreshClients, toggleClient } from "../connections";
+import { LANGUAGES, tn } from "../i18n";
 import {
   aiTrashAndRewrite,
   appearance,
@@ -56,9 +56,9 @@ import {
   theme,
   type LanguageChoice,
   type SpeechLanguageChoice,
-} from "../app/settings";
-import { PRIVACY_URL, speechAvailable, speechDenied } from "../app/voice";
-import { changeFolder, errorMessage, folderPath, folderShown, moveNotesTo, trusted } from "../app/store";
+} from "../settings";
+import { PRIVACY_URL, speechAvailable, speechDenied } from "../voice";
+import { changeFolder, errorMessage, folderPath, folderShown, moveNotesTo, trusted } from "../store";
 import appIcon from "./app-icon.svg";
 import { FORM, Hint, MacSwitch, PopupButton, PushButton, TimeInput } from "./controls";
 import { Icon, type IconName } from "./icons";

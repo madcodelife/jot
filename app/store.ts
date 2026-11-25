@@ -5,8 +5,8 @@
 import { batch, computed, platform, reduceMotion, signal, Storage, untracked } from "nsh";
 import { t } from "nsh/i18n";
 import { Folder, Notes, Reminders, Summon, type DueEvent, type ICloudDrive, type MovedNotes, type NoteMeta, type Todo, type TrashedNote } from "jot/native";
-import { morphNext } from "../ui/motion";
-import { T } from "../ui/tokens";
+import { morphNext } from "./ui/motion";
+import { T } from "./ui/tokens";
 import { syncClients } from "./connections";
 import { todoKeyword, todoKeywords } from "./i18n";
 import { groupOf, parseDue, type TodoGroup } from "./time";

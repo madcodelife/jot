@@ -6,8 +6,8 @@
 import { Animated, createAnimatedValue, effect, reduceMotion, Text, token, View } from "nsh";
 import { Button } from "nsh/base";
 import { t } from "nsh/i18n";
-import { speechLangMark, speechLangName } from "../app/speechlang";
-import { switchVoiceLanguage } from "../app/voice";
+import { speechLangMark, speechLangName } from "../speechlang";
+import { switchVoiceLanguage } from "../voice";
 import { Icon } from "./icons";
 import { T } from "./tokens";
 

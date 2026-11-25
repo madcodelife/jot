@@ -150,31 +150,29 @@ nsh test                      # 先跑 Rust 测试，再无界面地跑 TSX 测�
 scripts/package-macos.sh      # 打包出 Jot.app，里面带着 jot-mcp
 ```
 
-`scripts/package-macos.sh` 先编 `jot-mcp`，再跑 `nsh package --target macos`（参数原样传过去：`--arch universal`、
-`--out`、`--name`……），把 `jot-mcp` 放进 `Jot.app/Contents/MacOS`，然后重新签名（默认 ad hoc；`SIGN_IDENTITY` 换别的
-身份，这时带安全时间戳和 hardened runtime）。它用 `PATH` 里的 `nsh`，或 `NSH=/path/to/nsh` 指定的，不是 `Cargo.toml` 写的那个 NSH 时会警告。开发时 `nsh run`
-（debug 构建）会在 cargo 的 target 目录里找 `jot-mcp`：先 `cargo build -p jot-mcp` 一次，就能在设置里连接应用。
+其余的见 [CONTRIBUTING.md](CONTRIBUTING.md)（英文）：和 CI 一样的 rustfmt、clippy，打包，以及各类代码该放在哪里。
 
 目前只支持 macOS。
 
 ## 目录结构
 
 ```
-App.tsx    App 本身（TSX）
-app/       App 逻辑：操作、设置、待办、提醒、语音输入
-ui/        组件和设计 token
-locales/   翻译
+nsh.json   NSH App 的配置；入口是 app/App.tsx
+app/       客户端（TSX）：App.tsx，以及 App 逻辑：操作、设置、待办、提醒、语音输入
+app/ui/    组件和设计 token
+app/tests/ 客户端的 TSX 测试（`nsh test`，无界面运行）
+locales/   翻译（放在 nsh.json 旁边，NSH 从这里读）
 src/       App 的 Rust crate（`jot/native`）
 store/     jot-store：笔记文件夹、待办和时间说法，纯 Rust
 mcp/       jot-mcp，MCP 服务器
-tests/     App 的 TSX 测试（`nsh test`，无界面运行）
-scripts/   打包脚本
+scripts/   安装 NSH、打包脚本
 assets/    App 图标
 docs/      架构说明和产品定义
 design/    可交互的设计稿和 logo
 ```
 
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) 介绍各个 crate 和它们的 API；[docs/PRODUCT.md](docs/PRODUCT.md) 是产品定义（英文）。
+[docs/architecture.md](docs/architecture.md) 是代码的总览，并链接到各主题文档（存储、锁定、待办、MCP、App）；
+[docs/product.md](docs/product.md) 是产品定义（英文）。
 
 ## 致谢
 

@@ -168,34 +168,29 @@ nsh test                      # Rust tests, then the TSX tests, headless
 scripts/package-macos.sh      # build Jot.app, with jot-mcp inside
 ```
 
-`scripts/package-macos.sh` builds `jot-mcp`, runs `nsh package --target macos` (it passes on its options: `--arch
-universal`, `--out`, `--name`, …), puts `jot-mcp` in `Jot.app/Contents/MacOS` and signs both again (ad hoc;
-`SIGN_IDENTITY` for another identity, then with a secure timestamp and the hardened runtime). It runs the `nsh` on your
-`PATH`, or `NSH=/path/to/nsh`, and warns when that is not the NSH `Cargo.toml`
-names. While developing, `nsh run` (a debug build) finds `jot-mcp` in cargo's target folder:
-build it once with `cargo build -p jot-mcp` to connect apps from Settings.
+[CONTRIBUTING.md](CONTRIBUTING.md) covers the rest: rustfmt and clippy as CI runs them, packaging, and where code goes.
 
 Only macOS is supported for now.
 
 ## Project layout
 
 ```
-App.tsx    the app (TSX)
-app/       app logic: actions, settings, to-dos, reminders, dictation
-ui/        components and design tokens
-locales/   translations
+nsh.json   the NSH app; its entry is app/App.tsx
+app/       the client (TSX): App.tsx, then the logic (actions, settings, to-dos, reminders, dictation)
+app/ui/    components and design tokens
+app/tests/ the client's TSX tests (`nsh test`, headless)
+locales/   translations (beside nsh.json, where NSH reads them)
 src/       the app's Rust crate (`jot/native`)
 store/     jot-store: the notes folder, to-dos and time phrases, in plain Rust
 mcp/       jot-mcp, the MCP server
-tests/     the app's TSX tests (`nsh test`, headless)
-scripts/   packaging
+scripts/   installing NSH, packaging
 assets/    the app icon
 docs/      architecture and product definition
 design/    the interactive design draft and the logo
 ```
 
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes the crates and their APIs; [docs/PRODUCT.md](docs/PRODUCT.md) is the product
-definition.
+[docs/architecture.md](docs/architecture.md) maps the code and links a page per topic (storage, locks, to-dos, MCP,
+the app); [docs/product.md](docs/product.md) is the product definition.
 
 ## Credits
 

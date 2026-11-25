@@ -12,13 +12,13 @@ import { Button } from "nsh/base";
 import { displays, Window, type Display, type WindowRef } from "nsh/desktop";
 import { t } from "nsh/i18n";
 import type { Todo } from "jot/native";
-import { errorCode, notes, refresh } from "../app/store";
-import { hm, parseDue } from "../app/time";
+import { errorCode, notes, refresh } from "../store";
+import { hm, parseDue } from "../time";
 import { Icon } from "./icons";
 import { fadeTo, morphNext, springConfig } from "./motion";
 import { TodoCheck } from "./parts";
 import { T } from "./tokens";
-import { listening, listeningLang, PRIVACY_URL } from "../app/voice";
+import { listening, listeningLang, PRIVACY_URL } from "../voice";
 import { Breathing, LanguageTag } from "./Voice";
 
 /** What the island says. */

@@ -1,6 +1,6 @@
 // Jot's design tokens: every radius, size, type step, material, spring and
 // key label in one place, grouped by platform. Colors live in the theme
-// (`ui/theme.json`, light and dark), which classes and `token()` read; this
+// (`app/ui/theme.json`, light and dark), which classes and `token()` read; this
 // file holds what the theme cannot (numbers, materials, motion, words).
 //
 // macOS is implemented; Windows and Linux carry the design's values so the

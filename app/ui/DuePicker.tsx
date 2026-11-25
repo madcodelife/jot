@@ -10,11 +10,11 @@
 import { Animated, createAnimatedValue, effect, keymap, localeSettings, Overlay, reduceMotion, signal, Text, token, untracked, View, type ViewRef } from "nsh";
 import { Button, Calendar, TimeField, type CalendarEntry } from "nsh/base";
 import { t } from "nsh/i18n";
-import { closeDuePicker, duePicker, pickDue, type DuePickerState } from "../app/due";
-import { shownLanguage } from "../app/i18n";
-import { defaultTime } from "../app/settings";
-import { now, opened, stage, todoMode } from "../app/store";
-import { dueLabel, isoDay, parseDue, quickChoices, type QuickChoice } from "../app/time";
+import { closeDuePicker, duePicker, pickDue, type DuePickerState } from "../due";
+import { shownLanguage } from "../i18n";
+import { defaultTime } from "../settings";
+import { now, opened, stage, todoMode } from "../store";
+import { dueLabel, isoDay, parseDue, quickChoices, type QuickChoice } from "../time";
 import { Icon } from "./icons";
 import { springConfig } from "./motion";
 import { Keycaps } from "./parts";
