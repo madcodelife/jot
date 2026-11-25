@@ -8,7 +8,7 @@ description = "Jot's notes folder: format, listing, search, to-dos, atomic write
 
 [dependencies]
 jiff = "0.2.43"
-notify-debouncer-mini = "0.7"
+notify-debouncer-mini = "0.8"
 tempfile = "3"
 serde_json = "1"
 
