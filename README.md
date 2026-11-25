@@ -12,6 +12,17 @@ before or press Return to start a new note. Notes are plain Markdown files in a 
 live inside those notes, and `jot-mcp`, a small MCP server, lets your AI apps (Claude, Cursor, Codex, …) search, read
 and add to the same notes, so you and they keep one notebook between you.
 
+## Install
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/madcodelife/jot/main/install.sh | sh
+```
+
+It downloads the latest release for your Mac (Apple silicon or Intel), puts `Jot.app` in `/Applications` (or
+`~/Applications` when `/Applications` is not writable), quitting and replacing a Jot already there, and opens it. Run it
+again to update; your notes are not touched. Options go after `sh -s --`: `--version v1.2.0`, `--dir ~/Applications`,
+`--no-open`, or `--zip <file>` to install a package you downloaded (a release's or CI's `Jot-*-macos-<arch>.zip`).
+
 ## Features
 
 - **Summon from anywhere**: double-press ⌥ (needs Accessibility access; a fallback shortcut works without it). The

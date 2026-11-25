@@ -11,6 +11,17 @@ Jot 是一个你和 AI 应用共用的 macOS 速记本。在任何地方连按�
 待办和提醒就写在笔记里。`jot-mcp` 是一个小小的 MCP 服务器，让你的 AI 应用（Claude、Cursor、Codex……）也能搜索、读取、
 追加同一批笔记，你和它们共用一个本子。
 
+## 安装
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/madcodelife/jot/main/install.sh | sh
+```
+
+它会下载适合这台 Mac（Apple 芯片或 Intel）的最新版，把 `Jot.app` 放进 `/Applications`（没有写权限时放进
+`~/Applications`；那里已有 Jot 的话先退出它再替换），然后打开。再跑一次就是更新，笔记不受影响。选项写在 `sh -s --` 后面：
+`--version v1.2.0`、`--dir ~/Applications`、`--no-open`，或者 `--zip <文件>` 安装已经下载好的包（发布版或 CI 的
+`Jot-*-macos-<arch>.zip`）。
+
 ## 功能
 
 - **随处呼出**：连按两下 ⌥（需要辅助功能权限；没授权时用备用快捷键）。按 Esc 或失去焦点时浮窗自动收起。

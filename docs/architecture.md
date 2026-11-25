@@ -41,6 +41,7 @@ setting they share is a file the app writes and `jot-mcp` reads ([mcp.md](mcp.md
 | `src/` | `nsh-app-jot`, the Rust that `App.tsx` imports as `jot/native` ([app.md](app.md)); platform code in `src/platform/<os>.rs`. |
 | `store/` | `jot-store`: the notes folder, iCloud Drive, locks, to-dos and time phrases (`store/src/when/`), in plain Rust. |
 | `mcp/` | `jot-mcp`, the MCP server AI apps start ([mcp.md](mcp.md)). |
+| `install.sh` | Installs `Jot.app` from the latest GitHub release (`curl … \| sh`; README's "Install"). |
 | `scripts/install-nsh.sh` | Installs the `nsh` CLI that `Cargo.lock` pins (CI uses it too). |
 | `scripts/package-macos.sh` | Builds `Jot.app` with `jot-mcp` inside ([app.md](app.md#packaging-scriptspackage-macossh)). |
 | `assets/` | The app icon. |
