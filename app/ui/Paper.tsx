@@ -18,13 +18,13 @@ import { cleanup, computed, createAnimatedValue, effect, keymap, Notifications, 
 import { Button, Editor, type EditorDecoration, type EditorPosition, type EditorRef, type EditorSelection } from "nsh/base";
 import { t } from "nsh/i18n";
 import { When, type Conflict } from "jot/native";
-import { caretOnTodo, openDuePicker, setEditorDue } from "../app/due";
-import { continuation, fencedLines, isFence, lineMarks, type MarkKind } from "../app/markdown";
-import { whenOptions } from "../app/settings";
-import { allNotes, errorMessage, lastWritten, notes, now, opened, refresh, revision, save, setEditorFlush, setLocked, showFlash } from "../app/store";
-import { taskLine, toggledLine, withDue } from "../app/tasks";
-import { age, parseDue } from "../app/time";
-import { cancelVoice, joinSpoken, listening, listeningLang, speechAvailable, startVoice, stopVoice, voiceError } from "../app/voice";
+import { caretOnTodo, openDuePicker, setEditorDue } from "../due";
+import { continuation, fencedLines, isFence, lineMarks, type MarkKind } from "../markdown";
+import { whenOptions } from "../settings";
+import { allNotes, errorMessage, lastWritten, notes, now, opened, refresh, revision, save, setEditorFlush, setLocked, showFlash } from "../store";
+import { taskLine, toggledLine, withDue } from "../tasks";
+import { age, parseDue } from "../time";
+import { cancelVoice, joinSpoken, listening, listeningLang, speechAvailable, startVoice, stopVoice, voiceError } from "../voice";
 import { Icon } from "./icons";
 import { fadeTo } from "./motion";
 import { fade } from "./themes";
@@ -534,7 +534,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
       });
     }
     // Selected text is ink on the selection's own fill, without the chips' and code's: the colours above sit at
-    // AA on the paper with no room for a fill under them (tests/settings.test.tsx checks the ink). The editor styles a
+    // AA on the paper with no room for a fill under them (app/tests/settings.test.tsx checks the ink). The editor styles a
     // stretch by the decoration starting last there, so each one in the selection gets its part inked again.
     const styled = out.slice();
     for (const range of selected()) {

@@ -2,7 +2,7 @@
 // syntax, drawn muted, and which are a heading's, a link's or code's words.
 // Pure functions, no app.
 import { expect, test } from "nsh/test";
-import { continuation, fencedLines, lineMarks, type Mark } from "../app/markdown";
+import { continuation, fencedLines, lineMarks, type Mark } from "../markdown";
 
 /** The marks as `kind:text`, in order. */
 const shown = (line: string) => lineMarks(line).map((m: Mark) => `${m.kind}:${line.slice(m.start, m.end)}`);

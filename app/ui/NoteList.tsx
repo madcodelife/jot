@@ -5,11 +5,11 @@
 import { Animated, computed, createAnimatedValue, effect, keymap, reduceMotion, signal, Text, token, untracked, View, type InputRef } from "nsh";
 import { Input } from "nsh/base";
 import { t } from "nsh/i18n";
-import { openActions, type ActionTarget } from "../app/actions";
-import { tn } from "../app/i18n";
-import { activate, allTodos, arriving, entering, finishRename, focusRequest, listEntrance, now, renaming, rows, selected, stage, type Row } from "../app/store";
-import { plainSnippet } from "../app/tasks";
-import { age, hm, todaySummary, type TodaySummary } from "../app/time";
+import { openActions, type ActionTarget } from "../actions";
+import { tn } from "../i18n";
+import { activate, allTodos, arriving, entering, finishRename, focusRequest, listEntrance, now, renaming, rows, selected, stage, type Row } from "../store";
+import { plainSnippet } from "../tasks";
+import { age, hm, todaySummary, type TodaySummary } from "../time";
 import { Icon, type IconName } from "./icons";
 import { springConfig } from "./motion";
 import { Highlight, Keycaps } from "./parts";

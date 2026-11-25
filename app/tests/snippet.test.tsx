@@ -1,7 +1,7 @@
 // The list's snippets: a note's preview (its body on one line, as the store
 // makes it) or a search snippet, shown as words alone. Pure functions, no app.
 import { expect, test } from "nsh/test";
-import { plainSnippet } from "../app/tasks";
+import { plainSnippet } from "../tasks";
 
 test("a code fence and its language go, the code's words stay", () => {
   expect(

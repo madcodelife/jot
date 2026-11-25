@@ -6,7 +6,7 @@
 import { batch, signal, Storage, untracked } from "nsh";
 import { setLocale } from "nsh/i18n";
 import { AiAccess } from "jot/native";
-import { applyAppearance, applyTheme, RETIRED, themeFromStored, type Appearance, type ThemeName } from "../ui/themes";
+import { applyAppearance, applyTheme, RETIRED, themeFromStored, type Appearance, type ThemeName } from "./ui/themes";
 import { LANGUAGES, shownLanguage, type Language } from "./i18n";
 
 /** "system": the user's language; otherwise one of Jot's. */

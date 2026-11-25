@@ -4,7 +4,7 @@
 import { Clipboard, computed, signal, untracked } from "nsh";
 import { t } from "nsh/i18n";
 import type { Todo } from "jot/native";
-import { keyCaps, T } from "../ui/tokens";
+import { keyCaps, T } from "./ui/tokens";
 import { caretOnTodo, openDueAtCaret, openTodoDue, writeTodoDue } from "./due";
 import {
   activate,

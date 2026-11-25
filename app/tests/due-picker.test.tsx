@@ -5,8 +5,8 @@
 // from the clock the test runs at, as the picker works them out.
 import { expect, open, test } from "nsh/test";
 import { Notes } from "jot/native";
-import { withDue } from "../app/tasks";
-import { quickChoices } from "../app/time";
+import { withDue } from "../tasks";
+import { quickChoices } from "../time";
 
 const folder = (name: string) => `/tmp/jot-due-${name}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 

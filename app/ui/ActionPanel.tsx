@@ -6,8 +6,8 @@
 import { Animated, computed, createAnimatedValue, effect, keymap, reduceMotion, Text, token, untracked, View } from "nsh";
 import { Input } from "nsh/base";
 import { t } from "nsh/i18n";
-import { actionQuery, actionSelected, actionsTarget, closeActions, filteredActions, runAction, type Action } from "../app/actions";
-import { focusRequest, stage } from "../app/store";
+import { actionQuery, actionSelected, actionsTarget, closeActions, filteredActions, runAction, type Action } from "../actions";
+import { focusRequest, stage } from "../store";
 import { springConfig } from "./motion";
 import { Keycaps } from "./parts";
 import { fade } from "./themes";

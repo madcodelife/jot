@@ -4,7 +4,7 @@
 // from the `sys-*` tokens, which no Jot theme overrides: they follow the
 // appearance, in the system's accent, as macOS's own settings do (a
 // `primary` push button too: the settings are the system's, the themes only
-// dress the panel). Motion is the app's springs (`ui/motion.ts`).
+// dress the panel). Motion is the app's springs (`app/ui/motion.ts`).
 import { createAnimatedValue, effect, Text, token, untracked, View, type JSX } from "nsh";
 import { Button, Select, Switch, TimeField } from "nsh/base";
 import { Icon, type IconName } from "./icons";
