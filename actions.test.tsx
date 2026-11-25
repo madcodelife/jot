@@ -207,3 +207,23 @@ test("Escape leaves a rename without changing the title", async () => {
   expect(new Notes(dir).read("护照到期")).not.toBeNull();
   app.dispose();
 });
+
+test("⌘K in the open note offers no \"Open\", and the footer names no Return action there", async () => {
+  const dir = twoNotes("actions-open");
+  const app = await openJot(dir);
+  await app.waitFor("id:row:护照到期");
+  await app.type("id:search", "护照");
+  await app.waitFor("id:row:create");
+  // In the list, Return opens the selected note, as the footer says.
+  expect(app.texts()).toContain("打开");
+  await app.press("id:row:护照到期");
+  await app.waitFor("id:paper");
+  await app.wait(500);
+  expect(app.texts()).not.toContain("打开");
+
+  await app.keyboard.press("mod+k");
+  await app.waitFor("id:actions");
+  expect(app.shows("id:action:open")).toBe(false);
+  for (const id of ["reveal", "rename", "copy-title", "copy-body", "trash"]) expect(app.shows(`id:action:${id}`)).toBe(true);
+  app.dispose();
+});

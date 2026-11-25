@@ -41,3 +41,17 @@ test("lines are joined with a dot, empty ones dropped", () => {
 test("dashes, arrows and numbers inside the text stay", () => {
   expect(plainSnippet("2027-03 到期，a -> b，--dir，C# 1. 第一步")).toBe("2027-03 到期，a -> b，--dir，C# 1. 第一步");
 });
+
+test("a single star or underscore around words goes, as the double ones do; a lone one or an identifier's stays", () => {
+  expect(plainSnippet("今天把 **Jot** 的编辑器走一遍，看看 *Markdown* 的每种元素")).toBe("今天把 Jot 的编辑器走一遍，看看 Markdown 的每种元素");
+  expect(plainSnippet("_slowly_ is fine")).toBe("slowly is fine");
+  expect(plainSnippet("x*y*z and snake_case_name")).toBe("x*y*z and snake_case_name");
+});
+
+test("a sign between numbers is no list marker, and a lone star or tilde pair is no emphasis", () => {
+  expect(plainSnippet("面积 2 * 3 = 6，余 5 - 3，再 1 + 1")).toBe("面积 2 * 3 = 6，余 5 - 3，再 1 + 1");
+  expect(plainSnippet("(2 + 3) * (4 - 1)")).toBe("(2 + 3) * (4 - 1)");
+  expect(plainSnippet("2 ** 10 = 1024，约 ~~ 1000")).toBe("2 ** 10 = 1024，约 ~~ 1000");
+  // Still markers: a list after a number's line, and one starting with a number.
+  expect(plainSnippet("买 3 个 - 牛奶 - 2 盒鸡蛋")).toBe("买 3 个 牛奶 2 盒鸡蛋");
+});

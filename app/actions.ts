@@ -12,7 +12,6 @@ import {
   desktopOs,
   checkTodo,
   errorMessage,
-  focusRequest,
   notes,
   notice,
   opened,
@@ -77,16 +76,14 @@ const action = (id: string, label: string, shortcut: string, run: () => void, de
   run,
 });
 
-/** The actions of `target`, in the panel's order; the one on Return first. No to-do, "today" or "new" row can be trashed. */
+/** The actions of `target`, in the panel's order; the one on Return first (none in the open note). No to-do, "today" or "new" row can be trashed. */
 export function actionsFor(target: ActionTarget): Action[] {
   switch (target.kind) {
     case "note": {
       const { title } = target;
       return [
-        // With the note open, "open" puts the caret back in it.
-        action("open", t("actions.open"), "enter", () =>
-          target.index === null ? focusRequest.set({ target: "editor" }) : activate(target.index),
-        ),
+        // A note in the list opens on Return; one already open has nothing to open (Escape puts the caret back).
+        ...(target.index === null ? [] : [action("open", t("actions.open"), "enter", () => activate(target.index as number))]),
         // In the open note, with the caret on an open to-do: its reminder time.
         ...(target.index === null && caretOnTodo() ? [action("due", t("actions.due"), T.keys.due, () => void openDueAtCaret())] : []),
         action("reveal", t(`actions.reveal.${desktopOs}`), T.keys.reveal, () => revealNote(title)),
@@ -110,10 +107,11 @@ export function actionsFor(target: ActionTarget): Action[] {
   }
 }
 
-/** The action Return runs on the row in focus (the footer names it). */
+/** The action Return runs on the row in focus (the footer names it); none in the open note, where Return is a line break. */
 export const primaryAction = computed(() => {
   const target = targetInFocus();
-  return target ? actionsFor(target)[0] : null;
+  const first = target ? actionsFor(target)[0] : null;
+  return first?.shortcut === "enter" ? first : null;
 });
 
 /** Runs the action of the row in focus bound to `shortcut` (an action's own key, the panel closed or open). */

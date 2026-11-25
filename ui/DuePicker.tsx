@@ -23,8 +23,11 @@ import { keyCaps, materialFill, materialStyle, T } from "./tokens";
 
 /** A day of the calendar: its side, in points. */
 const CELL = 28;
-/** The quick choices' column, and the calendar's (its seven days and its padding). */
-const LIST_WIDTH = 196;
+/**
+ * The quick choices' column, and the calendar's (its seven days and its padding). The column fits the longest
+ * label beside its time whole ("Tomorrow Morning", "Tomorrow 9:00 AM"): at 196 English ones were cut short.
+ */
+const LIST_WIDTH = 252;
 const CALENDAR_PAD = 10;
 const CALENDAR_WIDTH = 7 * CELL + CALENDAR_PAD * 2;
 
@@ -109,7 +112,8 @@ function Picker(props: { state: DuePickerState }) {
       placement="bottom"
       align={props.state.target.kind === "todo" ? "end" : "start"}
       offset={6}
-      margin={8}
+      // Inside the panel, as far from its edges as the paper is: the window around it is only the shadow's room.
+      margin={T.size.windowMargin + T.size.inset}
       onPressOutside={() => closeDuePicker()}
       onCancel={() => closeDuePicker()}
       // Nothing to anchor to (the chip's box was not to be had): at the panel's foot, as the notices are.
