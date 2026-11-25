@@ -390,3 +390,9 @@ export function materialStyle() {
 
 /** The fill drawn with the material: the theme's own surface where it draws one (`drawsSurface`), else none, so the native glass shows. Reactive. */
 export const materialFill = () => (drawsSurface(activeTheme(), nativeGlass) ? "bg-glass-fill" : "bg-transparent");
+
+/**
+ * The floating layer's rim: none on Liquid Glass, which draws its own lit edge (Spotlight has no other), a hairline
+ * on the blur fallback and on a solid theme, where nothing else marks the edge. Reactive.
+ */
+export const materialEdge = () => (nativeGlass && !solidTheme() ? "" : "border border-glass-edge");

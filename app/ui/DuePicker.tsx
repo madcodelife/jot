@@ -19,7 +19,7 @@ import { Icon } from "./icons";
 import { springConfig } from "./motion";
 import { Keycaps } from "./parts";
 import { fade } from "./themes";
-import { keyCaps, materialFill, materialStyle, T } from "./tokens";
+import { keyCaps, materialEdge, materialFill, materialStyle, T } from "./tokens";
 
 /** A day of the calendar: its side, in points. */
 const CELL = 28;
@@ -123,7 +123,7 @@ function Picker(props: { state: DuePickerState }) {
         testID="due-picker"
         role="dialog"
         accessibilityLabel={t("due.title")}
-        class={`flex-row ${materialFill()} border border-glass-edge ${fade()}`}
+        class={`flex-row ${materialFill()} ${materialEdge()} ${fade()}`}
         style={{
           ...materialStyle(),
           borderRadius: T.radius.actions,
