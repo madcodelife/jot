@@ -595,10 +595,10 @@ pub(crate) fn expand_home(dir: &str) -> PathBuf {
         if let Some(home) = home() {
             return home;
         }
-    } else if let Some(rest) = dir.strip_prefix("~/") {
-        if let Some(home) = home() {
-            return home.join(rest);
-        }
+    } else if let Some(rest) = dir.strip_prefix("~/")
+        && let Some(home) = home()
+    {
+        return home.join(rest);
     }
     PathBuf::from(dir)
 }

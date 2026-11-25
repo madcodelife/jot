@@ -43,7 +43,8 @@ impl Summon {
     /// Asks for that permission: on macOS the system's prompt the first
     /// time, the Accessibility pane of System Settings after that.
     pub fn request_trust(cx: &mut ModuleCx) {
-        let _ = cx.run_on_main_thread(platform::request_trust);
+        // Queued as it is called: dropping the result does not cancel it.
+        drop(cx.run_on_main_thread(platform::request_trust));
     }
 
     /// Calls `listener` when `key` is tapped twice in a row, in any app.
