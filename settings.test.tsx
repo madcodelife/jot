@@ -5,6 +5,7 @@
 import { expect, open, test } from "nsh/test";
 import { drawsSurface, swatch, themeFromStored, themeVars, THEMES, type ThemeName } from "./ui/themes";
 import { Notes } from "jot/native";
+import { defaultFolder } from "./app/store";
 
 /** A fresh, empty notes folder. */
 const folder = (name: string) => `/tmp/jot-settings-${name}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
@@ -68,8 +69,8 @@ const aiClient = (id: string, name: string, over: Record<string, unknown> = {}) 
   ...over,
 });
 
-/** Opens Jot on `dir`, as on its first run, with `storage` over the folder's key. */
-const openJot = (dir: string, storage: Record<string, string> = {}, modules: Record<string, unknown> = {}) =>
+/** Opens Jot on `dir` (`null`: no folder chosen yet), as on its first run, with `storage` over the folder's key. */
+const openJot = (dir: string | null, storage: Record<string, string> = {}, modules: Record<string, unknown> = {}) =>
   open("./App.tsx", {
     platform: "macos",
     width: 1200,
@@ -77,7 +78,7 @@ const openJot = (dir: string, storage: Record<string, string> = {}, modules: Rec
     reducedMotion: true,
     locale: "zh-CN",
     localeSettings: { hourCycle: "h23" },
-    storage: { "jot.dir": dir, ...storage },
+    storage: { ...(dir === null ? {} : { "jot.dir": dir }), ...storage },
     modules: {
       "jot/native": {
         "Summon.isTrusted": true,
@@ -635,4 +636,24 @@ test("a notes folder already in iCloud Drive shows so, with nothing to move", as
   expect(app.shows("id:settings-icloud-move")).toBe(false);
   expect(app.texts()).toContain("已在 iCloud 云盘");
   app.dispose();
+});
+
+test("a first run puts the notes in iCloud Drive when it is on, and remembers the folder", async () => {
+  const { jot } = drive("icloud-default");
+  const app = await openJot(null, {}, { "Folder.icloud": { path: jot, available: true } });
+  await app.waitUntil(() => app.storage()["jot.dir"] === jot);
+  await openSettings(app);
+  await app.waitFor("id:settings-icloud-on");
+  expect(app.shows("id:settings-icloud-move")).toBe(false);
+  app.dispose();
+});
+
+test("without a folder chosen, iCloud Drive's is the default only on a first run with iCloud Drive on", () => {
+  const icloud = "/Users/me/Library/Mobile Documents/com~apple~CloudDocs/Jot";
+  expect(defaultFolder(false, { path: icloud, available: true })).toBe(icloud);
+  // iCloud Drive off, or none (not macOS): the Documents folder.
+  expect(defaultFolder(false, { path: icloud, available: false })).toBe("~/Documents/Jot");
+  expect(defaultFolder(false, { path: null, available: false })).toBe("~/Documents/Jot");
+  // Jot ran here before: its notes are in the Documents folder, and stay there.
+  expect(defaultFolder(true, { path: icloud, available: true })).toBe("~/Documents/Jot");
 });

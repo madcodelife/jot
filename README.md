@@ -36,8 +36,8 @@ and add to the same notes, so you and they keep one notebook between you.
 
 ## How notes are stored
 
-- One note is one `.md` file directly in the notes folder (`~/Documents/Jot` by default, changeable in Settings). The
-  file name is the title.
+- One note is one `.md` file directly in the notes folder (changeable in Settings; by default `iCloud Drive/Jot` when
+  iCloud Drive is on, else `~/Documents/Jot`). The file name is the title.
 - Notes an AI app creates start with YAML frontmatter that names it, `source: claude`, `source: cursor`, or
   `source: "agent:<name>"` for an app Jot doesn't know (the name the app gives itself when it connects); your own
   notes have none. Only these values mark a note as an app's: a `source` of your own (a web clipper's URL, a book) is

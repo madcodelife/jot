@@ -31,7 +31,8 @@ Jot 是一个你和 AI 应用共用的 macOS 速记本。在任何地方连按�
 
 ## 笔记怎么存
 
-- 一条笔记就是笔记文件夹（默认 `~/Documents/Jot`，可在设置里改）下的一个 `.md` 文件，文件名就是标题。
+- 一条笔记就是笔记文件夹（可在设置里改；打开了 iCloud 云盘时默认 `iCloud 云盘/Jot`，否则 `~/Documents/Jot`）下的一个 `.md`
+  文件，文件名就是标题。
 - AI 应用新建的笔记开头有 YAML frontmatter，记下是谁写的：`source: claude`、`source: cursor`，Jot 不认识的应用写成
   `source: "agent:<名字>"`（取应用连接时报的名字）；你自己写的笔记没有。只有这几种值才算 AI 写的：你自己写的
   `source`（剪藏的网址、书名）还是你的。锁定的笔记除了文件的「已锁定」标记，frontmatter 里还有 `locked: true`。其他

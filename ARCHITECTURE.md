@@ -319,6 +319,10 @@ is off: `Folder.icloud`), asks first (`AlertDialog`), moves the notes to `~/Libr
 Documents/com~apple~CloudDocs/Jot` (`moveNotesTo` in app/store.ts: `Folder.moveNotes`, then `changeFolder`, which
 the connected AI apps follow), and says what it did; a folder already in iCloud Drive shows "In iCloud Drive".
 
+With no folder stored (`jot.dir`), `openFolder` takes `defaultFolder`: Jot's folder in iCloud Drive when
+`Folder.icloud` says it is on, else `~/Documents/Jot`; a Mac already welcomed (`jot.welcomed`, an earlier version)
+keeps `~/Documents/Jot`. The folder taken is stored, so iCloud Drive turned off or on later does not move Jot.
+
 ## The app and locked notes
 
 `isLocked(title)` (app/store.ts) reads `NoteMeta.locked` from the listing, so a lock set or cleared anywhere (another

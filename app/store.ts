@@ -4,7 +4,7 @@
 // them, so every change goes through one place.
 import { batch, computed, platform, reduceMotion, signal, Storage, untracked } from "nsh";
 import { t } from "nsh/i18n";
-import { Folder, Notes, Reminders, Summon, type DueEvent, type MovedNotes, type NoteMeta, type Todo, type TrashedNote } from "jot/native";
+import { Folder, Notes, Reminders, Summon, type DueEvent, type ICloudDrive, type MovedNotes, type NoteMeta, type Todo, type TrashedNote } from "jot/native";
 import { morphNext } from "../ui/motion";
 import { T } from "../ui/tokens";
 import { syncClients } from "./connections";
@@ -201,12 +201,27 @@ export const todoItems = computed<TodoItem[]>(() => {
 /** How many rows the arrow keys move through. */
 const selectable = () => (todoMode() ? todoItems().filter((i) => i.kind === "todo").length : rows().length);
 
-/** Opens the notes folder (Storage's `jot.dir`, else ~/Documents/Jot) and watches it. */
-export async function openFolder(): Promise<Notes | null> {
+/**
+ * The notes folder of a Mac with none chosen yet: Jot's folder in iCloud Drive when iCloud Drive is on here, so the
+ * notes reach the user's other devices and outlive this Mac from the start; else ~/Documents/Jot. A Mac that ran
+ * Jot before (welcomed) keeps ~/Documents/Jot, the folder its notes are in.
+ */
+export function defaultFolder(welcomed: boolean, drive: ICloudDrive): string {
   // `Notes` expands a leading "~/" itself.
-  const dir = (await Storage.getItem(DIR_KEY)) ?? `~/${T.folder.path}`;
+  const local = `~/${T.folder.path}`;
+  if (welcomed) return local;
+  return drive.available && drive.path ? drive.path : local;
+}
+
+/** Opens the notes folder (Storage's `jot.dir`, else the default one, then remembered) and watches it. */
+export async function openFolder(): Promise<Notes | null> {
+  const stored = await Storage.getItem(DIR_KEY);
+  const dir = stored ?? defaultFolder(!!(await Storage.getItem(WELCOMED_KEY)), Folder.icloud());
   try {
-    return useFolder(new Notes(dir));
+    const n = useFolder(new Notes(dir));
+    // Remembered, so the folder stays put when iCloud Drive is turned off or on later.
+    if (stored == null) void Storage.setItem(DIR_KEY, dir);
+    return n;
   } catch (error) {
     folderError.set(errorMessage(error));
     return null;
