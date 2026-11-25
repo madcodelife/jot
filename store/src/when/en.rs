@@ -241,10 +241,11 @@ fn day_number(text: &str, start: usize) -> Option<(usize, u32)> {
 fn year(text: &str, start: usize) -> Option<(usize, u32)> {
     let cursor = skip_spaces(
         text,
-        text[start..]
-            .starts_with(',')
-            .then_some(start + 1)
-            .unwrap_or(start),
+        if text[start..].starts_with(',') {
+            start + 1
+        } else {
+            start
+        },
     );
     if cursor == start {
         return None;
