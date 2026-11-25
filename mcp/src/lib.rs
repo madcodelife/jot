@@ -1092,7 +1092,7 @@ fn civil_from_days(days: i64) -> (i64, u32, u32) {
 
 /// The system's local wall-clock time.
 fn local_now() -> DateTime {
-    jiff::Zoned::now().datetime()
+    jiff::ZonedDateTime::now().datetime()
 }
 
 /// A tool's `due`: ISO local time (`2026-11-14T09:00`, `2026-11-14 09:00`), an instant with an offset (shown
@@ -1105,7 +1105,11 @@ fn parse_due(due: &str, now: DateTime) -> Option<DateTime> {
         return Some(day.at(9, 0, 0, 0));
     }
     if let Ok(instant) = due.parse::<jiff::Timestamp>() {
-        return Some(instant.to_zoned(jiff::tz::TimeZone::system()).datetime());
+        return Some(
+            instant
+                .to_zoned_datetime(jiff::tz::TimeZone::system())
+                .datetime(),
+        );
     }
     if let Ok(at) = due.parse::<DateTime>() {
         return Some(at);
