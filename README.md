@@ -15,7 +15,7 @@ and add to the same notes, so you and they keep one notebook between you.
 ## Install
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/madcodelife/jot/main/install.sh | sh
+curl -fsSL https://madcodelife.github.io/jot/install.sh | sh
 ```
 
 It downloads the latest release for your Mac (Apple silicon or Intel), puts `Jot.app` in `/Applications` (or

@@ -14,7 +14,7 @@ Jot 是一个你和 AI 应用共用的 macOS 速记本。在任何地方连按�
 ## 安装
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/madcodelife/jot/main/install.sh | sh
+curl -fsSL https://madcodelife.github.io/jot/install.sh | sh
 ```
 
 它会下载适合这台 Mac（Apple 芯片或 Intel）的最新版，把 `Jot.app` 放进 `/Applications`（没有写权限时放进

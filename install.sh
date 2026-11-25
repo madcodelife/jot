@@ -1,7 +1,7 @@
 #!/bin/sh
 # Installs Jot.app from a GitHub release of madcodelife/jot:
 #
-#   curl -fsSL https://raw.githubusercontent.com/madcodelife/jot/main/install.sh | sh
+#   curl -fsSL https://madcodelife.github.io/jot/install.sh | sh
 #
 #   1. picks the package for this Mac (arm64 or x86_64; Apple silicon under Rosetta gets arm64);
 #   2. downloads it from the latest release (or --version), unpacks it and checks its signature;
