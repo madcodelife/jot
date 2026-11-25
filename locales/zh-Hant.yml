@@ -1,0 +1,345 @@
+# 繁體中文（台灣用語）。zh-Hant-TW、zh-Hant-HK 都落到這裡。
+
+language:
+  system: 跟隨系統
+
+tray:
+  new_note: 新增筆記
+  summon: 叫出 Jot（%{keys}）
+  todos: 待辦
+  enable_double_tap: 開啟連按兩下 %{keys}…
+  settings: 設定…
+
+notify:
+  missed:
+    one: 錯過了 %{count} 個提醒
+    other: 錯過了 %{count} 個提醒
+  list_separator: 、
+  reminders_failed: 提醒無法啟動：%{error}
+  shortcut_taken: "%{keys} 已被其他 App 佔用，請從選單列的 Jot 叫出"
+
+search:
+  placeholder: 搜尋或新增…
+  label: 搜尋或新增筆記
+
+empty:
+  title: 還沒有筆記
+  first: 輸入一個標題，按 %{keys} 就是第一則。
+  agent: 也可以讓 AI App 幫你「記到 Jot」。
+
+keys:
+  actions: 動作
+
+footer:
+  notes:
+    one: "%{count} 則筆記 · %{folder}"
+    other: "%{count} 則筆記 · %{folder}"
+  open:
+    one: "%{count} 件未完成"
+    other: "%{count} 件未完成"
+
+list:
+  blank: 空白筆記
+  downloading: "正在下載…"
+  create: 新增「%{title}」
+  create_hint: 按 Return 直接開始寫
+  today:
+    one: 今天 %{count} 件待辦
+    other: 今天 %{count} 件待辦
+  today_none: 今天沒有待辦
+  late:
+    one: "%{count} 件已過期"
+    other: "%{count} 件已過期"
+  late_title:
+    one: "%{count} 件待辦已過期"
+    other: "%{count} 件待辦已過期"
+  all_done: 今天的都完成了
+  next: 下一件 %{time} %{text}
+  see_all: 按 Return 查看所有待辦
+  dots: 今天 %{total} 件，完成 %{done} 件
+
+todo:
+  keywords: 待辦
+  group:
+    late: 已過期
+    today: 今天
+    tomorrow: 明天
+    later: 之後
+    none: 沒有時間
+  empty: 沒有未完成的待辦
+  tick: 勾選「%{text}」
+  row: "%{text}，%{note}"
+  due_tip: "%{when} · 到時提醒"
+  due_change: 更改「%{text}」的提醒時間
+
+note:
+  invalid_title: 「%{title}」不能當標題
+  create_failed: 無法新增「%{title}」：%{error}
+  rename_taken: 已經有叫「%{title}」的筆記
+  rename_failed: 無法重新命名「%{title}」：%{error}
+
+paper:
+  by_agent: "%{agent} 記的"
+  saved: 已儲存
+  placeholder: 寫點什麼…
+  label: 筆記「%{title}」
+  save_failed: 無法儲存：%{error}
+  appended: 結尾新加了一段，你的游標沒有動
+  conflict: 這則筆記在別處改過了
+  view_end: 查看 ↓
+  use_theirs: 用那邊的
+  downloading: "這則筆記還沒下載到這台 Mac，正在下載…"
+  other_device: "另一台裝置"
+  versions: "%{device} 上也同時改過這則筆記（%{when}），iCloud 留下了兩個版本。留哪個？"
+  versions_more: "%{device} 上也同時改過這則筆記（%{when}），iCloud 還留著另外 %{more} 個版本。先看這一個：留哪個？"
+  keep_mine: "留這台 Mac 上的"
+  keep_theirs: "用另一個"
+  keep_both: "兩個都留"
+  copy_title: "%{title}（%{device}）"
+  kept_both: "另一個版本存成了「%{title}」"
+  resolve_failed: "無法處理這兩個版本：%{error}"
+
+time:
+  just_now: 剛剛
+  minutes_ago:
+    one: "%{count} 分鐘前"
+    other: "%{count} 分鐘前"
+  today_at: 今天 %{time}
+  today: 今天
+  tomorrow: 明天
+  day_after: 後天
+  yesterday: 昨天
+
+island:
+  writing: "%{agent} · 正在記到 Jot"
+  written: "%{agent} · 已記下"
+  done: 已完成
+  remind: 提醒 · %{time} · %{note}
+  now: 現在
+  writing_label: 正在寫
+  locked: 已鎖定 · 在 Jot 裡解鎖這則筆記後才能勾選
+
+settings:
+  title: 設定
+  tabs:
+    general: 一般
+    summon: 叫出與快速鍵
+    voice: 語音
+    appearance: 外觀
+    reminders: 提醒
+    ai: AI App
+    about: 關於
+  folder:
+    label: 筆記資料夾
+    hint: 每則筆記是這裡的一個 .md 檔案。用 iCloud 雲碟、Dropbox 或 Syncthing 同步這個資料夾。
+    change: 更改…
+    choose: 選擇
+    reveal: 在 Finder 中顯示
+    failed: 無法開啟這個資料夾：%{error}
+  icloud:
+    label: "iCloud 雲碟"
+    move: "放到 iCloud 雲碟…"
+    moving: "正在移動…"
+    hint: "把筆記移到 iCloud 雲碟，在 iPhone、iPad 和其他 Mac 上也能看到。"
+    off: "iCloud 雲碟沒有開啟：在「系統設定」›「Apple 帳號」›「iCloud」裡開啟「iCloud 雲碟」。"
+    on: "筆記在 iCloud 雲碟裡，會同步到你的其他裝置。"
+    synced: "已在 iCloud 雲碟"
+    confirm_title: "把筆記移到 iCloud 雲碟？"
+    confirm: "%{from} 裡的筆記會移到 %{to}，之後 Jot 和連接的 AI 應用程式都用那個資料夾。那裡已有的筆記不會被覆蓋：同名的加上編號另存。"
+    confirm_move: "移到 iCloud 雲碟"
+    cancel: "取消"
+    moved:
+      one: "已把 %{count} 則筆記移到 iCloud 雲碟。"
+      other: "已把 %{count} 則筆記移到 iCloud 雲碟。"
+    renamed:
+      one: "「%{from}」和那裡的筆記同名，存成了「%{to}」。"
+      other: "%{count} 則和那裡的筆記同名，加上編號另存了，例如「%{to}」。"
+    same:
+      one: "%{count} 則那裡已有一模一樣的，留在了 %{folder}。"
+      other: "%{count} 則那裡已有一模一樣的，留在了 %{folder}。"
+    failed_some:
+      one: "%{count} 則無法移動，還在 %{folder}：%{error}"
+      other: "%{count} 則無法移動，還在 %{folder}：%{error}"
+    failed: "無法移到 iCloud 雲碟：%{error}"
+  summon:
+    double: 連按兩下 %{key}
+    on: 已開啟
+    grant: 前往授權…
+    fallback: 備用快速鍵
+    footnote: 連按兩下 %{key} 需要在「隱私權與安全性 › 輔助使用」裡允許 Jot；無法使用時用備用快速鍵叫出。
+  voice:
+    hold: 按住 %{key} 說話
+    hold_hint: 浮窗裡按住 %{key} 輸入；在其他 App 裡連按兩下 %{key} 並按住，隨口記一句。
+    language: 辨識語言
+    language_auto: 跟隨目前的輸入法
+    permission: 麥克風與語音辨識
+    permission_hint: 第一次說話時 macOS 會請求這兩項權限
+    permissions: 權限
+    denied_hint: 尚未授權，到系統設定的「隱私權與安全性」裡打開
+    grant: 去授權…
+  startup:
+    label: 啟動
+  login:
+    label: 登入時開啟
+    hint: 登入後 Jot 會待在選單列
+  language:
+    label: 語言
+    interface: 介面語言
+  appearance:
+    label: 外觀
+    system: 跟隨系統
+    light: 淺色
+    dark: 深色
+  theme:
+    label: 浮窗主題
+    footnote: 主題只換浮窗的顏色。
+    selected: 已選
+  reminders:
+    notifications: 桌面通知
+    notifications_hint: 到時跳出系統通知
+    island: 瀏海處的動態島
+    island_hint: 到時和 AI App 記筆記時，從瀏海處展開
+    island_no_notch: 這個螢幕沒有瀏海
+    default_time: 預設提醒時間
+    time: 時間
+    default_time_hint: 只寫日期時用這個時間，例如「明天繳房租」。
+  ai:
+    intro: 把這台 Mac 上的 AI App 接到 Jot，它們就能搜尋、讀取和新增這個資料夾裡的筆記，也能幫你管待辦。
+    apps: 這台 Mac 上的 App
+    looking: 正在尋找 App…
+    none: 這台 Mac 上沒有找到支援的 AI App。其他 App 可以用下面的通用設定。
+    connected: 已連線
+    not_connected: 未連線
+    elsewhere: 連線的是另一個資料夾
+    manual: 需要手動設定
+    connect: 連線
+    disconnect: 中斷連線
+    update: 更新
+    copy: 拷貝
+    copied: 已拷貝
+    copy_setup: 拷貝設定
+    restart: 如果 %{app} 開著，重新開啟才會載入 Jot。
+    no_cli: 沒找到 claude 指令。拷貝這行指令，到終端機執行。
+    unreadable: "%{file} 裡有註解或讀不懂，Jot 不會改它。拷貝設定，自己加進去。"
+    unsupported: "拷貝設定，加到 %{file} 裡。"
+    not_moved: 它還連著之前的資料夾，Jot 沒辦法替它換過來。
+    no_server: 在 Jot 旁邊沒找到 jot-mcp。開發時先執行「cargo build -p jot-mcp」，再打開這一頁。
+    translocated: Jot 現在是從「下載項目」之類的暫時位置打開的，連線後路徑會失效。先把 Jot 拖進「應用程式」資料夾，再從那裡打開它。
+    other: 其他 App
+    command: 指令
+    json: 設定
+    then: 之後在 App 裡說「記到 Jot」或「我今天有什麼要做的」。
+    access: 權限
+    trash_rewrite: 允許 AI App 把筆記丟到垃圾桶和改寫筆記
+    trash_rewrite_hint: 它們丟掉的筆記、改寫前的筆記都會放進垃圾桶，可以從那裡找回。鎖定的筆記不受影響。
+    trash_rewrite_failed: 無法儲存這項設定：%{error}
+  about:
+    title: 關於 Jot
+    tagline: 你和 AI 共用的速記本
+    version: 版本 %{version}（%{build}）
+    built_with: 以 Native Shell 打造
+    open: 打開
+    themes_credit: 主題配色參考 GitHub Theme、One Dark Pro、Atom One Light、Dracula、Tokyo Night、Catppuccin 和 Gruvbox（MIT）。
+
+theme:
+  default: 預設
+  github: GitHub
+  one: One
+  dracula: Dracula
+  tokyo: Tokyo Night
+  catppuccin: Catppuccin
+  gruvbox: Gruvbox
+  contrast: 高對比
+
+voice:
+  listening: 正在聽…
+  language_tag: 辨識語言：%{language}，點按或 ⌘L 換一種
+  start: 語音輸入
+  start_note: 在游標處說話
+  stop: 說完了
+  cancel: 取消
+  finish_release: 放開
+  finish_press: 再按一次麥克風結束
+  # 隨口一句沒帶時間時，記進這則筆記。
+  inbox: 收件匣
+  island:
+    listening: 正在聽 · 放開就記下
+    inbox: 已記下 · %{note}
+    todo: 已加提醒
+    open_settings: 按這裡打開系統設定
+    try_again: 再說一次試試
+  error:
+    empty: 沒聽清楚
+    not-allowed: 沒有麥克風或語音辨識權限
+    no-speech: 沒聽到聲音
+    audio-capture: 麥克風無法使用
+    network: 語音辨識需要連網
+    language-not-supported: 還不能辨識這種語言
+    unavailable: 這台裝置無法使用語音辨識
+    failed: 沒能辨識出來
+
+actions:
+  label: 動作
+  filter: 搜尋動作…
+  none: 沒有符合的動作
+  open: 開啟
+  reveal:
+    macos: 在 Finder 中顯示
+    windows: 在檔案總管中顯示
+    linux: 在檔案管理員中顯示
+  rename: 重新命名
+  rename_label: 「%{title}」的新標題
+  copy_title: 拷貝標題
+  copy_body: 拷貝全文
+  trash: 丟到%{bin}
+  copied: 已拷貝
+  create: 新增
+  todos: 查看待辦
+  open_note: 開啟筆記
+  tick: 勾選
+  due: 提醒時間…
+  due_add: 加入提醒…
+  due_remove: 移除提醒
+  lock: 鎖定
+  unlock: 解鎖
+
+trash:
+  bin:
+    macos: 垃圾桶
+    windows: 資源回收筒
+    linux: 垃圾桶
+  moved:
+    one: 已丟到%{bin}：「%{title}」
+    other: 已丟到%{bin}：「%{title}」等 %{count} 則
+  undo: 復原
+  failed: 無法把「%{title}」丟到%{bin}：%{error}
+  restore_taken: 已經有叫「%{title}」的筆記，原本那則還在%{bin}裡
+  restore_failed: 無法復原「%{title}」：%{error}
+
+due:
+  title: 提醒時間
+  none: 沒有提醒
+  quick:
+    hour: 一小時後
+    tonight: 今晚
+    tomorrow: 明天上午
+    monday: 下週一
+  time: 時間
+  set: 設定
+  remove: 移除提醒
+  previous_month: 上個月
+  next_month: 下個月
+  changed: 這則待辦剛被更改過，提醒時間沒有變
+  failed: 無法更改提醒時間：%{error}
+
+lock:
+  locked: 已鎖定
+  unlock_label: 「%{title}」已鎖定，按一下解鎖
+  row: 已鎖定
+  trash: 「%{title}」已鎖定，解鎖後才能丟到%{bin}
+  rename: 「%{title}」已鎖定，解鎖後才能重新命名
+  todo: 「%{note}」已鎖定，解鎖後才能修改其中的待辦
+  failed: 無法鎖定「%{title}」：%{error}
+  unlock_failed: 無法解鎖「%{title}」：%{error}
+  done: 已鎖定「%{title}」
+  undone: 已解鎖「%{title}」

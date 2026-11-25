@@ -1,0 +1,348 @@
+# 简体中文。`zh`：zh-CN、zh-Hans-CN、zh-SG 都落到这里（繁体在 zh-Hant.yml）。
+# 一个数量的说法分 `one` / `other` 两个键（英文要分单复数），中文两个一样。
+
+language:
+  system: 跟随系统
+
+tray:
+  new_note: 新建笔记
+  summon: 呼出 Jot（%{keys}）
+  todos: 待办
+  enable_double_tap: 开启连按两下 %{keys}…
+  settings: 设置…
+
+notify:
+  missed:
+    one: 错过了 %{count} 个提醒
+    other: 错过了 %{count} 个提醒
+  list_separator: 、
+  reminders_failed: 提醒没能开始：%{error}
+  shortcut_taken: "%{keys} 已被别的 App 占用，从菜单栏的 Jot 呼出"
+
+search:
+  placeholder: 搜索或新建…
+  label: 搜索或新建笔记
+
+empty:
+  title: 还没有笔记
+  first: 输入一个标题，按 %{keys} 就是第一条。
+  agent: 也可以让 AI 应用帮你「记到 Jot」。
+
+keys:
+  actions: 操作
+
+footer:
+  notes:
+    one: "%{count} 条笔记 · %{folder}"
+    other: "%{count} 条笔记 · %{folder}"
+  open:
+    one: "%{count} 件没勾掉"
+    other: "%{count} 件没勾掉"
+
+list:
+  blank: 空白笔记
+  downloading: "正在下载…"
+  create: 新建「%{title}」
+  create_hint: 回车直接开始写
+  today:
+    one: 今天 %{count} 件待办
+    other: 今天 %{count} 件待办
+  today_none: 今天没有待办
+  late:
+    one: "%{count} 件已过期"
+    other: "%{count} 件已过期"
+  late_title:
+    one: "%{count} 件待办已过期"
+    other: "%{count} 件待办已过期"
+  all_done: 今天的都做完了
+  next: 下一件 %{time} %{text}
+  see_all: 回车查看全部待办
+  dots: 今天 %{total} 件，做完 %{done} 件
+
+todo:
+  # 搜索框里输入这些词（或 /todo）进入待办视图；第一个是托盘和通知用的。
+  keywords: 待办
+  group:
+    late: 已过期
+    today: 今天
+    tomorrow: 明天
+    later: 以后
+    none: 没有时间
+  empty: 没有没勾掉的待办
+  tick: 勾掉「%{text}」
+  row: "%{text}，%{note}"
+  due_tip: "%{when} · 到点提醒"
+  due_change: 改「%{text}」的提醒时间
+
+note:
+  invalid_title: 「%{title}」不能作标题
+  create_failed: 没能新建「%{title}」：%{error}
+  rename_taken: 已有叫「%{title}」的笔记
+  rename_failed: 没能重命名「%{title}」：%{error}
+
+paper:
+  by_agent: "%{agent} 记的"
+  saved: 已保存
+  placeholder: 写点什么…
+  label: 笔记「%{title}」
+  save_failed: 没能保存：%{error}
+  appended: 末尾新加了一段，你的光标没动
+  conflict: 这条笔记在别处改过了
+  view_end: 查看 ↓
+  use_theirs: 用那边的
+  downloading: "这条笔记还没下载到这台 Mac，正在下载…"
+  other_device: "另一台设备"
+  versions: "%{device} 上也同时改过这条笔记（%{when}），iCloud 留下了两个版本。留哪个？"
+  versions_more: "%{device} 上也同时改过这条笔记（%{when}），iCloud 还留着另外 %{more} 个版本。先看这一个：留哪个？"
+  keep_mine: "留这台 Mac 上的"
+  keep_theirs: "用另一个"
+  keep_both: "两个都留"
+  copy_title: "%{title}（%{device}）"
+  kept_both: "另一个版本存成了「%{title}」"
+  resolve_failed: "没能处理这两个版本：%{error}"
+
+time:
+  just_now: 刚刚
+  minutes_ago:
+    one: "%{count} 分钟前"
+    other: "%{count} 分钟前"
+  today_at: 今天 %{time}
+  today: 今天
+  tomorrow: 明天
+  day_after: 后天
+  yesterday: 昨天
+
+island:
+  writing: "%{agent} · 正在记到 Jot"
+  written: "%{agent} · 已记下"
+  done: 已完成
+  remind: 提醒 · %{time} · %{note}
+  now: 现在
+  writing_label: 正在写
+  locked: 已锁定 · 在 Jot 里解锁这条笔记后才能勾选
+
+settings:
+  title: 设置
+  tabs:
+    general: 通用
+    summon: 呼出与快捷键
+    voice: 语音
+    appearance: 外观
+    reminders: 提醒
+    ai: AI 应用
+    about: 关于
+  folder:
+    label: 笔记文件夹
+    hint: 每条笔记是这里的一个 .md 文件。用 iCloud 云盘、Dropbox 或 Syncthing 同步这个文件夹。
+    change: 更改…
+    choose: 选择
+    reveal: 在访达中显示
+    failed: 没能打开这个文件夹：%{error}
+  icloud:
+    label: "iCloud 云盘"
+    move: "放到 iCloud 云盘…"
+    moving: "正在移动…"
+    hint: "把笔记移到 iCloud 云盘，在 iPhone、iPad 和其他 Mac 上也能看到。"
+    off: "iCloud 云盘没有打开：在「系统设置」›「Apple 账户」›「iCloud」里打开「iCloud 云盘」。"
+    on: "笔记在 iCloud 云盘里，会同步到你的其他设备。"
+    synced: "已在 iCloud 云盘"
+    confirm_title: "把笔记移到 iCloud 云盘？"
+    confirm: "%{from} 里的笔记会移到 %{to}，以后 Jot 和连接的 AI 应用都用那个文件夹。那里已有的笔记不会被覆盖：同名的加上编号另存。"
+    confirm_move: "移到 iCloud 云盘"
+    cancel: "取消"
+    moved:
+      one: "已把 %{count} 条笔记移到 iCloud 云盘。"
+      other: "已把 %{count} 条笔记移到 iCloud 云盘。"
+    renamed:
+      one: "「%{from}」和那里的笔记同名，存成了「%{to}」。"
+      other: "%{count} 条和那里的笔记同名，加上编号另存了，比如「%{to}」。"
+    same:
+      one: "%{count} 条那里已有一模一样的，留在了 %{folder}。"
+      other: "%{count} 条那里已有一模一样的，留在了 %{folder}。"
+    failed_some:
+      one: "%{count} 条没能移动，还在 %{folder}：%{error}"
+      other: "%{count} 条没能移动，还在 %{folder}：%{error}"
+    failed: "没能移到 iCloud 云盘：%{error}"
+  summon:
+    double: 连按两下 %{key}
+    on: 已开启
+    grant: 去授权…
+    fallback: 备用快捷键
+    footnote: 连按两下 %{key} 需要在「隐私与安全性 › 辅助功能」里允许 Jot；不可用时用备用快捷键呼出。
+  voice:
+    hold: 按住 %{key} 说话
+    hold_hint: 浮窗里按住 %{key} 输入；在别的 App 里连按两下 %{key} 并按住，随手记一句。
+    language: 识别语言
+    language_auto: 跟随当前输入法
+    permission: 麦克风与语音识别
+    permission_hint: 第一次说话时 macOS 会请求这两个权限
+    permissions: 权限
+    denied_hint: 没有授权，到系统设置的「隐私与安全性」里打开
+    grant: 去授权…
+  startup:
+    label: 启动
+  login:
+    label: 开机时启动
+    hint: 登录后 Jot 待在菜单栏里
+  language:
+    label: 语言
+    interface: 界面语言
+  appearance:
+    label: 外观
+    system: 跟随系统
+    light: 浅色
+    dark: 深色
+  theme:
+    label: 浮窗主题
+    footnote: 主题只换浮窗的颜色。
+    selected: 已选
+  reminders:
+    notifications: 桌面通知
+    notifications_hint: 到点时弹出系统通知
+    island: 刘海处的灵动岛
+    island_hint: 到点和 AI 应用记笔记时，从刘海处展开
+    island_no_notch: 这块屏幕没有刘海
+    default_time: 默认提醒时间
+    time: 时间
+    default_time_hint: 只写日期时用这个时间，比如「明天交房租」。
+  ai:
+    intro: 把这台 Mac 上的 AI 应用接到 Jot，它们就能搜索、读取和添加这个文件夹里的笔记，也能帮你管待办。
+    apps: 这台 Mac 上的应用
+    looking: 正在查找应用…
+    none: 这台 Mac 上没有找到支持的 AI 应用。其他应用可以用下面的通用设置。
+    connected: 已连接
+    not_connected: 未连接
+    elsewhere: 连接的是另一个文件夹
+    manual: 需要手动设置
+    connect: 连接
+    disconnect: 断开
+    update: 更新
+    copy: 复制
+    copied: 已复制
+    copy_setup: 复制设置
+    restart: 如果 %{app} 开着，重启一下才会载入 Jot。
+    no_cli: 没找到 claude 命令。复制这条命令，到终端里运行。
+    unreadable: "%{file} 里有注释或读不懂，Jot 不会改它。复制设置，自己加进去。"
+    unsupported: "复制设置，加到 %{file} 里。"
+    not_moved: 它还连着之前的文件夹，Jot 没法替它换过来。
+    no_server: 在 Jot 旁边没找到 jot-mcp。开发时先运行「cargo build -p jot-mcp」，再打开这一页。
+    translocated: Jot 现在是从「下载」之类的临时位置打开的，连接后路径会失效。先把 Jot 拖进「应用程序」文件夹，再从那里打开它。
+    other: 其他应用
+    command: 命令
+    json: 配置
+    then: 之后在应用里说「记到 Jot」或「我今天有什么要做的」。
+    access: 权限
+    trash_rewrite: 允许 AI 应用把笔记移到废纸篓和改写笔记
+    trash_rewrite_hint: 它们移走的笔记、改写前的笔记都会放进废纸篓，可以从那里找回。锁定的笔记不受影响。
+    trash_rewrite_failed: 没能保存这项设置：%{error}
+  about:
+    title: 关于 Jot
+    tagline: 你和 AI 共用的速记本
+    version: 版本 %{version}（%{build}）
+    built_with: 用 Native Shell 构建
+    open: 打开
+    themes_credit: 主题配色参考 GitHub Theme、One Dark Pro、Atom One Light、Dracula、Tokyo Night、Catppuccin 和 Gruvbox（MIT）。
+
+theme:
+  default: 默认
+  github: GitHub
+  one: One
+  dracula: Dracula
+  tokyo: Tokyo Night
+  catppuccin: Catppuccin
+  gruvbox: Gruvbox
+  contrast: 高对比
+
+voice:
+  listening: 正在听…
+  # 收音时的语言标签：读屏念的说明。
+  language_tag: 识别语言：%{language}，点按或 ⌘L 换一种
+  start: 语音输入
+  start_note: 在光标处说话
+  stop: 说完了
+  cancel: 取消
+  finish_release: 松开
+  finish_press: 再点麦克风结束
+  # 随手一句没带时间时，记进这条笔记。
+  inbox: 收件箱
+  island:
+    listening: 正在听 · 松开就记下
+    inbox: 已记下 · %{note}
+    todo: 已加提醒
+    open_settings: 点这里打开系统设置
+    try_again: 再说一次试试
+  error:
+    empty: 没听清
+    not-allowed: 没有麦克风或语音识别权限
+    no-speech: 没听到声音
+    audio-capture: 麦克风用不了
+    network: 语音识别要联网
+    language-not-supported: 还不能识别这种语言
+    unavailable: 这台设备上用不了语音识别
+    failed: 没能识别出来
+
+actions:
+  label: 操作
+  filter: 搜索操作…
+  none: 没有匹配的操作
+  open: 打开
+  reveal:
+    macos: 在访达中显示
+    windows: 在资源管理器中显示
+    linux: 在文件管理器中显示
+  rename: 重命名
+  rename_label: 「%{title}」的新标题
+  copy_title: 复制标题
+  copy_body: 复制全文
+  trash: 移到%{bin}
+  copied: 已复制
+  create: 新建
+  todos: 查看待办
+  open_note: 打开笔记
+  tick: 勾掉
+  due: 提醒时间…
+  due_add: 添加提醒…
+  due_remove: 移除提醒
+  lock: 锁定
+  unlock: 解锁
+
+trash:
+  bin:
+    macos: 废纸篓
+    windows: 回收站
+    linux: 回收站
+  moved:
+    one: 已移到%{bin}：「%{title}」
+    other: 已移到%{bin}：「%{title}」等 %{count} 条
+  undo: 撤销
+  failed: 没能把「%{title}」移到%{bin}：%{error}
+  restore_taken: 已有叫「%{title}」的笔记，原来那条还在%{bin}里
+  restore_failed: 没能恢复「%{title}」：%{error}
+
+due:
+  title: 提醒时间
+  none: 没有提醒
+  quick:
+    hour: 一小时后
+    tonight: 今晚
+    tomorrow: 明天上午
+    monday: 下周一
+  time: 时间
+  set: 设定
+  remove: 移除提醒
+  previous_month: 上个月
+  next_month: 下个月
+  changed: 这条待办刚被改过，提醒时间没有改
+  failed: 没能改提醒时间：%{error}
+
+lock:
+  locked: 已锁定
+  unlock_label: 「%{title}」已锁定，点按解锁
+  row: 已锁定
+  trash: 「%{title}」已锁定，解锁后才能移到%{bin}
+  rename: 「%{title}」已锁定，解锁后才能重命名
+  todo: 「%{note}」已锁定，解锁后才能改其中的待办
+  failed: 没能锁定「%{title}」：%{error}
+  unlock_failed: 没能解锁「%{title}」：%{error}
+  done: 已锁定「%{title}」
+  undone: 已解锁「%{title}」

@@ -1,0 +1,50 @@
+[package]
+name = "nsh-app-jot"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "MIT"
+
+[workspace]
+members = ["store", "mcp"]
+
+[workspace.dependencies]
+# Moving notes to the system trash: Foundation's file manager on macOS
+# (jot-store), the `trash` crate elsewhere.
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std"] }
+trash = "5"
+
+[dependencies]
+nsh-core = "0.6.0"
+jot-store = { path = "store" }
+jiff = "0.2.43"
+# Channels from other threads (the folder watcher, the reminders' thread,
+# AppKit's monitors) to tasks on the engine thread.
+tokio = { version = "1", default-features = false, features = ["sync"] }
+# The AI apps' configuration files (`connect`): edited in place, their keys
+# kept in order (JSON) and their comments and layout kept (TOML).
+serde = "1"
+serde_json = { version = "1", features = ["preserve_order"] }
+toml_edit = "0.25"
+
+[dev-dependencies]
+tempfile = "3"
+
+# The versions NSH's workspace uses, default features off as there.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6.5"
+block2 = "0.6.2"
+objc2-foundation = { workspace = true, features = [
+  "NSDictionary",
+  "NSFileManager",
+  "NSObject",
+  "NSString",
+  "NSURL",
+  "NSValue",
+] }
+objc2-app-kit = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "block2",
+  "NSEvent",
+  "NSWorkspace",
+] }

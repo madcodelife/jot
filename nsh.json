@@ -1,0 +1,46 @@
+{
+  "name": "Jot",
+  "id": "com.madcodelife.jot",
+  "version": "1.0.0",
+  "build": 1,
+  "icon": {
+    "macos": "icon-macos.png"
+  },
+  "rust": ".",
+  "theme": "ui/theme.json",
+  "window": {
+    "title": "Jot",
+    "defaultVisible": false,
+    "defaultSize": {
+      "width": 420,
+      "height": 300
+    }
+  },
+  "macos": {
+    "activationPolicy": "accessory",
+    "infoPlist": {
+      "NSMicrophoneUsageDescription": "Jot listens while you hold ⌥ and writes what you say into your notes. 按住 ⌥ 说话时，Jot 用麦克风把你说的话记进笔记。",
+      "NSSpeechRecognitionUsageDescription": "Jot turns what you say into text for your notes. Jot 把你说的话转成笔记里的文字。"
+    }
+  },
+  "capabilities": {
+    "application": true,
+    "notifications": true,
+    "windows": {
+      "kinds": [
+        "normal",
+        "popup",
+        "overlay"
+      ],
+      "overlay": true
+    },
+    "clipboard": true,
+    "openUrl": {
+      "schemes": [
+        "https",
+        "x-apple.systempreferences"
+      ]
+    },
+    "speech": true
+  }
+}
