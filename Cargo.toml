@@ -18,7 +18,7 @@ trash = "5"
 # NSH's main branch at the commit the `nightly` release was built from, not a release: the open note's ⌘↩ and Return
 # need `keymap.bind`'s `overFocused` (NSH #2755), which no release has yet (0.6.0 and 0.6.1 lack it). The `nsh` CLI
 # must be the same commit (README, Building). Back to crates.io (`nsh-core = "<version>"`) once a release has it.
-nsh-core = { git = "https://github.com/longbridge/nsh", rev = "2964346c285f57004f2531fb768cc9840b8d7ff5" }
+nsh-core = { git = "https://github.com/longbridge/nsh", rev = "e429ebb4807d221070f54ffdeffe8d3721e887f3" }
 # Dictation's `Speech` (TSX: `import { Speech } from "nsh-extra"`), out of NSH's runtime since 0.6 (NSH #2947). NSH
 # links a Rust nshm the app's crate depends on; it is here rather than in nsh.json as `nsh add nsh-extra` cannot
 # install it from a commit of NSH's repository yet. The same commit as nsh-core, and the same move back to crates.io.
