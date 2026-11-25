@@ -1,0 +1,49 @@
+name: Pages
+
+# Publishes install.sh at https://madcodelife.github.io/jot/install.sh, the address README gives.
+on:
+  push:
+    branches: [main]
+    paths: [install.sh, .github/workflows/pages.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publish install.sh
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}install.sh
+    steps:
+      - uses: actions/checkout@v7
+
+      # The site is install.sh, and a page that sends visitors to the repository.
+      - name: Site
+        run: |
+          mkdir site
+          cp install.sh site/
+          cat > site/index.html <<'HTML'
+          <!doctype html>
+          <meta charset="utf-8">
+          <title>Jot</title>
+          <meta http-equiv="refresh" content="0; url=https://github.com/madcodelife/jot">
+          <a href="https://github.com/madcodelife/jot">github.com/madcodelife/jot</a>
+          HTML
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v5
