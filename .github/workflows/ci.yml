@@ -59,22 +59,29 @@ jobs:
         run: nsh test
 
   package:
-    name: Package Jot.app
+    name: Package Jot.app (${{ matrix.arch }})
     runs-on: macos-latest
     timeout-minutes: 90
     needs: test
-    permissions:
-      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            target: aarch64-apple-darwin
+          - arch: x86_64
+            target: x86_64-apple-darwin
     steps:
       - uses: actions/checkout@v4
 
+      # The runner is Apple silicon: x86_64 is cross-compiled.
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-darwin, x86_64-apple-darwin
+          targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
-          key: package
+          key: package-${{ matrix.arch }}
 
       - name: Which NSH
         id: nsh
@@ -92,23 +99,33 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Package
+        env:
+          ARCH: ${{ matrix.arch }}
         run: |
-          set -- --arch universal --out dist --build "$GITHUB_RUN_NUMBER"
+          set -- --arch "$ARCH" --out dist --build "$GITHUB_RUN_NUMBER"
           # A release tag (v1.2.0) sets the version; otherwise nsh.json's stays.
           if [ "$GITHUB_REF_TYPE" = tag ]; then
             set -- "$@" --app-version "${GITHUB_REF_NAME#v}"
           fi
           scripts/package-macos.sh "$@"
+          # Every executable is for this architecture only.
+          for file in dist/Jot.app/Contents/MacOS/*; do
+            archs=$(lipo -archs "$file" 2> /dev/null) || continue
+            echo "$file: $archs"
+            [ "$archs" = "$ARCH" ] || { echo "::error::$file is $archs, not $ARCH"; exit 1; }
+          done
 
       - name: Zip
         id: zip
+        env:
+          ARCH: ${{ matrix.arch }}
         run: |
           if [ "$GITHUB_REF_TYPE" = tag ]; then
             label="$GITHUB_REF_NAME"
           else
             label="$(git rev-parse --short HEAD)"
           fi
-          zip="Jot-$label-macos-universal.zip"
+          zip="Jot-$label-macos-$ARCH.zip"
           ditto -c -k --keepParent dist/Jot.app "dist/$zip"
           echo "zip=$zip" >> "$GITHUB_OUTPUT"
 
@@ -118,11 +135,25 @@ jobs:
           path: dist/${{ steps.zip.outputs.zip }}
           if-no-files-found: error
 
+  # A release tag: one release with both packages, once both are built.
+  release:
+    name: Release
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    needs: package
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
       - name: Release
-        if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
-          ZIP: ${{ steps.zip.outputs.zip }}
+          GH_REPO: ${{ github.repository }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "dist/$ZIP" --title "Jot ${GITHUB_REF_NAME#v}" --generate-notes \
-            || gh release upload "$GITHUB_REF_NAME" "dist/$ZIP" --clobber
+          ls -l dist
+          gh release create "$GITHUB_REF_NAME" dist/*.zip --title "Jot ${GITHUB_REF_NAME#v}" --generate-notes \
+            || gh release upload "$GITHUB_REF_NAME" dist/*.zip --clobber
