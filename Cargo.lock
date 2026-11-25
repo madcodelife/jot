@@ -1430,7 +1430,7 @@ dependencies = [
  "block2",
  "jiff",
  "jot-store",
- "nsh-core",
+ "nsh-core 0.6.0",
  "nsh-extra",
  "objc2",
  "objc2-app-kit",
@@ -1444,15 +1444,15 @@ dependencies = [
 
 [[package]]
 name = "nsh-base"
-version = "0.6.0"
-source = "git+https://github.com/longbridge/nsh?rev=2964346c285f57004f2531fb768cc9840b8d7ff5#2964346c285f57004f2531fb768cc9840b8d7ff5"
+version = "0.7.0"
+source = "git+https://github.com/longbridge/nsh?rev=e429ebb4807d221070f54ffdeffe8d3721e887f3#e429ebb4807d221070f54ffdeffe8d3721e887f3"
 dependencies = [
  "chrono",
  "html5ever",
  "log",
  "markdown",
  "markup5ever_rcdom",
- "nsh-core",
+ "nsh-core 0.7.0",
  "regex",
  "rustc-hash",
  "serde",
@@ -1473,7 +1473,38 @@ dependencies = [
  "imagesize",
  "libc",
  "log",
- "nsh-macros",
+ "nsh-macros 0.6.0",
+ "ordered-float",
+ "percent-encoding",
+ "rust-i18n",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "slab",
+ "taffy",
+ "tokio",
+ "ttf-parser",
+ "unicode-linebreak",
+ "unicode-properties",
+ "url",
+ "windows-sys 0.61.2",
+ "wuff",
+]
+
+[[package]]
+name = "nsh-core"
+version = "0.7.0"
+source = "git+https://github.com/longbridge/nsh?rev=e429ebb4807d221070f54ffdeffe8d3721e887f3#e429ebb4807d221070f54ffdeffe8d3721e887f3"
+dependencies = [
+ "cap-std",
+ "chrono",
+ "crc32fast",
+ "httpdate",
+ "imagesize",
+ "libc",
+ "log",
+ "nsh-macros 0.7.0",
  "ordered-float",
  "percent-encoding",
  "rust-i18n",
@@ -1494,14 +1525,14 @@ dependencies = [
 
 [[package]]
 name = "nsh-engine"
-version = "0.6.0"
-source = "git+https://github.com/longbridge/nsh?rev=2964346c285f57004f2531fb768cc9840b8d7ff5#2964346c285f57004f2531fb768cc9840b8d7ff5"
+version = "0.7.0"
+source = "git+https://github.com/longbridge/nsh?rev=e429ebb4807d221070f54ffdeffe8d3721e887f3#e429ebb4807d221070f54ffdeffe8d3721e887f3"
 dependencies = [
  "crossbeam-channel",
  "env_filter",
  "libc",
  "log",
- "nsh-core",
+ "nsh-core 0.7.0",
  "nsh-updater",
  "objc2-io-surface",
  "rustc-hash",
@@ -1512,8 +1543,8 @@ dependencies = [
 
 [[package]]
 name = "nsh-extra"
-version = "0.6.0"
-source = "git+https://github.com/longbridge/nsh?rev=2964346c285f57004f2531fb768cc9840b8d7ff5#2964346c285f57004f2531fb768cc9840b8d7ff5"
+version = "0.7.0"
+source = "git+https://github.com/longbridge/nsh?rev=e429ebb4807d221070f54ffdeffe8d3721e887f3#e429ebb4807d221070f54ffdeffe8d3721e887f3"
 dependencies = [
  "block2",
  "dispatch2",
@@ -1521,7 +1552,7 @@ dependencies = [
  "libc",
  "log",
  "ndk-context",
- "nsh-core",
+ "nsh-core 0.7.0",
  "nsh-platform-android",
  "nsh-platform-apple",
  "nsh-platform-ios",
@@ -1549,16 +1580,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "nsh-macros"
+version = "0.7.0"
+source = "git+https://github.com/longbridge/nsh?rev=e429ebb4807d221070f54ffdeffe8d3721e887f3#e429ebb4807d221070f54ffdeffe8d3721e887f3"
+dependencies = [
+ "imagesize",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+ "ttf-parser",
+ "wuff",
+]
+
+[[package]]
 name = "nsh-platform-android"
-version = "0.6.0"
-source = "git+https://github.com/longbridge/nsh?rev=2964346c285f57004f2531fb768cc9840b8d7ff5#2964346c285f57004f2531fb768cc9840b8d7ff5"
+version = "0.7.0"
+source = "git+https://github.com/longbridge/nsh?rev=e429ebb4807d221070f54ffdeffe8d3721e887f3#e429ebb4807d221070f54ffdeffe8d3721e887f3"
 dependencies = [
  "jni",
  "libc",
  "log",
  "ndk-context",
  "nsh-base",
- "nsh-core",
+ "nsh-core 0.7.0",
  "nsh-engine",
  "rustc-hash",
  "serde_json",
@@ -1568,15 +1612,15 @@ dependencies = [
 
 [[package]]
 name = "nsh-platform-apple"
-version = "0.6.0"
-source = "git+https://github.com/longbridge/nsh?rev=2964346c285f57004f2531fb768cc9840b8d7ff5#2964346c285f57004f2531fb768cc9840b8d7ff5"
+version = "0.7.0"
+source = "git+https://github.com/longbridge/nsh?rev=e429ebb4807d221070f54ffdeffe8d3721e887f3#e429ebb4807d221070f54ffdeffe8d3721e887f3"
 dependencies = [
  "block2",
  "cc",
  "dispatch2",
  "libc",
  "log",
- "nsh-core",
+ "nsh-core 0.7.0",
  "nsh-engine",
  "objc2",
  "objc2-app-kit",
@@ -1592,15 +1636,15 @@ dependencies = [
 
 [[package]]
 name = "nsh-platform-ios"
-version = "0.6.0"
-source = "git+https://github.com/longbridge/nsh?rev=2964346c285f57004f2531fb768cc9840b8d7ff5#2964346c285f57004f2531fb768cc9840b8d7ff5"
+version = "0.7.0"
+source = "git+https://github.com/longbridge/nsh?rev=e429ebb4807d221070f54ffdeffe8d3721e887f3#e429ebb4807d221070f54ffdeffe8d3721e887f3"
 dependencies = [
  "block2",
  "dispatch2",
  "libc",
  "log",
  "nsh-base",
- "nsh-core",
+ "nsh-core 0.7.0",
  "nsh-engine",
  "nsh-platform-apple",
  "objc2",
@@ -1620,8 +1664,8 @@ dependencies = [
 
 [[package]]
 name = "nsh-updater"
-version = "0.6.0"
-source = "git+https://github.com/longbridge/nsh?rev=2964346c285f57004f2531fb768cc9840b8d7ff5#2964346c285f57004f2531fb768cc9840b8d7ff5"
+version = "0.7.0"
+source = "git+https://github.com/longbridge/nsh?rev=e429ebb4807d221070f54ffdeffe8d3721e887f3#e429ebb4807d221070f54ffdeffe8d3721e887f3"
 dependencies = [
  "base64 0.22.1",
  "ed25519-dalek",

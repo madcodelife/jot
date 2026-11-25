@@ -22,7 +22,7 @@ nsh-core = { git = "https://github.com/longbridge/nsh", rev = "2964346c285f57004
 # Dictation's `Speech` (TSX: `import { Speech } from "nsh-extra"`), out of NSH's runtime since 0.6 (NSH #2947). NSH
 # links a Rust nshm the app's crate depends on; it is here rather than in nsh.json as `nsh add nsh-extra` cannot
 # install it from a commit of NSH's repository yet. The same commit as nsh-core, and the same move back to crates.io.
-nsh-extra = { git = "https://github.com/longbridge/nsh", rev = "2964346c285f57004f2531fb768cc9840b8d7ff5", features = ["speech"] }
+nsh-extra = { git = "https://github.com/longbridge/nsh", rev = "e429ebb4807d221070f54ffdeffe8d3721e887f3", features = ["speech"] }
 jot-store = { path = "store" }
 jiff = "0.2.43"
 # Channels from other threads (the folder watcher, the reminders' thread,
