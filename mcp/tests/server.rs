@@ -66,7 +66,12 @@ async fn create_search_read_append() {
     let info = client.peer_info().unwrap();
     assert_eq!(info.server_info.as_ref().unwrap().name, "jot");
     assert!(info.instructions.as_deref().unwrap().contains("sensitive"));
-    assert!(info.instructions.as_deref().unwrap().contains("before you guess at or ask for a fact"));
+    assert!(
+        info.instructions
+            .as_deref()
+            .unwrap()
+            .contains("before you guess at or ask for a fact")
+    );
 
     let mut tools: Vec<String> = client
         .list_all_tools()
