@@ -94,6 +94,9 @@ const shownTab = (): SettingsTab => (settingsTab() === "voice" && !speechAvailab
 
 let settingsWindow: WindowRef | undefined;
 
+/** The window has the focus: the sidebar's selection is in the accent then, gray otherwise, as macOS's is. */
+const settingsFocused = signal(true);
+
 /** Opens the settings (the tray's "Settings…", ⌘, in the panel), or brings them to the front. */
 export function openSettings(tab?: SettingsTab) {
   if (tab) settingsTab.set(tab);
@@ -112,6 +115,7 @@ export function SettingsWindow() {
         settingsOpen.set(open);
         if (!open) settingsWindow = undefined;
       }}
+      onFocusChange={({ focused }) => settingsFocused.set(focused)}
       ref={(r) => {
         settingsWindow = r;
         r?.focus();
@@ -150,14 +154,14 @@ function Sidebar() {
   return (
     <View
       desktop={{ windowDrag: true }}
-      class={`bg-sys-sidebar border-r border-sys-line ${fade()}`}
+      class={`bg-sys-sidebar ${fade()}`}
       style={{ width: SIDEBAR, paddingTop: TITLE_BAR, paddingHorizontal: 10 }}
     >
       <Tabs
         accessibilityLabel={t("settings.title")}
         class="flex-col"
         style={{ gap: 1 }}
-        indicatorClass={`bg-sys-selection ${fade()}`}
+        indicatorClass={`${settingsFocused() ? "bg-sys-sidebar-selection" : "bg-sys-selection"} ${fade()}`}
         indicatorStyle={{ left: 0, right: 0, borderRadius: 7, borderCurve: "continuous" }}
       >
         <Tab
@@ -170,10 +174,13 @@ function Sidebar() {
         >
           <Image src={appIcon} accessible={false} style={{ width: 36, height: 36, pointerEvents: "none" }} />
           <View style={{ minWidth: 0, gap: 1 }}>
-            <Text class="font-semibold text-sys-fg" style={{ fontSize: 13 }}>
+            <Text class={`font-semibold ${onAccent("about") ? "text-sys-on-accent" : "text-sys-fg"}`} style={{ fontSize: 13 }}>
               Jot
             </Text>
-            <Text class="text-sys-muted" style={{ fontSize: 11, numberOfLines: 1, fontVariant: ["tabular-nums"] }}>
+            <Text
+              class={onAccent("about") ? "text-sys-on-accent" : "text-sys-muted"}
+              style={{ fontSize: 11, numberOfLines: 1, fontVariant: ["tabular-nums"], opacity: onAccent("about") ? 0.8 : 1 }}
+            >
               {t("settings.about.version", { version: info.version ?? "1.0.0", build: info.build ?? 1 })}
             </Text>
           </View>
@@ -187,6 +194,9 @@ function Sidebar() {
     </View>
   );
 }
+
+/** The sidebar's selected row while the window has the focus: on the accent, its text white. */
+const onAccent = (id: SettingsTab) => settingsFocused() && shownTab() === id;
 
 /** A page in the sidebar: its tile, white glyph on its colour, and its name. */
 function SidebarRow(props: { page: Page; onPress: () => void }) {
@@ -211,7 +221,7 @@ function SidebarRow(props: { page: Page; onPress: () => void }) {
       >
         <Icon name={props.page.icon} size={14} tint="#ffffff" />
       </View>
-      <Text class="text-sys-fg" style={{ fontSize: 13, numberOfLines: 1 }}>
+      <Text class={onAccent(props.page.id) ? "text-sys-on-accent" : "text-sys-fg"} style={{ fontSize: 13, numberOfLines: 1 }}>
         {t(`settings.tabs.${props.page.id}`)}
       </Text>
     </Tab>
@@ -257,13 +267,13 @@ function Pane() {
 
 // ——— The form ———
 
-/** Rows on one rounded plate, a hairline between them; `gap` spaces it from a group right above. */
+/** Rows on one rounded plate (no edge, a 12-point corner, as macOS 26's), a hairline between them; `gap` spaces it from a group right above. */
 function Group(props: { children: JSX.Element; testID?: string; gap?: boolean }) {
   return (
     <View
       testID={props.testID}
-      class={`bg-sys-group border-sys-group-edge ${fade()}`}
-      style={{ borderWidth: 0.5, borderRadius: 10, borderCurve: "continuous", overflow: "hidden", marginTop: props.gap ? 12 : 0 }}
+      class={`bg-sys-group ${fade()}`}
+      style={{ borderRadius: 12, overflow: "hidden", marginTop: props.gap ? 12 : 0 }}
     >
       {props.children}
     </View>
@@ -285,7 +295,7 @@ function Footnote(props: { children: JSX.Element; tone?: "muted" | "late"; testI
     <Text
       testID={props.testID}
       class={props.tone === "late" ? "text-sys-red" : "text-sys-muted"}
-      style={{ fontSize: FORM.hint, lineHeight: 15, marginTop: 6, marginHorizontal: 12 }}
+      style={{ fontSize: FORM.hint, lineHeight: 15, marginTop: 6, marginHorizontal: 10 }}
     >
       {props.children}
     </Text>
@@ -295,9 +305,9 @@ function Footnote(props: { children: JSX.Element; tone?: "muted" | "late"; testI
 /** A row: its label (and a short caption under it) on the left, its control on the right. */
 function Row(props: { label: string; hint?: string | null; hintTone?: "muted" | "late"; divider?: boolean; children?: JSX.Element; testID?: string }) {
   return (
-    <View testID={props.testID} class="flex-row items-center" style={{ minHeight: 40, paddingVertical: 8, paddingHorizontal: 12, gap: 12 }}>
+    <View testID={props.testID} class="flex-row items-center" style={{ minHeight: 40, paddingVertical: 8, paddingHorizontal: 10, gap: 12 }}>
       <If when={props.divider}>
-        <View class={`absolute bg-sys-line ${fade()}`} style={{ top: 0, left: 12, right: 12, height: 0.5 }} />
+        <View class={`absolute bg-sys-line ${fade()}`} style={{ top: 0, left: 10, right: 10, height: 0.5 }} />
       </If>
       <View class="flex-1" style={{ minWidth: 0, gap: 1 }}>
         <Text class="text-sys-fg" style={{ fontSize: FORM.label }}>
@@ -322,31 +332,13 @@ function Status(props: { label: string; testID?: string }) {
   );
 }
 
-/** A shortcut's keys as macOS draws them in its settings: a raised cap each. */
+/** A shortcut's keys as macOS's Keyboard Shortcuts list them: the symbols run together in the label color (`⌃⌥J`); words (Ctrl, Alt) joined with `+`. */
 function Keys(props: { keys: readonly string[] }) {
+  const symbols = () => props.keys.every((key) => [...key].length === 1);
   return (
-    <View class="flex-row items-center" style={{ gap: 3 }} accessibilityLabel={props.keys.join(" ")}>
-      <Each of={[...props.keys]} key="index">
-        {(key) => (
-          <View
-            class={`items-center justify-center bg-sys-button border-sys-button-edge ${fade()}`}
-            style={{
-              minWidth: 22,
-              height: 22,
-              paddingHorizontal: 6,
-              borderWidth: 0.5,
-              borderRadius: 5,
-              borderCurve: "continuous",
-              boxShadow: [{ x: 0, y: 1, blur: 0, color: "#00000024" }],
-            }}
-          >
-            <Text class="text-sys-fg" style={{ fontSize: 12 }}>
-              {key()}
-            </Text>
-          </View>
-        )}
-      </Each>
-    </View>
+    <Text class="text-sys-fg" style={{ fontSize: FORM.control, numberOfLines: 1 }} accessibilityLabel={props.keys.join(" ")}>
+      {props.keys.join(symbols() ? "" : "+")}
+    </Text>
   );
 }
 
@@ -460,7 +452,7 @@ function GeneralPane() {
   return (
     <>
       <Group testID="settings-folder">
-        <View class="flex-row items-center" style={{ minHeight: 52, paddingVertical: 9, paddingHorizontal: 12, gap: 10 }}>
+        <View class="flex-row items-center" style={{ minHeight: 52, paddingVertical: 9, paddingHorizontal: 10, gap: 10 }}>
           <Image src={FOLDER_ICON} accessible={false} style={{ width: 32, height: 32, pointerEvents: "none" }} />
           <View class="flex-1" style={{ minWidth: 0, gap: 1 }}>
             <Text class="text-sys-fg" style={{ fontSize: FORM.label }}>
@@ -869,9 +861,9 @@ function AiRow(props: { client: AiClient; divider: boolean; server: boolean; dir
   const error = () => aiErrors()[c().id] ?? null;
   const hint = () => error() ?? manualHint(c()) ?? (c().connected && c().current ? t("settings.ai.restart", { app: c().name }) : c().config);
   return (
-    <View testID={`settings-ai:${c().id}`} class="flex-row items-center" style={{ minHeight: 44, paddingVertical: 8, paddingHorizontal: 12, gap: 12 }}>
+    <View testID={`settings-ai:${c().id}`} class="flex-row items-center" style={{ minHeight: 44, paddingVertical: 8, paddingHorizontal: 10, gap: 12 }}>
       <If when={props.divider}>
-        <View class={`absolute bg-sys-line ${fade()}`} style={{ top: 0, left: 12, right: 12, height: 0.5 }} />
+        <View class={`absolute bg-sys-line ${fade()}`} style={{ top: 0, left: 10, right: 10, height: 0.5 }} />
       </If>
       <View class="flex-1" style={{ minWidth: 0, gap: 2 }}>
         <View class="flex-row items-center" style={{ gap: 8 }}>
@@ -959,7 +951,7 @@ function AiPane() {
       </Group>
       <SectionTitle>{t("settings.ai.other")}</SectionTitle>
       <Group testID="settings-ai-other">
-        <View style={{ paddingHorizontal: 12, paddingTop: 10, paddingBottom: 12, gap: 8 }}>
+        <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 12, gap: 8 }}>
           <Text class="text-sys-fg" style={{ fontSize: FORM.label }}>
             {t("settings.ai.command")}
           </Text>

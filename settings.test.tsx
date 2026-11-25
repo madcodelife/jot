@@ -130,7 +130,7 @@ test("the appearance switches the windows to dark and back, and is kept", async 
 
   await app.press("id:settings-appearance:dark");
   await app.waitUntil(() => color(app, "外观") !== light);
-  expect(color(app, "外观")).toBe("#f1f2f6ff");
+  expect(color(app, "外观")).toBe("#ffffffd9");
   expect(app.storage()["jot.appearance"]).toBe("dark");
 
   await app.press("id:settings-appearance:light");
@@ -285,7 +285,7 @@ test("stored settings apply before anything shows", async () => {
   expect(app.shows("text:検索または新規作成…")).toBe(true);
   await openSettings(app);
   expect(app.texts()).toContain("一般");
-  expect(color(app, "一般")).toBe("#f1f2f6ff");
+  expect(color(app, "一般")).toBe("#ffffffd9");
   app.dispose();
 });
 
