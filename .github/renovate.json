@@ -2,5 +2,15 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "description": "NSH's crates and its CLI move together (Cargo.lock pins the CLI CI installs)",
+      "matchPackageNames": [
+        "nsh-core",
+        "nsh-extra"
+      ],
+      "groupName": "NSH"
+    }
   ]
 }
