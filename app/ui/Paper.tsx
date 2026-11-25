@@ -1,5 +1,7 @@
 // The open note: its title, who wrote it and when, and its Markdown in
-// NSH's editor. Typing saves itself after a short pause; task lines get
+// NSH's editor, previewed live as Typora does (app/markdown.ts): the syntax
+// hides where the caret is not, and shows where it is; headings are large,
+// code is monospaced. Typing saves itself after a short pause; task lines get
 // their boxes, due times and done stamps styled, and the box ticks with a
 // click or ⌘↩; a time phrase being typed ("明天 9 点") lights up as a chip
 // and becomes an absolute time when the caret leaves the line. Changes made
@@ -19,7 +21,7 @@ import { Button, Editor, type EditorDecoration, type EditorPosition, type Editor
 import { t } from "nsh/i18n";
 import { When, type Conflict } from "jot/native";
 import { caretOnTodo, openDuePicker, setEditorDue } from "../due";
-import { continuation, fencedLines, isFence, lineMarks, type MarkKind } from "../markdown";
+import { codeBlocks, continuation, fenceMark, fencedLines, isQuote, lineMarks, type Mark, type MarkKind } from "../markdown";
 import { whenOptions } from "../settings";
 import { allNotes, errorMessage, lastWritten, notes, now, opened, refresh, revision, save, setEditorFlush, setLocked, showFlash } from "../store";
 import { taskLine, toggledLine, withDue } from "../tasks";
@@ -69,13 +71,34 @@ const PAPER_X = 37;
 const PAPER_BOTTOM = 30;
 /** Room the title keeps on its right for what sits at the paper's top right: the microphone and "Saved", or "Listening…" with its language. */
 const STATUS_ROOM = { saved: 80, savedMic: 108, listening: 168 };
-/** How the editor draws each kind of Markdown mark (app/markdown.ts): the syntax muted, the words in their colour. */
+/** How the editor draws each kind of Markdown mark (app/markdown.ts): the syntax muted (where it shows), the words in their colour and weight. */
 const MARK_CLASS: Record<MarkKind, string> = {
   syntax: "text-paper-muted",
-  heading: "text-heading font-semibold",
+  heading: "text-heading font-bold",
   link: "text-accent-ink",
   code: "bg-paper-fg/7",
+  strong: "font-bold",
+  em: "italic",
+  strike: "line-through",
+  // A to-do's box is drawn by its label; its `[ ]`, shown, is styled with the to-do (`task.box` below).
+  box: "",
 };
+
+/** The monospaced font of a note's code (NSH reads `ui-monospace` as the system's). */
+const CODE_FONT = "ui-monospace";
+
+/** How a label in place of a mark looks: a to-do's box drawn, a bullet's `•` muted, a fence's language small and muted; hidden syntax, nothing. */
+function labelLook(m: Mark): Pick<EditorDecoration, "labelClass" | "labelStyle"> {
+  if (m.kind === "box") {
+    const box = { width: 15, height: 15, borderRadius: 4, borderCurve: "continuous", marginRight: 1, alignItems: "center", justifyContent: "center" } as const;
+    return m.done
+      ? { labelClass: "bg-paper-muted text-paper text-[11px] font-bold", labelStyle: box }
+      : { labelClass: "border-accent-ink", labelStyle: { ...box, borderWidth: 1.5 } };
+  }
+  // A fence's language, small; a bullet's `•`, muted.
+  if (m.kind === "syntax" && m.label) return m.label === "•" ? { labelClass: "text-paper-muted" } : { labelClass: `text-paper-muted text-[${T.type.meta}px]` };
+  return {};
+}
 
 /** Selected text: ink, with no fill of its own over the selection's. */
 const SELECTED = "text-paper-fg bg-transparent";
@@ -151,6 +174,8 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   const caret = signal<EditorPosition | null>(null);
   /** What is selected, by range (start before end): the text there is drawn in ink. */
   const selected = signal<{ start: EditorPosition; end: EditorPosition }[]>([]);
+  /** Every caret and selection, by range (start before end; a caret's is empty): the preview shows the syntax there. */
+  const touching = signal<{ start: EditorPosition; end: EditorPosition }[]>([]);
   /** The editor has the keyboard focus: its ⌘↩ and Return are Jot's then. */
   const focused = signal(false);
   /** A dictation is typing: its interim words are not saved, the final ones are. */
@@ -360,11 +385,9 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   function selectionChanged(selections: EditorSelection[]) {
     selection = selections[selections.length - 1] ?? null;
     const only = selections.length === 1 ? selections[0] : null;
-    selected.set(
-      selections
-        .filter((s) => s.anchor.line !== s.head.line || s.anchor.column !== s.head.column)
-        .map((s) => (before(s.anchor, s.head) ? { start: s.anchor, end: s.head } : { start: s.head, end: s.anchor })),
-    );
+    const ranges = selections.map((s) => (before(s.anchor, s.head) ? { start: s.anchor, end: s.head } : { start: s.head, end: s.anchor }));
+    touching.set(ranges);
+    selected.set(ranges.filter((r) => r.start.line !== r.end.line || r.start.column !== r.end.column));
     caret.set(only && only.anchor.line === only.head.line && only.anchor.column === only.head.column ? only.head : null);
     const line = selections[0]?.head.line ?? 0;
     if (line === lastLine) return;
@@ -494,19 +517,59 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     });
   });
 
-  // Headings in the theme's heading colour (the editor's own Markdown colours are the same in every theme); task
-  // lines, reminders and done stamps, styled where they are; the live phrase as a chip.
+  // The live preview (app/markdown.ts): the Markdown's syntax hidden where no caret or selection is (all of it while
+  // the editor has no focus), shown muted where one is; headings large and in the theme's heading colour (the editor's
+  // own Markdown colours are the same in every theme), links, code and emphasis set apart; fenced code the
+  // highlighter's, in the code font on a tinted block. Task lines, reminders and done stamps, styled where they are;
+  // the live phrase as a chip.
   const decorations = computed<EditorDecoration[]>(() => {
     const out: EditorDecoration[] = [];
     const lines = text().split("\n");
     const fenced = fencedLines(lines);
     const at = now();
+    const carets = focused() ? touching() : [];
+    /** What of `line` (`length` long) the carets and selections cover, by column. */
+    const touchedOn = (line: number, length: number) =>
+      carets
+        .filter((r) => r.start.line <= line && line <= r.end.line)
+        .map((r) => ({ start: r.start.line === line ? r.start.column : 0, end: r.end.line === line ? r.end.column : length }));
+    for (const block of codeBlocks(lines)) {
+      const last = lines[block.end].length;
+      out.push({
+        range: { start: { line: block.start, column: 0 }, end: { line: block.end, column: last } },
+        lineClass: "bg-paper-fg/5",
+        fontFamily: CODE_FONT,
+        fontSize: T.type.code,
+      });
+      // Its fences show while a caret or a selection is in the block; else the opening one is its language's name.
+      const shown = carets.some((r) => r.start.line <= block.end && r.end.line >= block.start);
+      const fences = block.closed && block.end > block.start ? [block.start, block.end] : [block.start];
+      for (const line of fences) {
+        const m = fenceMark(lines[line], shown);
+        if (m.end === m.start) continue;
+        const range = { start: { line, column: m.start }, end: { line, column: m.end } };
+        out.push({ range, class: MARK_CLASS.syntax, ...(m.label !== undefined ? { label: m.label, ...labelLook(m) } : {}) });
+      }
+    }
     lines.forEach((content, line) => {
       const span = (start: number, end: number) => ({ start: { line, column: start }, end: { line, column: end } });
-      // The Markdown's marks muted and its headings, links and code set apart; fenced code is the highlighter's,
-      // its fences muted.
-      if (!fenced[line]) for (const m of lineMarks(content)) out.push({ range: span(m.start, m.end), class: MARK_CLASS[m.kind] });
-      else if (isFence(content)) out.push({ range: span(0, content.length), class: MARK_CLASS.syntax });
+      if (!fenced[line]) {
+        const marks = lineMarks(content, touchedOn(line, content.length));
+        const heading = marks.some((m) => m.level !== undefined);
+        for (const m of marks) {
+          const d: EditorDecoration = { range: span(m.start, m.end) };
+          if (MARK_CLASS[m.kind]) d.class = MARK_CLASS[m.kind];
+          if (m.level !== undefined && m.level <= 3) d.fontSize = T.type.headings[m.level - 1];
+          if (m.kind === "code") {
+            d.fontFamily = CODE_FONT;
+            // In a heading, the heading's size.
+            if (!heading) d.fontSize = T.type.code;
+          }
+          if (m.label !== undefined) Object.assign(d, { label: m.label }, labelLook(m));
+          if (d.class || d.fontSize || d.fontFamily || d.label !== undefined) out.push(d);
+        }
+        if (isQuote(content)) out.push({ range: span(0, content.length), lineClass: "bg-paper-fg/5" });
+      }
       const task = fenced[line] ? null : taskLine(content);
       if (!task) return;
       out.push({ range: span(task.box.start, task.box.end), class: task.done ? "text-paper-muted font-semibold" : "text-accent-ink font-semibold" });
@@ -698,7 +761,13 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
         onTextPress={({ position, clicks }) => {
           const task = taskAt(untracked(text), position.line);
           if (clicks !== 1 || !task) return;
-          if (position.column >= task.box.start && position.column <= task.box.end) toggleLine(position.line);
+          // The box: its `[ ]`, or the drawn box standing for `- [ ]` (a press on a label lands at either end).
+          if (position.column >= task.box.start - 2 && position.column <= task.box.end) {
+            toggleLine(position.line);
+            // The caret goes before the words, off the box, which then stays drawn.
+            const words = { line: position.line, column: task.rest.start };
+            if (!untracked(readOnly)) editor?.setSelections([{ anchor: words, head: words }]);
+          }
           // The time chip: the picker opens over it.
           else if (task.due && !task.done && position.column >= task.due.start && position.column <= task.due.end) pickDueAt(position.line);
         }}

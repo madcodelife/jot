@@ -2,7 +2,9 @@
 // in at its end and leaves the caret where it was, even at the very end;
 // Return goes on with a list, a to-do or a quote, and ends one on an empty
 // item, one undo taking it back; ⇧↩ is a plain break; ⌘↩ ticks the caret's
-// to-do; brackets and quotes typed are one character.
+// to-do; brackets and quotes typed are one character. The live preview hides
+// the Markdown off the caret (all of it without the focus), sizes headings,
+// sets code in the code font, and draws a to-do's box, which a press ticks.
 import { expect, open, test } from "nsh/test";
 import { Notes } from "jot/native";
 
@@ -95,4 +97,72 @@ test("brackets and quotes typed in a note are one character, not a pair", async 
   const { app, notes } = await openNote("括号", "");
   await keys(app, "shift+9", "a", "shift+'", "[");
   expect(notes.read("括号")?.body).toBe('(a"[');
+});
+
+/** The editor's rows as the screen reads them: a label stands in its row as `￼`, and its own text is a text of its own. */
+const rows = (app: Awaited<ReturnType<typeof openNote>>["app"]) => app.texts();
+
+test("the live preview hides the Markdown off the caret and shows it where the caret is; the file stays as written", async () => {
+  const body = "# 标题\n- 项目\n1. 第一\n> 引用\n**粗** 和 `码` 和 [链接](https://example.com)";
+  const { app, notes } = await openNote("预览", body);
+  // The caret at the end, on the link: its brackets and target show; the bold's and the code's marks hide.
+  let shown = rows(app);
+  for (const row of ["￼标题", "￼ 项目", "•", "1. 第一", "￼引用", "￼粗￼ 和 ￼码￼ 和 [链接](https://example.com)"]) expect(shown).toContain(row);
+  // On the heading: its `# ` shows; the link's syntax hides again.
+  await keys(app, "up", "up", "up", "up");
+  shown = rows(app);
+  for (const row of ["# 标题", "￼粗￼ 和 ￼码￼ 和 ￼链接￼"]) expect(shown).toContain(row);
+  // In the bold words: both of its marks.
+  await keys(app, "down", "down", "down", "down", "home", "right", "right", "right");
+  expect(rows(app)).toContain("**粗** 和 ￼码￼ 和 ￼链接￼");
+  await keys(app, "down");
+  expect(notes.read("预览")?.body).toBe(body);
+});
+
+test("headings are large and bold, code monospaced, emphasis bold, italic or struck", async () => {
+  const { app } = await openNote("样式", "# 一级\n## 二级\n### 三级\n#### 四级\n**粗** *斜* ~~删~~ `码`\n```\nfenced\n```");
+  const style = (text: string) => app.spanStyle(`id:editor >> text:${text}`);
+  expect([style("一级")?.fontSize, style("二级")?.fontSize, style("三级")?.fontSize, style("四级")?.fontSize]).toEqual([24, 21, 18.5, 16]);
+  expect(style("一级")?.fontWeight).toBe(700);
+  expect(style("四级")?.fontWeight).toBe(700);
+  // A heading's row is taller with its text.
+  expect(style("一级")?.lineHeight).toBeGreaterThan(26);
+  expect(style("粗")?.fontWeight).toBe(700);
+  expect(style("斜")?.italic).toBe(true);
+  expect(style("删")?.lineThrough).toBe(true);
+  expect(style("码")?.fontFamily).toBe("ui-monospace");
+  expect(style("fenced")?.fontFamily).toBe("ui-monospace");
+});
+
+test("a fenced block's fences show while the caret is in it; outside, the opening one is its language's name", async () => {
+  const { app } = await openNote("代码块", "```js\nlet a\n```\nafter");
+  expect(rows(app)).toContain("js");
+  expect(rows(app)).not.toContain("```js");
+  await keys(app, "up", "up");
+  expect(rows(app)).toContain("```js");
+  expect(rows(app)).toContain("```");
+});
+
+test("a to-do's `- [ ]` is a drawn box: a press on it ticks it and leaves it drawn, and ticks it off again", async () => {
+  const { app, notes } = await openNote("勾选框", "- [ ] 交房租\n散文");
+  expect(rows(app)).toContain("￼ 交房租");
+  await app.press("id:editor >> label:- [ ]");
+  await app.wait(1000);
+  expect(notes.read("勾选框")?.body).toMatch(/^- \[x\] 交房租 ✅ \d{4}-\d\d-\d\d\n散文$/);
+  // The caret went before the words: the ticked box is still drawn.
+  expect(rows(app)).toContain("✓");
+  await app.press("id:editor >> label:- [x]");
+  await app.wait(1000);
+  expect(notes.read("勾选框")?.body).toBe("- [ ] 交房租\n散文");
+});
+
+test("while the text has no focus, everything shows rendered, the caret's line too", async () => {
+  const { app } = await openNote("失焦", "- [ ] 交房租\n# 标题");
+  expect(rows(app)).toContain("# 标题");
+  // The reminder time picker takes the keys from the text.
+  await keys(app, "up", "mod+shift+d");
+  await app.waitFor("id:due-picker");
+  await app.wait(300);
+  expect(rows(app)).toContain("￼标题");
+  expect(rows(app)).toContain("￼ 交房租");
 });

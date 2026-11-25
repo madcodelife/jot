@@ -83,7 +83,8 @@ export interface PlatformTokens {
   };
   /**
    * The type ladder, in points. The panel follows Spotlight's: a regular-weight field at 20, rows at 14 with a
-   * 12 snippet and 11 meta, weight kept for headers. The editor keeps its title at 29 and body at 16.
+   * 12 snippet and 11 meta, weight kept for headers. The editor keeps its title at 29 and body at 16, its headings
+   * of levels 1 to 3 at 1.5, 1.3 and 1.15 times the body (levels 4 to 6 are the body's size, bold), its code at 14.5.
    */
   type: {
     title: number;
@@ -91,6 +92,10 @@ export interface PlatformTokens {
     row: number;
     body: number;
     bodyLine: number;
+    /** A note's headings of levels 1, 2 and 3. */
+    headings: readonly [number, number, number];
+    /** A note's code, inline and fenced, in the monospaced font (which runs larger than the body's at a size). */
+    code: number;
     snippet: number;
     meta: number;
     todo: number;
@@ -184,6 +189,8 @@ const APPLE_TYPE = {
   row: 14,
   body: 16,
   bodyLine: 26,
+  headings: [24, 21, 18.5] as const,
+  code: 14.5,
   snippet: 12,
   meta: 11,
   todo: 14,

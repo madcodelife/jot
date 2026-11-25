@@ -1,54 +1,144 @@
-// The editor's Markdown marks (app/markdown.ts): which parts of a line are
-// syntax, drawn muted, and which are a heading's, a link's or code's words.
-// Pure functions, no app.
+// The editor's Markdown (app/markdown.ts): which parts of a line are syntax
+// and which are a heading's, a link's, code's or emphasis's words; what the
+// live preview shows in place of the syntax, by where the caret is; fenced
+// code; what Return does on a list. Pure functions, no app.
 import { expect, test } from "nsh/test";
-import { continuation, fencedLines, lineMarks, type Mark } from "../markdown";
+import { codeBlocks, continuation, fenceMark, fencedLines, isQuote, lineMarks, type Mark } from "../markdown";
 
-/** The marks as `kind:text`, in order. */
-const shown = (line: string) => lineMarks(line).map((m: Mark) => `${m.kind}:${line.slice(m.start, m.end)}`);
+/**
+ * The marks as `kind:text`, in order, with `→label` where the preview shows a label in place of the text (`→` alone:
+ * hidden). `carets` are columns of carets on the line, or `[start, end]` of selections.
+ */
+const shown = (line: string, ...carets: (number | [number, number])[]) =>
+  lineMarks(
+    line,
+    carets.map((c) => (typeof c === "number" ? { start: c, end: c } : { start: c[0], end: c[1] })),
+  ).map((m: Mark) => `${m.kind}:${line.slice(m.start, m.end)}${m.label !== undefined ? `→${m.label}` : ""}`);
 
-test("a heading's hashes are syntax and its words a heading's; up to three spaces before, a space after", () => {
-  expect(shown("## 二级标题 Heading 2")).toEqual(["syntax:##", "heading:二级标题 Heading 2"]);
-  expect(shown("   ###### six")).toEqual(["syntax:######", "heading:six"]);
+test("a heading's hashes and space hide and its words are a heading's; up to three spaces before, a space after", () => {
+  expect(shown("## 二级标题 Heading 2")).toEqual(["syntax:## →", "heading:二级标题 Heading 2"]);
+  expect(shown("   ###### six")).toEqual(["syntax:###### →", "heading:six"]);
   expect(shown("#")).toEqual(["syntax:#"]);
+  expect(shown("# ")).toEqual(["syntax:# "]);
   expect(shown("#hashtag")).toEqual([]);
   expect(shown("####### seven")).toEqual([]);
-  expect(shown("> ## quoted")).toEqual(["syntax:> ", "syntax:##", "heading:quoted"]);
+  expect(shown("> ## quoted")).toEqual(["syntax:> →", "syntax:## →", "heading:quoted"]);
+  expect(lineMarks("## two").map((m) => m.level)).toEqual([2, 2]);
+  expect(lineMarks("> #### four").map((m) => m.level)).toEqual([undefined, 4, 4]);
 });
 
-test("list, quote and rule markers are syntax; a to-do's dash too, not its box", () => {
-  expect(shown("- 无序列表第一项")).toEqual(["syntax:-"]);
-  expect(shown("  * nested")).toEqual(["syntax:*"]);
+test("a heading's marks show while the caret or a selection is anywhere on its line", () => {
+  expect(shown("## 标题", 5)).toEqual(["syntax:## ", "heading:标题"]);
+  expect(shown("## 标题", 0)).toEqual(["syntax:## ", "heading:标题"]);
+  expect(shown("> ## quoted", [0, 11])).toEqual(["syntax:> ", "syntax:## ", "heading:quoted"]);
+});
+
+test("a heading's words have their inline Markdown too", () => {
+  expect(shown("# **粗** 标题")).toEqual(["syntax:# →", "heading:**粗** 标题", "syntax:**→", "strong:粗", "syntax:**→"]);
+  // On the line, away from the bold words: the heading's marks show, the bold's stay hidden.
+  expect(shown("# **粗** 标题", 9)).toEqual(["syntax:# ", "heading:**粗** 标题", "syntax:**→", "strong:粗", "syntax:**→"]);
+});
+
+test("a bullet stands for •, a number stays, a quote's marks hide; all show with the caret on the line", () => {
+  expect(shown("- 无序列表第一项")).toEqual(["syntax:-→•"]);
+  expect(shown("  * nested")).toEqual(["syntax:*→•"]);
+  expect(shown("+ plus")).toEqual(["syntax:+→•"]);
   expect(shown("12. twelfth")).toEqual(["syntax:12."]);
-  expect(shown("> 引用：好的工具应该安静")).toEqual(["syntax:> "]);
-  expect(shown("> > deeper")).toEqual(["syntax:> > "]);
-  expect(shown("- [ ] 交房租 ⏰ 2026-11-14 09:00")).toEqual(["syntax:-"]);
+  expect(shown("> 引用：好的工具应该安静")).toEqual(["syntax:> →"]);
+  expect(shown("> > deeper")).toEqual(["syntax:> > →"]);
+  expect(shown("> - item")).toEqual(["syntax:> →", "syntax:-→•"]);
+  expect(shown("- item", 6)).toEqual(["syntax:-"]);
+  expect(shown("> - item", 8)).toEqual(["syntax:> ", "syntax:-"]);
   expect(shown("---")).toEqual(["syntax:---"]);
   expect(shown("* * *")).toEqual(["syntax:* * *"]);
   expect(shown("-not a list")).toEqual([]);
+  expect(isQuote("> said")).toBe(true);
+  expect(isQuote("   >said")).toBe(true);
+  expect(isQuote("a > b")).toBe(false);
 });
 
-test("emphasis keeps its words and mutes its marks; a lone star or an identifier's underscore is text", () => {
-  expect(shown("今天把 **Jot** 的编辑器走一遍，看看 *Markdown*")).toEqual(["syntax:**", "syntax:**", "syntax:*", "syntax:*"]);
-  expect(shown("~~旧的~~ and __bold__ and _it_")).toEqual(["syntax:~~", "syntax:~~", "syntax:__", "syntax:__", "syntax:_", "syntax:_"]);
+test("a to-do's `- [ ]` is a box, open or ticked, shown as text only while a caret or a selection touches it", () => {
+  expect(shown("- [ ] 交房租 ⏰ 2026-11-14 09:00")).toEqual(["syntax:-", "box:- [ ]→"]);
+  expect(shown("  * [x] done ✅ 2026-11-12")).toEqual(["syntax:*", "box:* [x]→✓"]);
+  expect(lineMarks("- [X] done").find((m) => m.kind === "box")?.done).toBe(true);
+  // Typing its words keeps the box: the caret after its space touches it not.
+  expect(shown("- [ ] 交房租", 6)).toEqual(["syntax:-", "box:- [ ]→"]);
+  expect(shown("- [ ] 交房租", 9)).toEqual(["syntax:-", "box:- [ ]→"]);
+  expect(shown("- [ ] 交房租", 5)).toEqual(["syntax:-", "box:- [ ]"]);
+  expect(shown("- [ ] 交房租", 0)).toEqual(["syntax:-", "box:- [ ]"]);
+  expect(shown("- [ ] 交房租", [3, 8])).toEqual(["syntax:-", "box:- [ ]"]);
+  // Its words' Markdown, after the box.
+  expect(shown("- [ ] 买 **牛奶**")).toEqual(["syntax:-", "box:- [ ]→", "syntax:**→", "strong:牛奶", "syntax:**→"]);
+  // A box in a quote is no to-do.
+  expect(shown("> - [ ] quoted")).toEqual(["syntax:> →", "syntax:-→•"]);
+});
+
+test("emphasis's marks hide around its words, bold, italic or struck; a lone star or an identifier's underscore is text", () => {
+  expect(shown("今天把 **Jot** 的编辑器走一遍，看看 *Markdown*")).toEqual([
+    "syntax:**→",
+    "strong:Jot",
+    "syntax:**→",
+    "syntax:*→",
+    "em:Markdown",
+    "syntax:*→",
+  ]);
+  expect(shown("~~旧的~~ and __bold__ and _it_")).toEqual([
+    "syntax:~~→",
+    "strike:旧的",
+    "syntax:~~→",
+    "syntax:__→",
+    "strong:bold",
+    "syntax:__→",
+    "syntax:_→",
+    "em:it",
+    "syntax:_→",
+  ]);
   expect(shown("2 * 3 * 4")).toEqual([]);
   expect(shown("call snake_case_name here")).toEqual([]);
 });
 
-test("inline code is code between muted backticks, and nothing inside it is Markdown", () => {
-  expect(shown("用 `inline code` 也在")).toEqual(["syntax:`", "code:inline code", "syntax:`"]);
-  expect(shown("`*not emphasis*` and ``a ` tick``")).toEqual(["syntax:`", "code:*not emphasis*", "syntax:`", "syntax:``", "code:a ` tick", "syntax:``"]);
+test("a span's marks both show while the caret is in it or at either end, or a selection touches it; the others stay hidden", () => {
+  const line = "a **b** *c*";
+  const hidden = ["syntax:*→", "em:c", "syntax:*→"];
+  expect(shown(line, 4)).toEqual(["syntax:**", "strong:b", "syntax:**", ...hidden]);
+  expect(shown(line, 2)).toEqual(["syntax:**", "strong:b", "syntax:**", ...hidden]);
+  expect(shown(line, 7)).toEqual(["syntax:**", "strong:b", "syntax:**", ...hidden]);
+  expect(shown(line, 1)).toEqual(["syntax:**→", "strong:b", "syntax:**→", ...hidden]);
+  expect(shown(line, 8)).toEqual(["syntax:**→", "strong:b", "syntax:**→", "syntax:*", "em:c", "syntax:*"]);
+  expect(shown(line, [0, 3])).toEqual(["syntax:**", "strong:b", "syntax:**", ...hidden]);
+  // Two carets, one in each.
+  expect(shown(line, 4, 9)).toEqual(["syntax:**", "strong:b", "syntax:**", "syntax:*", "em:c", "syntax:*"]);
 });
 
-test("a link's words are a link's, its brackets and target syntax", () => {
-  expect(shown("带一个 [链接](https://example.com)")).toEqual(["syntax:[", "link:链接", "syntax:](https://example.com)"]);
-  expect(shown("![logo](a.png)")).toEqual(["syntax:![", "link:logo", "syntax:](a.png)"]);
+test("inline code is code between hidden backticks, and nothing inside it is Markdown", () => {
+  expect(shown("用 `inline code` 也在")).toEqual(["syntax:`→", "code:inline code", "syntax:`→"]);
+  expect(shown("`*not emphasis*` and ``a ` tick``")).toEqual(["syntax:`→", "code:*not emphasis*", "syntax:`→", "syntax:``→", "code:a ` tick", "syntax:``→"]);
+  expect(shown("用 `code` 也在", 6)).toEqual(["syntax:`", "code:code", "syntax:`"]);
+});
+
+test("a link or an image shows its words alone, in the link's colour; its brackets and target show with the caret in it", () => {
+  expect(shown("带一个 [链接](https://example.com)")).toEqual(["syntax:[→", "link:链接", "syntax:](https://example.com)→"]);
+  expect(shown("![logo](a.png)")).toEqual(["syntax:![→", "link:logo", "syntax:](a.png)→"]);
   expect(shown("[x] alone")).toEqual([]);
+  expect(shown("带一个 [链接](https://example.com)", 4)).toEqual(["syntax:[", "link:链接", "syntax:](https://example.com)"]);
+  expect(shown("带一个 [链接](https://example.com)", 28)).toEqual(["syntax:[", "link:链接", "syntax:](https://example.com)"]);
 });
 
-test("a fence's line is syntax", () => {
+test("labelled marks never overlap, whatever the line", () => {
+  for (const line of ["***x***", "*a **b** c*", "> ## **h** `c` [l](u)", "- [ ] **a**_b_ ~~c~~", "__a__b__", "`a` `b`"]) {
+    const labelled = lineMarks(line).filter((m) => m.label !== undefined);
+    for (let i = 1; i < labelled.length; i++) expect(labelled[i].start >= labelled[i - 1].end).toBe(true);
+  }
+});
+
+test("a fence's line is syntax; outside its block it is its language's name, or hidden", () => {
   expect(shown("```rust")).toEqual(["syntax:```rust"]);
   expect(shown("~~~")).toEqual(["syntax:~~~"]);
+  expect(fenceMark("```rust", false).label).toBe("rust");
+  expect(fenceMark("  ~~~~ python title=\"a.py\"", false).label).toBe("python");
+  expect(fenceMark("```", false).label).toBe("");
+  expect(fenceMark("```rust", true).label).toBeUndefined();
+  expect(fenceMark("```rust", true)).toEqual({ start: 0, end: 7, kind: "syntax" });
 });
 
 test("fenced code runs from its fence to the matching one, or to the end", () => {
@@ -57,6 +147,11 @@ test("fenced code runs from its fence to the matching one, or to the end", () =>
   expect(fencedLines(["````", "```", "~~~", "```` x", "````"])).toEqual([true, true, true, true, true]);
   expect(fencedLines(["~~~", "```", "~~~", "after"])).toEqual([true, true, true, false]);
   expect(fencedLines(["```", "never closed", "# still code"])).toEqual([true, true, true]);
+  expect(codeBlocks(["a", "```sh", "x", "```", "b", "~~~", "y"])).toEqual([
+    { start: 1, end: 3, closed: true },
+    { start: 5, end: 6, closed: false },
+  ]);
+  expect(codeBlocks(["```"])).toEqual([{ start: 0, end: 0, closed: false }]);
 });
 
 /** The line after Return at the end of `line` (or at `column`), the caret shown as `|`. */

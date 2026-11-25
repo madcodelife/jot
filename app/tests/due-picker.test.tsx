@@ -76,7 +76,7 @@ test("the quick choices are the times still to come, each once", () => {
 
 test("pressing the time chip in the note opens the picker, and a quick time is written on the line", async () => {
   const { app, body } = await openNote("chip", "房租", "- [ ] 房租 ⏰ 2026-11-20 09:00");
-  await app.press("id:editor >> text:- [ ] 房租 ⏰ 2026-11-20 09:00");
+  await app.press("id:editor >> text:/房租 ⏰ 2026-11-20 09:00$/");
   await app.waitFor("id:due-picker");
   // What it has, the quick times, the calendar and the time field, and "Remove Reminder".
   for (const id of ["due-current", "due-quick:tomorrow", "due-calendar", "due-time", "due-set", "due-remove"]) expect(app.shows(`id:${id}`)).toBe(true);
@@ -130,7 +130,8 @@ test("the picker opens with the first choice focused: ↓ and Return pick the ne
 
 test("Remove Reminder takes the time off the line; Escape closes the picker and changes nothing", async () => {
   const { app, body } = await openNote("remove", "房租", "- [ ] 房租 ⏰ 2026-11-20 09:00");
-  await app.press("id:editor >> text:- [ ] 房租 ⏰ 2026-11-20 09:00");
+  // The line's row, by its end: once the caret has left the box, its `- [ ]` is a drawn box, no text.
+  await app.press("id:editor >> text:/房租 ⏰ 2026-11-20 09:00$/");
   await app.waitFor("id:due-picker");
   await app.keyboard.press("escape");
   await app.waitUntil(() => !app.shows("id:due-picker"));
@@ -139,7 +140,7 @@ test("Remove Reminder takes the time off the line; Escape closes the picker and 
   await app.wait(400);
   expect(body()).toBe("- [ ] 房租 ⏰ 2026-11-20 09:00");
 
-  await app.press("id:editor >> text:- [ ] 房租 ⏰ 2026-11-20 09:00");
+  await app.press("id:editor >> text:/房租 ⏰ 2026-11-20 09:00$/");
   await app.waitFor("id:due-picker");
   await app.press("id:due-remove");
   await app.waitUntil(() => body() === "- [ ] 房租");
