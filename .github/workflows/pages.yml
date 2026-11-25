@@ -17,12 +17,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Publish install.sh
+  # Two jobs, as GitHub's starter has it: a deploy right after the upload in one job may not find the artifact yet
+  # (actions/deploy-pages#451), and a re-run of that job cannot recover, as it uploads a second one.
+  build:
+    name: Build the site
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}install.sh
     steps:
       - uses: actions/checkout@v7
 
@@ -45,5 +44,22 @@ jobs:
         with:
           path: site
 
+  deploy:
+    name: Publish install.sh
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url || steps.retry.outputs.page_url }}install.sh
+    steps:
       - id: deployment
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+
+      # The artifact can still be missing from the listing for some seconds: once more, later.
+      - if: steps.deployment.outcome == 'failure'
+        run: sleep 30
+
+      - id: retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v5
