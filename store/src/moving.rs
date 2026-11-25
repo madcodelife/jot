@@ -4,7 +4,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-use crate::{Entry, Store, StoreError, clean_title, retry};
+use crate::{Entry, Store, StoreError, clean_title, lock, retry};
 
 /// What [`Store::move_into`] did with each note.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -25,7 +25,9 @@ impl Store {
     /// Moves every note of this folder into `to`, keeping its file (dates, frontmatter) as it is. A note never
     /// replaces one there: when `to` has its title, the same text is left here (`same`), another text moves in
     /// under the next free title (`renamed`). Files that are not notes stay. A note not downloaded yet is moved
-    /// as it is when the move is a rename, else left (`failed`).
+    /// as it is when the move is a rename, else left (`failed`). A locked note moves locked: its flag is cleared
+    /// for the move (the system refuses to move a file with it) and set again where it lands; one locked in Finder
+    /// only gets `locked: true` in its frontmatter first, so a sync service that drops the flag keeps the lock.
     pub fn move_into(&self, to: &Store) -> Result<Moved, StoreError> {
         let mut report = Moved::default();
         if to.root == self.root {
@@ -48,6 +50,10 @@ impl Store {
             self.cloud.download(&entry.path);
             return Err(StoreError::NotDownloaded);
         }
+        let locked = lock::has_flag(&entry.path)?;
+        if locked {
+            self.settle_lock_of(entry)?;
+        }
         for n in 1..=1000 {
             let title = if n == 1 {
                 entry.title.clone()
@@ -60,7 +66,7 @@ impl Store {
                     return Ok(Placed::Same);
                 }
                 Some(_) => {}
-                None => match move_file(self, &entry.path, to, &to.path_for(&title)) {
+                None => match move_file(self, &entry.path, to, &to.path_for(&title), locked) {
                     Ok(()) if n == 1 => return Ok(Placed::Moved),
                     Ok(()) => return Ok(Placed::Renamed(title)),
                     // Taken between the look and the move.
@@ -92,8 +98,39 @@ fn same_text(from: &Store, a: &Path, to: &Store, b: &Path) -> bool {
 
 /// Moves the note file `from` to `dest`, never over a file there (`AlreadyExists`). Within a volume it is a
 /// rename (a note not downloaded moves as it is); across volumes its text is written anew (dates kept) and the
-/// old file removed.
-fn move_file(store: &Store, from: &Path, to: &Store, dest: &Path) -> Result<(), StoreError> {
+/// old file removed. A `locked` file (the flag) has it cleared for the move and set again on the file that is left:
+/// the moved one, or the one still here when the move fails.
+fn move_file(
+    store: &Store,
+    from: &Path,
+    to: &Store,
+    dest: &Path,
+    locked: bool,
+) -> Result<(), StoreError> {
+    if !locked {
+        return move_unlocked(store, from, to, dest);
+    }
+    lock::set_flag(from, false)?;
+    match move_unlocked(store, from, to, dest) {
+        Ok(()) => {
+            lock::set_flag(dest, true)?;
+            Ok(())
+        }
+        Err(error) => {
+            if from.exists() {
+                let _ = lock::set_flag(from, true);
+            }
+            // A copy made before the failure (across volumes) is the locked note too; a note that was there
+            // already (`AlreadyExists`) is another one.
+            if !matches!(error, StoreError::AlreadyExists) && dest.exists() {
+                let _ = lock::set_flag(dest, true);
+            }
+            Err(error)
+        }
+    }
+}
+
+fn move_unlocked(store: &Store, from: &Path, to: &Store, dest: &Path) -> Result<(), StoreError> {
     match rename_new(from, dest) {
         Ok(()) => return Ok(()),
         Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {

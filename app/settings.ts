@@ -2,8 +2,10 @@
 // (`jot.*`), and applied the moment it changes: the language (`setLocale`),
 // the appearance and the theme, the reminders' channels and their default
 // time, and dictation's hold key and language. The notes folder is the store's (`jot.dir`, `app/store.ts`).
+// Whether AI apps may move notes to the Trash and rewrite them lives in a file `jot-mcp` reads too (`AiAccess`).
 import { batch, signal, Storage, untracked } from "nsh";
 import { setLocale } from "nsh/i18n";
+import { AiAccess } from "jot/native";
 import { applyAppearance, applyTheme, RETIRED, themeFromStored, type Appearance, type ThemeName } from "../ui/themes";
 import { LANGUAGES, shownLanguage, type Language } from "./i18n";
 
@@ -46,6 +48,9 @@ export const SPEECH_LANGUAGES = [
 ] as const;
 export type SpeechLanguageChoice = "auto" | (typeof SPEECH_LANGUAGES)[number]["value"];
 
+/** AI apps may move notes to the Trash and rewrite whole notes (`trash_note`, `replace_note`). Off until the user turns it on. */
+export const aiTrashAndRewrite = signal(false);
+
 /** The time a reminder written with a date alone ("明天") is due, `HH:mm`. */
 export const defaultTime = signal("09:00");
 
@@ -76,6 +81,7 @@ export async function loadSettings() {
     if (isTime(time)) defaultTime.set(time);
     holdToTalk.set(flag(hold, true));
     if (isSpeechLanguage(speech)) speechLanguage.set(speech);
+    aiTrashAndRewrite.set(AiAccess.allowsTrashAndRewrite());
   });
   applyLanguage(untracked(language));
   applyAppearance(untracked(appearance), { animate: false });
@@ -94,6 +100,20 @@ export function setLanguage(choice: LanguageChoice) {
   language.set(choice);
   applyLanguage(choice);
   void Storage.setItem(KEYS.language, choice);
+  // `jot-mcp` names a rewritten note's previous version in the language shown.
+  if (untracked(aiTrashAndRewrite)) {
+    try {
+      AiAccess.set(true, untracked(shownLanguage));
+    } catch {
+      // Kept as it was: the name is in the language before, nothing more.
+    }
+  }
+}
+
+/** Lets AI apps move notes to the Trash and rewrite them, or stops them; `jot-mcp` follows at its next call. Throws when it cannot be saved (the switch stays as it was). */
+export function setAiTrashAndRewrite(on: boolean) {
+  AiAccess.set(on, untracked(shownLanguage));
+  aiTrashAndRewrite.set(on);
 }
 
 export function setAppearance(value: Appearance) {

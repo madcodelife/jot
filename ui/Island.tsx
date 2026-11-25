@@ -44,6 +44,8 @@ const current = signal<IslandEvent | null>(null);
 const isOpen = signal(false);
 /** Write: the note is saved. Remind: the to-do is ticked. */
 const done = signal(false);
+/** Remind: its note is locked, so the to-do could not be ticked; the island says so instead. */
+const refused = signal(false);
 /** Write: how much of the title has been "typed". */
 const typed = signal(0);
 
@@ -117,6 +119,7 @@ function next() {
   morphNext(T.spring.island);
   current.set(event);
   done.set(false);
+  refused.set(false);
   typed.set(0);
   isOpen.set(true);
   if (event.kind === "write") {
@@ -138,12 +141,19 @@ function close() {
   later(420, next);
 }
 
-/** Ticks the reminder's to-do from the island. */
+/** Ticks the reminder's to-do from the island. A locked note keeps it open: the island says it is locked. */
 function tick(todo: Todo) {
-  if (untracked(done)) return;
+  if (untracked(done) || untracked(refused)) return;
   try {
     untracked(notes)?.setTodoDone(todo.note, todo.line, todo.text, true);
   } catch (error) {
+    if (errorCode(error) === "ERR_JOT_LOCKED") {
+      refused.set(true);
+      for (const t of timers) clearTimeout(t);
+      timers = [];
+      later(2400, close);
+      return;
+    }
     // The line changed since the reminder was due (`ERR_JOT_CHANGED`): the note has the user's latest.
     if (errorCode(error) !== "ERR_JOT_CHANGED") throw error;
   }
@@ -317,7 +327,9 @@ function IslandContent(props: { event: IslandEvent }) {
             ? done()
               ? t("island.written", { agent: write()!.agent })
               : t("island.writing", { agent: write()!.agent })
-            : done()
+            : refused()
+              ? t("island.locked")
+              : done()
               ? t("island.done")
               : t("island.remind", { time: due() ? hm(due()!) : t("island.now"), note: remind()?.todo.note ?? "" })}
         </Text>
@@ -336,7 +348,12 @@ function IslandContent(props: { event: IslandEvent }) {
             </View>
           </If>
         </If>
-        <If when={remind()}>
+        <If when={remind() && refused()}>
+          <View testID="island-locked" class="items-center justify-center">
+            <Icon name="lock" size={20} tint={token("island-muted")} />
+          </View>
+        </If>
+        <If when={refused() ? undefined : remind()}>
           {(r) => (
             <TodoCheck
               testID="island-check"

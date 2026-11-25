@@ -15,10 +15,10 @@ The root `Cargo.toml` is the app crate and the workspace (`members = ["store", "
 - The title is the file stem. A title is trimmed; `/`, `\`, `:` and control characters become `-`; an empty
   title, `.` / `..`, or a title starting with `.` is rejected (`StoreError::InvalidTitle`). Titles compare
   case-insensitively for existence checks (macOS file systems are case-insensitive).
-- Optional YAML frontmatter at the very top (`---` lines). The only key Jot writes is `source`, on notes created
-  through MCP: the app that created it (`source: cursor`, `source: "agent:Goose"`). Only the values Jot writes mark
-  a note as an app's; any other `source` (a web clipper's URL, a book) is the user's. Unknown keys are preserved on
-  every write. `body` never includes the frontmatter.
+- Optional YAML frontmatter at the very top (`---` lines). Jot writes two keys: `source`, on notes created through
+  MCP: the app that created it (`source: cursor`, `source: "agent:Goose"`), and `locked: true` on a locked note
+  (below). Only the values Jot writes mark a note as an app's; any other `source` (a web clipper's URL, a book) is
+  the user's. Unknown keys are preserved on every write. `body` never includes the frontmatter.
 - Writes are atomic: a temp file in the same folder, then rename.
 - `modified` is the file's mtime.
 
@@ -90,8 +90,18 @@ impl Store {
     /// Deletes the file for good. Only the app calls it (the app's own delete goes through `trash`).
     pub fn delete(&self, title: &str) -> Result<(), StoreError>;
     /// Moves the note to the system trash (macOS: NSFileManager, remembering where it went; elsewhere the
-    /// `trash` crate). Fails with `NotFound`. The MCP server never calls it.
+    /// `trash` crate). Fails with `NotFound`. The app's ⌃X and `trash_note` call it.
     pub fn trash(&self, title: &str) -> Result<Trashed, StoreError>;
+    /// The trash a plain folder instead of the system's (tests: nothing reaches the user's trash).
+    pub fn with_trash_folder(self, dir: impl Into<PathBuf>) -> Store;
+    /// Rewrites the whole body, the frontmatter kept. The file as it was (frontmatter included, mtime kept) is written
+    /// under `previous(title)` in a temporary folder outside the notes folder and trashed from there first; if that
+    /// fails the note stays. The same body changes nothing (`previous: None`). `replace_note` calls it.
+    pub fn replace(&self, title: &str, body: &str, previous: impl FnOnce(&str) -> String) -> Result<Replaced, StoreError>;
+    /// Locks / unlocks (below). `settle_locks` puts back a missing half of each lock; returns the titles it changed.
+    pub fn lock(&self, title: &str) -> Result<NoteMeta, StoreError>;
+    pub fn unlock(&self, title: &str) -> Result<NoteMeta, StoreError>;
+    pub fn settle_locks(&self) -> Result<Vec<String>, StoreError>;
     /// Moves it back out of the trash, or rebuilds it from `Trashed::content` (frontmatter included, mtime kept)
     /// when the trash no longer has it or the platform did not say where it went. `AlreadyExists` when the
     /// title is taken.
@@ -116,10 +126,14 @@ pub enum Resolution { KeepCurrent, UseOther, KeepBoth { title: String } }
 pub struct Resolved { pub note: NoteMeta, pub copy: Option<NoteMeta> }  // non_exhaustive
 pub struct Moved { pub moved: Vec<String>, pub renamed: Vec<(String, String)>, pub same: Vec<String>, pub failed: Vec<(String, String)> }  // non_exhaustive
 
-pub struct NoteMeta { pub title: String, pub modified: SystemTime, pub source: Source, pub preview: String /* first ~120 chars of the body, one line */, pub downloading: bool /* its text is not on this Mac yet; asked for */ }
+pub struct NoteMeta { pub title: String, pub modified: SystemTime, pub source: Source, pub preview: String /* first ~120 chars of the body, one line */, pub downloading: bool /* its text is not on this Mac yet; asked for */, pub locked: bool /* the flag, or `locked: true` */ }
 pub struct Note { pub meta: NoteMeta, pub body: String }
 pub struct SearchHit { pub meta: NoteMeta, pub snippet: String /* ~120 chars around the first body match, or the preview */, pub title_match: bool }
 pub struct Trashed { pub title: String, pub in_trash: Option<PathBuf>, pub content: String, pub modified: SystemTime }  // non_exhaustive
+pub struct Replaced { pub note: NoteMeta, pub previous: Option<Trashed> }  // non_exhaustive
+/// Jot's settings for AI apps, a file the app writes and jot-mcp reads (below).
+pub struct AiSettings { pub allow_trash_and_rewrite: bool, pub language: Option<String> }  // non_exhaustive
+impl AiSettings { pub fn path(home: &Path) -> PathBuf; pub fn default_path() -> Option<PathBuf>; pub fn read(path: &Path) -> AiSettings /* missing, broken: off */; pub fn write(&self, path: &Path) -> io::Result<()>; }
 /// Who created a note: the user, or an AI app by its key (`claude`, `claude-code`, `cursor`, `codex`, `vscode`,
 /// `windsurf`, `gemini`, `zed`; `agent` for one that gave no name) or, for an app Jot does not know,
 /// `agent:<the name it gave itself>`.
@@ -135,7 +149,7 @@ impl Source {
     /// for `agent`; None for the user.
     pub fn label(&self) -> Option<String>;
 }
-pub enum StoreError { InvalidTitle, NotFound, AlreadyExists, NotDownloaded, Io(std::io::Error) }  // Display + std::error::Error
+pub enum StoreError { InvalidTitle, NotFound, AlreadyExists, NotDownloaded, Locked, Io(std::io::Error) }  // Display + std::error::Error
 pub struct Watcher { /* … */ }
 ```
 
@@ -145,6 +159,75 @@ key, double-quoted unless YAML reads it as that plain string (`cursor`; but `"ag
 without a trailing `# comment`: a known key or `agent` in any case is that app (`Claude` → `claude`: notes from before
 the apps were told apart say `claude`), `agent:<name>` the app of that name, and anything else (URLs, book titles,
 `user`, empty) the user. An older Jot reads `source: cursor` and the like as the user's (it knew `claude` only).
+
+## Locked notes (store/src/lock.rs)
+
+A lock is two marks, either of which makes the note locked (`NoteMeta::locked`):
+
+- **The file's `UF_IMMUTABLE` flag** (`chflags uchg`, Finder's Get Info › Locked), so that no other program changes it.
+- **`locked: true` in the frontmatter** (a top-level line, `true` in any case, quoted or not, a `# comment` after
+  it allowed), so the lock travels with the text to other devices.
+
+Every write of the store (`write`, `append`, `set_todo_done`, `set_todo_due`, `add_todo` into the note, `rename`,
+`delete`, `trash`, `replace`, `resolve` with `UseOther`) checks both before it touches the file and fails with
+`StoreError::Locked`, the file left as it was. `lock` writes the frontmatter (mtime kept: locking is no change of
+the note; the write sets the time on the temporary file before the rename) and then the flag; `unlock` clears the
+flag, then takes the line out (a frontmatter left empty goes), and sets the flag back if that write fails.
+`settle_locks` (the app calls it when it opens a folder and on every change the watcher reports) puts back the flag
+on a note whose frontmatter says locked, and writes the frontmatter of a note with the flag alone (clearing the
+flag for the write and setting it again after, also when the write fails). Notes not downloaded wait. Its own
+changes come back through the watcher with nothing left to do. A note unlocked in Finder alone is locked again by
+it while the frontmatter says so: unlocking is Jot's. `move_into` moves a locked note locked: a flag-only one gets
+the frontmatter first; the flag is cleared for the rename (or, across volumes, the copy and the removal) and set
+on the file that is left; on a failure, on the one still here (and on a copy already made).
+
+What the system does with the flag, checked on macOS 27 (APFS):
+
+- On a file with it, `rm`, `rm -f`, `mv`, a write (`>`, `>>`), a rename over it (an atomic save), renaming it,
+  `touch`, `chmod` and `xattr -w` all fail with `EPERM`; `rm -rf` of its folder leaves the folder ("Directory not
+  empty"), though the folder itself can be renamed. `NSFileManager trashItemAtURL:` refuses it
+  (`NSCocoaErrorDomain` 513); nothing reaches the trash. Reading is unaffected.
+- The file's owner clears it without `sudo` (`chflags nouchg`, Finder): the flag stops mistakes and programs that
+  respect it, not one that sets out to change the file.
+- FSEvents reports setting and clearing it (`kFSEventStreamEventFlagItemInodeMetaMod`), and `notify`'s debouncer
+  passes it on: the folder's watcher fires (`the_watcher_sees_the_flag_change`).
+
+What iCloud Drive does with it, checked on macOS 27 with one Mac signed in, in a test folder in iCloud Drive:
+
+- Measured: when it uploads a file's new contents (a new file, changed text, a file moved in), it clears the flag
+  within about a second, on the same inode. A flag set on a file already uploaded, with no change to its text,
+  stays (watched for 30 s), as it does through an eviction (`brctl evict`: dataless and flagged) and the download
+  back. No extended attribute carries it.
+- Not measurable with one Mac, inferred: the flag does not reach other devices (it is cleared at upload, and no
+  attribute holds it). So the frontmatter carries the lock, and `settle_locks` sets the flag on each Mac: a note
+  locked in Jot on iCloud Drive is unflagged for about a second after its upload, until the watcher's report brings
+  the flag back. `lock_on_icloud_drive` (ignored) runs this on a real folder: `JOT_ICLOUD_DIR=<a test folder in
+  iCloud Drive> cargo test -p jot-store lock_on_icloud_drive -- --ignored --nocapture` (measured: cleared ~1.1 s
+  after the lock; set again, it stayed).
+
+## AI apps removing and rewriting notes (store/src/settings.rs, mcp/)
+
+`trash_note` and `replace_note` work only while the user allows it: Settings › AI Apps › "Allow AI apps to move
+notes to the Trash and rewrite notes", off by default. `jot-mcp` runs in each AI app's process, started by the app
+with the arguments written in its configuration, so the setting cannot be an argument (changing it would mean
+rewriting every app's configuration and restarting the apps) nor in NSH's Storage (the app's alone). It is a file
+outside the notes folder that the app writes and `jot-mcp` reads on every call of the two tools (and as it starts,
+for its instructions): `~/Library/Application Support/Jot/ai.json`, `{"allowTrashAndRewrite": true, "language":
+"zh-Hans"}` (`AiSettings`; missing or unreadable is off). The language is the one Jot shows, which names a
+rewritten note's previous version: `Plan (before rewrite · 2026-11-25 14.30)`, `计划（改写前 · …）`, `計劃（改寫前 · …）`,
+`計画（書き換え前 · …）` (no colon: Finder shows one as a slash; the title shortened to fit 255 bytes).
+
+The tools stay listed while the setting is off and refuse with where to turn it on: a changing tool list needs the
+client to follow `notifications/tools/list_changed`, which not every client does, and `jot-mcp` would have to watch
+the file; a listed tool that explains itself lets the model tell the user how to allow it. Both are annotated
+`destructiveHint: true`, `readOnlyHint: false`, `openWorldHint: false` and `idempotentHint: true` (`trash_note`
+again finds nothing to trash; `replace_note` with the same body changes nothing and trashes nothing). The server's
+instructions say how the setting stood as the app connected, to use the tools only when asked, and to list the
+notes and ask before removing many at once. `replace_note` refuses an empty body and a body that starts with a `---`
+frontmatter block (it would become the note's frontmatter); the note's own frontmatter is kept.
+
+The switch is about Jot's tools: an app that runs shell commands can edit the file, or the notes, itself; locking
+a note is what keeps it as it is.
 
 ## To-dos (store/src/todo.rs, part of jot-store)
 
@@ -214,6 +297,10 @@ MCP tools (mcp/) never wait on a download unbounded: a tool that needs a note's 
 still downloading (`NotDownloaded`); listings mark such a note "not downloaded to this Mac yet"; `read_note`
 mentions conflict versions iCloud kept.
 
+MCP tools (mcp/) on a locked note: reading, searching, listing and `list_todos` go on (listings and `read_note` say
+"locked in Jot (read-only)"); every tool that writes fails with "locked in Jot … the user unlocks it in Jot first".
+No tool locks or unlocks.
+
 MCP tools (mcp/): `create_note` and `add_todo` record the calling app as the new note's `source`
 (`Source::from_client` of the `initialize` handshake's `clientInfo.name`). `add_todo(text, due?, note?)` (`due`: ISO `2026-11-14T09:00` or a phrase `when::parse` reads, in
 Chinese, English or Japanese; without `due`, a phrase in `text` becomes the time),
@@ -231,6 +318,16 @@ saved first. Settings › General › iCloud Drive: "Move to iCloud Drive…" (d
 is off: `Folder.icloud`), asks first (`AlertDialog`), moves the notes to `~/Library/Mobile
 Documents/com~apple~CloudDocs/Jot` (`moveNotesTo` in app/store.ts: `Folder.moveNotes`, then `changeFolder`, which
 the connected AI apps follow), and says what it did; a folder already in iCloud Drive shows "In iCloud Drive".
+
+## The app and locked notes
+
+`isLocked(title)` (app/store.ts) reads `NoteMeta.locked` from the listing, so a lock set or cleared anywhere (another
+Mac through the frontmatter, Finder, `chflags`) shows at the watcher's next report, after `settleLocks`. The open
+note (ui/Paper.tsx) is read-only while locked (`readOnly`: the editor, ticks, time chips, the time phrases' rewrite,
+list continuation, dictation all stop; the microphone hides) and its header shows a padlock and "Locked", a
+`Button` that unlocks it (`setLocked`, which saves the open note's edits before locking). Rows show a padlock
+(`note-locked`). The to-do view's tick and the island's checkbox catch `ERR_JOT_LOCKED`: the footer says to unlock the
+note, the island shows "Locked" with a padlock for its checkbox and closes; the reminder still comes due.
 
 ## Packaging (scripts/package-macos.sh)
 
@@ -265,15 +362,19 @@ class Notes {                                   // wraps jot_store::Store
   watch(onChange: () => void): void;            // folder changed (debounced); replaces the previous listener
   conflicts(title: string): Conflict[];         // iCloud's conflict versions, newest first
   resolveConflict(title: string, id: string, choice: "mine" | "theirs" | "both", copyTitle?: string | null): ResolvedConflict;  // ERR_JOT_CHANGED
+  lock(title: string): NoteMeta;                // locked: true + the file's flag, mtime kept
+  unlock(title: string): NoteMeta;
+  settleLocks(): string[];                      // the missing half of each lock put back (folder opened / changed)
   todos(): Todo[];
   setTodoDone(note: string, line: number, text: string, done: boolean): NoteMeta;
   setTodoDue(note: string, line: number, text: string, due: string | null /* "YYYY-MM-DDTHH:mm", else TypeError; null removes */): NoteMeta;  // ERR_JOT_CHANGED
   addTodo(text: string, due?: string | null /* "YYYY-MM-DDTHH:mm", else TypeError */, note?: string | null /* "待办" */): Todo;
 }
-interface NoteMeta { title: string; modified: number /* ms since epoch */; source: string | null /* null: the user; else the AI app's name, "Cursor" */; preview: string; downloading: boolean /* not on this Mac yet: read-only, empty */ }
+interface NoteMeta { title: string; modified: number /* ms since epoch */; source: string | null /* null: the user; else the AI app's name, "Cursor" */; preview: string; downloading: boolean /* not on this Mac yet: read-only, empty */; locked: boolean /* read-only till unlocked */ }
 interface Conflict { id: string; device: string | null; modified: number; body: string }
 interface ResolvedConflict { note: NoteMeta; copy: NoteMeta | null }
-// Errors also: ERR_JOT_NOT_DOWNLOADED (the note is not on this Mac yet; nothing was changed).
+// Errors also: ERR_JOT_NOT_DOWNLOADED (the note is not on this Mac yet; nothing was changed), ERR_JOT_LOCKED (the note
+// is locked; nothing was changed).
 interface Note { meta: NoteMeta; body: string }
 interface SearchHit { meta: NoteMeta; snippet: string; titleMatch: boolean }
 interface TrashedNote { title: string; token: number }   // the last 64 trashed per folder can be restored
@@ -351,6 +452,11 @@ interface AiClient {
 // A translocated Jot connects nothing; sync then keeps each app's command and moves the folder only. Tests run on a
 // temporary home (`Env`).
 
+module AiAccess {                                // the AI apps' permission (src/ai_access.rs): ai.json, which jot-mcp reads
+  allowsTrashAndRewrite(): boolean;             // off when the file is missing
+  set(allowTrashAndRewrite: boolean, language: string): void;  // throws when it cannot be written
+}
+
 module InputSource {                            // the keyboard input source selected now
   // Its first language, BCP 47 ("zh-Hans" for Pinyin, "ja", "en"); null where the platform does not say.
   // macOS: Carbon's Text Input Sources, read on the main thread (a promise for the hop).
@@ -382,7 +488,8 @@ view through `Notes.setTodoDue`, its row following to its new group, still selec
 One list of actions per row kind drives the action panel (⌘K / Ctrl+K, and a right click on a row:
 `ui/ActionPanel.tsx`), the footer's primary action (what Return does) and the actions' own keys, which work with the
 panel closed. A note: open ↩, show in Finder ⇧⌘F, rename ⌘R (in place, in its row), copy title ⇧⌘C, copy text
-⇧⌘A, move to trash ⌃X (Windows / Linux Ctrl+D; keys in `ui/tokens.ts`). "New" row: create; today's row: show
+⇧⌘A, lock / unlock (no key), move to trash ⌃X (Windows / Linux Ctrl+D; keys in `ui/tokens.ts`). A locked note has
+"Unlock" for "Lock" and no rename or reminder time; ⌃X on it says to unlock it first (`ERR_JOT_LOCKED`). "New" row: create; today's row: show
 to-dos; a to-do: open its note, tick ⌘↩, its reminder time ⇧⌘D (and "Remove Reminder" when it has one); in the open
 note, the caret's to-do's reminder time ⇧⌘D. Nothing but a note can be trashed. Moving to the trash folds the row away
 and turns the footer into "Moved to the Trash" with Undo for 5 s (`T.timing.undoFor`); while it shows, ⌘Z takes

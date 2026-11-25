@@ -955,6 +955,7 @@ dependencies = [
  "jiff",
  "notify-debouncer-mini",
  "objc2-foundation",
+ "serde_json",
  "tempfile",
  "trash",
 ]

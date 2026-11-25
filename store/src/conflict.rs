@@ -74,7 +74,7 @@ impl Store {
 
     /// Settles the conflict version `id` of the note as `resolution` says. Fails with `NotFound` when the note is
     /// gone, `Changed` when the version is no longer in conflict (settled here or on another device), and
-    /// `NotDownloaded` when the note is not on this Mac.
+    /// `NotDownloaded` when the note is not on this Mac, and `Locked` for a locked note the other version would replace.
     pub fn resolve(
         &self,
         title: &str,
@@ -98,6 +98,8 @@ impl Store {
         match resolution {
             Resolution::KeepCurrent => {}
             Resolution::UseOther => {
+                // A locked note stays as it is, whichever version it is.
+                self.ensure_unlocked(&entry, None)?;
                 // The whole file, frontmatter included: the version is the note as the other device saved it.
                 let content = retry(|| fs::read_to_string(&version.file))?;
                 let permissions = retry(|| fs::metadata(&entry.path))?.permissions();

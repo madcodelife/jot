@@ -182,6 +182,9 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
           )}
         </If>
       </View>
+      <If when={props.compact && note()?.meta.locked}>
+        <LockMark onAccent={onAccent()} />
+      </If>
       <If when={!props.compact}>
         <If when={props.row.kind === "summary"}>
           <Dots done={summary().dots} onAccent={onAccent()} />
@@ -201,6 +204,9 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
                   </Text>
                 )}
               </If>
+              <If when={row().meta.locked}>
+                <LockMark onAccent={onAccent()} />
+              </If>
               <Text class={sub()} style={{ numberOfLines: 1, fontSize: T.type.meta, fontVariant: ["tabular-nums"], flexShrink: 0 }}>
                 {age(row().meta.modified, now())}
               </Text>
@@ -211,6 +217,15 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
           <Keycaps keys={T.keys.create} onAccent={onAccent()} />
         </If>
       </If>
+    </View>
+  );
+}
+
+/** A locked note's small padlock, at the row's end. */
+function LockMark(props: { onAccent: boolean }) {
+  return (
+    <View testID="note-locked" accessible accessibilityLabel={t("lock.row")} style={{ flexShrink: 0 }}>
+      <Icon name="lock" size={13} tint={props.onAccent ? token("on-accent-muted") : token("glass-muted")} />
     </View>
   );
 }

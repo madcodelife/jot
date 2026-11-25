@@ -118,6 +118,7 @@ island:
   remind: リマインダー · %{time} · %{note}
   now: 今
   writing_label: 書き込み中
+  locked: ロック中 · Jot でメモのロックを解除するとチェックできます
 
 settings:
   title: 設定
@@ -229,6 +230,10 @@ settings:
     command: コマンド
     json: 設定
     then: あとはアプリに「Jot にメモして」「今日やることは？」と話しかけるだけです。
+    access: 許可
+    trash_rewrite: AI アプリにメモのゴミ箱への移動と書き換えを許可
+    trash_rewrite_hint: 移動されたメモも、書き換える前のメモもゴミ箱に入るので、そこから戻せます。ロックしたメモは変わりません。
+    trash_rewrite_failed: この設定を保存できませんでした：%{error}
   about:
     title: Jot について
     tagline: AI と共有するメモ帳
@@ -296,6 +301,8 @@ actions:
   due: リマインダーの時刻…
   due_add: リマインダーを追加…
   due_remove: リマインダーを削除
+  lock: ロック
+  unlock: ロックを解除
 
 trash:
   bin:
@@ -325,3 +332,15 @@ due:
   next_month: 次の月
   changed: このやることは変更されたばかりのため、時刻は変えていません
   failed: リマインダーの時刻を変更できませんでした：%{error}
+
+lock:
+  locked: ロック中
+  unlock_label: 「%{title}」はロックされています。クリックでロックを解除
+  row: ロック中
+  trash: 「%{title}」はロックされています。%{bin}に入れるにはロックを解除してください
+  rename: 「%{title}」はロックされています。名前を変更するにはロックを解除してください
+  todo: 「%{note}」はロックされています。やることを変えるにはロックを解除してください
+  failed: 「%{title}」をロックできませんでした：%{error}
+  unlock_failed: 「%{title}」のロックを解除できませんでした：%{error}
+  done: 「%{title}」をロックしました
+  undone: 「%{title}」のロックを解除しました

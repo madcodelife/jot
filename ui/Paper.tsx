@@ -12,6 +12,8 @@
 // so, and fills in when it lands; one iCloud kept two versions of (changed
 // on two devices at once) shows a bar to choose: this Mac's, the other, or
 // both (the other as a note of its own).
+// A locked note is read-only: the header says "Locked" with a padlock, and a
+// click there unlocks it; nothing edits it (typing, ticks, times, dictation).
 import { cleanup, computed, createAnimatedValue, effect, Notifications, signal, Text, token, untracked, View } from "nsh";
 import { Button, Editor, type EditorDecoration, type EditorPosition, type EditorRef, type EditorSelection } from "nsh/base";
 import { t } from "nsh/i18n";
@@ -19,7 +21,7 @@ import { When, type Conflict } from "jot/native";
 import { caretOnTodo, openDuePicker, setEditorDue } from "../app/due";
 import { continuation, fencedLines, isFence, lineMarks, type MarkKind } from "../app/markdown";
 import { whenOptions } from "../app/settings";
-import { allNotes, errorMessage, lastWritten, notes, now, opened, refresh, revision, save, setEditorFlush, showFlash } from "../app/store";
+import { allNotes, errorMessage, lastWritten, notes, now, opened, refresh, revision, save, setEditorFlush, setLocked, showFlash } from "../app/store";
 import { taskLine, toggledLine, withDue } from "../app/tasks";
 import { age, parseDue } from "../app/time";
 import { cancelVoice, joinSpoken, listening, listeningLang, speechAvailable, startVoice, stopVoice, voiceError } from "../app/voice";
@@ -160,12 +162,16 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   let savedTimer: ReturnType<typeof setTimeout> | undefined;
 
   const meta = computed(() => allNotes().find((m) => m.title === title) ?? first?.meta ?? null);
+  /** Locked (in Jot, in Finder, on another Mac): read-only, the header says so. */
+  const locked = () => meta()?.locked ?? false;
+  /** Nothing may change the text: not downloaded yet, or locked. */
+  const readOnly = () => downloading() || locked();
 
   function saveNow() {
     clearTimeout(saveTimer);
     saveTimer = undefined;
     const body = untracked(text);
-    if (body === onDisk || untracked(downloading)) return;
+    if (body === onDisk || untracked(readOnly)) return;
     try {
       save(title, body);
       onDisk = body;
@@ -206,6 +212,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
 
   /** Writes the line's time phrase as an absolute time (` ⏰ 2026-11-14 09:00`), once the caret has left it. */
   function normalize(line: number) {
+    if (untracked(readOnly)) return;
     const before = lineAt(untracked(text), line);
     if (!before || inCode(untracked(text), line)) return;
     const after = When.normalizeLine(before, whenOptions());
@@ -215,6 +222,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   }
 
   function toggleLine(line: number) {
+    if (untracked(readOnly)) return;
     const content = lineAt(untracked(text), line);
     const task = taskAt(untracked(text), line);
     if (!task || !editor) return;
@@ -228,7 +236,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
    * one, which is saved. A space keeps two Latin words apart; CJK takes none.
    */
   function dictate(options: { byHold?: boolean }): boolean {
-    if (!editor) return false;
+    if (!editor || untracked(readOnly)) return false;
     const body = untracked(text);
     const sel = selection ?? { anchor: endOf(body), head: endOf(body) };
     const [from, to] = before(sel.anchor, sel.head) ? [sel.anchor, sel.head] : [sel.head, sel.anchor];
@@ -281,7 +289,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   function pickDueAt(line: number): boolean {
     const content = lineAt(untracked(text), line);
     const task = taskAt(untracked(text), line);
-    if (!task || task.done || !editor) return false;
+    if (!task || task.done || !editor || untracked(readOnly)) return false;
     const column = task.due ? task.due.start : content.length;
     const end = task.due ? task.due.end : content.length;
     const due = task.due ? task.due.at.replace(" ", "T") : null;
@@ -296,7 +304,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   /** Writes the picked time on `line`, if it still reads `before`: only the part that changes, so a caret elsewhere on the line stays where it was. */
   function writeDue(line: number, before: string, due: Date | null) {
     const content = lineAt(untracked(text), line);
-    if (!editor) return;
+    if (!editor || untracked(readOnly)) return;
     if (taskAt(untracked(text), line) === null || content !== before) {
       showNotice("conflict", t("due.changed"));
       return;
@@ -322,7 +330,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   // Whether the caret is on an open to-do: the action panel offers "Reminder Time…" then.
   effect(() => {
     const task = taskAt(text(), caretLine());
-    caretOnTodo.set(!!task && !task.done);
+    caretOnTodo.set(!!task && !task.done && !readOnly());
   });
   cleanup(() => {
     if (current === actions) {
@@ -378,7 +386,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
    * line gets its marker as a second edit, which undo takes back first. An input method commits no bare break.
    */
   function continueList(before: string, after: string): boolean {
-    if (!editor || dictating) return false;
+    if (!editor || dictating || untracked(readOnly)) return false;
     for (const at of [caretBefore, untracked(caret)]) {
       if (!at) continue;
       const lines = before.split("\n");
@@ -551,6 +559,23 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
           {title}
         </Text>
         <View testID="paper-meta" class="flex-row items-center" style={{ gap: 5, marginTop: 9, marginBottom: 14 }}>
+          <If when={locked()}>
+            <Button
+              testID="paper-locked"
+              accessibilityLabel={t("lock.unlock_label", { title })}
+              class="flex-row items-center bg-paper-fg/7 hover:bg-paper-fg/12 active:opacity-70"
+              style={{ gap: 4, paddingHorizontal: 7, paddingVertical: 2, marginLeft: -7, borderRadius: T.radius.chip, borderCurve: "continuous" }}
+              onPress={() => setLocked(title, false)}
+            >
+              <Icon name="lock" size={12} tint={token("paper-fg")} />
+              <Text class="font-semibold text-paper-fg" style={{ fontSize: T.type.meta }}>
+                {t("lock.locked")}
+              </Text>
+            </Button>
+            <Text class="text-paper-muted" style={{ fontSize: T.type.meta }}>
+              ·
+            </Text>
+          </If>
           <If when={meta()?.source}>
             <View class="flex-row items-center" style={{ gap: 4 }}>
               <Icon name="spark" size={12} tint={token("agent")} />
@@ -610,7 +635,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
               </If>
             </View>
           </If>
-          <If when={speechAvailable()}>
+          <If when={speechAvailable() && !readOnly()}>
             <MicButton
               testID="paper-mic"
               size={28}
@@ -634,8 +659,8 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
         class="flex-1"
         defaultValue={text()}
         language="markdown"
-        readOnly={downloading()}
-        placeholder={downloading() ? "" : t("paper.placeholder")}
+        readOnly={readOnly()}
+        placeholder={readOnly() ? "" : t("paper.placeholder")}
         accessibilityLabel={t("paper.label", { title })}
         autoFocus={props.focus}
         lineNumbers={false}
@@ -650,8 +675,8 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
         fontSize={T.type.body}
         lineHeight={T.type.bodyLine}
         decorations={decorations()}
-        // No caret while the note is read-only (not downloaded yet): there is nothing to type into.
-        classes={{ content: "text-paper-fg", caret: downloading() ? "bg-transparent" : "bg-primary", selection: "bg-paper-fg/14", placeholder: "text-paper-muted" }}
+        // No caret while the note is read-only (not downloaded yet, or locked): there is nothing to type into.
+        classes={{ content: "text-paper-fg", caret: readOnly() ? "bg-transparent" : "bg-primary", selection: "bg-paper-fg/14", placeholder: "text-paper-muted" }}
         // The text area's padding is the paper's margins: the body starts where the title does and keeps the same room on the right.
         styles={{ content: { paddingLeft: PAPER_X, paddingRight: PAPER_X, paddingTop: 2, paddingBottom: PAPER_BOTTOM } }}
         onChange={({ value }) => changed(value)}

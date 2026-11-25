@@ -24,9 +24,13 @@ and add to the same notes, so you and they keep one notebook between you.
   Chinese and Japanese (`明天 9:00`, `明日 9時`). Type `todo` (or `/todo`) for every open to-do, grouped by when it is
   due; ⇧⌘D changes a reminder's time without typing.
 - **Dictation**: hold ⌥ to talk into the search field or a note; double-press and hold ⌥ in any app for a quick note.
-- **Actions**: ⌘K on a row to open, rename, copy, show in Finder or move to the Trash (with undo).
+- **Actions**: ⌘K on a row to open, rename, copy, show in Finder, lock or move to the Trash (with undo).
+- **Locked notes**: ⌘K → Lock makes a note read-only, for Jot, for your AI apps and for any other program: it is
+  Finder's "Locked" (Get Info). A padlock marks it in the list; click "Locked" in its header to unlock it.
 - **AI apps**: connect Claude Code, Claude, Cursor, VS Code, Windsurf, Codex or Gemini CLI from Settings in one
   click. A note an AI app writes carries its name (Claude, Cursor, …) and appears in the list the moment it lands.
+  If you allow it in Settings, they can also move notes to the Trash and rewrite them; what they take away goes to
+  the Trash, where you can get it back.
 - Light and dark appearance; panel themes: Jot's own Indigo, GitHub, One, Dracula, Tokyo Night, Catppuccin, Gruvbox and
   High Contrast, each with a light and a dark version. English, Simplified and Traditional Chinese and Japanese.
 
@@ -37,7 +41,8 @@ and add to the same notes, so you and they keep one notebook between you.
 - Notes an AI app creates start with YAML frontmatter that names it, `source: claude`, `source: cursor`, or
   `source: "agent:<name>"` for an app Jot doesn't know (the name the app gives itself when it connects); your own
   notes have none. Only these values mark a note as an app's: a `source` of your own (a web clipper's URL, a book) is
-  yours. Other frontmatter is kept as it is.
+  yours. A locked note has `locked: true` in its frontmatter as well as the file's "Locked" flag. Other frontmatter
+  is kept as it is.
 - A reminder is written into the file as an absolute time, `- [ ] pay rent ⏰ 2026-11-14 09:00` (the same form as
   Obsidian's Reminder plugin); a checked to-do gets its completion date, `- [x] pay rent ✅ 2026-11-14`.
 - Jot does no syncing itself: put the folder in iCloud Drive, Dropbox or Syncthing. Settings → General → "Move to
@@ -49,7 +54,9 @@ and add to the same notes, so you and they keep one notebook between you.
 ## AI apps and MCP
 
 `jot-mcp` is a stdio MCP server that reads and writes the notes folder directly, whether or not the app is running.
-It never deletes or overwrites a note. Jot.app carries it inside (`Jot.app/Contents/MacOS/jot-mcp`).
+Jot.app carries it inside (`Jot.app/Contents/MacOS/jot-mcp`). It searches, reads, creates and adds to notes and keeps
+to-dos; it moves a note to the Trash or rewrites one only while you allow it (below), and never touches a locked
+note. It deletes nothing for good.
 
 ### Connecting from Settings
 
@@ -113,8 +120,37 @@ Tools:
 | `complete_todo(note, text)` | Check off a to-do; a unique part of its text is enough |
 | `reschedule_todo(note, text, due)` | Change a to-do's reminder time; `null` removes it |
 
+| `trash_note(title)` | Move a note to the Trash (needs your permission) |
+| `replace_note(title, body)` | Rewrite a whole note; its previous version goes to the Trash first (needs your permission) |
+
 Then ask the app things like "jot this command down", "remind me to send the weekly report on Friday" or "what's on my
 list today?".
+
+### Removing and rewriting notes
+
+Settings → AI Apps → "Allow AI apps to move notes to the Trash and rewrite notes" is off at first. While it is off,
+`trash_note` and `replace_note` are still listed but refuse, telling the app where you can turn them on. Turned on,
+it applies to every connected app at once, with no reconnecting (`jot-mcp` reads it on each call, from
+`~/Library/Application Support/Jot/ai.json`):
+
+- `trash_note` moves the note to the Trash, not away for good: drag it from the Trash back into the notes folder.
+- `replace_note` puts the note as it was (frontmatter included) in the Trash first, named like `Plan (before rewrite ·
+  2026-11-25 14.30).md` in Jot's language, then writes the new text under the note's frontmatter, which it keeps.
+- The apps are told to do either only when you ask, and to list the notes and ask you before removing many at once.
+
+The switch keeps apps from doing it through Jot's tools. An app that can run shell commands could edit that file, or
+the notes, itself; locking is what stops it from changing a note.
+
+### Locked notes
+
+A locked note can be read, searched and its to-dos listed by AI apps, but no tool changes it, and none unlocks it.
+The lock is macOS's own (the file's `uchg` flag, Finder's "Locked"): the system refuses to change, rename, move or
+delete the file, whoever asks, `rm` and `rm -f` from an AI app's shell included, and the Trash refuses it too. Jot
+also writes `locked: true` into the note, since iCloud Drive does not carry the flag to your other Macs (it even
+clears it when it uploads a note's new text); Jot puts the flag back from it, and a note you lock in Finder gets it
+too. What a lock cannot stop: the file's owner can clear the flag (`chflags nouchg`, or Finder), and so can any
+program that runs as you and sets out to; so can a program with administrator rights. A lock guards a note against
+mistakes, not against a program determined to change it.
 
 ## Building
 

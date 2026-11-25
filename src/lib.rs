@@ -13,10 +13,13 @@
 //! - [`Connections`]: the AI apps Jot's MCP server is registered with
 //!   (`connect`: one table of apps, their configuration files edited in
 //!   place).
+//! - [`AiAccess`]: whether AI apps may move notes to the Trash and rewrite
+//!   them, in a file `jot-mcp` reads too.
 //!
 //! Platform code lives in `platform/<os>.rs` behind one interface, so
 //! `App.tsx` never checks the platform for these.
 
+mod ai_access;
 mod connect;
 mod connections;
 mod folder;
@@ -35,6 +38,7 @@ mod when;
 
 use nsh_core::prelude::*;
 
+pub use ai_access::AiAccess;
 pub use connections::{AiClient, Connections, GenericSetup, ManualReason};
 pub use folder::{FailedNote, Folder, ICloudDrive, MovedNotes, RenamedNote};
 pub use input_source::InputSource;
@@ -55,5 +59,6 @@ fn native(registry: &mut Registry) {
         .module::<Summon>()
         .module::<Folder>()
         .module::<InputSource>()
-        .module::<Connections>();
+        .module::<Connections>()
+        .module::<AiAccess>();
 }

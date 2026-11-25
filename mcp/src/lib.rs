@@ -1,16 +1,19 @@
 //! Jot's MCP server: lets an AI app (Claude, Claude Code, Cursor, Codex, …) search, read and add to the user's notes
 //! folder, and keep their to-dos.
 //!
-//! The tools never delete or overwrite: the app can create a note (marked with its name from the MCP `initialize`
-//! handshake, `source: cursor`: `jot_store::Source::from_client`), append to one, add
-//! a to-do, check one off or move its reminder time, so what the user wrote stays as it is.
+//! The app can create a note (marked with its name from the MCP `initialize` handshake, `source: cursor`:
+//! `jot_store::Source::from_client`), append to one, add a to-do, check one off or move its reminder time. Two tools
+//! take something away, and only while the user allows it in Jot's settings (`jot_store::AiSettings`, read on every
+//! call): `trash_note` moves a note to the system trash, `replace_note` rewrites a whole note after putting its
+//! previous version in the trash; nothing is ever deleted for good. A note the user locked in Jot is read-only to
+//! every tool, and none unlocks one.
 
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use jiff::civil::{Date, DateTime};
-use jot_store::{DEFAULT_TODO_NOTE, NoteMeta, Source, Store, StoreError, Todo, when};
+use jot_store::{AiSettings, DEFAULT_TODO_NOTE, NoteMeta, Source, Store, StoreError, Todo, when};
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerConfig};
@@ -37,12 +40,27 @@ Write what the user asked for, briefly and in their words: a command, a decision
 summary. Never dump a conversation or long transcripts into a note. Do not store passwords, keys, tokens or other \
 sensitive personal information unless the user explicitly asks you to.
 
-You cannot delete or overwrite notes. Before creating a note, search for one on the same subject and append to it \
-instead of making a near-duplicate.
+Before creating a note, search for one on the same subject and append to it instead of making a near-duplicate.
 
 To-dos are Markdown task lines (`- [ ] …`) in any note, with an optional reminder time; the Jot app notifies the \
 user when one comes due. Add one when the user asks to be reminded of something or to put something on their \
-list, list them when the user asks what they have to do, check one off when the user says it is done, and move one's reminder time (or remove it) when the user asks to reschedule it.";
+list, list them when the user asks what they have to do, check one off when the user says it is done, and move one's reminder time (or remove it) when the user asks to reschedule it.
+
+Notes the user locked in Jot (marked \"locked\" in listings) can be read but not changed, moved to the Trash or \
+rewritten; you cannot unlock them: the user unlocks a note in Jot.";
+
+/// What the instructions say of `trash_note` and `replace_note`, by the setting as the server starts.
+const ALLOWED: &str = "\
+The user allows you to remove and rewrite notes: trash_note moves a note to the macOS Trash and replace_note \
+rewrites a whole note, its previous version going to the Trash; the user can get either back from the Trash. Use \
+them only when the user asks you to delete or rewrite a note, and prefer append_note for adding to one. When the \
+user asks to remove many notes at once (\"delete all my notes\", \"全部清掉\", \"clear out the old ones\"), first list \
+the notes you would move to the Trash and ask the user to confirm, and move only those they confirm.";
+const NOT_ALLOWED: &str = "\
+The user has not allowed you to remove or rewrite notes: trash_note and replace_note fail until they turn on \
+\"Allow AI apps to move notes to the Trash and rewrite notes\" in Jot › Settings › AI Apps. Tell the user so when \
+they ask you to delete or rewrite a note; do not work around it. If they turn it on, the same rules hold: use the \
+tools only when asked, and before removing many notes at once list them and ask the user to confirm.";
 
 /// The MCP server over one notes folder.
 #[derive(Debug, Clone)]
@@ -52,6 +70,9 @@ pub struct JotServer {
     now: fn() -> DateTime,
     /// How long a tool waits for a note being downloaded; shortened in tests.
     download_wait: Duration,
+    /// Jot's settings for AI apps (`AiSettings`): read on every call that needs them, so a change in the app
+    /// applies at once. `None`: no home folder, nothing allowed.
+    settings: Option<PathBuf>,
     tool_router: ToolRouter<Self>,
 }
 
@@ -161,6 +182,23 @@ pub struct RescheduleTodoParams {
     pub due: Option<String>,
 }
 
+/// `trash_note`'s arguments.
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct TrashParams {
+    /// The note's title, as search_notes or recent_notes returned it (case-insensitive).
+    pub title: String,
+}
+
+/// `replace_note`'s arguments.
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ReplaceParams {
+    /// The existing note's title, as search_notes or recent_notes returned it (case-insensitive).
+    pub title: String,
+    /// The note's whole new text, in Markdown. It replaces the body; the note's frontmatter stays as it is, so do
+    /// not start it with a `---` frontmatter block.
+    pub body: String,
+}
+
 /// What `find_open_todo` found for a note and a text.
 enum Found {
     /// The one open to-do that matches.
@@ -177,8 +215,15 @@ impl JotServer {
             store,
             now: local_now,
             download_wait: DOWNLOAD_WAIT,
+            settings: AiSettings::default_path(),
             tool_router: Self::tool_router(),
         }
+    }
+
+    /// The same server reading Jot's settings for AI apps from `path` instead of the user's (for tests).
+    pub fn with_settings_file(mut self, path: impl Into<PathBuf>) -> Self {
+        self.settings = Some(path.into());
+        self
     }
 
     /// The same server reading the local time from `now` instead of the system clock (for tests).
@@ -637,9 +682,104 @@ impl JotServer {
             Err(error) => failure(&error, &todo.note),
         }
     }
+
+    #[tool(
+        description = "Move one of the user's Jot notes to the macOS Trash. It is not deleted for good: the user \
+            can get it back from the Trash. Use it only when the user asks to delete or \
+            remove that note. When they ask to remove many notes at once, first list the notes you would move and \
+            ask the user to confirm. Takes the title as search_notes or recent_notes returned it. Works only while \
+            the user allows it in Jot › Settings › AI Apps, and never on a note the user locked in Jot.",
+        annotations(
+            title = "Move note to Trash",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn trash_note(&self, Parameters(params): Parameters<TrashParams>) -> CallToolResult {
+        if !self.ai_settings().allow_trash_and_rewrite {
+            return not_allowed("move notes to the Trash");
+        }
+        match self.downloaded(|| self.store.trash(&params.title)).await {
+            Ok(trashed) => text(format!(
+                "Moved the note \"{}\" to the Trash. The user can put it back from the Trash.",
+                trashed.title
+            )),
+            Err(error) => failure(&error, &params.title),
+        }
+    }
+
+    #[tool(
+        description = "Rewrite the whole text of one of the user's existing Jot notes: `body` replaces what the \
+            note says. Its previous version goes to the macOS Trash first, named \"<title> (before rewrite · \
+            <date> <time>)\" (in the language Jot shows), where the user can get it back. The note's frontmatter \
+            (who wrote it, …) stays as it is; `body` must not start with a `---` frontmatter block. Use it only \
+            when the user asks you to rewrite, reorganize or clean up a note as a whole; to add to a note use \
+            append_note, to change a to-do use complete_todo or reschedule_todo. Read the note first. Works only \
+            while the user allows it in Jot › Settings › AI Apps, and never on a note the user locked in Jot.",
+        annotations(
+            title = "Rewrite note",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn replace_note(&self, Parameters(params): Parameters<ReplaceParams>) -> CallToolResult {
+        let settings = self.ai_settings();
+        if !settings.allow_trash_and_rewrite {
+            return not_allowed("rewrite notes");
+        }
+        if params.body.trim().is_empty() {
+            return error(
+                "The new text is empty. To remove a note, use trash_note; to rewrite it, pass its whole new \
+                 text."
+                    .to_owned(),
+            );
+        }
+        if starts_with_frontmatter(&params.body) {
+            return error(
+                "`body` starts with a `---` frontmatter block. Jot keeps the note's frontmatter as it is: pass \
+                 only the text after it (start the body with something other than a `---` block)."
+                    .to_owned(),
+            );
+        }
+        let lang = when::Lang::from_locale(settings.language.as_deref().unwrap_or("en"));
+        let at = (self.now)();
+        match self
+            .downloaded(|| {
+                self.store.replace(&params.title, &params.body, |title| {
+                    previous_title(title, lang, at)
+                })
+            })
+            .await
+        {
+            Ok(replaced) => match replaced.previous {
+                Some(previous) => text(format!(
+                    "Rewrote the note \"{}\". Its previous version is in the Trash as \"{}.md\"; the user can \
+                     put it back from there.",
+                    replaced.note.title, previous.title
+                )),
+                None => text(format!(
+                    "The note \"{}\" already reads exactly so; nothing changed.",
+                    replaced.note.title
+                )),
+            },
+            Err(error) => failure(&error, &params.title),
+        }
+    }
 }
 
 impl JotServer {
+    /// Jot's settings for AI apps as the file says now.
+    fn ai_settings(&self) -> AiSettings {
+        self.settings
+            .as_deref()
+            .map(AiSettings::read)
+            .unwrap_or_default()
+    }
+
     /// Runs `op` again while the note it needs is being downloaded (`NotDownloaded`), for `download_wait` at most.
     async fn downloaded<T>(
         &self,
@@ -758,9 +898,16 @@ impl JotServer {
 #[tool_handler(router = self.tool_router)]
 impl ServerHandler for JotServer {
     fn get_info(&self) -> ServerConfig {
+        // The tools stay listed whatever the setting (a client may not follow a changing list); the instructions
+        // say how it stands as the app connects, and each call checks it again.
+        let removing = if self.ai_settings().allow_trash_and_rewrite {
+            ALLOWED
+        } else {
+            NOT_ALLOWED
+        };
         ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
             .with_server_info(Implementation::new("jot", env!("CARGO_PKG_VERSION")))
-            .with_instructions(INSTRUCTIONS)
+            .with_instructions(format!("{INSTRUCTIONS}\n\n{removing}"))
     }
 }
 
@@ -846,10 +993,59 @@ fn describe(meta: &NoteMeta) -> String {
         );
     }
     let author = meta.source.label().unwrap_or_else(|| "the user".to_owned());
+    let locked = if meta.locked {
+        " · locked in Jot (read-only)"
+    } else {
+        ""
+    };
     format!(
-        "Modified {} · written by {author}",
+        "Modified {} · written by {author}{locked}",
         format_time(meta.modified)
     )
+}
+
+/// The name a note's previous version takes in the trash: `Plan (before rewrite · 2026-11-25 14.30)` in the language
+/// Jot shows (no colon, which Finder shows as a slash), the title shortened when the name would be too long for a
+/// file.
+fn previous_title(title: &str, lang: when::Lang, at: DateTime) -> String {
+    let time = at.strftime("%Y-%m-%d %H.%M");
+    let suffix = match lang {
+        when::Lang::ZhHans => format!("（改写前 · {time}）"),
+        when::Lang::ZhHant => format!("（改寫前 · {time}）"),
+        when::Lang::Ja => format!("（書き換え前 · {time}）"),
+        _ => format!(" (before rewrite · {time})"),
+    };
+    // 255 bytes for the name, `.md` included.
+    let room = 255 - ".md".len() - suffix.len();
+    let mut kept = title;
+    while kept.len() > room {
+        let mut cut = kept.len() - 1;
+        while !kept.is_char_boundary(cut) {
+            cut -= 1;
+        }
+        kept = &kept[..cut];
+    }
+    format!("{}{suffix}", kept.trim_end())
+}
+
+/// Whether `body` starts with a frontmatter block (`---` lines) that would become the note's frontmatter.
+fn starts_with_frontmatter(body: &str) -> bool {
+    let mut lines = body.split_inclusive('\n');
+    let Some(first) = lines.next() else {
+        return false;
+    };
+    first.trim_end_matches(['\n', '\r']) == "---"
+        && first.ends_with('\n')
+        && lines.any(|line| line.trim_end_matches(['\n', '\r']) == "---")
+}
+
+/// The setting is off: what to tell the app.
+fn not_allowed(doing: &str) -> CallToolResult {
+    error(format!(
+        "Jot's settings do not allow AI apps to {doing}; nothing was changed. The user can allow it in Jot › \
+         Settings › AI Apps (\"Allow AI apps to move notes to the Trash and rewrite notes\"). Tell the user; do \
+         not try another way."
+    ))
 }
 
 /// `YYYY-MM-DD HH:MM UTC`.
@@ -991,6 +1187,11 @@ fn failure(failure: &StoreError, title: &str) -> CallToolResult {
              again in a moment.",
             title.trim()
         )),
+        StoreError::Locked => error(format!(
+            "The note \"{}\" is locked in Jot, so it cannot be changed, moved to the Trash or rewritten; nothing \
+             was changed. To change it, the user unlocks it in Jot first (no tool can unlock it).",
+            title.trim()
+        )),
         StoreError::Io(io) => error(format!(
             "Jot could not read or write its notes folder: {io}"
         )),
@@ -1068,6 +1269,45 @@ mod tests {
         assert_eq!(without("交房租 明天 9:00", 10..21), "交房租");
         assert_eq!(without("明天交房租", 0..6), "交房租");
         assert_eq!(without("交 明天 房租", 4..10), "交 房租");
+    }
+
+    #[test]
+    fn previous_versions_are_named_in_the_language_shown() {
+        let at = jiff::civil::date(2026, 11, 25).at(14, 30, 0, 0);
+        assert_eq!(
+            previous_title("Plan", when::Lang::En, at),
+            "Plan (before rewrite · 2026-11-25 14.30)"
+        );
+        assert_eq!(
+            previous_title("计划", when::Lang::ZhHans, at),
+            "计划（改写前 · 2026-11-25 14.30）"
+        );
+        assert_eq!(
+            previous_title("計劃", when::Lang::ZhHant, at),
+            "計劃（改寫前 · 2026-11-25 14.30）"
+        );
+        assert_eq!(
+            previous_title("計画", when::Lang::Ja, at),
+            "計画（書き換え前 · 2026-11-25 14.30）"
+        );
+        // A long title is shortened (at a character) so the name fits a file name.
+        let long = "长".repeat(100);
+        let name = previous_title(&long, when::Lang::ZhHans, at);
+        assert!(name.len() + 3 <= 255, "{}", name.len());
+        assert!(name.ends_with("（改写前 · 2026-11-25 14.30）"));
+        assert!(!name.contains(':'));
+    }
+
+    #[test]
+    fn frontmatter_in_a_body() {
+        assert!(starts_with_frontmatter("---\nlocked: false\n---\ntext"));
+        assert!(starts_with_frontmatter("---\r\nsource: x\r\n---\r\n"));
+        assert!(!starts_with_frontmatter("text\n---\nmore\n---\n"));
+        assert!(!starts_with_frontmatter(
+            "---\nA rule, then text with no closing line"
+        ));
+        assert!(!starts_with_frontmatter("---"));
+        assert!(!starts_with_frontmatter(""));
     }
 
     #[test]
