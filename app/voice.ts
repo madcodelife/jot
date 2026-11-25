@@ -1,4 +1,4 @@
-// Dictation: one speech session at a time (NSH's `Speech`), and where its
+// Dictation: one speech session at a time (`nsh-extra`'s `Speech`), and where its
 // words go: the search field, the open note at its caret, or a quick note
 // filed from the island. A place that takes the words is a `VoiceSink`; this
 // module starts and ends the session and tells the sink what was heard.
@@ -13,7 +13,8 @@
 // short timer, and a key up or any other key before it fires is no hold (a
 // double press summons, ⌥ with a letter types). The double press held
 // anywhere is the native side's (`Summon.onDoubleTapHold`, App.tsx).
-import { batch, localeSettings, signal, Speech, untracked, type KeyEvent, type SpeechErrorCode, type SpeechSession } from "nsh";
+import { batch, localeSettings, signal, untracked, type KeyEvent } from "nsh";
+import { Speech, type SpeechErrorCode, type SpeechSession } from "nsh-extra";
 import { t } from "nsh/i18n";
 import { InputSource } from "jot/native";
 import { shownLanguage } from "./i18n";

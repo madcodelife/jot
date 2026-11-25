@@ -1,5 +1,5 @@
-// Dictation, headless: NSH's fake recognizer stands in for the microphone
-// (`app.hear` says the transcript so far, `app.endSpeech` ends the session).
+// Dictation, headless: `nsh-extra`'s fake recognizer stands in for the
+// microphone (`hear` says the transcript so far, `endSpeech` ends the session).
 // The panel's microphone types into the search field and Escape takes it
 // back; the note's microphone types at its caret and saves the final words;
 // a quick note is filed as a to-do when it says a time, else in the inbox
@@ -17,12 +17,12 @@ import { joinSpoken } from "./app/spoken";
 /** A fresh, empty notes folder. */
 const folder = (name: string) => `/tmp/jot-voice-${name}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
-const openJot = (
+const openJot = async (
   dir: string,
   storage: Record<string, string> = {},
   options: { input?: string | null; locale?: string; languages?: string[] } = {},
-) =>
-  open("./App.tsx", {
+) => {
+  const app = await open("./App.tsx", {
     platform: "macos",
     width: 1200,
     height: 800,
@@ -40,11 +40,32 @@ const openJot = (
       },
     },
   });
+  // The apps a test opens share the fake recognizer: this one's sessions are those after what it found.
+  heardBefore.set(app, (await requests(app)).length);
+  return app;
+};
+
+type JotApp = Awaited<ReturnType<typeof open>>;
+/** `nsh-extra`'s fake recognizer, in place of the microphone. */
+const SPEECH = "nsh-extra/speech";
+/** The sessions the fake recognizer was asked for, every app's, in order. */
+const requests = async (app: JotApp) => (await app.fake(SPEECH, "requests")) as { lang: string; interim: boolean }[];
+/** How many sessions had been asked for when each app opened. */
+const heardBefore = new WeakMap<JotApp, number>();
+/** The user says `text`, the whole transcript so far. */
+const hear = (app: JotApp, text: string) => app.fake(SPEECH, "hear", [text]);
+/** The session ends: with `error`, or as when the user stops. */
+const endSpeech = (app: JotApp, error?: string) => app.fake(SPEECH, "end", error === undefined ? [] : [error]);
 
 /** The session the app started last, once it has started `count`. */
-const started = async (app: Awaited<ReturnType<typeof openJot>>, count: number) => {
-  await app.waitUntil(() => app.speechRequests().length === count);
-  return app.speechRequests()[count - 1];
+const started = async (app: JotApp, count: number) => {
+  const before = heardBefore.get(app) ?? 0;
+  for (let tries = 0; ; tries++) {
+    const own = (await requests(app)).slice(before);
+    if (own.length === count) return own[count - 1];
+    if (tries === 50) throw new Error(`${own.length} speech sessions started, not ${count}`);
+    await app.wait(100);
+  }
 };
 
 test("the field's microphone: the words appear as they are heard, stay when it ends, and Return makes the note", async () => {
@@ -56,12 +77,12 @@ test("the field's microphone: the words appear as they are heard, stay when it e
   await app.waitFor("id:voice-pulse");
   expect(await started(app, 1)).toMatchObject({ lang: "zh-CN", interim: true });
 
-  await app.hear("京都的");
+  await hear(app, "京都的");
   expect(app.value("id:search")).toBe("京都的");
-  await app.hear("京都的拉面");
+  await hear(app, "京都的拉面");
   expect(app.value("id:search")).toBe("京都的拉面");
 
-  await app.endSpeech();
+  await endSpeech(app);
   await app.waitUntil(() => !app.shows("id:voice-pulse"));
   expect(app.value("id:search")).toBe("京都的拉面");
 
@@ -78,7 +99,7 @@ test("Escape while dictating into the field puts back what was typed, and the pa
 
   await app.press("id:voice-mic");
   await started(app, 1);
-  await app.hear("新的");
+  await hear(app, "新的");
   expect(app.value("id:search")).toBe("旧新的");
 
   await app.keyboard.press("escape");
@@ -94,7 +115,7 @@ test("a failed session says why in the footer and keeps the field as it was", as
   await app.type("id:search", "旧");
   await app.press("id:voice-mic");
   await started(app, 1);
-  await app.endSpeech("not-allowed");
+  await endSpeech(app, "not-allowed");
   await app.waitFor("id:notice");
   expect(app.texts()).toContain("没有麦克风或语音识别权限");
   expect(app.value("id:search")).toBe("旧");
@@ -115,8 +136,8 @@ test("the note's microphone types at the caret, and the final words are saved", 
   await app.waitFor("id:paper-listening");
   await started(app, 1);
   await app.waitFor("id:paper-lang");
-  await app.hear("今天很开心");
-  await app.endSpeech();
+  await hear(app, "今天很开心");
+  await endSpeech(app);
   await app.waitUntil(() => !app.shows("id:paper-listening"));
   await app.waitUntil(() => (new Notes(dir).read("周记")?.body ?? "").includes("今天很开心"));
   const body = new Notes(dir).read("周记")!.body;
@@ -196,22 +217,22 @@ test("the language tag switches while listening: the session restarts in the nex
   expect((await started(app, 1)).lang).toBe("zh-CN");
   await app.waitFor("id:voice-lang");
   expect(app.texts()).toContain("中");
-  await app.hear("会议改到");
+  await hear(app, "会议改到");
 
   await app.press("id:voice-lang");
   expect((await started(app, 2)).lang).toBe("en-US");
   await app.waitUntil(() => app.texts().includes("EN"));
   expect(app.value("id:search")).toBe("会议改到");
-  await app.hear("Friday");
+  await hear(app, "Friday");
   expect(app.value("id:search")).toBe("会议改到Friday");
 
   // ⌘L: the next one, the words kept again.
   await app.keyboard.press("mod+l");
   expect((await started(app, 3)).lang).toBe("ja-JP");
-  await app.hear("です");
+  await hear(app, "です");
   expect(app.value("id:search")).toBe("会议改到Fridayです");
 
-  await app.endSpeech();
+  await endSpeech(app);
   await app.waitUntil(() => !app.shows("id:voice-pulse"));
   expect(app.value("id:search")).toBe("会议改到Fridayです");
 

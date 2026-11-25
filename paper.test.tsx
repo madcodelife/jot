@@ -1,7 +1,8 @@
 // The open note, headless: text an AI app appends while the note is open comes
 // in at its end and leaves the caret where it was, even at the very end;
 // Return goes on with a list, a to-do or a quote, and ends one on an empty
-// item; brackets and quotes typed are one character.
+// item, one undo taking it back; ⇧↩ is a plain break; ⌘↩ ticks the caret's
+// to-do; brackets and quotes typed are one character.
 import { expect, open, test } from "nsh/test";
 import { Notes } from "jot/native";
 
@@ -64,14 +65,30 @@ test("Return is a plain line break on prose and in fenced code", async () => {
   expect(notes.read("代码")?.body).toBe("```\n- [ ] code\nb\n```\nplain\na");
 });
 
-test("undo after Return on a list line takes the marker back first, then the line break", async () => {
+test("undo after Return on a list line takes the new item back in one step", async () => {
   const { app, notes } = await openNote("撤销", "- 牛奶");
   await keys(app, "enter");
   expect(notes.read("撤销")?.body).toBe("- 牛奶\n- ");
   await keys(app, "mod+z");
-  expect(notes.read("撤销")?.body).toBe("- 牛奶\n");
-  await keys(app, "mod+z");
   expect(notes.read("撤销")?.body).toBe("- 牛奶");
+});
+
+test("Shift-Return on a list line is a plain line break", async () => {
+  const { app, notes } = await openNote("软换行", "- 牛奶");
+  await keys(app, "shift+enter", "x");
+  expect(notes.read("软换行")?.body).toBe("- 牛奶\nx");
+});
+
+test("⌘↩ in the text ticks the caret's to-do and unticks it again; on another line it does nothing", async () => {
+  const { app, notes } = await openNote("勾选", "- [ ] 交房租\n散文");
+  await keys(app, "up", "mod+enter");
+  expect(notes.read("勾选")?.body).toMatch(/^- \[x\] 交房租 ✅ \d{4}-\d\d-\d\d\n散文$/);
+  await keys(app, "mod+enter");
+  expect(notes.read("勾选")?.body).toBe("- [ ] 交房租\n散文");
+  await keys(app, "down", "mod+enter");
+  expect(notes.read("勾选")?.body).toBe("- [ ] 交房租\n散文");
+  await keys(app, "x");
+  expect(notes.read("勾选")?.body).toBe("- [ ] 交房租\n散文x");
 });
 
 test("brackets and quotes typed in a note are one character, not a pair", async () => {

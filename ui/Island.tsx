@@ -6,7 +6,8 @@
 // dot and the words as they come, then where they were filed. Everything
 // else passes through it: its window takes no clicks unless a reminder (or
 // a refused microphone, which opens the settings) shows.
-import { Animated, createAnimatedValue, effect, openUrl, reduceMotion, signal, Text, token, untracked, View, type Bounds, type SpeechErrorCode } from "nsh";
+import { Animated, createAnimatedValue, effect, openUrl, reduceMotion, signal, Text, token, untracked, View, type Bounds } from "nsh";
+import type { SpeechErrorCode } from "nsh-extra";
 import { Button } from "nsh/base";
 import { displays, Window, type Display, type WindowRef } from "nsh/desktop";
 import { t } from "nsh/i18n";

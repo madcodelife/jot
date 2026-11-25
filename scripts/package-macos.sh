@@ -9,7 +9,7 @@
 # NSH's packaging puts its own runner and the app's assets in the bundle only, so the helper goes in afterwards.
 #
 # Usage: scripts/package-macos.sh [nsh package options]   (from any folder; it packages this checkout)
-#   NSH=/path/to/nsh     the nsh CLI to use (default: `nsh` on PATH; Jot builds with NSH 0.6.0)
+#   NSH=/path/to/nsh     the nsh CLI to use (default: `nsh` on PATH); the NSH Cargo.toml's nsh-core names (README)
 #   SIGN_IDENTITY=...    a code signing identity for both (default: `-`, ad hoc). Any other identity signs with a
 #                        secure timestamp and the hardened runtime (`--timestamp --options runtime`), as
 #                        notarization asks.
@@ -91,11 +91,21 @@ case "$name" in
 esac
 app="$out/$name.app"
 
+# The CLI must be the NSH the crate builds with: Cargo.toml's nsh-core, a commit of NSH's repository (`rev`, which a
+# nightly CLI names in its version: "nsh 0.6.0 (2964346 nightly 2026-11-24)") or a release from crates.io.
 version=$("$NSH" --version 2>/dev/null || true)
-case "$version" in
-  "nsh 0.6."*) ;;
-  *) echo "package-macos.sh: warning: Jot builds with NSH 0.6.0, $NSH is ${version:-missing} (set NSH=...)" >&2 ;;
-esac
+core=$(grep -E '^nsh-core *=' Cargo.toml || true)
+rev=$(printf '%s' "$core" | sed -n 's/.*rev *= *"\([0-9a-f]\{7\}\)[0-9a-f]*".*/\1/p')
+if [ -n "$rev" ]; then
+  wanted="NSH at commit $rev"
+  case "$version" in "nsh "*"($rev "*) wanted="" ;; esac
+else
+  release=$(printf '%s' "$core" | sed -n 's/^nsh-core *= *"\([^"]*\)".*/\1/p')
+  wanted="NSH $release"
+  # A nightly carries the version of the release before it: it is not that release.
+  case "$version" in *nightly*) ;; "nsh $release" | "nsh $release "*) wanted="" ;; esac
+fi
+[ -z "$wanted" ] || echo "package-macos.sh: warning: Jot builds with $wanted (Cargo.toml), $NSH is ${version:-missing} (set NSH=...)" >&2
 
 # 1. jot-mcp, for the architectures the app is built for, from where cargo puts it (CARGO_TARGET_DIR,
 # build.target-dir).
