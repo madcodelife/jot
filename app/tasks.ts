@@ -1,7 +1,7 @@
 // To-do lines in a note's Markdown, for the editor: where the box, the
 // reminder (` ⏰ 2026-11-14 09:00`) and the done stamp (` ✅ 2026-11-14`)
 // are, and a line ticked or unticked. The file format is the store's
-// (ARCHITECTURE.md "To-dos"); the store parses the same lines for `todos()`.
+// (docs/ARCHITECTURE.md "To-dos"); the store parses the same lines for `todos()`.
 import { absolute, isoDay } from "./time";
 
 const TASK = /^(\s*)[-*] \[( |x|X)\] /;

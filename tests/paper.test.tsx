@@ -12,7 +12,7 @@ async function openNote(title: string, body: string) {
   const dir = `/tmp/jot-paper-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
   const notes = new Notes(dir);
   notes.create(title, body);
-  const app = await open("./App.tsx", { platform: "macos", width: 1200, height: 800, reducedMotion: true, locale: "zh-CN", storage: { "jot.dir": dir }, modules: MODULES });
+  const app = await open("../App.tsx", { platform: "macos", width: 1200, height: 800, reducedMotion: true, locale: "zh-CN", storage: { "jot.dir": dir }, modules: MODULES });
   await app.waitFor("id:search");
   await app.type("id:search", title);
   await app.submit("id:search");

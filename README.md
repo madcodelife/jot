@@ -185,11 +185,14 @@ locales/   translations
 src/       the app's Rust crate (`jot/native`)
 store/     jot-store: the notes folder, to-dos and time phrases, in plain Rust
 mcp/       jot-mcp, the MCP server
+tests/     the app's TSX tests (`nsh test`, headless)
 scripts/   packaging
+assets/    the app icon
+docs/      architecture and product definition
 design/    the interactive design draft and the logo
 ```
 
-[ARCHITECTURE.md](ARCHITECTURE.md) describes the crates and their APIs; [PRODUCT.md](PRODUCT.md) is the product
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes the crates and their APIs; [docs/PRODUCT.md](docs/PRODUCT.md) is the product
 definition.
 
 ## Credits

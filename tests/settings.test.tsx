@@ -3,7 +3,7 @@
 // in the app's storage (`jot.*`). Opened in Simplified Chinese with a 24-hour
 // clock, Jot's reference copy.
 import { expect, open, test } from "nsh/test";
-import { drawsSurface, swatch, themeFromStored, themeVars, THEMES, type ThemeName } from "./ui/themes";
+import { drawsSurface, swatch, themeFromStored, themeVars, THEMES, type ThemeName } from "../ui/themes";
 import { Notes } from "jot/native";
 
 /** A fresh, empty notes folder. */
@@ -70,7 +70,7 @@ const aiClient = (id: string, name: string, over: Record<string, unknown> = {}) 
 
 /** Opens Jot on `dir`, as on its first run, with `storage` over the folder's key. */
 const openJot = (dir: string, storage: Record<string, string> = {}, modules: Record<string, unknown> = {}) =>
-  open("./App.tsx", {
+  open("../App.tsx", {
     platform: "macos",
     width: 1200,
     height: 800,
