@@ -17,7 +17,7 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
 use notify_debouncer_mini::notify::{self, RecommendedWatcher, RecursiveMode};
-use notify_debouncer_mini::{DebounceEventResult, Debouncer, new_debouncer};
+use notify_debouncer_mini::{DebounceEventResult, DebouncedEventBatch, Debouncer, new_debouncer};
 
 mod cloud;
 mod conflict;
@@ -384,7 +384,7 @@ impl Store {
     pub fn watch(&self, on_change: impl Fn() + Send + 'static) -> Result<Watcher, StoreError> {
         let mut debouncer =
             new_debouncer(DEBOUNCE, move |result: DebounceEventResult| match result {
-                Ok(events) => {
+                Ok(DebouncedEventBatch::Events(events)) => {
                     // A placeholder coming or going is a note leaving the Mac or arriving.
                     if events.iter().any(|event| {
                         is_note_path(&event.path) || cloud::placeholder_title(&event.path).is_some()
@@ -392,8 +392,8 @@ impl Store {
                         on_change();
                     }
                 }
-                // The watcher may have missed events: let the caller look again.
-                Err(_) => on_change(),
+                // The watcher missed events (`Rescan`, or one it may add) or failed: let the caller look again.
+                Ok(_) | Err(_) => on_change(),
             })?;
         debouncer
             .watcher()
