@@ -65,7 +65,7 @@ export function Keycap(props: { label: string; onAccent?: boolean }) {
       class={`items-center justify-center border ${props.onAccent ? "bg-on-accent/15 border-on-accent/25" : "bg-glass-fg/7 border-glass-fg/10"}`}
       style={{ height: 20, minWidth: 20, paddingHorizontal: 5, borderRadius: 5, borderCurve: "continuous" }}
     >
-      <Text class={props.onAccent ? "text-on-accent-muted" : "text-glass-muted"} style={{ fontSize: T.type.meta - 1, lineHeight: 14 }}>
+      <Text class={props.onAccent ? "text-on-accent-muted" : "text-glass-muted"} style={{ fontSize: T.type.meta, lineHeight: 14 }}>
         {props.label}
       </Text>
     </View>

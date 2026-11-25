@@ -62,7 +62,7 @@ export function TodoView() {
       when={todoItems().length > 0}
       else={
         <View testID="todos-empty" class="items-center justify-center" style={{ height: 93 }}>
-          <Text class="text-glass-muted" style={{ fontSize: 14.5 }}>
+          <Text class="text-glass-muted" style={{ fontSize: T.type.todo }}>
             {t("todo.empty")}
           </Text>
         </View>
@@ -104,12 +104,12 @@ function GroupHeader(props: { group: TodoGroup; count: number }) {
       class="flex-row items-end"
       style={{ height: T.size.groupHeader, gap: 7, paddingHorizontal: 14, paddingBottom: 4 }}
     >
-      <Text class={`font-semibold ${props.group === "late" ? "text-late" : "text-glass-muted"}`} style={{ fontSize: 12 }}>
+      <Text class={`font-semibold ${props.group === "late" ? "text-late" : "text-glass-muted"}`} style={{ fontSize: T.type.meta }}>
         {groupLabel(props.group)}
       </Text>
       <Text
         class={props.group === "late" ? "text-late" : "text-glass-muted"}
-        style={{ fontSize: 12, fontVariant: ["tabular-nums"] }}
+        style={{ fontSize: T.type.meta, fontVariant: ["tabular-nums"] }}
       >
         {String(props.count)}
       </Text>
@@ -150,17 +150,17 @@ function TodoRow(props: { item: TodoRowItem }) {
       />
       <View class="flex-1 flex-row items-baseline" style={{ minWidth: 0, gap: 9 }}>
         <Text
-          class={`font-medium ${onAccent() ? "text-on-accent" : "text-glass-fg"}`}
+          class={onAccent() ? "text-on-accent" : "text-glass-fg"}
           style={{ numberOfLines: 1,
             flexShrink: 1,
-            fontSize: 15,
+            fontSize: T.type.todo,
             textDecorationLine: ticking() ? "line-through" : "none",
             opacity: ticking() ? 0.6 : 1,
           }}
         >
           {todo().text}
         </Text>
-        <Text class={onAccent() ? "text-on-accent-muted" : "text-glass-muted"} style={{ numberOfLines: 1, fontSize: 12, flexShrink: 0 }}>
+        <Text class={onAccent() ? "text-on-accent-muted" : "text-glass-muted"} style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 0 }}>
           {todo().note}
         </Text>
       </View>
@@ -216,7 +216,7 @@ export function DueChip(props: { todo: Todo; group: TodoGroup | null; onAccent: 
   const fill = () => (props.onAccent ? "bg-on-accent-fill" : late() ? "bg-late/13" : "bg-due/13");
   const ink = () => (props.onAccent ? "text-on-accent" : late() ? "text-late" : "text-due");
   const tint = () => (props.onAccent ? token("on-accent") : late() ? token("late") : token("due"));
-  const size = () => props.size ?? 12;
+  const size = () => props.size ?? T.type.meta;
   return (
     <If when={due()}>
       {(d: () => Date) => (
@@ -232,7 +232,7 @@ export function DueChip(props: { todo: Todo; group: TodoGroup | null; onAccent: 
           tooltip={t("todo.due_tip", { when: dueLabel(d(), null, new Date(now())) })}
         >
           <Icon name="alarm" size={size() * 1.05} tint={tint()} />
-          <Text class={`font-semibold ${ink()}`} style={{ fontSize: size(), fontVariant: ["tabular-nums"] }}>
+          <Text class={`font-medium ${ink()}`} style={{ fontSize: size(), fontVariant: ["tabular-nums"] }}>
             {dueLabel(d(), props.group, new Date(now()))}
           </Text>
         </View>

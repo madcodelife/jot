@@ -137,7 +137,7 @@ function Picker(props: { state: DuePickerState }) {
         {/* The choices: what the to-do has, the quick times, and "Remove Reminder" at the foot. */}
         <View style={{ width: LIST_WIDTH, padding: 6 }}>
           <View style={{ paddingHorizontal: 10, paddingTop: 8, paddingBottom: 8, gap: 3 }}>
-            <Text class="font-semibold text-glass-muted" style={{ fontSize: T.type.meta - 1 }}>
+            <Text class="font-semibold text-glass-muted" style={{ fontSize: T.type.meta }}>
               {t("due.title")}
             </Text>
             <Text
