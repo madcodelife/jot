@@ -34,7 +34,11 @@ const DOWNLOAD_POLL: Duration = Duration::from_millis(250);
 const INSTRUCTIONS: &str = "\
 Jot is the user's personal notebook: a folder of Markdown notes they also read and edit themselves in the Jot \
 app. Treat it as memory you share with the user. Search it when they ask whether they noted something or refer to \
-something they wrote down; add to it when they ask you to note, save or remember something in Jot.
+something they wrote down, and before you guess at or ask for a fact about their own things that neither the \
+conversation nor the files at hand give you: which of their machines they mean and how to reach it, an account, a \
+setting, a decision they made earlier. Search for one or two distinctive words, such as a host or project name; if \
+nothing turns up, go on as you would have, and if something does, say it came from their notes. Add to it when \
+they ask you to note, save or remember something in Jot.
 
 Write what the user asked for, briefly and in their words: a command, a decision, a link, a few lines of \
 summary. Never dump a conversation or long transcripts into a note. Do not store passwords, keys, tokens or other \
@@ -242,8 +246,10 @@ impl JotServer {
         description = "Search the user's Jot notes by title and body. Every word of the query must match \
             (case-insensitive). Returns each note's title, when it was modified, who wrote it and a snippet \
             around the match; title matches come first, then the newest. Use this first when the user asks \
-            whether they noted something (\"did I write down…\", \"what was the command I saved for…\"), then \
-            read_note for the full text. Also use it before create_note, to find a note to append to instead.",
+            whether they noted something (\"did I write down…\", \"what was the command I saved for…\"), or \
+            before you guess at or ask for a fact about their own things that the conversation doesn't give (which \
+            machine, its address or login, an account), searching for one or two distinctive words; then read_note \
+            for the full text. Also use it before create_note, to find a note to append to instead.",
         annotations(title = "Search notes", read_only_hint = true, open_world_hint = false)
     )]
     async fn search_notes(&self, Parameters(params): Parameters<SearchParams>) -> CallToolResult {
