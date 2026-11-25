@@ -22,7 +22,7 @@ nsh-core = "0.7.0"
 # nshm the app's crate depends on. The same version as nsh-core.
 nsh-extra = { version = "0.7.0", features = ["speech"] }
 jot-store = { path = "store" }
-jiff = "0.2.43"
+jiff = "1.0.0"
 # Channels from other threads (the folder watcher, the reminders' thread,
 # AppKit's monitors) to tasks on the engine thread.
 tokio = { version = "1", default-features = false, features = ["sync"] }

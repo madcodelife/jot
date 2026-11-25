@@ -284,7 +284,7 @@ fn jumped(wall: SystemTime, clock: Instant) -> bool {
 
 /// The time left until local time `at`, zero once it passed.
 fn until(at: DateTime) -> Duration {
-    let Ok(zoned) = at.to_zoned(TimeZone::system()) else {
+    let Ok(zoned) = at.to_zoned_datetime(TimeZone::system()) else {
         return MAX_WAIT;
     };
     let left = zoned.timestamp().duration_since(Timestamp::now());
@@ -293,7 +293,7 @@ fn until(at: DateTime) -> Duration {
 
 /// The local wall-clock time.
 fn now() -> DateTime {
-    jiff::Zoned::now().datetime()
+    jiff::ZonedDateTime::now().datetime()
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {

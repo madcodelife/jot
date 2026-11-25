@@ -337,7 +337,7 @@ impl Notes {
         text: String,
         done: bool,
     ) -> Result<NoteMeta, JsError> {
-        let today = jiff::Zoned::now().date();
+        let today = jiff::ZonedDateTime::now().date();
         let meta = self
             .store
             .set_todo_done(&note, line as usize, &text, done, today)

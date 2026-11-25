@@ -99,7 +99,7 @@ pub struct WhenMatch {
 
 /// The local wall-clock time.
 fn now() -> jiff::civil::DateTime {
-    jiff::Zoned::now().datetime()
+    jiff::ZonedDateTime::now().datetime()
 }
 
 /// The UTF-16 offset of byte offset `byte` of `text`, which is on a char
