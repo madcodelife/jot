@@ -170,7 +170,15 @@ export function PanelWindow() {
         kind="popup"
         title="Jot"
         ref={(r) => {
+          const first = !win;
           win = r;
+          // The first summon makes the window, after the effect above ran without one: a new window only asks
+          // macOS to bring Jot forward, and an accessory app is often turned down, leaving the keyboard in the
+          // app in front. Take it, as every later summon does, and put the caret in the field.
+          if (first && r && untracked(stage) !== "hidden") {
+            r.focus();
+            focusRequest.set({ target: "field" });
+          }
         }}
         defaultSize={{ width: WINDOW.width, height: WINDOW.height }}
         defaultPosition={placement(untracked(displays)) ?? "center"}
