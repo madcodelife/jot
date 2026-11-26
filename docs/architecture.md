@@ -44,6 +44,7 @@ setting they share is a file the app writes and `jot-mcp` reads ([mcp.md](mcp.md
 | `install.sh` | Installs `Jot.app` from the latest GitHub release (`curl … \| sh`; README's "Install"); published at `https://madcodelife.github.io/jot/install.sh`. |
 | `scripts/install-nsh.sh` | Installs the `nsh` CLI that `Cargo.lock` pins (CI uses it too). |
 | `scripts/package-macos.sh` | Builds `Jot.app` with `jot-mcp` inside ([app.md](app.md#packaging-scriptspackage-macossh)). |
+| `scripts/demo-notes.sh` | Writes English example notes into a folder (default `~/Documents/Jot Demo`) for the README's screenshots. |
 | `assets/` | The app icon. |
 | `docs/` | This page, the topic pages and the product definition. |
 | `design/` | The interactive design draft and the logo. |
