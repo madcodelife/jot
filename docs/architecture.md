@@ -46,7 +46,7 @@ setting they share is a file the app writes and `jot-mcp` reads ([mcp.md](mcp.md
 | `scripts/package-macos.sh` | Builds `Jot.app` with `jot-mcp` inside, and its update archives ([app.md](app.md#packaging-scriptspackage-macossh)). |
 | `scripts/native-fingerprint.sh` | The fingerprint of the native code, which an OTA package must match ([app.md](app.md#updates-appupdatests)). |
 | `scripts/demo-notes.sh` | Writes English example notes into a folder (default `~/Documents/Jot Demo`) for the README's screenshots. |
-| `site/` | The website at `https://madcodelife.github.io/jot/`: one static page (`index.html`, `style.css`, `main.js`, no build step) in English and Chinese, with a working copy of the panel; its colors are the app's themes. |
+| `site/` | The website at `https://madcodelife.github.io/jot/`: one static page (`index.html`, `style.css`, `main.js`, no build step) in the app's languages (English, Simplified and Traditional Chinese, Japanese), with a working copy of the panel; its colors are the app's themes. |
 | `scripts/build-site.sh` | Puts the site together in `_site/`: `site/`, `install.sh`, and the icons and screenshot from `design/`. |
 | `assets/` | The app icon. |
 | `docs/` | This page, the topic pages and the product definition. |

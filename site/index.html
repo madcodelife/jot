@@ -18,13 +18,35 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
 <script>
-  // The language before the first paint: ?lang=, then the visitor's choice, then the browser's.
+  // The app's languages. The page's one is set before the first paint: ?lang=, then the visitor's choice, then the
+  // browser's. Chinese tagged Hant, or from Taiwan, Hong Kong or Macau, is Traditional (as in the app).
   (function () {
-    var lang = new URLSearchParams(location.search).get("lang");
-    try { lang = lang || localStorage.getItem("jot-lang"); } catch (e) {}
-    if (lang !== "en" && lang !== "zh") lang = /^zh/i.test(navigator.language || "") ? "zh" : "en";
-    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
-    document.documentElement.dataset.lang = lang;
+    var TAG = { en: "en", zh: "zh-CN", "zh-Hant": "zh-TW", ja: "ja" };
+    var TITLE = {
+      en: "Jot: quick notes for macOS that you share with your AI apps",
+      zh: "Jot：在 Mac 上随手记，AI 也能读写",
+      "zh-Hant": "Jot：在 Mac 上隨手記，AI 也能讀寫",
+      ja: "Jot：AI と共有できる Mac のメモ帳",
+    };
+    function pick(l) {
+      l = String(l || "").toLowerCase().replace(/_/g, "-");
+      if (/^en\b/.test(l)) return "en";
+      if (/^zh-(hant|tw|hk|mo)\b/.test(l)) return "zh-Hant";
+      if (/^zh\b/.test(l)) return "zh";
+      if (/^ja\b/.test(l)) return "ja";
+      return null;
+    }
+    window.jotLang = function (l) {
+      var root = document.documentElement;
+      root.dataset.lang = l;
+      root.lang = TAG[l];
+      document.title = TITLE[l];
+    };
+    var lang = pick(new URLSearchParams(location.search).get("lang"));
+    try { lang = lang || pick(localStorage.getItem("jot-lang")); } catch (e) {}
+    var langs = navigator.languages || [navigator.language];
+    for (var i = 0; !lang && i < langs.length; i++) lang = pick(langs[i]);
+    window.jotLang(lang || "en");
   })();
 </script>
 </head>
@@ -49,6 +71,7 @@
   <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
   <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
   <symbol id="i-pointer" viewBox="0 0 24 24"><path d="M4.04 2.2 20.2 9.43c.9.4.82 1.71-.13 2l-6.42 1.95a1 1 0 0 0-.66.66l-1.95 6.42c-.29.95-1.6 1.03-2-.13L2.2 4.04a1.4 1.4 0 0 1 1.84-1.84Z"/></symbol>
 </svg>
 
@@ -60,9 +83,18 @@
     </a>
     <nav class="nav-links">
       <a href="https://github.com/madcodelife/jot" class="nav-link"><svg class="ic"><use href="#i-github"/></svg><span>GitHub</span></a>
-      <button class="nav-link lang-toggle" type="button" data-lang-toggle><span data-en>中文</span><span data-zh>English</span></button>
+      <label class="nav-link lang-pick">
+        <svg class="ic"><use href="#i-globe"/></svg>
+        <span data-en>English</span><span data-zh>简体中文</span><span data-zh-hant>繁體中文</span><span data-ja>日本語</span>
+        <select data-lang-pick aria-label="Language">
+          <option value="en" lang="en">English</option>
+          <option value="zh" lang="zh-CN">简体中文</option>
+          <option value="zh-Hant" lang="zh-TW">繁體中文</option>
+          <option value="ja" lang="ja">日本語</option>
+        </select>
+      </label>
       <a href="https://github.com/madcodelife/jot/releases/latest" class="btn btn-small">
-        <span data-en>Download</span><span data-zh>下载</span>
+        <span data-en>Download</span><span data-zh>下载</span><span data-zh-hant>下載</span><span data-ja>ダウンロード</span>
       </a>
     </nav>
   </div>
@@ -76,15 +108,19 @@
       <h1 class="display">
         <span data-en>Had a thought? Press <kbd class="kbd-inline">⌥</kbd> twice.</span>
         <span data-zh><span class="nb">想到什么，</span><span class="nb">按两下 <kbd class="kbd-inline">⌥</kbd> 记下来</span></span>
+        <span data-zh-hant><span class="nb">想到什麼，</span><span class="nb">按兩下 <kbd class="kbd-inline">⌥</kbd> 記下來</span></span>
+        <span data-ja><span class="nb">思いついたら、</span><span class="nb"><kbd class="kbd-inline">⌥</kbd> を2回</span></span>
       </h1>
       <p class="lede">
         <span data-en>Search or start a note from one field, anywhere on your Mac. Claude, Cursor and Codex read and write the same notebook.</span>
         <span data-zh>在 Mac 上随时呼出，一个输入框，既能搜也能记。你的笔记，Claude、Cursor、Codex 也能看、也能写。</span>
+        <span data-zh-hant>在 Mac 上隨時叫出來，一個輸入框，可以搜尋也可以記。你的筆記，Claude、Cursor、Codex 也能看、也能寫。</span>
+        <span data-ja>Mac のどこからでも呼び出せて、ひとつの入力欄で検索もメモも。書いたメモは Claude、Cursor、Codex も読み書きできます。</span>
       </p>
       <div class="cta-row">
         <a href="https://github.com/madcodelife/jot/releases/latest" class="btn">
           <svg class="ic"><use href="#i-download"/></svg>
-          <span data-en>Download for Mac</span><span data-zh>下载 Mac 版</span>
+          <span data-en>Download for Mac</span><span data-zh>下载 Mac 版</span><span data-zh-hant>下載 Mac 版</span><span data-ja>Mac 版をダウンロード</span>
         </a>
         <button class="cmd" type="button" data-copy="curl -fsSL https://madcodelife.github.io/jot/install.sh | sh">
           <code><span class="cmd-dim">$</span> curl -fsSL madcodelife.github.io/jot/install.sh | sh</code>
@@ -102,6 +138,8 @@
         <p class="keys-hint">
           <span data-en>Press <b>⌥</b> twice on your keyboard, or click the keys.</span>
           <span data-zh>在键盘上按两下 <b>⌥</b>，或者直接点这两个键</span>
+          <span data-zh-hant>在鍵盤上按兩下 <b>⌥</b>，或直接點這兩個鍵</span>
+          <span data-ja>キーボードの <b>⌥</b> を2回押すか、このキーをクリック</span>
         </p>
       </div>
 
@@ -128,10 +166,14 @@
       <h2 class="h2">
         <span data-en>One notebook for you and your AI.</span>
         <span data-zh>你记的，AI 也看得到</span>
+        <span data-zh-hant>你記的，AI 也看得到</span>
+        <span data-ja>書いたメモは、AI にも見える</span>
       </h2>
       <p class="body">
         <span data-en>Connect Claude Code, Claude, Cursor, VS Code, Windsurf, Codex or Gemini CLI in one click. Ask them in plain words; a note an app writes carries its name.</span>
         <span data-zh>Claude Code、Claude、Cursor、VS Code、Windsurf、Codex、Gemini CLI，点一下就能连上。直接跟它说“帮我记一下”，它写的笔记会标上自己的名字。</span>
+        <span data-zh-hant>Claude Code、Claude、Cursor、VS Code、Windsurf、Codex、Gemini CLI，點一下就能連上。直接跟它說「幫我記一下」，它寫的筆記會標上自己的名字。</span>
+        <span data-ja>Claude Code、Claude、Cursor、VS Code、Windsurf、Codex、Gemini CLI とワンクリックでつながります。「メモしておいて」と頼めば書いてくれて、そのメモには AI の名前が付きます。</span>
       </p>
       <div class="asks" role="tablist" id="asks"></div>
     </div>
@@ -146,10 +188,14 @@
     <h2 class="h2 center reveal">
       <span data-en>Say when. It reminds you.</span>
       <span data-zh>随手写个时间，到点就提醒</span>
+      <span data-zh-hant>隨手寫個時間，時間到就提醒你</span>
+      <span data-ja>時間を書いておけば、その時に知らせます</span>
     </h2>
     <p class="body center reveal">
       <span data-en>Any line that starts with <code>- [ ]</code> is a to-do. Write its time in English, Chinese or Japanese.</span>
       <span data-zh>任何一行 <code>- [ ]</code> 都是待办。时间就照平时说话那样写，中文、英文、日文都认得。</span>
+      <span data-zh-hant>任何一行 <code>- [ ]</code> 都是待辦。時間就照平常講話那樣寫，中文、英文、日文都看得懂。</span>
+      <span data-ja><code>- [ ]</code> で始まる行は、どれもやることになります。時間はふだん話すように書けば大丈夫。日本語、英語、中国語のどれでも読み取ります。</span>
     </p>
 
     <div class="tparse reveal">
@@ -158,13 +204,13 @@
         <input id="tinput" type="text" spellcheck="false" autocomplete="off" aria-label="To-do">
       </label>
       <div class="tout" id="tout">
-        <div class="tfile"><span class="tfile-name" data-en>In the file</span><span class="tfile-name" data-zh>存成</span><code id="tfile"></code></div>
+        <div class="tfile"><span class="tfile-name" data-en>In the file</span><span class="tfile-name" data-zh>存成</span><span class="tfile-name" data-zh-hant>存成</span><span class="tfile-name" data-ja>ファイル</span><code id="tfile"></code></div>
         <div class="trow" id="trow"></div>
       </div>
       <div class="tchips" id="tchips"></div>
       <button class="btn btn-ghost" type="button" id="ring">
         <svg class="ic"><use href="#i-bell"/></svg>
-        <span data-en>Ring it in 3 seconds</span><span data-zh>3 秒后提醒我</span>
+        <span data-en>Ring it in 3 seconds</span><span data-zh>3 秒后提醒我</span><span data-zh-hant>3 秒後提醒我</span><span data-ja>3 秒後に鳴らす</span>
       </button>
     </div>
   </section>
@@ -174,6 +220,8 @@
     <h2 class="h2 reveal">
       <span data-en>Plain Markdown. Your files.</span>
       <span data-zh>纯 Markdown，文件在你手里</span>
+      <span data-zh-hant>純 Markdown，檔案在你手上</span>
+      <span data-ja>ただの Markdown。ファイルは手元に</span>
     </h2>
     <div class="bento">
       <div class="cell cell-md reveal">
@@ -190,36 +238,52 @@
             <p class="md-line" tabindex="0"><span class="mk">- [ ] </span><span class="md-box"></span>订旅馆 <span class="chip"><svg class="ic"><use href="#i-alarm"/></svg>21:00</span><span class="mk"> ⏰ 2026-12-01 21:00</span></p>
             <p class="md-line" tabindex="0"><span class="mk">`</span><code>git reset --soft HEAD~1</code><span class="mk">`</span></p>
           </div>
+          <div data-zh-hant>
+            <p class="md-line md-h" tabindex="0"><span class="mk"># </span>京都旅行</p>
+            <p class="md-line" tabindex="0"><span class="mk">**</span><b>12 月 12 日到 18 日</b><span class="mk">**</span>，在<span class="mk">[</span><a>東山</a><span class="mk">](https://maps.app/…)</span>住五晚。</p>
+            <p class="md-line" tabindex="0"><span class="mk">- [ ] </span><span class="md-box"></span>訂旅館 <span class="chip"><svg class="ic"><use href="#i-alarm"/></svg>21:00</span><span class="mk"> ⏰ 2026-12-01 21:00</span></p>
+            <p class="md-line" tabindex="0"><span class="mk">`</span><code>git reset --soft HEAD~1</code><span class="mk">`</span></p>
+          </div>
+          <div data-ja>
+            <p class="md-line md-h" tabindex="0"><span class="mk"># </span>京都旅行</p>
+            <p class="md-line" tabindex="0"><span class="mk">**</span><b>12月12日〜18日</b><span class="mk">**</span>、<span class="mk">[</span><a>東山</a><span class="mk">](https://maps.app/…)</span>に5泊。</p>
+            <p class="md-line" tabindex="0"><span class="mk">- [ ] </span><span class="md-box"></span>旅館を予約 <span class="chip"><svg class="ic"><use href="#i-alarm"/></svg>21:00</span><span class="mk"> ⏰ 2026-12-01 21:00</span></p>
+            <p class="md-line" tabindex="0"><span class="mk">`</span><code>git reset --soft HEAD~1</code><span class="mk">`</span></p>
+          </div>
         </div>
-        <h3 class="h3"><span data-en>Previewed as you write</span><span data-zh>边写边预览</span></h3>
+        <h3 class="h3"><span data-en>Previewed as you write</span><span data-zh>边写边预览</span><span data-zh-hant>邊寫邊預覽</span><span data-ja>書きながらプレビュー</span></h3>
         <p class="small">
           <span data-en>As in Typora, the syntax shows only where the caret is. Point at a line.</span>
           <span data-zh>和 Typora 一样，只有光标所在的那行才显示 Markdown 符号。鼠标移上去看看。</span>
+          <span data-zh-hant>跟 Typora 一樣，只有游標所在的那一行才會顯示 Markdown 符號。把滑鼠移上去看看。</span>
+          <span data-ja>Typora と同じように、Markdown の記号はカーソルのある行にだけ表示されます。行にマウスを乗せてみてください。</span>
         </p>
       </div>
 
       <div class="cell cell-files reveal">
         <div class="files">
           <div class="files-dir"><svg class="ic"><use href="#i-folder"/></svg>iCloud Drive/Jot</div>
-          <div class="files-f"><span data-en>This week.md</span><span data-zh>本周.md</span></div>
-          <div class="files-f"><span data-en>Trip to Kyoto.md</span><span data-zh>京都之行.md</span></div>
-          <div class="files-f is-agent"><span data-en>Design review.md</span><span data-zh>设计评审.md</span> <span class="files-fm">source: claude</span></div>
+          <div class="files-f"><span data-en>This week.md</span><span data-zh>本周.md</span><span data-zh-hant>本週.md</span><span data-ja>今週.md</span></div>
+          <div class="files-f"><span data-en>Trip to Kyoto.md</span><span data-zh>京都之行.md</span><span data-zh-hant>京都旅行.md</span><span data-ja>京都旅行.md</span></div>
+          <div class="files-f is-agent"><span data-en>Design review.md</span><span data-zh>设计评审.md</span><span data-zh-hant>設計審查.md</span><span data-ja>デザインレビュー.md</span> <span class="files-fm">source: claude</span></div>
           <div class="files-f">Homelab.md</div>
         </div>
-        <h3 class="h3"><span data-en>One file per note</span><span data-zh>一条笔记一个文件</span></h3>
+        <h3 class="h3"><span data-en>One file per note</span><span data-zh>一条笔记一个文件</span><span data-zh-hant>一則筆記一個檔案</span><span data-ja>メモ1件にファイル1つ</span></h3>
         <p class="small">
           <span data-en>In iCloud Drive or any folder. No account, no server.</span>
           <span data-zh>放在 iCloud 云盘或任意文件夹。不用注册，也没有服务器。</span>
+          <span data-zh-hant>放在 iCloud 雲碟或任何資料夾。不用註冊，也沒有伺服器。</span>
+          <span data-ja>iCloud Drive でも、好きなフォルダでも。アカウントもサーバーもいりません。</span>
         </p>
       </div>
 
       <div class="cell cell-themes reveal">
         <div class="swatches" id="swatches" role="radiogroup" aria-label="Theme"></div>
         <div class="mini" id="mini">
-          <div class="mini-row is-sel"><svg class="ic"><use href="#i-doc"/></svg><span><span data-en>This week</span><span data-zh>本周</span></span><em><span data-en>2 min</span><span data-zh>2 分钟前</span></em></div>
-          <div class="mini-row"><svg class="ic mini-agent"><use href="#i-spark"/></svg><span><span data-en>Design review</span><span data-zh>设计评审</span></span><em class="mini-tag">Claude</em></div>
+          <div class="mini-row is-sel"><svg class="ic"><use href="#i-doc"/></svg><span><span data-en>This week</span><span data-zh>本周</span><span data-zh-hant>本週</span><span data-ja>今週</span></span><em><span data-en>2 min</span><span data-zh>2 分钟前</span><span data-zh-hant>2 分鐘前</span><span data-ja>2 分前</span></em></div>
+          <div class="mini-row"><svg class="ic mini-agent"><use href="#i-spark"/></svg><span><span data-en>Design review</span><span data-zh>设计评审</span><span data-zh-hant>設計審查</span><span data-ja>デザインレビュー</span></span><em class="mini-tag">Claude</em></div>
         </div>
-        <h3 class="h3"><span data-en>Eight themes</span><span data-zh>八套主题</span></h3>
+        <h3 class="h3"><span data-en>Eight themes</span><span data-zh>八套主题</span><span data-zh-hant>八套主題</span><span data-ja>8 つのテーマ</span></h3>
         <p class="small" id="theme-name"></p>
       </div>
 
@@ -233,10 +297,12 @@
           <div class="lock-line">ssh admin@nas.local</div>
           <div class="lock-agent" id="lock-agent"></div>
         </div>
-        <h3 class="h3"><span data-en>Lock what must not change</span><span data-zh>重要的笔记，锁起来</span></h3>
+        <h3 class="h3"><span data-en>Lock what must not change</span><span data-zh>重要的笔记，锁起来</span><span data-zh-hant>重要的筆記，鎖起來</span><span data-ja>大事なメモはロック</span></h3>
         <p class="small">
           <span data-en>A locked note is read-only for Jot, your AI apps and every other program.</span>
           <span data-zh>锁上之后，Jot、AI 应用和其他程序都只能看，不能改。</span>
+          <span data-zh-hant>鎖上之後，Jot、AI App 和其他程式都只能看，不能改。</span>
+          <span data-ja>ロックしたメモは、Jot も AI アプリもほかのアプリも、読めるだけで書き換えられません。</span>
         </p>
       </div>
     </div>
@@ -251,15 +317,19 @@
     <h2 class="display center reveal">
       <span data-en>Free, on any Mac.</span>
       <span data-zh>免费，装上就能用</span>
+      <span data-zh-hant>免費，裝了就能用</span>
+      <span data-ja>無料。どの Mac でも</span>
     </h2>
     <p class="body center reveal">
       <span data-en>Apple silicon or Intel. Run the same command again to update; your notes are not touched.</span>
       <span data-zh>Apple 芯片和 Intel 的 Mac 都支持。想更新，再跑一遍同一条命令就行，笔记不会动。</span>
+      <span data-zh-hant>Apple 晶片和 Intel 的 Mac 都支援。要更新的話，再執行一次同一個指令就好，筆記不會被動到。</span>
+      <span data-ja>Apple シリコンでも Intel でも動きます。アップデートは同じコマンドをもう一度実行するだけで、メモはそのまま残ります。</span>
     </p>
     <div class="cta-row center reveal">
       <a href="https://github.com/madcodelife/jot/releases/latest" class="btn">
         <svg class="ic"><use href="#i-download"/></svg>
-        <span data-en>Download for Mac</span><span data-zh>下载 Mac 版</span>
+        <span data-en>Download for Mac</span><span data-zh>下载 Mac 版</span><span data-zh-hant>下載 Mac 版</span><span data-ja>Mac 版をダウンロード</span>
       </a>
       <button class="cmd" type="button" data-copy="curl -fsSL https://madcodelife.github.io/jot/install.sh | sh">
         <code><span class="cmd-dim">$</span> curl -fsSL madcodelife.github.io/jot/install.sh | sh</code>
@@ -269,6 +339,8 @@
     <p class="fine center reveal">
       <span data-en>Jot is not notarized by Apple yet. If you download the zip, run <code>xattr -dr com.apple.quarantine /Applications/Jot.app</code> once before opening it.</span>
       <span data-zh>Jot 暂未经过 Apple 公证。如果是下载 zip 安装，第一次打开前先运行 <code>xattr -dr com.apple.quarantine /Applications/Jot.app</code></span>
+      <span data-zh-hant>Jot 目前還沒有經過 Apple 公證。如果是下載 zip 安裝，第一次打開前先執行 <code>xattr -dr com.apple.quarantine /Applications/Jot.app</code></span>
+      <span data-ja>Jot はまだ Apple の公証を受けていません。zip をダウンロードした場合は、初めて開く前に <code>xattr -dr com.apple.quarantine /Applications/Jot.app</code> を一度実行してください。</span>
     </p>
   </section>
 
@@ -278,9 +350,14 @@
   <div class="foot-in">
     <span>Jot</span>
     <a href="https://github.com/madcodelife/jot">GitHub</a>
-    <a href="https://github.com/madcodelife/jot/releases"><span data-en>Releases</span><span data-zh>版本</span></a>
+    <a href="https://github.com/madcodelife/jot/releases"><span data-en>Releases</span><span data-zh>版本</span><span data-zh-hant>版本</span><span data-ja>リリース</span></a>
     <a href="https://github.com/madcodelife/jot/blob/main/LICENSE">MIT</a>
-    <button type="button" class="lang-toggle" data-lang-toggle><span data-en>中文</span><span data-zh>English</span></button>
+    <div class="foot-langs">
+      <button type="button" data-set-lang="en" lang="en">English</button>
+      <button type="button" data-set-lang="zh" lang="zh-CN">简体中文</button>
+      <button type="button" data-set-lang="zh-Hant" lang="zh-TW">繁體中文</button>
+      <button type="button" data-set-lang="ja" lang="ja">日本語</button>
+    </div>
   </div>
 </footer>
 
