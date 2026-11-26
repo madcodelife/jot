@@ -345,6 +345,8 @@ actions:
   due_remove: リマインダーを削除
   lock: ロック
   unlock: ロックを解除
+  emoji: 絵文字を設定…
+  emoji_remove: 絵文字を削除
 
 trash:
   bin:
@@ -386,6 +388,32 @@ lock:
   unlock_failed: 「%{title}」のロックを解除できませんでした：%{error}
   done: 「%{title}」をロックしました
   undone: 「%{title}」のロックを解除しました
+
+emoji:
+  label: 「%{title}」の絵文字
+  list: 絵文字
+  search: 絵文字を検索（英語）
+  none: 見つかりませんでした
+  heading: 絵文字を設定
+  back: リストに戻る
+  groups:
+    recent: ノートで使った絵文字
+    smileysEmotion: スマイリーと感情
+    peopleBody: 人と体
+    animalsNature: 動物と自然
+    foodDrink: 食べ物と飲み物
+    travelPlaces: 旅行と場所
+    activities: アクティビティ
+    objects: もの
+    symbols: 記号
+    flags: 旗
+  add: 絵文字を追加
+  add_label: 「%{title}」に絵文字を追加
+  remove: 絵文字を削除
+  remove_label: 「%{title}」の絵文字を削除
+  change_label: 「%{title}」の絵文字 %{emoji}。クリックで変更
+  locked: 「%{title}」はロックされています。絵文字を変えるにはロックを解除してください
+  failed: 「%{title}」の絵文字を変更できませんでした：%{error}
 
 update:
   label: ソフトウェアアップデート

@@ -48,7 +48,8 @@ mod sound_effects;
 mod summon;
 mod when;
 
-// `nsh-extra` is here for TSX (dictation's `Speech`); no Rust uses it.
+// `nsh-extra` is here for TSX (dictation's `Speech`), `nsh-base` for its `EmojiPicker` feature; no Rust uses them.
+use nsh_base as _;
 use nsh_core::prelude::*;
 use nsh_extra as _;
 

@@ -346,6 +346,8 @@ actions:
   due_remove: Remove Reminder
   lock: Lock
   unlock: Unlock
+  emoji: Set Emoji…
+  emoji_remove: Remove Emoji
 
 trash:
   bin:
@@ -387,6 +389,32 @@ lock:
   unlock_failed: "Couldn’t unlock “%{title}”: %{error}"
   done: "Locked “%{title}”"
   undone: "Unlocked “%{title}”"
+
+emoji:
+  label: "Emoji for “%{title}”"
+  list: Emoji
+  search: Search emoji
+  none: No matching emoji
+  heading: Set Emoji for
+  back: Back
+  groups:
+    recent: Used in Your Notes
+    smileysEmotion: Smileys & Emotion
+    peopleBody: People & Body
+    animalsNature: Animals & Nature
+    foodDrink: Food & Drink
+    travelPlaces: Travel & Places
+    activities: Activities
+    objects: Objects
+    symbols: Symbols
+    flags: Flags
+  add: Add Emoji
+  add_label: "Add an emoji to “%{title}”"
+  remove: Remove Emoji
+  remove_label: "Remove the emoji of “%{title}”"
+  change_label: "“%{title}”’s emoji, %{emoji}. Click to change it"
+  locked: "“%{title}” is locked. Unlock it to change its emoji"
+  failed: "Couldn’t change the emoji of “%{title}”: %{error}"
 
 update:
   label: Software Update

@@ -4,7 +4,7 @@ use std::fmt::Display;
 use std::path::PathBuf;
 use std::time::UNIX_EPOCH;
 
-use jot_store::{ActivityTail, Resolution, Source, Store, StoreError, Trashed, Watcher};
+use jot_store::{ActivityTail, Icon, Resolution, Source, Store, StoreError, Trashed, Watcher};
 use nsh_core::element::io_code;
 use nsh_core::prelude::*;
 
@@ -344,6 +344,31 @@ impl Notes {
         Ok(meta.into())
     }
 
+    /// Gives the note an emoji, shown before its title: `icon: "🍕"` in its
+    /// frontmatter. Its modification time stays (no change of the note).
+    /// Throws a `TypeError` when `icon` is not one emoji (surrounding
+    /// spaces aside), `ERR_JOT_LOCKED`, `ERR_JOT_NOT_FOUND`,
+    /// `ERR_JOT_NOT_DOWNLOADED`.
+    pub fn set_icon(&mut self, title: String, icon: String) -> Result<NoteMeta, JsError> {
+        let parsed = Icon::parse(&icon)
+            .ok_or_else(|| JsError::Type(format!("icon must be one emoji, got {icon:?}")))?;
+        let meta = self
+            .store
+            .set_icon(&title, &parsed)
+            .map_err(|e| store_error(e, format_args!("cannot set the emoji of {title:?}")))?;
+        Ok(meta.into())
+    }
+
+    /// Takes the note's emoji away (its modification time stays); a note
+    /// without one stays as it is.
+    pub fn clear_icon(&mut self, title: String) -> Result<NoteMeta, JsError> {
+        let meta = self
+            .store
+            .clear_icon(&title)
+            .map_err(|e| store_error(e, format_args!("cannot remove the emoji of {title:?}")))?;
+        Ok(meta.into())
+    }
+
     /// Brings each note's two marks of a lock in line: the flag back on a
     /// note whose frontmatter says locked (synced from another Mac, or
     /// cleared by iCloud Drive as it uploaded the note), `locked: true` on a
@@ -446,6 +471,8 @@ pub struct NoteMeta {
     /// The note is locked (in Jot or in Finder): read-only until it is
     /// unlocked; every change throws `ERR_JOT_LOCKED`.
     pub locked: bool,
+    /// The emoji shown before its title (`"🍕"`), or `null`.
+    pub icon: Option<String>,
 }
 
 /// A time as TS gets it: milliseconds since the Unix epoch.
@@ -466,6 +493,7 @@ impl From<jot_store::NoteMeta> for NoteMeta {
             preview: meta.preview,
             downloading: meta.downloading,
             locked: meta.locked,
+            icon: meta.icon,
         }
     }
 }

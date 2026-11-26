@@ -11,11 +11,28 @@ folder. Part of [the architecture](architecture.md).
   case-insensitively for existence checks (macOS file systems are case-insensitive).
 - Optional YAML frontmatter at the very top (`---` lines). Jot writes these keys: `source`, on notes created through
   MCP: the app that created it (`source: cursor`, `source: "agent:Goose"`), `locked: true` on a locked note
-  ([locks.md](locks.md)), and `apple-notes-id` and `folder` on a note imported from Apple Notes (below). Only the
+  ([locks.md](locks.md)), `icon: "🍕"`, the note's emoji ([below](#a-notes-emoji-storesrciconrs)), and `apple-notes-id` and `folder` on a note imported from Apple Notes (below). Only the
   values Jot writes mark a note as an app's; any other `source` (a web clipper's URL, a book) is the user's. Unknown
   keys are preserved on every write. `body` never includes the frontmatter.
 - Writes are atomic: a temp file in the same folder, then rename.
 - `modified` is the file's mtime.
+
+## A note's emoji (store/src/icon.rs)
+
+A note may have one emoji, shown before its title (`NoteMeta::icon`): the frontmatter's first top-level `icon` line,
+its value unquoted and without a trailing `# comment` (as `locked`'s), when that value is one emoji. One emoji is one
+grapheme cluster (`unicode-segmentation`) whose first character is an emoji character (`unicode-properties`:
+`Emoji=Yes`), or `#`, `*` or a digit with the keycap mark (`1️⃣`), at most 64 bytes: `🍕`, `❤`, `👩🏽‍💻`, `🇯🇵`.
+Anything else (words, two emoji, a bare digit) is no emoji; the line stays in the file as the user wrote it.
+`Icon::parse` says which, trimmed.
+
+`set_icon` writes `icon: "<emoji>"` (double quotes: an emoji holds no quote or backslash) in place of the first `icon`
+line, else as the frontmatter's last line, or in a new frontmatter; `clear_icon` takes every top-level `icon` line out,
+and a frontmatter left empty goes. The rest of the frontmatter, its line breaks and the body stay as they are, and so
+does the file's mtime (written as a lock's frontmatter is: the time set on the temporary file before the rename), so
+the list keeps its order: an emoji is no change of the note. Like every write, both fail with `NotFound`,
+`NotDownloaded` and `Locked`, the file untouched. Body writes keep the line, as they keep the whole frontmatter.
+`frontmatter.rs` reads and writes one top-level key on its own, for `locked` and `icon`.
 
 ## A synced folder (iCloud Drive; store/src/cloud.rs)
 
@@ -131,6 +148,9 @@ impl Store {
     pub fn lock(&self, title: &str) -> Result<NoteMeta, StoreError>;
     pub fn unlock(&self, title: &str) -> Result<NoteMeta, StoreError>;
     pub fn settle_locks(&self) -> Result<Vec<String>, StoreError>;
+    /// The note's emoji: `icon: "<emoji>"` in its frontmatter / its `icon` lines out (mtime kept; above).
+    pub fn set_icon(&self, title: &str, icon: &Icon) -> Result<NoteMeta, StoreError>;
+    pub fn clear_icon(&self, title: &str) -> Result<NoteMeta, StoreError>;
     /// Moves it back out of the trash, or rebuilds it from `Trashed::content` (frontmatter included, mtime kept)
     /// when the trash no longer has it or the platform did not say where it went. `AlreadyExists` when the
     /// title is taken.
@@ -164,7 +184,10 @@ pub struct Moved { pub moved: Vec<String>, pub renamed: Vec<(String, String)>, p
 pub struct ImportNote { pub id: String, pub title: String, pub body: String /* Markdown, no title */, pub folder: Option<String>, pub modified: SystemTime }
 pub struct Imported { pub imported: Vec<String>, pub renamed: Vec<(String, String)>, pub already: Vec<String>, pub waiting: Vec<String>, pub failed: Vec<(String, String)> }  // non_exhaustive
 
-pub struct NoteMeta { pub title: String, pub modified: SystemTime, pub source: Source, pub preview: String /* first ~120 chars of the body, one line */, pub downloading: bool /* its text is not on this Mac yet; asked for */, pub locked: bool /* the flag, or `locked: true` */ }
+pub struct NoteMeta { pub title: String, pub modified: SystemTime, pub source: Source, pub preview: String /* first ~120 chars of the body, one line */, pub downloading: bool /* its text is not on this Mac yet; asked for */, pub locked: bool /* the flag, or `locked: true` */, pub icon: Option<String> /* its emoji; None while downloading */ }
+/// One emoji (above). `parse` trims; `None` for anything else.
+pub struct Icon(/* … */);
+impl Icon { pub fn parse(text: &str) -> Option<Icon>; pub fn as_str(&self) -> &str; }  // + Display
 pub struct Note { pub meta: NoteMeta, pub body: String }
 pub struct SearchHit { pub meta: NoteMeta, pub snippet: String /* ~120 chars around the first body match, or the preview */, pub title_match: bool }
 pub struct Trashed { pub title: String, pub in_trash: Option<PathBuf>, pub content: String, pub modified: SystemTime }  // non_exhaustive
@@ -200,7 +223,7 @@ the apps were told apart say `claude`), `agent:<name>` the app of that name, and
 
 ## The app and a synced folder
 
-The list shows a note not downloaded with a cloud and "Downloading…"; opened, the editor is read-only and empty,
+The list shows a note not downloaded with "Downloading…" for its snippet; opened, the editor is read-only and empty,
 says so, and takes the text when it lands. A note with conflict versions shows a bar over its text: "Keep This
 Mac's", "Use the Other", "Keep Both" (the other as `Title (iPhone)`), one version at a time, the open note's edits
 saved first. Settings › General › iCloud Drive: "Move to iCloud Drive…" (disabled, saying why, while iCloud Drive

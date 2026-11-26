@@ -1,5 +1,7 @@
 // The list under the search field: today's to-dos, the notes that match,
-// and "new note" for a title no note has. With a note open the same rows
+// and "new note" for a title no note has. Rows are words alone, no icon: a
+// note's emoji, when it has one, leads its title, and an AI app's note is
+// told by the app's name at the row's end. With a note open the same rows
 // narrow into a sidebar of titles. Rows drop in one after another as the
 // list opens, and on their own for a note new in the folder or back from
 // the trash; a note moved to the trash slides left as it fades, then the
@@ -12,10 +14,11 @@ import { Input } from "nsh/base";
 import { t } from "nsh/i18n";
 import { openActions, type ActionTarget } from "../actions";
 import { tn } from "../i18n";
-import { activate, allTodos, arriving, dropIn, dropping, entering, finishRename, focusRequest, keySteps, listEntrance, listRows, now, query, renaming, rowKey, selected, stage, type Row } from "../store";
+import { activate, allTodos, arriving, dropIn, dropping, editingInPlace, entering, finishRename, focusRequest, keySteps, listEntrance, listRows, now, query, renaming, rowKey, selected, stage, type Row } from "../store";
 import { plainSnippet } from "../tasks";
 import { age, hm, todaySummary, type TodaySummary } from "../time";
-import { Icon, type IconName } from "./icons";
+import { emojiAnchor } from "./Emoji";
+import { Icon } from "./icons";
 import { springConfig } from "./motion";
 import { Highlight, Keycaps } from "./parts";
 import { T } from "./tokens";
@@ -212,17 +215,19 @@ function ListRow(props: { row: Row; index: number; leaving: boolean; compact: bo
   return (
     <View
       testID={note() ? `row:${note()!.meta.title}` : `row:${props.row.kind}`}
+      // "Set Emoji…" opens the picker under the row.
+      ref={props.row.kind === "note" ? emojiAnchor("row", props.row.meta.title) : undefined}
       role="button"
       accessibilityState={{ selected: isSelected(), disabled: props.leaving }}
       onPress={() => {
-        if (!props.leaving && untracked(renaming) === null) activate(props.index);
+        if (!props.leaving && !untracked(editingInPlace)) activate(props.index);
       }}
       // A right click shows the row's actions: the same panel as ⌘K.
       onContextMenu={() => {
-        if (!props.leaving && untracked(renaming) === null) openActions(targetOf(props.row, props.index));
+        if (!props.leaving && !untracked(editingInPlace)) openActions(targetOf(props.row, props.index));
       }}
       onMouseEnter={() => {
-        if (!props.leaving && untracked(stage) !== "editor" && untracked(renaming) === null) selected.set(props.index);
+        if (!props.leaving && untracked(stage) !== "editor" && !untracked(editingInPlace)) selected.set(props.index);
       }}
       class="flex-row items-center"
       classList={{
@@ -231,7 +236,7 @@ function ListRow(props: { row: Row; index: number; leaving: boolean; compact: bo
       }}
       style={{
         height: height(),
-        gap: 12,
+        gap: 10,
         paddingHorizontal: props.compact ? 10 : 14,
         borderRadius: T.radius.row,
         borderCurve: "continuous",
@@ -246,8 +251,7 @@ function ListRow(props: { row: Row; index: number; leaving: boolean; compact: bo
       <If when={T.selection === "bar" && isSelected()}>
         <View class="absolute bg-primary" style={{ left: 2, top: height() / 2 - 8, width: 3, height: 16, borderRadius: 2 }} />
       </If>
-      <RowIcon row={props.row} onAccent={onAccent()} />
-      <View class="flex-1" style={{ minWidth: 0 }}>
+      <View class="flex-1" style={{ minWidth: 0, gap: props.compact ? 0 : 1 }}>
         <If when={props.row.kind === "summary"}>
           <Text class={title()} style={{ numberOfLines: 1, fontSize: T.type.row }}>
             {summaryTitle(summary())}
@@ -264,8 +268,11 @@ function ListRow(props: { row: Row; index: number; leaving: boolean; compact: bo
               <If
                 when={renaming() === row().meta.title}
                 else={
+                  // The emoji leads the title and takes only its own width; the query marks the title's words only.
                   <Highlight
+                    testID="note-title"
                     text={row().meta.title}
+                    prefix={row().meta.icon}
                     terms={row().terms}
                     selected={onAccent()}
                     size={T.type.row}
@@ -347,37 +354,6 @@ function LockMark(props: { onAccent: boolean }) {
   return (
     <View testID="note-locked" accessible accessibilityLabel={t("lock.row")} style={{ flexShrink: 0 }}>
       <Icon name="lock" size={13} tint={props.onAccent ? token("on-accent-muted") : token("glass-muted")} />
-    </View>
-  );
-}
-
-/** The row's icon tile: a document, an AI app's spark, the to-do list, or a plus. An AI app's note keeps the plain tile
- * and only its spark is orange, in the darker ink: a tinted tile over the glass muddies when a dark window is behind. */
-function RowIcon(props: { row: Row; onAccent: boolean }) {
-  const byAgent = () => props.row.kind === "note" && props.row.meta.source !== null;
-  const tile = () =>
-    props.onAccent
-      ? "bg-on-accent-fill"
-      : props.row.kind === "summary"
-          ? "bg-primary/15"
-          : "bg-glass-hover";
-  const tint = () =>
-    props.onAccent
-      ? token("on-accent")
-      : byAgent()
-        ? token("agent-ink")
-        : props.row.kind === "summary"
-          ? token("accent-ink")
-          : token("glass-fg");
-  const downloading = () => props.row.kind === "note" && props.row.meta.downloading;
-  const name = (): IconName =>
-    props.row.kind === "summary" ? "list" : props.row.kind === "create" ? "plus" : downloading() ? "cloud" : byAgent() ? "spark" : "doc";
-  return (
-    <View
-      class={`items-center justify-center ${tile()}`}
-      style={{ width: T.size.rowIcon, height: T.size.rowIcon, borderRadius: T.radius.row / 2, borderCurve: "continuous" }}
-    >
-      <Icon name={name()} size={16} tint={tint()} />
     </View>
   );
 }

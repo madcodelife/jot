@@ -26,6 +26,10 @@ nsh-core = { git = "https://github.com/longbridge/nsh", rev = "dccbe7edf99790add
 # Dictation's `Speech` (TSX: `import { Speech } from "nsh-extra"`), out of NSH's runtime since 0.6. NSH links a Rust
 # nshm the app's crate depends on. The same commit as nsh-core, and the same move back to crates.io.
 nsh-extra = { git = "https://github.com/longbridge/nsh", rev = "dccbe7edf99790add1e95b3be26eac72116ae594", features = ["speech"] }
+# The emoji picker of a note (TSX: `import { EmojiPicker } from "nsh/base"`): its feature is off in the headless runner
+# `nsh test` builds, and on here it is in every runner of the app, the fingerprint (docs/app.md, Updates) with it. The
+# same commit as nsh-core.
+nsh-base = { git = "https://github.com/longbridge/nsh", rev = "dccbe7edf99790add1e95b3be26eac72116ae594", default-features = false, features = ["emoji-picker"] }
 jot-store = { path = "store" }
 jiff = "1.0.0"
 # Channels from other threads (the folder watcher, the reminders' thread,

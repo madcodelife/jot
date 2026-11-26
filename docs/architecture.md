@@ -36,7 +36,7 @@ which `jot-mcp` writes and the app reads for the island ([mcp.md](mcp.md)).
 | `app/tsconfig.json` | The client's TypeScript project; it extends the `app/.nsh/tsconfig.json` the `nsh` CLI writes. |
 | `app/App.tsx` | The client's entry: the menu bar app's windows (the panel, settings, the island), the tray, summoning, reminders and dictation. |
 | `app/*.ts` | The client's logic, no components: `store.ts` (Jot's state: the notes folder, the panel's stage, the query and the selection), `settings.ts`, `i18n.ts`, `time.ts`, `tasks.ts`, `due.ts`, `markdown.ts`, `actions.ts`, `voice.ts`, `speechlang.ts`, `spoken.ts`, `quicknote.ts`, `connections.ts`, `ink.ts` (Jot's logo written by one pen stroke), `trayink.ts`, `updates.ts`, `sounds.ts` (the sounds of AI apps' writes), `importing.ts`. |
-| `app/ui/` | Components (`Panel.tsx`, `Paper.tsx`, `NoteList.tsx`, `TodoView.tsx`, `Settings.tsx`, `Island.tsx`, …), design tokens (`tokens.ts`), motion (`motion.ts`), themes (`theme.json`, `themes.json`, `themes.ts`) and the app's SVGs. |
+| `app/ui/` | Components (`Panel.tsx`, `Paper.tsx`, `NoteList.tsx`, `Emoji.tsx`, `TodoView.tsx`, `Settings.tsx`, `Island.tsx`, …), design tokens (`tokens.ts`), motion (`motion.ts`), themes (`theme.json`, `themes.json`, `themes.ts`) and the app's SVGs. |
 | `app/tests/` | The client's TSX tests (`*.test.tsx`), which `nsh test` runs headless. |
 | `locales/` | The client's translations (`en`, `zh`, `zh-Hant`, `ja`), read by `nsh/i18n`. |
 | `src/` | `nsh-app-jot`, the Rust that `App.tsx` imports as `jot/native` ([app.md](app.md)); platform code in `src/platform/<os>.rs` (and `src/platform/apple-notes.js`, the script macOS reads Apple Notes with). |
@@ -96,6 +96,6 @@ which `jot-mcp` writes and the app reads for the island ([mcp.md](mcp.md)).
 - [locks.md](locks.md): locked notes, in the store and in the app.
 - [todos.md](todos.md): to-dos, time phrases (`when`) and the reminder time picker.
 - [mcp.md](mcp.md): `jot-mcp`'s tools, AI apps removing and rewriting notes, and the activity log.
-- [app.md](app.md): the app's Rust face (`jot/native`), the open note's Return and ⌘↩, its live Markdown preview, row
-  actions, importing from Apple Notes, updates, packaging.
+- [app.md](app.md): the app's Rust face (`jot/native`), the list's rows, the open note's Return and ⌘↩, its live
+  Markdown preview, a note's emoji, row actions, importing from Apple Notes, updates, packaging.
 - [product.md](product.md): the product definition.

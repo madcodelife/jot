@@ -13,23 +13,18 @@ import {
   Contrast,
   Copy,
   ExternalLink,
-  FileText,
-  ListChecks,
   Lock,
   Mic,
   Option,
-  Plus,
   Search,
   Settings,
+  SmilePlus,
   Sparkles,
   Trash2,
 } from "nsh-icon-lucide";
 
 const ICONS = {
   search: Search,
-  doc: FileText,
-  plus: Plus,
-  list: ListChecks,
   spark: Sparkles,
   check: Check,
   bell: Bell,
@@ -39,6 +34,8 @@ const ICONS = {
   cloud: CloudDownload,
   // A locked note.
   lock: Lock,
+  // The open note's "Add Emoji".
+  smile: SmilePlus,
   gear: Settings,
   option: Option,
   appearance: Contrast,

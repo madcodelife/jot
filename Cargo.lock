@@ -1199,6 +1199,8 @@ dependencies = [
  "serde_json",
  "tempfile",
  "trash",
+ "unicode-properties",
+ "unicode-segmentation",
 ]
 
 [[package]]
@@ -1453,6 +1455,7 @@ dependencies = [
  "jiff",
  "jot-store",
  "markup5ever_rcdom",
+ "nsh-base",
  "nsh-core",
  "nsh-extra",
  "nsh-icon",

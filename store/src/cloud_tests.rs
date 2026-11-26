@@ -207,6 +207,18 @@ fn notes_not_downloaded_are_never_written() {
             matches!(store.trash(title), Err(StoreError::NotDownloaded)),
             "{title}"
         );
+        let pizza = Icon::parse("🍕").unwrap();
+        assert!(
+            matches!(
+                store.set_icon(title, &pizza),
+                Err(StoreError::NotDownloaded)
+            ),
+            "{title}"
+        );
+        assert!(
+            matches!(store.clear_icon(title), Err(StoreError::NotDownloaded)),
+            "{title}"
+        );
         assert!(
             matches!(
                 store.add_todo(Some(title), "x", None, Source::User),

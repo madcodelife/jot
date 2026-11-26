@@ -48,10 +48,13 @@ export function Highlight(props: {
   class?: string;
   size: number;
   testID?: string;
+  /** Shown before the text, never highlighted: a note's emoji. */
+  prefix?: string | null;
 }) {
   const parts = computed(() => segments(props.text, props.terms));
   return (
     <Text testID={props.testID} class={props.class} style={{ numberOfLines: 1, fontSize: props.size }}>
+      {props.prefix ? `${props.prefix} ` : ""}
       {parts().map((p) =>
         // On the selected row's accent a filled block would read as selected text: the words are underlined and bold instead.
         p.hit ? <Text class={props.selected ? "text-on-accent font-semibold underline" : "bg-mark text-mark-fg"}>{p.text}</Text> : p.text,
