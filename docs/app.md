@@ -134,7 +134,8 @@ module AiAccess {                                // the AI apps' permission (src
 module AppleNotes {                             // the settings' import from Apple Notes (src/apple_notes.rs; below)
   available(): boolean;                         // Apple Notes is here (macOS); asks the system nothing
   import(dir: string): Promise<AppleNotesImport>;  // reads every note of Notes, then Store::import into `dir`, off the engine thread
-  // Rejects with ERR_JOT_NOT_AUTHORIZED (Jot may not control Notes), ERR_JOT_UNSUPPORTED (no Apple Notes), else why.
+  // Rejects with ERR_JOT_NOT_AUTHORIZED (Jot may not control Notes), ERR_JOT_TIMED_OUT (Notes not read within
+  // 10 minutes; nothing imported), ERR_JOT_UNSUPPORTED (no Apple Notes), else why.
 }
 interface AppleNotesImport { imported: number /* renamed ones too */; renamed: { from: string; to: string }[]; already: number; locked: number; deleted: number /* in Recently Deleted */; waiting: number /* a note of the title not downloaded */; failed: { title: string; error: string }[] }
 
@@ -447,16 +448,25 @@ Settings › General › Import: the "Apple Notes" row (shown where `AppleNotes.
 button, the only thing in Jot that reaches Notes: nothing at launch or in use sends Notes an Apple Event, so the
 system's "“Jot” wants access to control “Notes”" prompt shows only when the user presses it (the first time; its text
 is nsh.json's `NSAppleEventsUsageDescription`). While it runs the button says "Importing…" and is disabled (no
-progress: Notes is read in one go). Then the footnote says what it did ("Imported 132 notes · 5 already imported · 3
-locked notes skipped"), or why it failed; refused (`ERR_JOT_NOT_AUTHORIZED`), it says where to allow it and a button
-opens System Settings › Privacy & Security › Automation.
+progress: Notes is read in one go), and so are the notes folder's "Change…" and "Move to iCloud Drive" (the import
+writes into the folder open when it started; the other way round, no import while the notes move). Then the footnote
+says what it did ("Imported 132 notes · 5 already imported · 3 locked notes skipped"), or why it failed; refused
+(`ERR_JOT_NOT_AUTHORIZED`), it says where to allow it and a button opens System Settings › Privacy & Security ›
+Automation; too slow (`ERR_JOT_TIMED_OUT`), that Notes did not answer within 10 minutes. Before an import, the
+footnote says that importing again skips the notes imported before but brings back one deleted in Jot.
 
 - **Reading** (`platform::read_apple_notes`, macOS): `/usr/bin/osascript -l JavaScript` runs
   `src/platform/apple-notes.js`, which prints every folder of every account (nested ones with their path) and its
   notes as JSON: ids, names, dates and locks one request a folder, the bodies too when none is locked (else one by
-  one); none for a locked note or Recently Deleted (a top-level folder of that name, in the languages Notes is in:
-  Notes' scripting has no other mark of it). Images' data (`src="data:…"`) is cut from the HTML there. Apple Events'
-  -1743 / -1744 is `ReadError::NotAuthorized`. `osascript` is a process of Jot's, so the system asks for Jot (from a
+  one); none for a locked note or Recently Deleted (a top-level folder of that name: Notes' scripting has no other mark
+  of it, `sdef` gives a folder a name, an id, `shared` and its container only). The names are generated from macOS's
+  own Notes (`NotesShared.framework`'s `Localizable.loctable`, every language; the script says how to regenerate),
+  plus a few earlier names an older macOS may give, so a user's own top-level folder named as Recently Deleted in some language ("Eliminate", "Apagadas") is left out
+  too. Images' data (`src="data:…"`) is cut from the HTML there. The JSON it prints is ASCII alone (every other
+  character `\uXXXX`, lone surrogates U+FFFD first), so it reads the same whatever encoding `osascript` writes in.
+  Reading may take 10 minutes at most (`apple_notes::READ_LIMIT`, the system's prompt included): past that
+  `osascript` is killed and it is `ReadError::TimedOut`. Apple Events' -1743 / -1744 is `ReadError::NotAuthorized`.
+  A note Notes gives no id or no text for is among `failed`, with why. `osascript` is a process of Jot's, so the system asks for Jot (from a
   terminal's `nsh run`, for the terminal). The packaged app is signed with `com.apple.security.automation.apple-events`
   (nsh.json `macos.entitlements`), which the hardened runtime needs to send Apple Events.
 - **Converting** (`apple_notes::html`, the same on every platform; html5ever, which NSH's rich editor builds
@@ -469,7 +479,9 @@ opens System Settings › Privacy & Security › Automation.
   Menlo or Courier font) is code, a run of them one fenced block, other monospaced words inline code; block quotes
   `>`; tables (Notes puts them in an `<object>`) Markdown tables, the first row the header, a cell on one line (its
   lines joined by spaces, `|` escaped); an image `[image not imported]`, any other attachment (an `<object>` without a
-  table too) `[attachment not imported]`. Checklists come as plain list items: the HTML does not say which were
+  table too) `[attachment not imported]`. A heading inside a list item is the item's words, no `#`s (they would end
+  the list). HTML nested more than 200 deep (blocks or inline elements; never Notes' own) is the text under that
+  depth on one line, so the walk cannot overflow the stack. Checklists come as plain list items: the HTML does not say which were
   ticked. The title goes when it starts the note (Notes repeats it there; in Jot the file's name is the title),
   whitespace aside: the first line, or the whole first `<div>` when its headings and plain lines say it together (Notes
   may split a title over several headings).

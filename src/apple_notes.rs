@@ -7,7 +7,8 @@
 //! JSON ([`parse`]); each unlocked note's HTML becomes Markdown here ([`html::to_markdown`]), the same on every
 //! platform. Locked notes (their text is encrypted) and those in Recently Deleted are counted and left out.
 
-use std::time::{Duration, SystemTime};
+use std::process::{Command, Output, Stdio};
+use std::time::{Duration, Instant, SystemTime};
 
 use jot_store::{ImportNote, Store};
 use nsh_core::prelude::*;
@@ -29,6 +30,9 @@ pub(crate) enum ReadError {
     Unsupported,
     /// The user did not let Jot control Notes (Privacy & Security › Automation).
     NotAuthorized,
+    /// Notes did not give every note within [`READ_LIMIT`].
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    TimedOut,
     /// Anything else, as the system said it.
     Failed(String),
 }
@@ -50,6 +54,60 @@ impl ReadError {
     }
 }
 
+/// How long reading Notes may take, all of it: past this, it is stopped (`osascript` killed) and nothing is imported.
+/// The system's question whether Jot may control Notes counts too, and Notes may take long over a big folder (one note
+/// at a time when all at once failed), but not this long.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub(crate) const READ_LIMIT: Duration = Duration::from_secs(10 * 60);
+
+/// Runs `command` as `Command::output` does, its stdout and stderr read meanwhile (on threads of their own, so neither
+/// fills up), but for `limit` at most: past it, the process is killed and this is `None`.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub(crate) fn output_within(
+    mut command: Command,
+    limit: Duration,
+) -> std::io::Result<Option<Output>> {
+    let mut child = command
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+    fn read_all(
+        pipe: Option<impl std::io::Read + Send + 'static>,
+    ) -> std::thread::JoinHandle<Vec<u8>> {
+        std::thread::spawn(move || {
+            let mut bytes = Vec::new();
+            if let Some(mut pipe) = pipe {
+                let _ = pipe.read_to_end(&mut bytes);
+            }
+            bytes
+        })
+    }
+    let stdout = read_all(child.stdout.take());
+    let stderr = read_all(child.stderr.take());
+    let deadline = Instant::now() + limit;
+    let status = loop {
+        if let Some(status) = child.try_wait()? {
+            break Some(status);
+        }
+        let now = Instant::now();
+        if now >= deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            break None;
+        }
+        std::thread::sleep((deadline - now).min(Duration::from_millis(50)));
+    };
+    // The process is gone: its pipes are closed, and the threads end.
+    let stdout = stdout.join().unwrap_or_default();
+    let stderr = stderr.join().unwrap_or_default();
+    Ok(status.map(|status| Output {
+        status,
+        stdout,
+        stderr,
+    }))
+}
+
 /// Importing from Apple Notes.
 #[module]
 pub struct AppleNotes;
@@ -67,8 +125,9 @@ impl AppleNotes {
     /// taken is numbered (`Title 2`). Locked notes and those in Recently Deleted are left out and counted.
     ///
     /// The first time, the system asks the user to let Jot control Notes. Rejects with `code`
-    /// `ERR_JOT_NOT_AUTHORIZED` when that was refused, `ERR_JOT_UNSUPPORTED` where there is no Apple Notes; with
-    /// the system's words for anything else.
+    /// `ERR_JOT_NOT_AUTHORIZED` when that was refused, `ERR_JOT_TIMED_OUT` when Notes did not give every note within
+    /// 10 minutes ([`READ_LIMIT`]; nothing imported), `ERR_JOT_UNSUPPORTED` where there is no Apple Notes; with the
+    /// system's words for anything else.
     pub async fn import(dir: String) -> Result<AppleNotesImport, JsError> {
         let dir = expand_home(&dir);
         blocking(move || {
@@ -98,6 +157,11 @@ fn read_error(error: ReadError) -> JsError {
             "Jot is not allowed to control Notes (System Settings › Privacy & Security › Automation)".into(),
         )
         .with_code("ERR_JOT_NOT_AUTHORIZED"),
+        ReadError::TimedOut => JsError::Error(format!(
+            "Apple Notes did not give its notes within {} minutes",
+            READ_LIMIT.as_secs() / 60
+        ))
+        .with_code("ERR_JOT_TIMED_OUT"),
         ReadError::Failed(why) => JsError::Error(format!("cannot read Apple Notes: {why}")),
     }
 }
@@ -128,9 +192,9 @@ impl AppleNotesImport {
         let mut failed: Vec<FailedNote> = read
             .unreadable
             .into_iter()
-            .map(|title| FailedNote {
+            .map(|(title, why)| FailedNote {
                 title,
-                error: "Apple Notes did not give its text".to_owned(),
+                error: why.to_owned(),
             })
             .collect();
         failed.extend(
@@ -164,9 +228,15 @@ pub(crate) struct ReadNotes {
     pub locked: usize,
     /// How many are in Recently Deleted.
     pub deleted: usize,
-    /// The titles of the notes Notes gave no text for (neither locked nor deleted).
-    pub unreadable: Vec<String>,
+    /// The notes Notes gave no text for (neither locked nor deleted), or no id (without one, importing again would
+    /// import it again): their titles, and which ([`NO_TEXT`], [`NO_ID`]).
+    pub unreadable: Vec<(String, &'static str)>,
 }
+
+/// Why a note is not imported: Notes gave no text for it.
+pub(crate) const NO_TEXT: &str = "Apple Notes did not give its text";
+/// Why a note is not imported: Notes gave no id for it.
+pub(crate) const NO_ID: &str = "Apple Notes did not give its id";
 
 /// Reads the platform's JSON: `{"folders": [{"path": ["Work", "Projects"], "deleted": false, "notes": [{"id",
 /// "name", "modified" (ms since 1970), "locked", "body" (HTML, null when not read)}]}]}`.
@@ -194,16 +264,17 @@ pub(crate) fn parse(json: &str) -> Result<ReadNotes, String> {
         let path = path.join("/");
         for note in notes {
             let text = |key: &str| note.get(key).and_then(Value::as_str);
-            let Some(id) = text("id").filter(|id| !id.is_empty()) else {
-                continue;
-            };
             let name = text("name").unwrap_or_default();
             if note.get("locked").and_then(Value::as_bool) == Some(true) {
                 read.locked += 1;
                 continue;
             }
+            let Some(id) = text("id").filter(|id| !id.is_empty()) else {
+                read.unreadable.push((name.to_owned(), NO_ID));
+                continue;
+            };
             let Some(body) = text("body") else {
-                read.unreadable.push(name.to_owned());
+                read.unreadable.push((name.to_owned(), NO_TEXT));
                 continue;
             };
             let modified = note

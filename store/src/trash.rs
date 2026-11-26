@@ -131,7 +131,7 @@ impl Store {
             _ => false,
         };
         if !moved {
-            self.write_file(&path, &trashed.content, None)?;
+            self.write_file(&path, &trashed.content, None, None)?;
             fs::File::options()
                 .write(true)
                 .open(&path)?
@@ -182,6 +182,7 @@ impl Store {
             &entry.path,
             &compose(parts.header, body),
             Some(metadata.permissions()),
+            None,
         )?;
         let (note, _) = self.load(&entry)?;
         Ok(Replaced {

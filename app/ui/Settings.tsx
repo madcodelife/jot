@@ -356,10 +356,12 @@ const FOLDER_ICON = `data:image/svg+xml,${encodeURIComponent(
 
 const folderFailed = signal<string | null>(null);
 
+/** "Change…": picks another notes folder. Not while an import writes into this one (the button is off then). */
 async function chooseFolder() {
+  if (untracked(importing)) return;
   try {
     const picked = await Folder.choose(untracked(folderPath) ?? `~/${T.folder.path}`, t("settings.folder.choose"));
-    if (!picked) return;
+    if (!picked || untracked(importing)) return;
     changeFolder(picked);
     folderFailed.set(null);
   } catch (error) {
@@ -383,8 +385,12 @@ function movedText(moved: MovedNotes, from: string): string {
   return parts.join(" ");
 }
 
-/** "Move to iCloud Drive": asks first, then moves the notes there and makes it the notes folder. */
+/**
+ * "Move to iCloud Drive": asks first, then moves the notes there and makes it the notes folder. Not while an import
+ * writes into the folder (the button is off then), nor an import while it moves.
+ */
 async function moveToDrive(to: string) {
+  if (untracked(importing)) return;
   const from = untracked(folderShown);
   const { action } = await AlertDialog.show({
     title: t("settings.icloud.confirm_title"),
@@ -395,7 +401,7 @@ async function moveToDrive(to: string) {
     ],
     closeOnEscape: true,
   });
-  if (action !== "move") return;
+  if (action !== "move" || untracked(importing)) return;
   moving.set(true);
   moveReport.set(null);
   try {
@@ -425,7 +431,7 @@ function DriveRow() {
           <PushButton
             testID="settings-icloud-move"
             label={moving() ? t("settings.icloud.moving") : t("settings.icloud.move")}
-            disabled={!drive.available || moving()}
+            disabled={!drive.available || moving() || importing()}
             onPress={() => void moveToDrive(path)}
           />
         }
@@ -454,7 +460,7 @@ function ImportGroup() {
           <PushButton
             testID="settings-import-apple-notes"
             label={importing() ? t("settings.import.importing") : t("settings.import.button")}
-            disabled={importing() || !folderPath()}
+            disabled={importing() || moving() || !folderPath()}
             onPress={() => void importAppleNotes()}
           />
         </Row>
@@ -502,7 +508,12 @@ function GeneralPane() {
             </Text>
           </View>
           <PushButton testID="settings-reveal" label={t("settings.folder.reveal")} onPress={() => void Folder.reveal(untracked(folderPath) ?? "").catch(() => {})} />
-          <PushButton testID="settings-change-folder" label={t("settings.folder.change")} onPress={() => void chooseFolder()} />
+          <PushButton
+            testID="settings-change-folder"
+            label={t("settings.folder.change")}
+            disabled={importing()}
+            onPress={() => void chooseFolder()}
+          />
         </View>
         <DriveRow />
       </Group>

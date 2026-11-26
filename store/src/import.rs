@@ -2,7 +2,7 @@
 //! note, never over one here, marked with where it came from so importing again adds only the new ones.
 
 use std::collections::HashSet;
-use std::io::{self, Write as _};
+use std::io;
 use std::time::SystemTime;
 
 use crate::source::{top_level_string, yaml_string};
@@ -106,7 +106,7 @@ impl Store {
                 if taken.contains(&lower) {
                     continue;
                 }
-                match self.write_new(&title, &content, note.modified) {
+                match self.write_file(&self.path_for(&title), &content, None, Some(note.modified)) {
                     Ok(()) => {
                         taken.insert(lower);
                         placed = Some(Ok((title, n)));
@@ -136,36 +136,6 @@ impl Store {
             }
         }
         Ok(report)
-    }
-
-    /// Writes a new note file for `title` (never over a file there: `AlreadyExists`), with this modification
-    /// time, set before the rename so the note never shows another.
-    fn write_new(
-        &self,
-        title: &str,
-        content: &str,
-        modified: SystemTime,
-    ) -> Result<(), StoreError> {
-        let mut builder = tempfile::Builder::new();
-        builder.prefix(".jot-").suffix(".tmp");
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt as _;
-            builder.permissions(std::fs::Permissions::from_mode(0o644));
-        }
-        let mut file = builder.tempfile_in(&self.root)?;
-        file.write_all(content.as_bytes())?;
-        file.as_file().sync_all()?;
-        file.as_file().set_modified(modified)?;
-        file.persist_noclobber(self.path_for(title))
-            .map_err(|error| {
-                if error.error.kind() == io::ErrorKind::AlreadyExists {
-                    StoreError::AlreadyExists
-                } else {
-                    StoreError::Io(error.error)
-                }
-            })?;
-        Ok(())
     }
 }
 

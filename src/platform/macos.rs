@@ -321,16 +321,16 @@ const APPLE_NOTES_SCRIPT: &str = include_str!("apple-notes.js");
 
 /// Every note of Apple Notes as JSON (`apple_notes::parse` reads it), through Notes' scripting run by `osascript`
 /// (JavaScript for Automation). The first time, the system asks the user to let Jot control Notes, and this waits
-/// for the answer; a refusal is `NotAuthorized` (Apple Events' -1743). Blocks while Notes answers: off the engine
-/// thread only.
+/// for the answer; a refusal is `NotAuthorized` (Apple Events' -1743). Blocks while Notes answers, for
+/// `apple_notes::READ_LIMIT` at most (then `TimedOut`, `osascript` killed): off the engine thread only.
 pub(crate) fn read_apple_notes() -> Result<String, crate::apple_notes::ReadError> {
-    use crate::apple_notes::ReadError;
+    use crate::apple_notes::{READ_LIMIT, ReadError, output_within};
 
-    let output = std::process::Command::new("/usr/bin/osascript")
-        .args(["-l", "JavaScript", "-e", APPLE_NOTES_SCRIPT])
-        .stdin(std::process::Stdio::null())
-        .output()
-        .map_err(|error| ReadError::Failed(format!("cannot run osascript: {error}")))?;
+    let mut command = std::process::Command::new("/usr/bin/osascript");
+    command.args(["-l", "JavaScript", "-e", APPLE_NOTES_SCRIPT]);
+    let output = output_within(command, READ_LIMIT)
+        .map_err(|error| ReadError::Failed(format!("cannot run osascript: {error}")))?
+        .ok_or(ReadError::TimedOut)?;
     if output.status.success() {
         return String::from_utf8(output.stdout)
             .map_err(|_| ReadError::Failed("Notes gave text that is not UTF-8".to_owned()));

@@ -18,6 +18,10 @@ pub(crate) const IMAGE: &str = "[image not imported]";
 /// What stands in for any other attachment.
 pub(crate) const ATTACHMENT: &str = "[attachment not imported]";
 
+/// How deep the walk goes into nested elements (blocks and inline ones each): deeper, an element is its text alone,
+/// on one line. The walk recurses, and HTML nested thousands deep (no note Notes writes) would overflow the stack.
+const MAX_DEPTH: usize = 200;
+
 /// The note's HTML as Markdown, the title left out when it starts the note (Notes repeats the title there; in Jot
 /// the file's name is the title): see [`drop_title`]. No line break at the end.
 pub(crate) fn to_markdown(html: &str, title: Option<&str>) -> String {
@@ -78,6 +82,8 @@ struct Walker {
     marker: Option<String>,
     /// Where each of the body's children starts in `blocks` (Notes' `<div>`s), for the title.
     starts: Vec<usize>,
+    /// How many blocks and lists deep the walk is.
+    depth: usize,
 }
 
 impl Walker {
@@ -116,8 +122,30 @@ impl Walker {
     }
 
     fn block(&mut self, node: &Handle, name: &str, ctx: &Ctx) {
+        if self.too_deep(node, ctx) {
+            return;
+        }
+        self.depth += 1;
+        self.block_at_depth(node, name, ctx);
+        self.depth -= 1;
+    }
+
+    /// Past [`MAX_DEPTH`]: `node` as its text alone, a line, and nothing walked further in.
+    fn too_deep(&mut self, node: &Handle, ctx: &Ctx) -> bool {
+        if self.depth < MAX_DEPTH {
+            return false;
+        }
+        self.flush(Inline::of(text(&flat_text(node), &InlineCtx::of(ctx))), ctx);
+        true
+    }
+
+    fn block_at_depth(&mut self, node: &Handle, name: &str, ctx: &Ctx) {
         match name {
             "head" | "script" | "style" | "template" | "title" => {}
+            // In a list, a heading is the item's words: Markdown's `#`s would end the list.
+            "h1" | "h2" | "h3" | "h4" | "h5" | "h6" if ctx.indent.is_some() => {
+                self.container(node, ctx)
+            }
             "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
                 let level = usize::from(name.as_bytes()[1] - b'0');
                 self.container(
@@ -154,6 +182,15 @@ impl Walker {
     fn list(&mut self, node: &Handle, ordered: bool, ctx: &Ctx) {
         // A list starting while an item's marker waits for words: the item had none, and shows alone.
         self.flush_marker(ctx);
+        if self.too_deep(node, ctx) {
+            return;
+        }
+        self.depth += 1;
+        self.list_at_depth(node, ordered, ctx);
+        self.depth -= 1;
+    }
+
+    fn list_at_depth(&mut self, node: &Handle, ordered: bool, ctx: &Ctx) {
         let indent = ctx.indent.clone().unwrap_or_default();
         let mut number = element(node)
             .and_then(|(_, node)| attr(node, "start"))
@@ -240,7 +277,7 @@ impl Walker {
     /// A table: a row per `<tr>`, each cell's text on one line.
     fn table(&mut self, node: &Handle, ctx: &Ctx) {
         let mut rows = Vec::new();
-        collect_rows(node, &mut rows);
+        collect_rows(node, &mut rows, self.depth);
         if !rows.is_empty() {
             self.blocks.push(Block::Table {
                 rows,
@@ -292,7 +329,10 @@ impl Walker {
 }
 
 /// Every row under `node` (through `<thead>`, `<tbody>`, `<tfoot>`), a cell's lines joined by spaces.
-fn collect_rows(node: &Handle, rows: &mut Vec<Vec<String>>) {
+fn collect_rows(node: &Handle, rows: &mut Vec<Vec<String>>, depth: usize) {
+    if depth >= MAX_DEPTH {
+        return;
+    }
     for child in node.children.borrow().iter() {
         match element(child) {
             Some((name, _)) if name == "tr" => {
@@ -301,7 +341,10 @@ fn collect_rows(node: &Handle, rows: &mut Vec<Vec<String>>) {
                     if let Some((name, _)) = element(cell)
                         && (name == "td" || name == "th")
                     {
-                        let mut walker = Walker::default();
+                        let mut walker = Walker {
+                            depth: depth + 1,
+                            ..Walker::default()
+                        };
                         walker.container(cell, &Ctx::default());
                         let words: Vec<String> = walker
                             .blocks
@@ -326,7 +369,7 @@ fn collect_rows(node: &Handle, rows: &mut Vec<Vec<String>>) {
                 rows.push(cells);
             }
             Some((name, _)) if matches!(name.as_str(), "thead" | "tbody" | "tfoot") => {
-                collect_rows(child, rows)
+                collect_rows(child, rows, depth + 1)
             }
             _ => {}
         }
@@ -389,20 +432,13 @@ fn squash(text: &str) -> String {
 /// The blocks as Markdown lines, code lines fenced, a table set off by blank lines; no blank lines at either end.
 fn render(blocks: &[Block]) -> String {
     let mut out: Vec<String> = Vec::new();
-    // The code block open: its quote and the index of its opening fence.
-    let mut open: Option<(usize, usize)> = None;
-    let close = |out: &mut Vec<String>, open: &mut Option<(usize, usize)>| {
-        if let Some((quote, start)) = open.take() {
+    // The code block open: its quote, the index of its opening fence, and how many blank lines end it so far (pushed
+    // as blank lines: a code line of `>`s alone looks like one in a quote, and is not).
+    let mut open: Option<(usize, usize, usize)> = None;
+    let close = |out: &mut Vec<String>, open: &mut Option<(usize, usize, usize)>| {
+        if let Some((quote, start, trailing)) = open.take() {
             // Blank lines at its end belong after it.
-            let mut trailing = 0;
-            while out.len() > start + 1
-                && out
-                    .last()
-                    .is_some_and(|line| line.trim_end_matches('>').trim().is_empty())
-            {
-                out.pop();
-                trailing += 1;
-            }
+            out.truncate(out.len() - trailing);
             let fence = fence_for(&out[start + 1..]);
             out[start] = format!("{}{fence}", quotes(quote));
             out.push(format!("{}{fence}", quotes(quote)));
@@ -425,16 +461,22 @@ fn render(blocks: &[Block]) -> String {
                 quote,
                 ..
             } => {
-                if open.is_some_and(|(q, _)| q != *quote) {
+                if open.is_some_and(|(q, _, _)| q != *quote) {
                     close(&mut out, &mut open);
                 }
-                if open.is_none() {
-                    open = Some((*quote, out.len()));
-                    out.push(String::new());
+                match &mut open {
+                    Some((_, _, trailing)) => *trailing = 0,
+                    None => {
+                        open = Some((*quote, out.len(), 0));
+                        out.push(String::new());
+                    }
                 }
                 out.push(format!("{}{text}", quotes(*quote)).trim_end().to_owned());
             }
-            Block::Blank { code: true, quote } if open.is_some_and(|(q, _)| q == *quote) => {
+            Block::Blank { code: true, quote } if open.is_some_and(|(q, _, _)| q == *quote) => {
+                if let Some((_, _, trailing)) = &mut open {
+                    *trailing += 1;
+                }
                 out.push(quotes(*quote).trim_end().to_owned());
             }
             Block::Line {
@@ -595,6 +637,8 @@ struct InlineCtx {
     pre: bool,
     /// In a heading: bold is the heading's own, not marked.
     heading: bool,
+    /// How many inline elements deep.
+    depth: usize,
 }
 
 impl InlineCtx {
@@ -603,6 +647,7 @@ impl InlineCtx {
             mono: ctx.pre,
             pre: ctx.pre,
             heading: ctx.heading > 0,
+            depth: 0,
         }
     }
 }
@@ -656,8 +701,16 @@ fn inline_element(node: &Handle, name: &str, ctx: &InlineCtx) -> Vec<Line> {
     }
 }
 
+/// The lines of `node`'s children; past [`MAX_DEPTH`], its text alone.
 fn children(node: &Handle, ctx: &InlineCtx) -> Vec<Line> {
-    inlines(&node.children.borrow(), ctx)
+    if ctx.depth >= MAX_DEPTH {
+        return text(&flat_text(node), ctx);
+    }
+    let ctx = InlineCtx {
+        depth: ctx.depth + 1,
+        ..*ctx
+    };
+    inlines(&node.children.borrow(), &ctx)
 }
 
 /// The lines of inline nodes side by side. Bold, italic or struck ones of one mark next to each other (whitespace
@@ -891,10 +944,38 @@ fn block_name(node: &Handle) -> Option<String> {
 }
 
 fn has_table(node: &Handle) -> bool {
-    node.children
-        .borrow()
-        .iter()
-        .any(|child| element(child).is_some_and(|(name, _)| name == "table") || has_table(child))
+    let mut stack: Vec<Handle> = node.children.borrow().clone();
+    while let Some(child) = stack.pop() {
+        if element(&child).is_some_and(|(name, _)| name == "table") {
+            return true;
+        }
+        stack.extend(child.children.borrow().iter().cloned());
+    }
+    false
+}
+
+/// All the text under `node`, in order, without walking it (no recursion: it may be nested deep).
+fn flat_text(node: &Handle) -> String {
+    let mut out = String::new();
+    let mut stack: Vec<Handle> = node.children.borrow().iter().rev().cloned().collect();
+    while let Some(child) = stack.pop() {
+        match &child.data {
+            NodeData::Text { contents } => out.push_str(&contents.borrow()),
+            NodeData::Element { .. } => {
+                if element(&child).is_some_and(|(name, _)| {
+                    matches!(
+                        name.as_str(),
+                        "script" | "style" | "head" | "title" | "template"
+                    )
+                }) {
+                    continue;
+                }
+                stack.extend(child.children.borrow().iter().rev().cloned());
+            }
+            _ => {}
+        }
+    }
+    out
 }
 
 /// A text node of whitespace alone.

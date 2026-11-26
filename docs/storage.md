@@ -67,7 +67,7 @@ their bodies already Markdown, each as a new note:
 ```markdown
 ---
 apple-notes-id: "x-coredata://5C2A…/ICNote/p1234"
-folder: Work/Projects
+folder: "Work/Projects"
 ---
 The note's text, without its title (the file's name).
 ```
@@ -85,6 +85,11 @@ The note's text, without its title (the file's name).
   `Untitled`.
 - A note not downloaded (iCloud Drive) cannot be read for its id: an imported note whose title (or numbered title)
   meets one is left out for now (`waiting`), its download asked for; importing again once it is here brings it in.
+  Only the title is checked, so a note imported before, renamed in Jot and then moved off this Mac by iCloud Drive
+  (its id unread, its old title free) is imported again, a second copy.
+- The body is written as it comes, nothing in it escaped: Markdown the user typed in Notes is Markdown here. A line
+  typed as `- [ ] …` is a Jot to-do (with a time phrase, a reminder: [todos.md](todos.md)), `2*3*4` italic, a
+  literal `<b>` HTML.
 
 ## jot-store API (store/src/lib.rs)
 

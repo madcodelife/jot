@@ -76,10 +76,11 @@ Not doing: projects, priorities, tag-style contexts, complex recurrence rules, a
   then; nothing waits on a download. A note changed on two devices at once shows both versions' choice: keep this
   Mac's, use the other, or keep both.
 - Notes from Apple Notes come in from Settings in one step (macOS): every account and folder, each note a Markdown
-  file with its date, and importing again adds only the new ones, changing nothing already in Jot. Nothing touches
-  Notes until the user asks. Not imported: locked notes (their text is encrypted), images and attachments (a line
-  says one was there), whether a checklist item was ticked (Notes' HTML does not say; they come as plain list
-  items), and the folders themselves (Jot's folder is flat; a note keeps its Notes folder in its frontmatter).
+  file with its date, and importing again adds only the new ones (and brings back one deleted in Jot), changing
+  nothing already in Jot. Nothing touches Notes until the user asks. Not imported: locked notes (their text is
+  encrypted), images and attachments (a line says one was there), whether a checklist item was ticked (Notes' HTML
+  does not say; they come as plain list items), and the folders themselves (Jot's folder is flat; a note keeps its
+  Notes folder in its frontmatter).
 
 ## MCP for AI apps
 

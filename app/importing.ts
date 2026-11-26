@@ -38,14 +38,21 @@ export function importedText(done: AppleNotesImport): string {
   return parts.join(" · ");
 }
 
-/** Why an import failed, as the report shows it: not allowed to control Notes (`ERR_JOT_NOT_AUTHORIZED`), or the error's words. */
+/**
+ * Why an import failed, as the report shows it: not allowed to control Notes (`ERR_JOT_NOT_AUTHORIZED`), Notes too
+ * slow to answer (`ERR_JOT_TIMED_OUT`), or the error's words.
+ */
 export function importFailure(error: unknown): ImportReport {
-  return errorCode(error) === "ERR_JOT_NOT_AUTHORIZED"
-    ? { text: t("settings.import.denied"), failed: true, denied: true }
-    : { text: t("settings.import.failed", { error: errorMessage(error) }), failed: true, denied: false };
+  const code = errorCode(error);
+  if (code === "ERR_JOT_NOT_AUTHORIZED") return { text: t("settings.import.denied"), failed: true, denied: true };
+  if (code === "ERR_JOT_TIMED_OUT") return { text: t("settings.import.timed_out"), failed: true, denied: false };
+  return { text: t("settings.import.failed", { error: errorMessage(error) }), failed: true, denied: false };
 }
 
-/** Imports every note of Apple Notes not imported before into the notes folder; one import at a time. */
+/**
+ * Imports every note of Apple Notes not imported before into the notes folder; one import at a time. The folder is
+ * the one open when it starts: Settings keeps it from changing meanwhile (Change… and Move to iCloud Drive are off).
+ */
 export async function importAppleNotes() {
   const dir = untracked(folderPath);
   if (!dir || untracked(importing)) return;

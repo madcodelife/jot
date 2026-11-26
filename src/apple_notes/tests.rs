@@ -3,7 +3,7 @@
 use std::time::{Duration, SystemTime};
 
 use super::html::{ATTACHMENT, IMAGE, to_markdown};
-use super::{ReadError, parse};
+use super::{NO_ID, NO_TEXT, ReadError, output_within, parse};
 
 fn md(html: &str) -> String {
     to_markdown(html, None)
@@ -67,6 +67,18 @@ fn nested_lists() {
 }
 
 #[test]
+fn a_heading_in_a_list_item_is_the_item_s_words() {
+    assert_eq!(
+        md("<ul><li><h1>Head in item</h1></li></ul>"),
+        "- Head in item"
+    );
+    assert_eq!(
+        md("<ol><li>one<h2>two</h2></li><li><h3><b>three</b></h3></li></ol><div>after</div>"),
+        "1. one\n   two\n2. **three**\nafter"
+    );
+}
+
+#[test]
 fn checklists_and_dash_lists_are_plain_lists() {
     let html = "<ul class=\"Apple-dash-list\"><li>dash</li></ul><ul><li>checked or not</li></ul>";
     assert_eq!(md(html), "- dash\n- checked or not");
@@ -97,6 +109,26 @@ fn monospaced_lines_are_a_code_block() {
     assert_eq!(md(html), "```\nls -la\ncd ~\n```\n\ndone");
     // A fence longer than the backticks inside.
     assert_eq!(md("<div><tt>```</tt></div>"), "````\n```\n````");
+}
+
+#[test]
+fn a_code_line_of_quote_marks_stays_code() {
+    // A prompt alone on a line is code, not a blank line of a quote.
+    assert_eq!(
+        md("<div><tt>print(1)</tt></div><div><tt>&gt;&gt;&gt;</tt></div>"),
+        "```\nprint(1)\n>>>\n```"
+    );
+    assert_eq!(
+        md("<div><tt>a</tt></div><div><tt>&gt;</tt></div><div>after</div>"),
+        "```\na\n>\n```\nafter"
+    );
+    // In a quote too, and the blank lines ending the block still go after it.
+    assert_eq!(
+        md(
+            "<blockquote><div><tt>&gt;</tt></div><div><tt><br></tt></div></blockquote><div>out</div>"
+        ),
+        "> ```\n> >\n> ```\n>\nout"
+    );
 }
 
 #[test]
@@ -236,13 +268,36 @@ fn a_whole_document_is_read_from_its_body() {
 }
 
 #[test]
+fn html_nested_very_deep_is_its_text() {
+    let deep = |open: &str, close: &str, n: usize| {
+        format!("{}deep{}<div>after</div>", open.repeat(n), close.repeat(n))
+    };
+    // Each of these would overflow the stack, walked all the way in. (html5ever takes its time over deep blocks, a
+    // debug build seconds: fewer of those.)
+    for (open, close, n) in [
+        ("<div>", "</div>", 20_000),
+        ("<b>", "</b>", 20_000),
+        ("<span>", "</span>", 20_000),
+        ("<table><tr><td>", "</td></tr></table>", 20_000),
+        ("<blockquote>", "</blockquote>", 2_000),
+        ("<ul><li>", "</li></ul>", 2_000),
+    ] {
+        let md = md(&deep(open, close, n));
+        assert!(md.contains("deep"), "{open}: {md:.200}");
+    }
+    // Not so deep, it is walked as usual.
+    assert_eq!(md(&deep("<div>", "</div>", 50)), "deep\nafter");
+}
+
+#[test]
 fn notes_json_becomes_notes_to_import() {
     let json = r#"{"folders": [
         {"account": "iCloud", "path": ["Notes"], "deleted": false, "notes": [
             {"id": "x-coredata://A/ICNote/p1", "name": "Groceries", "modified": 1700000000000, "locked": false,
              "body": "<div><h1>Groceries</h1></div><div>Milk</div>"},
             {"id": "x-coredata://A/ICNote/p2", "name": "Diary", "modified": 1700000001000, "locked": true, "body": null},
-            {"id": "x-coredata://A/ICNote/p3", "name": "Odd", "modified": 1600000000000, "locked": false, "body": null}
+            {"id": "x-coredata://A/ICNote/p3", "name": "Odd", "modified": 1600000000000, "locked": false, "body": null},
+            {"id": "", "name": "Nameless", "modified": 1600000000000, "locked": false, "body": "<div>x</div>"}
         ]},
         {"account": "iCloud", "path": ["Work", "Projects"], "deleted": false, "notes": [
             {"id": "x-coredata://A/ICNote/p4", "name": "Plan", "modified": 1800000000000, "locked": false,
@@ -257,7 +312,10 @@ fn notes_json_becomes_notes_to_import() {
     let read = parse(json).unwrap();
     assert_eq!(read.locked, 1);
     assert_eq!(read.deleted, 2);
-    assert_eq!(read.unreadable, ["Odd"]);
+    assert_eq!(
+        read.unreadable,
+        [("Odd".to_owned(), NO_TEXT), ("Nameless".to_owned(), NO_ID)]
+    );
     // Newest first.
     let titles: Vec<&str> = read.notes.iter().map(|n| n.title.as_str()).collect();
     assert_eq!(titles, ["Plan", "Groceries"]);
@@ -271,6 +329,15 @@ fn notes_json_becomes_notes_to_import() {
     );
     assert_eq!(read.notes[1].body, "Milk");
     assert_eq!(read.notes[1].folder.as_deref(), Some("Notes"));
+
+    // As the script writes it, ASCII alone: the rest escaped, a character past U+FFFF as a pair.
+    let json = r#"{"folders": [{"path": ["Caf\u00e9"], "deleted": false, "notes": [{"id": "x-coredata://A/ICNote/p7",
+        "name": "\u6700\u8fd1 \ud83d\ude00", "modified": 1, "locked": false,
+        "body": "<div>\u6700\u8fd1 \ud83d\ude00</div><div>cut \ufffd</div>"}]}]}"#;
+    let read = parse(json).unwrap();
+    assert_eq!(read.notes[0].title, "最近 😀");
+    assert_eq!(read.notes[0].body, "cut \u{fffd}");
+    assert_eq!(read.notes[0].folder.as_deref(), Some("Café"));
 
     assert!(parse("not json").is_err());
     assert!(parse("{}").is_err());
@@ -294,6 +361,34 @@ fn osascript_refused_is_not_authorized() {
         ReadError::of_osascript(""),
         ReadError::Failed("osascript failed".to_owned())
     );
+}
+
+#[test]
+#[cfg(unix)]
+fn a_command_past_its_limit_is_killed() {
+    use std::process::Command;
+    use std::time::Instant;
+
+    let started = Instant::now();
+    let mut sleep = Command::new("/bin/sleep");
+    sleep.arg("30");
+    assert!(
+        output_within(sleep, Duration::from_millis(200))
+            .unwrap()
+            .is_none()
+    );
+    assert!(started.elapsed() < Duration::from_secs(10));
+    // Within it, its output, a lot of it on both pipes (neither filling up stops it).
+    let line = "a line of output, long enough to fill a pipe";
+    let mut sh = Command::new("/bin/sh");
+    sh.args([
+        "-c",
+        &format!("i=0; while [ $i -lt 2000 ]; do echo '{line}'; echo err >&2; i=$((i+1)); done"),
+    ]);
+    let output = output_within(sh, Duration::from_secs(60)).unwrap().unwrap();
+    assert!(output.status.success());
+    assert_eq!(output.stdout.len(), 2000 * (line.len() + 1));
+    assert_eq!(output.stderr.len(), 2000 * 4);
 }
 
 /// Imports what Notes' scripting gave on a real Mac, captured with

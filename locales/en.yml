@@ -170,8 +170,9 @@ settings:
     hint: "Your notes from Notes, as Markdown. Locked notes, images and attachments stay in Notes."
     button: "Import…"
     importing: "Importing…"
-    footnote: "The first time, macOS asks you to let Jot control Notes, so it can read your notes. Importing again adds only new notes and changes nothing already here."
+    footnote: "The first time, macOS asks you to let Jot control Notes, so it can read your notes. Importing again skips notes imported before and changes nothing here, but brings back one you deleted in Jot."
     denied: "Jot isn’t allowed to read Notes. Allow it in System Settings › Privacy & Security › Automation, then import again."
+    timed_out: "Notes took longer than 10 minutes to answer, so the import stopped and nothing was imported. Open Notes, check it isn’t waiting on you, then import again."
     open_settings: "Open System Settings…"
     none: "No new notes"
     imported:

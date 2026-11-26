@@ -103,7 +103,7 @@ impl Store {
                 // The whole file, frontmatter included: the version is the note as the other device saved it.
                 let content = retry(|| fs::read_to_string(&version.file))?;
                 let permissions = retry(|| fs::metadata(&entry.path))?.permissions();
-                self.write_file(&entry.path, &content, Some(permissions))?;
+                self.write_file(&entry.path, &content, Some(permissions), None)?;
             }
             Resolution::KeepBoth { title } => {
                 let content = retry(|| fs::read_to_string(&version.file))?;
@@ -134,7 +134,7 @@ impl Store {
                 continue;
             }
             let path = self.path_for(&title);
-            match self.write_file(&path, content, None) {
+            match self.write_file(&path, content, None, None) {
                 Err(StoreError::AlreadyExists) => continue,
                 result => result?,
             }
