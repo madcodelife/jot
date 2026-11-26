@@ -11,6 +11,11 @@ the platform code are Rust. Only macOS is supported for now.
   source), as CI does; `scripts/install-nsh.sh --which` only prints which it would install. `NSH_INSTALL_DIR` sets
   where NSH goes (default `~/.nsh`); `nsh` is linked into `~/.local/bin`.
 
+Jot builds against NSH's repository at a commit (`Cargo.toml`'s `nsh-core` and `nsh-extra`), not a release: the
+note's live preview needs the editor decorations' labels and font sizes and a fix to them (NSH #3272), which no release
+has yet (0.7.0 lacks them). Building that commit's CLI from source takes a while. It goes back to a crates.io version
+once a release of NSH has them.
+
 ## Commands
 
 ```sh
