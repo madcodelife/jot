@@ -68,10 +68,10 @@
       await navigator.clipboard.writeText(b.dataset.copy);
       b.classList.add("is-copied");
       b.querySelector("use").setAttribute("href", "#i-check");
-      toast(t("Copied. Paste it into Terminal.", "已复制，粘贴到终端里运行。"));
+      toast(t("Copied. Paste it into Terminal.", "已复制，去终端粘贴运行"));
       setTimeout(() => { b.classList.remove("is-copied"); b.querySelector("use").setAttribute("href", "#i-copy"); }, 1800);
     } catch (e) {
-      toast(t("Select the command to copy it.", "请手动选中命令复制。"));
+      toast(t("Select the command to copy it.", "复制失败，请手动选中命令"));
     }
   }));
 
@@ -192,21 +192,21 @@
   /* The panel's notes. */
   const NOTES = () => [
     { kind: "todos", title: t("3 to-dos today", "今天 3 条待办"), sub: t("1 overdue · Next: 17:00 Ship the onboarding redesign", "1 条过期 · 下一条：17:00 上线新版引导页") },
-    { title: t("This week", "本周"), sub: t("Three things that matter, everything else can wait.", "三件要紧事，其他都可以等。"), when: t("2 min ago", "2 分钟前"),
-      body: [["p", t("Three things that matter, everything else can wait.", "三件要紧事，其他都可以等。")], ["todo", t("Ship the onboarding redesign", "上线新版引导页"), "17:00"], ["todo", t("Call the landlord about the heating", "打电话给房东说暖气的事"), "18:30"], ["todo", t("Renew the passport", "续签护照")]] },
-    { title: t("Design review", "设计评审"), sub: t("Summary of today's review of the new onboarding flow.", "今天新版引导流程评审的总结。"), src: "Claude", when: t("25 min ago", "25 分钟前"),
-      body: [["p", t("Summary of today's review of the new onboarding flow.", "今天新版引导流程评审的总结。")], ["p", t("Keep the three-step layout; cut the welcome video.", "保留三步布局，去掉欢迎视频。")], ["todo", t("Sam: copy for the permission prompt", "Sam：权限弹窗的文案")]] },
+    { title: t("This week", "本周"), sub: t("Three things that matter, everything else can wait.", "只做三件要紧的事，其他的先放一放。"), when: t("2 min ago", "2 分钟前"),
+      body: [["p", t("Three things that matter, everything else can wait.", "只做三件要紧的事，其他的先放一放。")], ["todo", t("Ship the onboarding redesign", "上线新版引导页"), "17:00"], ["todo", t("Call the landlord about the heating", "打电话给房东说暖气的事"), "18:30"], ["todo", t("Renew the passport", "续签护照")]] },
+    { title: t("Design review", "设计评审"), sub: t("Summary of today's review of the new onboarding flow.", "今天评审新版引导流程的结论。"), src: "Claude", when: t("25 min ago", "25 分钟前"),
+      body: [["p", t("Summary of today's review of the new onboarding flow.", "今天评审新版引导流程的结论。")], ["p", t("Keep the three-step layout; cut the welcome video.", "保留三步布局，去掉欢迎视频。")], ["todo", t("Sam: copy for the permission prompt", "Sam：权限弹窗的文案")]] },
     { title: "Homelab", sub: t("Ubuntu box. Host: nas.local, user admin, key in 1Password.", "Ubuntu 主机：nas.local，用户 admin，密钥在 1Password。"), when: t("Today 09:52", "今天 09:52"),
       body: [["p", t("Ubuntu box. Host: nas.local, user admin, key in 1Password.", "Ubuntu 主机：nas.local，用户 admin，密钥在 1Password。")], ["code", "ssh admin@nas.local"]] },
-    { title: t("Deploy with Docker Compose", "用 Docker Compose 部署"), sub: t("The steps we used to deploy the API to staging.", "把 API 部署到预发环境的步骤。"), src: "Claude Code", when: t("Today 08:42", "今天 08:42"),
-      body: [["p", t("The steps we used to deploy the API to staging.", "把 API 部署到预发环境的步骤。")], ["code", "docker compose -f compose.prod.yml up -d --build"]] },
+    { title: t("Deploy with Docker Compose", "用 Docker Compose 部署"), sub: t("The steps we used to deploy the API to staging.", "上次把 API 部署到预发环境的步骤。"), src: "Claude Code", when: t("Today 08:42", "今天 08:42"),
+      body: [["p", t("The steps we used to deploy the API to staging.", "上次把 API 部署到预发环境的步骤。")], ["code", "docker compose -f compose.prod.yml up -d --build"]] },
     { title: t("Trip to Kyoto", "京都之行"), sub: t("Dec 12 to Dec 18, five nights in Higashiyama.", "12 月 12 日到 18 日，在东山住五晚。"), when: t("Today 06:02", "今天 06:02"),
       body: [["p", t("Dec 12 to Dec 18, five nights in Higashiyama.", "12 月 12 日到 18 日，在东山住五晚。")], ["todo", t("Book the ryokan", "订旅馆"), "21:00"]] },
-    { title: t("Git snippets", "Git 片段"), sub: t("Undo the last commit, keep the changes: git reset --soft HEAD~1", "撤销上一次提交、保留改动：git reset --soft HEAD~1"), src: "Cursor", when: t("Yesterday", "昨天"),
-      body: [["p", t("Undo the last commit, keep the changes:", "撤销上一次提交、保留改动：")], ["code", "git reset --soft HEAD~1"]] },
+    { title: t("Git snippets", "Git 片段"), sub: t("Undo the last commit, keep the changes: git reset --soft HEAD~1", "撤销上次提交，但保留改动：git reset --soft HEAD~1"), src: "Cursor", when: t("Yesterday", "昨天"),
+      body: [["p", t("Undo the last commit, keep the changes:", "撤销上次提交，但保留改动：")], ["code", "git reset --soft HEAD~1"]] },
   ];
   const INCOMING = () => [
-    { title: t("Standup notes", "站会记录"), sub: t("Shipped the panel fix. Next: reminders after the Mac wakes.", "面板的修复已上线。下一步：Mac 唤醒后补发提醒。"), src: "Claude", color: "#d97757" },
+    { title: t("Standup notes", "站会记录"), sub: t("Shipped the panel fix. Next: reminders after the Mac wakes.", "面板的问题修好上线了，接下来做唤醒后补发提醒。"), src: "Claude", color: "#d97757" },
     { title: t("Date regex", "日期正则"), sub: t("\\d{4}-\\d{2}-\\d{2} matches 2026-11-26.", "\\d{4}-\\d{2}-\\d{2} 能匹配 2026-11-26。"), src: "Cursor", color: "#3d3d47" },
     { title: t("Release checklist", "发版清单"), sub: t("Bump the version, tag it, run package-macos.sh.", "改版本号、打 tag，再跑 package-macos.sh。"), src: "Codex", color: "#10a37f" },
   ];
@@ -241,7 +241,7 @@
       return `<div class="${cls}" data-i="${i}" style="--i:${i}"><span class="row-ic is-todo">${icon("list")}</span><span class="row-t"><div class="row-title">${esc(n.title)}</div><div class="row-sub">${esc(n.sub)}</div></span><span class="row-meta"><span class="dots"><i></i><i></i><i></i></span></span></div>`;
     }
     if (n.kind === "create") {
-      return `<div class="${cls}" data-i="${i}" style="--i:0"><span class="row-ic">${icon("plus")}</span><span class="row-t"><div class="row-title">${t("Create", "新建")} “${esc(n.title)}”</div><div class="row-sub">${t("A new note with this title", "以此为标题新建一条笔记")}</div></span><span class="row-meta"></span></div>`;
+      return `<div class="${cls}" data-i="${i}" style="--i:0"><span class="row-ic">${icon("plus")}</span><span class="row-t"><div class="row-title">${t("Create", "新建")} “${esc(n.title)}”</div><div class="row-sub">${t("A new note with this title", "用这个标题新建笔记")}</div></span><span class="row-meta"></span></div>`;
     }
     const agent = !!n.src;
     return `<div class="${cls}" data-i="${i}" style="--i:${i}"><span class="row-ic${agent ? " is-agent" : ""}">${icon(agent ? "spark" : "doc")}</span><span class="row-t"><div class="row-title">${esc(n.title)}</div><div class="row-sub">${esc(n.sub)}</div></span><span class="row-meta">${agent ? `<span class="row-src">${esc(n.src)}</span>` : ""}<span>${esc(n.when || "")}</span></span></div>`;
@@ -274,7 +274,7 @@
         if (!items.length) return "";
         const head = `<div class="group${g.late ? " is-late" : ""}" style="--i:${i++}">${esc(g.group)} <b>${items.length}</b></div>`;
         return head + items.map((it) => `<div class="trow-p${i === 1 ? " is-sel" : ""}" style="--i:${i++}" data-todo="${esc(it[0])}"><button class="tick" type="button" aria-label="${t("Done", "完成")}">${icon("check")}</button><span class="trow-title">${esc(it[0])}</span><span class="trow-note">${esc(it[1])}</span><span class="pchip${g.late ? " is-late" : ""}">${icon("alarm")}${esc(it[2])}</span></div>`).join("");
-      }).join("") || `<div class="group">${t("Nothing left. Nice.", "全部完成。")}</div>`;
+      }).join("") || `<div class="group">${t("Nothing left. Nice.", "都做完了")}</div>`;
       hints([[t("Open Note", "打开笔记"), [icon("return")]], [t("Actions", "操作"), ["⌘", "K"]]]);
     } else {
       const n = P.note;
@@ -283,7 +283,7 @@
         if (l[0] === "code") return `<p><code>${esc(l[1])}</code></p>`;
         return `<p class="pl-todo"><i></i>${esc(l[1])}${l[2] ? ` <span class="pchip">${icon("alarm")}${esc(l[2])}</span>` : ""}</p>`;
       }).join("");
-      html = `<div class="ppaper"><h4>${esc(n.title)}</h4>${n.src ? `<div class="psrc">${esc(n.src)}</div>` : ""}${n.isNew ? `<textarea placeholder="${t("Write something. It saves as you type.", "写点什么，边写边保存。")}"></textarea>` : lines}</div>`;
+      html = `<div class="ppaper"><h4>${esc(n.title)}</h4>${n.src ? `<div class="psrc">${esc(n.src)}</div>` : ""}${n.isNew ? `<textarea placeholder="${t("Write something. It saves as you type.", "写点什么，会自动保存")}"></textarea>` : lines}</div>`;
       hints([[t("Back", "返回"), ["esc"]]]);
     }
     // Rows rise in only when a view first shows (the panel opening, the to-do view, a note); redrawing the same view
@@ -523,17 +523,17 @@
   const ASKS = () => {
     const fri = nextWeekday(5, 9);
     return [
-      { app: "Claude Code", q: t("Jot this command down.", "把这条命令记下来。"),
+      { app: "Claude Code", q: t("Jot this command down.", "帮我把这条命令记一下"),
         call: `create_note(<em>"${t("Deploy with Docker Compose", "用 Docker Compose 部署")}"</em>, …)`,
         title: t("Deploy with Docker Compose", "用 Docker Compose 部署"), src: "Claude Code",
-        lines: [["p", t("The steps we used to deploy the API to staging.", "把 API 部署到预发环境的步骤。")], ["pre", "docker compose -f compose.prod.yml up -d --build"]] },
-      { app: "Claude", q: t("Remind me to send the weekly report on Friday.", "提醒我周五发周报。"),
+        lines: [["p", t("The steps we used to deploy the API to staging.", "上次把 API 部署到预发环境的步骤。")], ["pre", "docker compose -f compose.prod.yml up -d --build"]] },
+      { app: "Claude", q: t("Remind me to send the weekly report on Friday.", "周五提醒我发周报"),
         call: `add_todo(<em>"${t("Send the weekly report", "发周报")}"</em>, due: <em>"${stamp(fri)}"</em>)`,
-        title: t("This week", "本周"), src: t("To-do added by Claude", "Claude 添加的待办"),
+        title: t("This week", "本周"), src: t("To-do added by Claude", "Claude 加的待办"),
         lines: [["todo", t("Ship the onboarding redesign", "上线新版引导页"), "17:00", true], ["todo", t("Send the weekly report", "发周报"), dueLabel(fri, new Date())]] },
-      { app: "Cursor", q: t("What's on my list today?", "我今天有什么要做？"),
+      { app: "Cursor", q: t("What's on my list today?", "我今天要干嘛？"),
         call: `list_todos(<em>"today"</em>)`,
-        title: t("3 open today, 1 overdue", "今天 3 条，过期 1 条"), src: t("Cursor read your to-dos", "Cursor 读了你的待办"),
+        title: t("3 open today, 1 overdue", "今天还有 3 件，1 件已过期"), src: t("Cursor read your to-dos", "Cursor 查了你的待办"),
         lines: [["todo", t("Renew the passport", "续签护照"), t("Yesterday 09:00", "昨天 09:00"), true], ["todo", t("Ship the onboarding redesign", "上线新版引导页"), "17:00", true], ["todo", t("Call the landlord about the heating", "打电话给房东说暖气的事"), "18:30", true], ["todo", t("Book the ryokan", "订旅馆"), "21:00", true]] },
     ];
   };
@@ -541,7 +541,7 @@
   let askI = 0; let askAuto = true; let askTimer; let typing = 0; let aiSeen = false;
   const ASK_MS = 6500;
   function drawAsks() {
-    asksEl.innerHTML = ASKS().map((a, i) => `<button class="ask${i === askI ? " is-on" : ""}${askAuto ? " is-auto" : ""}" type="button" role="tab" aria-selected="${i === askI}" data-i="${i}" style="--dur:${ASK_MS}ms"><span class="ask-app">${t("Ask", "问")} ${esc(a.app)}</span><span class="ask-q">${esc(a.q)}</span><span class="ask-bar"><i></i></span></button>`).join("");
+    asksEl.innerHTML = ASKS().map((a, i) => `<button class="ask${i === askI ? " is-on" : ""}${askAuto ? " is-auto" : ""}" type="button" role="tab" aria-selected="${i === askI}" data-i="${i}" style="--dur:${ASK_MS}ms"><span class="ask-app">${esc(t(`Ask ${a.app}`, `对 ${a.app} 说`))}</span><span class="ask-q">${esc(a.q)}</span><span class="ask-bar"><i></i></span></button>`).join("");
   }
   async function showAsk(i, animate) {
     askI = i; drawAsks();
@@ -600,11 +600,11 @@
     lastDue = { text, due };
     if (!raw.trim()) {
       tfile.innerHTML = `- [ ] …`;
-      trow.innerHTML = `<span class="is-none">${t("Type a to-do and a time.", "写一条待办和时间。")}</span>`;
+      trow.innerHTML = `<span class="is-none">${t("Type a to-do and a time.", "写一条待办，带上时间试试")}</span>`;
       return;
     }
     tfile.innerHTML = `- [ ] ${esc(text)}${due ? ` <b>⏰ ${stamp(due)}</b>` : ""}`;
-    trow.innerHTML = `<span class="tbox" aria-hidden="true"></span><span>${esc(text)}</span>${due ? `<span class="chip">${icon("alarm")}${esc(dueLabel(due, now))}</span>` : `<span class="is-none" style="margin-left:auto">${t("No time yet", "还没有时间")}</span>`}`;
+    trow.innerHTML = `<span class="tbox" aria-hidden="true"></span><span>${esc(text)}</span>${due ? `<span class="chip">${icon("alarm")}${esc(dueLabel(due, now))}</span>` : `<span class="is-none" style="margin-left:auto">${t("No time yet", "没写时间")}</span>`}`;
   }
   function drawChips() {
     tchips.innerHTML = EXAMPLES.map((x) => `<button class="tchip" type="button">${esc(x)}</button>`).join("");
@@ -651,7 +651,7 @@
     const locked = lockCell.dataset.locked === "true";
     lockAgent.classList.remove("is-denied");
     if (locked) {
-      lockAgent.innerHTML = `${icon("spark")}<span>${t("Claude tried to append. The note is locked, so it can only read it.", "Claude 想追加内容。笔记锁着，它只能读。")}</span>`;
+      lockAgent.innerHTML = `${icon("spark")}<span>${t("Claude tried to append. The note is locked, so it can only read it.", "Claude 想往里加内容，但笔记锁着，它只能看。")}</span>`;
       if (tried) { void lockAgent.offsetWidth; lockAgent.classList.add("is-denied"); }
     } else {
       lockAgent.innerHTML = `${icon("spark")}<span>${t("Claude appended", "Claude 追加了")} <span class="add">+ ${t("Router: 192.168.1.1", "路由器：192.168.1.1")}</span></span>`;

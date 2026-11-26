@@ -75,11 +75,11 @@
     <div class="hero-copy reveal">
       <h1 class="display">
         <span data-en>Had a thought? Press <kbd class="kbd-inline">⌥</kbd> twice.</span>
-        <span data-zh><span class="nb">想到什么，</span><span class="nb">连按两下 <kbd class="kbd-inline">⌥</kbd>。</span></span>
+        <span data-zh><span class="nb">想到什么，</span><span class="nb">按两下 <kbd class="kbd-inline">⌥</kbd> 记下来</span></span>
       </h1>
       <p class="lede">
         <span data-en>Search or start a note from one field, anywhere on your Mac. Claude, Cursor and Codex read and write the same notebook.</span>
-        <span data-zh>在 Mac 的任何地方，一个输入框搜索也新建。Claude、Cursor、Codex 也读写同一个本子。</span>
+        <span data-zh>在 Mac 上随时呼出，一个输入框，既能搜也能记。你的笔记，Claude、Cursor、Codex 也能看、也能写。</span>
       </p>
       <div class="cta-row">
         <a href="https://github.com/madcodelife/jot/releases/latest" class="btn">
@@ -101,7 +101,7 @@
         <button class="key" type="button" data-key="1" aria-label="Option"><span class="key-glyph">⌥</span><span class="key-name">option</span></button>
         <p class="keys-hint">
           <span data-en>Press <b>⌥</b> twice on your keyboard, or click the keys.</span>
-          <span data-zh>在键盘上连按两下 <b>⌥</b>，或者点一下这两个键。</span>
+          <span data-zh>在键盘上按两下 <b>⌥</b>，或者直接点这两个键</span>
         </p>
       </div>
 
@@ -127,11 +127,11 @@
     <div class="ai-copy reveal">
       <h2 class="h2">
         <span data-en>One notebook for you and your AI.</span>
-        <span data-zh>你和 AI 共用一个本子。</span>
+        <span data-zh>你记的，AI 也看得到</span>
       </h2>
       <p class="body">
         <span data-en>Connect Claude Code, Claude, Cursor, VS Code, Windsurf, Codex or Gemini CLI in one click. Ask them in plain words; a note an app writes carries its name.</span>
-        <span data-zh>一键连接 Claude Code、Claude、Cursor、VS Code、Windsurf、Codex 或 Gemini CLI。用平常的话吩咐它们；应用写下的笔记带着它的名字。</span>
+        <span data-zh>Claude Code、Claude、Cursor、VS Code、Windsurf、Codex、Gemini CLI，点一下就能连上。直接跟它说“帮我记一下”，它写的笔记会标上自己的名字。</span>
       </p>
       <div class="asks" role="tablist" id="asks"></div>
     </div>
@@ -145,11 +145,11 @@
   <section class="todo" id="todos">
     <h2 class="h2 center reveal">
       <span data-en>Say when. It reminds you.</span>
-      <span data-zh>写下时间，到点提醒。</span>
+      <span data-zh>随手写个时间，到点就提醒</span>
     </h2>
     <p class="body center reveal">
       <span data-en>Any line that starts with <code>- [ ]</code> is a to-do. Write its time in English, Chinese or Japanese.</span>
-      <span data-zh>以 <code>- [ ]</code> 开头的一行就是待办。时间用中文、英文或日文写都行。</span>
+      <span data-zh>任何一行 <code>- [ ]</code> 都是待办。时间就照平时说话那样写，中文、英文、日文都认得。</span>
     </p>
 
     <div class="tparse reveal">
@@ -158,7 +158,7 @@
         <input id="tinput" type="text" spellcheck="false" autocomplete="off" aria-label="To-do">
       </label>
       <div class="tout" id="tout">
-        <div class="tfile"><span class="tfile-name" data-en>In the file</span><span class="tfile-name" data-zh>文件里</span><code id="tfile"></code></div>
+        <div class="tfile"><span class="tfile-name" data-en>In the file</span><span class="tfile-name" data-zh>存成</span><code id="tfile"></code></div>
         <div class="trow" id="trow"></div>
       </div>
       <div class="tchips" id="tchips"></div>
@@ -173,7 +173,7 @@
   <section class="more" id="more">
     <h2 class="h2 reveal">
       <span data-en>Plain Markdown. Your files.</span>
-      <span data-zh>普通的 Markdown，你自己的文件。</span>
+      <span data-zh>纯 Markdown，文件在你手里</span>
     </h2>
     <div class="bento">
       <div class="cell cell-md reveal">
@@ -194,30 +194,30 @@
         <h3 class="h3"><span data-en>Previewed as you write</span><span data-zh>边写边预览</span></h3>
         <p class="small">
           <span data-en>As in Typora, the syntax shows only where the caret is. Point at a line.</span>
-          <span data-zh>像 Typora 一样，光标在哪一行才显示那一行的符号。指一下试试。</span>
+          <span data-zh>和 Typora 一样，只有光标所在的那行才显示 Markdown 符号。鼠标移上去看看。</span>
         </p>
       </div>
 
       <div class="cell cell-files reveal">
         <div class="files">
           <div class="files-dir"><svg class="ic"><use href="#i-folder"/></svg>iCloud Drive/Jot</div>
-          <div class="files-f">This week.md</div>
+          <div class="files-f"><span data-en>This week.md</span><span data-zh>本周.md</span></div>
           <div class="files-f"><span data-en>Trip to Kyoto.md</span><span data-zh>京都之行.md</span></div>
-          <div class="files-f is-agent">Design review.md <span class="files-fm">source: claude</span></div>
+          <div class="files-f is-agent"><span data-en>Design review.md</span><span data-zh>设计评审.md</span> <span class="files-fm">source: claude</span></div>
           <div class="files-f">Homelab.md</div>
         </div>
         <h3 class="h3"><span data-en>One file per note</span><span data-zh>一条笔记一个文件</span></h3>
         <p class="small">
           <span data-en>In iCloud Drive or any folder. No account, no server.</span>
-          <span data-zh>放在 iCloud 云盘或任何文件夹。不用账号，没有服务器。</span>
+          <span data-zh>放在 iCloud 云盘或任意文件夹。不用注册，也没有服务器。</span>
         </p>
       </div>
 
       <div class="cell cell-themes reveal">
         <div class="swatches" id="swatches" role="radiogroup" aria-label="Theme"></div>
         <div class="mini" id="mini">
-          <div class="mini-row is-sel"><svg class="ic"><use href="#i-doc"/></svg><span>This week</span><em>2 min</em></div>
-          <div class="mini-row"><svg class="ic mini-agent"><use href="#i-spark"/></svg><span>Design review</span><em class="mini-tag">Claude</em></div>
+          <div class="mini-row is-sel"><svg class="ic"><use href="#i-doc"/></svg><span><span data-en>This week</span><span data-zh>本周</span></span><em><span data-en>2 min</span><span data-zh>2 分钟前</span></em></div>
+          <div class="mini-row"><svg class="ic mini-agent"><use href="#i-spark"/></svg><span><span data-en>Design review</span><span data-zh>设计评审</span></span><em class="mini-tag">Claude</em></div>
         </div>
         <h3 class="h3"><span data-en>Eight themes</span><span data-zh>八套主题</span></h3>
         <p class="small" id="theme-name"></p>
@@ -233,10 +233,10 @@
           <div class="lock-line">ssh admin@nas.local</div>
           <div class="lock-agent" id="lock-agent"></div>
         </div>
-        <h3 class="h3"><span data-en>Lock what must not change</span><span data-zh>不能改的，锁上</span></h3>
+        <h3 class="h3"><span data-en>Lock what must not change</span><span data-zh>重要的笔记，锁起来</span></h3>
         <p class="small">
           <span data-en>A locked note is read-only for Jot, your AI apps and every other program.</span>
-          <span data-zh>锁上的笔记，对 Jot、你的 AI 应用和其他任何程序都是只读的。</span>
+          <span data-zh>锁上之后，Jot、AI 应用和其他程序都只能看，不能改。</span>
         </p>
       </div>
     </div>
@@ -250,11 +250,11 @@
     </picture>
     <h2 class="display center reveal">
       <span data-en>Free, on any Mac.</span>
-      <span data-zh>免费，任何一台 Mac 都能用。</span>
+      <span data-zh>免费，装上就能用</span>
     </h2>
     <p class="body center reveal">
       <span data-en>Apple silicon or Intel. Run the same command again to update; your notes are not touched.</span>
-      <span data-zh>Apple 芯片或 Intel 都行。再运行一次同一条命令就是更新，笔记不受影响。</span>
+      <span data-zh>Apple 芯片和 Intel 的 Mac 都支持。想更新，再跑一遍同一条命令就行，笔记不会动。</span>
     </p>
     <div class="cta-row center reveal">
       <a href="https://github.com/madcodelife/jot/releases/latest" class="btn">
@@ -268,7 +268,7 @@
     </div>
     <p class="fine center reveal">
       <span data-en>Jot is not notarized by Apple yet. If you download the zip, run <code>xattr -dr com.apple.quarantine /Applications/Jot.app</code> once before opening it.</span>
-      <span data-zh>Jot 还没有经过 Apple 公证。如果下载的是 zip，打开前先运行一次 <code>xattr -dr com.apple.quarantine /Applications/Jot.app</code>。</span>
+      <span data-zh>Jot 暂未经过 Apple 公证。如果是下载 zip 安装，第一次打开前先运行 <code>xattr -dr com.apple.quarantine /Applications/Jot.app</code></span>
     </p>
   </section>
 
