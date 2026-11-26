@@ -27,6 +27,7 @@ cargo build -p jot-mcp        # the MCP server, which `nsh run` (a debug build) 
 scripts/package-macos.sh      # build Jot.app, with jot-mcp inside
 scripts/native-fingerprint.sh # the native fingerprint of this checkout (docs/app.md, Updates)
 scripts/demo-notes.sh         # English example notes for screenshots, in ~/Documents/Jot Demo
+scripts/build-site.sh         # the website (site/) put together in _site/; preview: python3 -m http.server -d _site
 ```
 
 While developing, `nsh run` (a debug build) finds `jot-mcp` in cargo's target folder: build it once with

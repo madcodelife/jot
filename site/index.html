@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jot: quick notes for macOS that you share with your AI apps</title>
+<meta name="description" content="Double-press ⌥ anywhere to search or start a note. Your AI apps read and write the same Markdown notebook.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f5f5f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b12" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Jot">
+<meta property="og:description" content="Quick notes for macOS that you share with your AI apps.">
+<meta property="og:image" content="https://madcodelife.github.io/jot/og.png">
+<meta property="og:url" content="https://madcodelife.github.io/jot/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+<script>
+  // The language before the first paint: ?lang=, then the visitor's choice, then the browser's.
+  (function () {
+    var lang = new URLSearchParams(location.search).get("lang");
+    try { lang = lang || localStorage.getItem("jot-lang"); } catch (e) {}
+    if (lang !== "en" && lang !== "zh") lang = /^zh/i.test(navigator.language || "") ? "zh" : "en";
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+    document.documentElement.dataset.lang = lang;
+  })();
+</script>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- Lucide icons (ISC), the set the app itself draws with. -->
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-alarm" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/><path d="M6.38 18.7 4 21"/><path d="M17.64 18.67 20 21"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-return" viewBox="0 0 24 24"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-unlock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-pointer" viewBox="0 0 24 24"><path d="M4.04 2.2 20.2 9.43c.9.4.82 1.71-.13 2l-6.42 1.95a1 1 0 0 0-.66.66l-1.95 6.42c-.29.95-1.6 1.03-2-.13L2.2 4.04a1.4 1.4 0 0 1 1.84-1.84Z"/></symbol>
+</svg>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="./" aria-label="Jot">
+      <!-- design/logo/loop/jot-horizontal.svg, its two inks as tokens so it turns lilac and white on dark. -->
+      <svg class="brand-mark" viewBox="0 0 453 256" aria-hidden="true"><g transform="translate(-17 -2) translate(0 186) skewX(-10) translate(0 -186)"><path d="M62 186C102 186 156 150 156 100C156 71 138 56 119 56C98 56 84 74 84 98C84 148 126 186 170 186" fill="none" stroke="var(--logo-sym)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/><circle cx="212" cy="186" r="15.5" fill="var(--logo-sym)"/></g><g transform="translate(244 45) scale(0.66)"><g transform="translate(0 0) translate(0 210) skewX(-10) translate(0 -210)" fill="none" stroke="var(--logo-word)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"><path d="M44 104V214C44 240 30 252 12 252"/><ellipse cx="118" cy="157" rx="42" ry="53"/><path d="M200 66V178C200 198 210 208 228 208M176 106H230"/><circle cx="44" cy="66" r="14" fill="var(--logo-word)" stroke="none"/></g></g></svg>
+    </a>
+    <nav class="nav-links">
+      <a href="https://github.com/madcodelife/jot" class="nav-link"><svg class="ic"><use href="#i-github"/></svg><span>GitHub</span></a>
+      <button class="nav-link lang-toggle" type="button" data-lang-toggle><span data-en>中文</span><span data-zh>English</span></button>
+      <a href="https://github.com/madcodelife/jot/releases/latest" class="btn btn-small">
+        <span data-en>Download</span><span data-zh>下载</span>
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- Hero: the headline, then a desktop where ⌥⌥ summons a working copy of the panel. -->
+  <section class="hero" id="top">
+    <div class="hero-copy reveal">
+      <h1 class="display">
+        <span data-en>Had a thought? Press <kbd class="kbd-inline">⌥</kbd> twice.</span>
+        <span data-zh><span class="nb">想到什么，</span><span class="nb">连按两下 <kbd class="kbd-inline">⌥</kbd>。</span></span>
+      </h1>
+      <p class="lede">
+        <span data-en>Search or start a note from one field, anywhere on your Mac. Claude, Cursor and Codex read and write the same notebook.</span>
+        <span data-zh>在 Mac 的任何地方，一个输入框搜索也新建。Claude、Cursor、Codex 也读写同一个本子。</span>
+      </p>
+      <div class="cta-row">
+        <a href="https://github.com/madcodelife/jot/releases/latest" class="btn">
+          <svg class="ic"><use href="#i-download"/></svg>
+          <span data-en>Download for Mac</span><span data-zh>下载 Mac 版</span>
+        </a>
+        <button class="cmd" type="button" data-copy="curl -fsSL https://madcodelife.github.io/jot/install.sh | sh">
+          <code><span class="cmd-dim">$</span> curl -fsSL madcodelife.github.io/jot/install.sh | sh</code>
+          <svg class="ic cmd-ic"><use href="#i-copy"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="stage reveal" id="stage" data-state="idle">
+      <div class="wall" aria-hidden="true"></div>
+
+      <div class="keys" id="keys">
+        <button class="key" type="button" data-key="0" aria-label="Option"><span class="key-glyph">⌥</span><span class="key-name">option</span></button>
+        <button class="key" type="button" data-key="1" aria-label="Option"><span class="key-glyph">⌥</span><span class="key-name">option</span></button>
+        <p class="keys-hint">
+          <span data-en>Press <b>⌥</b> twice on your keyboard, or click the keys.</span>
+          <span data-zh>在键盘上连按两下 <b>⌥</b>，或者点一下这两个键。</span>
+        </p>
+      </div>
+
+      <div class="panel" id="panel" role="dialog" aria-label="Jot" hidden>
+        <div class="field">
+          <svg class="ic field-ic"><use href="#i-search"/></svg>
+          <input id="q" type="text" autocomplete="off" spellcheck="false" aria-label="Search or create">
+          <svg class="ic field-ic"><use href="#i-mic"/></svg>
+        </div>
+        <div class="panel-body" id="panel-body"></div>
+        <div class="panel-foot">
+          <span class="gear"><svg class="ic"><use href="#i-gear"/></svg></span>
+          <span class="hints" id="hints"></span>
+        </div>
+      </div>
+
+      <div class="cursors" id="cursors" aria-hidden="true"></div>
+    </div>
+  </section>
+
+  <!-- AI apps: pick something to ask, see what lands in the notebook. -->
+  <section class="ai" id="ai">
+    <div class="ai-copy reveal">
+      <h2 class="h2">
+        <span data-en>One notebook for you and your AI.</span>
+        <span data-zh>你和 AI 共用一个本子。</span>
+      </h2>
+      <p class="body">
+        <span data-en>Connect Claude Code, Claude, Cursor, VS Code, Windsurf, Codex or Gemini CLI in one click. Ask them in plain words; a note an app writes carries its name.</span>
+        <span data-zh>一键连接 Claude Code、Claude、Cursor、VS Code、Windsurf、Codex 或 Gemini CLI。用平常的话吩咐它们；应用写下的笔记带着它的名字。</span>
+      </p>
+      <div class="asks" role="tablist" id="asks"></div>
+    </div>
+    <div class="ai-demo reveal">
+      <div class="call" id="call"></div>
+      <article class="paper" id="ai-paper" aria-live="polite"></article>
+    </div>
+  </section>
+
+  <!-- To-dos: type a time the way you'd say it, see what the file keeps. -->
+  <section class="todo" id="todos">
+    <h2 class="h2 center reveal">
+      <span data-en>Say when. It reminds you.</span>
+      <span data-zh>写下时间，到点提醒。</span>
+    </h2>
+    <p class="body center reveal">
+      <span data-en>Any line that starts with <code>- [ ]</code> is a to-do. Write its time in English, Chinese or Japanese.</span>
+      <span data-zh>以 <code>- [ ]</code> 开头的一行就是待办。时间用中文、英文或日文写都行。</span>
+    </p>
+
+    <div class="tparse reveal">
+      <label class="tline">
+        <span class="tbox" aria-hidden="true"></span>
+        <input id="tinput" type="text" spellcheck="false" autocomplete="off" aria-label="To-do">
+      </label>
+      <div class="tout" id="tout">
+        <div class="tfile"><span class="tfile-name" data-en>In the file</span><span class="tfile-name" data-zh>文件里</span><code id="tfile"></code></div>
+        <div class="trow" id="trow"></div>
+      </div>
+      <div class="tchips" id="tchips"></div>
+      <button class="btn btn-ghost" type="button" id="ring">
+        <svg class="ic"><use href="#i-bell"/></svg>
+        <span data-en>Ring it in 3 seconds</span><span data-zh>3 秒后提醒我</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- The rest, in a grid: Markdown, files, themes, locks. -->
+  <section class="more" id="more">
+    <h2 class="h2 reveal">
+      <span data-en>Plain Markdown. Your files.</span>
+      <span data-zh>普通的 Markdown，你自己的文件。</span>
+    </h2>
+    <div class="bento">
+      <div class="cell cell-md reveal">
+        <div class="md" id="md">
+          <div data-en>
+            <p class="md-line md-h" tabindex="0"><span class="mk"># </span>Trip to Kyoto</p>
+            <p class="md-line" tabindex="0"><span class="mk">**</span><b>Dec 12 to Dec 18</b><span class="mk">**</span>, five nights in <span class="mk">[</span><a>Higashiyama</a><span class="mk">](https://maps.app/…)</span>.</p>
+            <p class="md-line" tabindex="0"><span class="mk">- [ ] </span><span class="md-box"></span>Book the ryokan <span class="chip"><svg class="ic"><use href="#i-alarm"/></svg>21:00</span><span class="mk"> ⏰ 2026-12-01 21:00</span></p>
+            <p class="md-line" tabindex="0"><span class="mk">`</span><code>git reset --soft HEAD~1</code><span class="mk">`</span></p>
+          </div>
+          <div data-zh>
+            <p class="md-line md-h" tabindex="0"><span class="mk"># </span>京都之行</p>
+            <p class="md-line" tabindex="0"><span class="mk">**</span><b>12 月 12 日到 18 日</b><span class="mk">**</span>，在<span class="mk">[</span><a>东山</a><span class="mk">](https://maps.app/…)</span>住五晚。</p>
+            <p class="md-line" tabindex="0"><span class="mk">- [ ] </span><span class="md-box"></span>订旅馆 <span class="chip"><svg class="ic"><use href="#i-alarm"/></svg>21:00</span><span class="mk"> ⏰ 2026-12-01 21:00</span></p>
+            <p class="md-line" tabindex="0"><span class="mk">`</span><code>git reset --soft HEAD~1</code><span class="mk">`</span></p>
+          </div>
+        </div>
+        <h3 class="h3"><span data-en>Previewed as you write</span><span data-zh>边写边预览</span></h3>
+        <p class="small">
+          <span data-en>As in Typora, the syntax shows only where the caret is. Point at a line.</span>
+          <span data-zh>像 Typora 一样，光标在哪一行才显示那一行的符号。指一下试试。</span>
+        </p>
+      </div>
+
+      <div class="cell cell-files reveal">
+        <div class="files">
+          <div class="files-dir"><svg class="ic"><use href="#i-folder"/></svg>iCloud Drive/Jot</div>
+          <div class="files-f">This week.md</div>
+          <div class="files-f"><span data-en>Trip to Kyoto.md</span><span data-zh>京都之行.md</span></div>
+          <div class="files-f is-agent">Design review.md <span class="files-fm">source: claude</span></div>
+          <div class="files-f">Homelab.md</div>
+        </div>
+        <h3 class="h3"><span data-en>One file per note</span><span data-zh>一条笔记一个文件</span></h3>
+        <p class="small">
+          <span data-en>In iCloud Drive or any folder. No account, no server.</span>
+          <span data-zh>放在 iCloud 云盘或任何文件夹。不用账号，没有服务器。</span>
+        </p>
+      </div>
+
+      <div class="cell cell-themes reveal">
+        <div class="swatches" id="swatches" role="radiogroup" aria-label="Theme"></div>
+        <div class="mini" id="mini">
+          <div class="mini-row is-sel"><svg class="ic"><use href="#i-doc"/></svg><span>This week</span><em>2 min</em></div>
+          <div class="mini-row"><svg class="ic mini-agent"><use href="#i-spark"/></svg><span>Design review</span><em class="mini-tag">Claude</em></div>
+        </div>
+        <h3 class="h3"><span data-en>Eight themes</span><span data-zh>八套主题</span></h3>
+        <p class="small" id="theme-name"></p>
+      </div>
+
+      <div class="cell cell-lock reveal" id="lockcell" data-locked="false">
+        <button class="lock-btn" type="button" id="lock" aria-pressed="false">
+          <svg class="ic lock-on"><use href="#i-lock"/></svg>
+          <svg class="ic lock-off"><use href="#i-unlock"/></svg>
+        </button>
+        <div class="lock-note">
+          <div class="lock-title">Homelab</div>
+          <div class="lock-line">ssh admin@nas.local</div>
+          <div class="lock-agent" id="lock-agent"></div>
+        </div>
+        <h3 class="h3"><span data-en>Lock what must not change</span><span data-zh>不能改的，锁上</span></h3>
+        <p class="small">
+          <span data-en>A locked note is read-only for Jot, your AI apps and every other program.</span>
+          <span data-zh>锁上的笔记，对 Jot、你的 AI 应用和其他任何程序都是只读的。</span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Install. -->
+  <section class="get" id="install">
+    <picture class="get-icon reveal">
+      <source srcset="icon-dark.png" media="(prefers-color-scheme: dark)">
+      <img src="icon.png" alt="" width="112" height="112">
+    </picture>
+    <h2 class="display center reveal">
+      <span data-en>Free, on any Mac.</span>
+      <span data-zh>免费，任何一台 Mac 都能用。</span>
+    </h2>
+    <p class="body center reveal">
+      <span data-en>Apple silicon or Intel. Run the same command again to update; your notes are not touched.</span>
+      <span data-zh>Apple 芯片或 Intel 都行。再运行一次同一条命令就是更新，笔记不受影响。</span>
+    </p>
+    <div class="cta-row center reveal">
+      <a href="https://github.com/madcodelife/jot/releases/latest" class="btn">
+        <svg class="ic"><use href="#i-download"/></svg>
+        <span data-en>Download for Mac</span><span data-zh>下载 Mac 版</span>
+      </a>
+      <button class="cmd" type="button" data-copy="curl -fsSL https://madcodelife.github.io/jot/install.sh | sh">
+        <code><span class="cmd-dim">$</span> curl -fsSL madcodelife.github.io/jot/install.sh | sh</code>
+        <svg class="ic cmd-ic"><use href="#i-copy"/></svg>
+      </button>
+    </div>
+    <p class="fine center reveal">
+      <span data-en>Jot is not notarized by Apple yet. If you download the zip, run <code>xattr -dr com.apple.quarantine /Applications/Jot.app</code> once before opening it.</span>
+      <span data-zh>Jot 还没有经过 Apple 公证。如果下载的是 zip，打开前先运行一次 <code>xattr -dr com.apple.quarantine /Applications/Jot.app</code>。</span>
+    </p>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="foot-in">
+    <span>Jot</span>
+    <a href="https://github.com/madcodelife/jot">GitHub</a>
+    <a href="https://github.com/madcodelife/jot/releases"><span data-en>Releases</span><span data-zh>版本</span></a>
+    <a href="https://github.com/madcodelife/jot/blob/main/LICENSE">MIT</a>
+    <button type="button" class="lang-toggle" data-lang-toggle><span data-en>中文</span><span data-zh>English</span></button>
+  </div>
+</footer>
+
+<div class="island" id="island" aria-live="assertive"><div class="island-in"></div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="main.js"></script>
+</body>
+</html>
