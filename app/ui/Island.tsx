@@ -6,7 +6,7 @@
 // dot and the words as they come, then where they were filed. Everything
 // else passes through it: its window takes no clicks unless a reminder (or
 // a refused microphone, which opens the settings) shows.
-import { Animated, createAnimatedValue, effect, openUrl, reduceMotion, signal, Text, token, untracked, View, type Bounds } from "nsh";
+import { Animated, createAnimatedValue, Easing, effect, openUrl, reduceMotion, signal, Text, token, untracked, View, type AnimatedValue, type Bounds, type Keyframe } from "nsh";
 import type { SpeechErrorCode } from "nsh-extra";
 import { Button } from "nsh/base";
 import { displays, Window, type Display, type WindowRef } from "nsh/desktop";
@@ -124,7 +124,7 @@ function next() {
   typed.set(0);
   isOpen.set(true);
   if (event.kind === "write") {
-    // The title types itself in, the ring spins, then a check: saved.
+    // The title types itself in while the mark twinkles and the dots wave, then a check: saved.
     const steps = Math.max(1, event.title.length);
     const each = Math.min(60, 700 / steps);
     for (let i = 1; i <= steps; i++) later(200 + i * each, () => typed.set(i));
@@ -279,25 +279,6 @@ export function IslandWindow() {
 }
 
 function IslandContent(props: { event: IslandEvent }) {
-  const spin = createAnimatedValue(0);
-  const ok = createAnimatedValue(0);
-  effect(() => {
-    if (props.event.kind !== "write" || reduceMotion()) return;
-    const loop = Animated.loop(Animated.timing(spin, { toValue: 360, duration: 2400, easing: "linear" }), { resetBeforeIteration: true });
-    loop.start();
-    return () => loop.stop();
-  });
-  effect(() => {
-    if (!done()) {
-      ok.set(0);
-    } else if (reduceMotion()) {
-      void fadeTo(ok, 1, 160);
-    } else {
-      ok.set(0.4);
-      void Animated.spring(ok, { toValue: 1, ...springConfig(T.spring.drop) }).start();
-    }
-  });
-
   const write = () => (props.event.kind === "write" ? props.event : null);
   const remind = () => (props.event.kind === "remind" ? props.event : null);
   const due = () => {
@@ -307,21 +288,16 @@ function IslandContent(props: { event: IslandEvent }) {
 
   return (
     <>
-      <View
-        class="items-center justify-center"
-        style={{
-          width: 46,
-          height: 46,
-          borderRadius: 23,
-          backgroundImage: write()
-            ? `radial-gradient(circle at 35% 30%, ${token("agent-light")}, ${token("agent")} 60%)`
-            : `radial-gradient(circle at 35% 30%, ${token("primary")}, ${token("primary")})`,
-        }}
+      <If
+        when={write()}
+        else={
+          <View class="items-center justify-center bg-primary" style={{ width: MARK, height: MARK, borderRadius: MARK / 2 }}>
+            <Icon name="bell" size={25} tint={token("on-accent")} />
+          </View>
+        }
       >
-        <View style={{ transform: [{ rotate: spin }] }}>
-          <Icon name={write() ? "spark" : "bell"} size={25} tint={token("on-accent")} />
-        </View>
-      </View>
+        <WritingMark />
+      </If>
       <View class="flex-1" style={{ minWidth: 0, gap: 2 }}>
         <Text class="text-island-muted" style={{ numberOfLines: 1, fontSize: T.type.islandLabel }}>
           {write()
@@ -340,14 +316,10 @@ function IslandContent(props: { event: IslandEvent }) {
       </View>
       <View class="items-center justify-center" style={{ width: 35, height: 35 }}>
         <If when={write()}>
-          <If
-            when={done()}
-            else={<Spinner />}
-          >
-            <View class="items-center justify-center bg-ok" style={{ width: 30, height: 30, borderRadius: 15, transform: [{ scale: ok }], opacity: ok }}>
-              <Icon name="check" size={18} tint={token("on-accent")} />
-            </View>
-          </If>
+          <>
+            <TypingDots />
+            <SavedCheck />
+          </>
         </If>
         <If when={remind() && refused()}>
           <View testID="island-locked" class="items-center justify-center">
@@ -371,21 +343,291 @@ function IslandContent(props: { event: IslandEvent }) {
   );
 }
 
-/** A ring turning while an AI app writes. */
-function Spinner() {
-  const turn = createAnimatedValue(0);
+/** The island's mark: the circle at its start, in points across. */
+const MARK = 46;
+
+// While an AI app writes, its mark keeps a beat (`T.timing.islandBeat`): the
+// spark winds back a touch, flares past its size with a turn and settles,
+// like a star catching the light, and two ripples leave the circle on the
+// flare and fade; then a rest, so the beat reads as a pulse rather than a
+// motor. Offsets are shares of the beat. Each segment eases in and out, so
+// the turns at the keyframes are soft, as a spring's would be.
+const soft = Easing.inOut(Easing.sin);
+const rise = Easing.out(Easing.cubic);
+
+/** The beat starts once the content has begun to grow in (its fade waits 110 ms). */
+const BEAT_DELAY = 120;
+
+/** The spark's size through a beat: a small wind-up, the flare, a dip past rest, rest. */
+const TWINKLE_SCALE: Keyframe[] = [
+  { offset: 0, value: 1, easing: soft },
+  { offset: 0.08, value: 0.92, easing: rise },
+  { offset: 0.24, value: 1.14, easing: soft },
+  { offset: 0.4, value: 0.97, easing: soft },
+  { offset: 0.54, value: 1 },
+  { offset: 1, value: 1 },
+];
+
+/** The spark's turn through a beat, in degrees: back against the flare, past it, home. */
+const TWINKLE_TILT: Keyframe[] = [
+  { offset: 0, value: 0, easing: soft },
+  { offset: 0.08, value: -5, easing: rise },
+  { offset: 0.24, value: 13, easing: soft },
+  { offset: 0.42, value: -3, easing: soft },
+  { offset: 0.58, value: 0 },
+  { offset: 1, value: 0 },
+];
+
+/** The circle swells a little under the flare, so the spark seems to push it. */
+const THUMP: Keyframe[] = [
+  { offset: 0, value: 1 },
+  { offset: 0.12, value: 1, easing: rise },
+  { offset: 0.26, value: 1.04, easing: soft },
+  { offset: 0.5, value: 1 },
+  { offset: 1, value: 1 },
+];
+
+/** A ripple's travel through a beat, from 0 (at the circle's edge) to 1 (spread and gone), leaving at `from`. */
+const ripple = (from: number, to: number): Keyframe[] => [
+  { offset: 0, value: 0 },
+  { offset: from, value: 0, easing: rise },
+  { offset: to, value: 1 },
+  { offset: 1, value: 1 },
+];
+
+/** The halo leaves on the flare, the thin ring a beat's eighth later: two waves, not one. */
+const RIPPLES = [ripple(0.2, 0.86), ripple(0.32, 0.98)] as const;
+
+/**
+ * How far a ripple spreads: the circle's radius times this. The island clips
+ * its content, and its bottom corner comes within a third of the circle's
+ * radius at the start; a ripple is all but gone by then (its opacity below),
+ * so the clip never shows.
+ */
+const RIPPLE_REACH = 1.42;
+
+/** Once the note is in: the circle swells this much, then lands on `T.spring.pop`. */
+const POP_SWELL = 1.12;
+const POP_SWELL_MS = 110;
+/** The ripples in flight carry on out while they fade, over these. */
+const RIPPLE_OUT_MS = 480;
+const RIPPLE_FADE_MS = 260;
+
+/**
+ * The writing mark: the agent's circle with its spark, keeping the beat
+ * while the note is written, then popping once it is in. With reduced
+ * motion it stays still: no beat, no ripples, no pop.
+ */
+function WritingMark() {
+  const scale = createAnimatedValue(1);
+  const tilt = createAnimatedValue(0);
+  const pop = createAnimatedValue(1);
+  const ripples = RIPPLES.map(() => createAnimatedValue(0));
+  /** The ripples' opacity on top of their own: 0 fades them all out at once. */
+  const shown = createAnimatedValue(1);
+
   effect(() => {
-    if (reduceMotion()) return;
-    const loop = Animated.loop(Animated.timing(turn, { toValue: 360, duration: 800, easing: "linear" }), { resetBeforeIteration: true });
-    loop.start();
-    return () => loop.stop();
+    const saved = done();
+    if (reduceMotion()) {
+      for (const v of [scale, pop, shown]) v.set(1);
+      tilt.set(0);
+      for (const r of ripples) r.set(0);
+      return;
+    }
+    if (!saved) {
+      scale.set(1);
+      tilt.set(0);
+      pop.set(1);
+      shown.set(1);
+      const beat = { duration: T.timing.islandBeat, delay: BEAT_DELAY, iterations: "infinite" as const };
+      const loop = Animated.parallel([
+        Animated.keyframes(scale, { keyframes: TWINKLE_SCALE, ...beat }),
+        Animated.keyframes(tilt, { keyframes: TWINKLE_TILT, ...beat }),
+        Animated.keyframes(pop, { keyframes: THUMP, ...beat }),
+        ...ripples.map((r, i) => Animated.keyframes(r, { keyframes: RIPPLES[i], ...beat })),
+      ]);
+      loop.start();
+      return () => loop.stop();
+    }
+    // Saved: the spark comes home, the ripples drift out and fade, and the circle pops.
+    const settle = springConfig(T.spring.drop);
+    const finish = Animated.parallel([
+      Animated.spring(scale, { toValue: 1, ...settle }),
+      Animated.spring(tilt, { toValue: 0, ...settle }),
+      Animated.sequence([
+        Animated.timing(pop, { toValue: POP_SWELL, duration: POP_SWELL_MS, easing: rise }),
+        Animated.spring(pop, { toValue: 1, ...springConfig(T.spring.pop) }),
+      ]),
+      Animated.timing(shown, { toValue: 0, duration: RIPPLE_FADE_MS, easing: "easeOut" }),
+      ...ripples.map((r) => Animated.timing(r, { toValue: 1, duration: RIPPLE_OUT_MS, easing: rise })),
+    ]);
+    finish.start();
+    return () => finish.stop();
   });
+
+  /** A ripple's look: it brightens as it leaves the edge, then thins out well before its reach. */
+  const rippleStyle = (r: AnimatedValue, peak: number) => ({
+    width: MARK,
+    height: MARK,
+    borderRadius: MARK / 2,
+    opacity: r.interpolate({ inputRange: [0, 0.08, 0.7, 1], outputRange: [0, peak, peak * 0.1, 0] }).mul(shown),
+    transform: [{ scale: r.interpolate({ inputRange: [0, 1], outputRange: [1, RIPPLE_REACH] }) }],
+  });
+
+  return (
+    <View class="items-center justify-center" style={{ width: MARK, height: MARK }}>
+      <If when={!reduceMotion()}>
+        <View class="absolute" style={{ ...rippleStyle(ripples[0], 0.4), backgroundColor: token("agent-light") }} />
+        <View class="absolute" style={{ ...rippleStyle(ripples[1], 0.75), borderWidth: 1.5, borderColor: token("agent-light") }} />
+      </If>
+      <View
+        class="items-center justify-center"
+        style={{
+          width: MARK,
+          height: MARK,
+          borderRadius: MARK / 2,
+          backgroundImage: `radial-gradient(circle at 35% 30%, ${token("agent-light")}, ${token("agent")} 60%)`,
+          transform: reduceMotion() ? undefined : [{ scale: pop }],
+        }}
+      >
+        <View style={{ transform: reduceMotion() ? undefined : [{ scale }, { rotate: tilt }] }}>
+          <Icon name="spark" size={25} tint={token("on-accent")} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// The typing dots: three dots rising and brightening one after another in a
+// wave (`T.timing.islandTyping`), echoing the title typing itself in. Once
+// the note is in they draw together into the middle and go, and the check
+// springs out of where they met, turning upright as it lands.
+const DOT = 6;
+const DOT_GAP = 4.5;
+/** How far a dot rises at the wave's crest, in points. */
+const DOT_LIFT = 3.5;
+/** A dot's opacity at rest: present but quiet, so the crest reads. */
+const DOT_REST = 0.35;
+/** The wave's shares: each dot leaves this much after the one before, and takes this to rise (and as long to fall). */
+const DOT_STAGGER = 0.14;
+const DOT_RISE = 0.22;
+
+/** Dot `i`'s wave: still until its turn, up, down, still till the next wave. */
+const wave = (i: number): Keyframe[] => [
+  ...(i > 0 ? [{ offset: 0, value: 0 }] : []),
+  { offset: i * DOT_STAGGER, value: 0, easing: soft },
+  { offset: i * DOT_STAGGER + DOT_RISE, value: 1, easing: soft },
+  { offset: i * DOT_STAGGER + 2 * DOT_RISE, value: 0 },
+  { offset: 1, value: 0 },
+];
+
+/** How long the dots take to draw together once the note is in; the check starts this far into it. */
+const GATHER_MS = 180;
+const CHECK_AFTER = 90;
+/** The check's turn as it comes in, in degrees, the size it starts from, and its fade in. */
+const CHECK_TURN = -50;
+const CHECK_FROM = 0.3;
+const CHECK_FADE_MS = 140;
+/** With reduced motion the dots fade out and the check fades in over these, and nothing moves. */
+const REDUCED_OUT_MS = 140;
+const REDUCED_IN_MS = 160;
+
+/** Three dots waving while an AI app writes; with reduced motion they hold still. */
+function TypingDots() {
+  const lifts = [0, 1, 2].map(() => createAnimatedValue(0));
+  /** 1 while writing; 0 once the dots have drawn together and gone. */
+  const gather = createAnimatedValue(1);
+
+  effect(() => {
+    const saved = done();
+    if (reduceMotion()) {
+      for (const l of lifts) l.set(0);
+      if (saved) void fadeTo(gather, 0, REDUCED_OUT_MS);
+      else gather.set(1);
+      return;
+    }
+    if (!saved) {
+      gather.set(1);
+      const loop = Animated.parallel(
+        lifts.map((l, i) => Animated.keyframes(l, { keyframes: wave(i), duration: T.timing.islandTyping, iterations: "infinite" })),
+      );
+      loop.start();
+      return () => loop.stop();
+    }
+    const finish = Animated.parallel([
+      ...lifts.map((l) => Animated.timing(l, { toValue: 0, duration: GATHER_MS, easing: "easeOut" })),
+      Animated.timing(gather, { toValue: 0, duration: GATHER_MS, easing: Easing.in(Easing.cubic) }),
+    ]);
+    finish.start();
+    return () => finish.stop();
+  });
+
   return (
     <View
       accessibilityLabel={t("island.writing_label")}
-      class="border-island-line"
-      style={{ width: 25, height: 25, borderRadius: 12.5, borderWidth: 3, borderTopColor: token("island-fg"), transform: [{ rotate: turn }] }}
-    />
+      class="absolute flex-row items-center justify-center"
+      style={{ width: 35, height: 35, gap: DOT_GAP }}
+    >
+      {lifts.map((l, i) => (
+        <View
+          class="bg-island-fg"
+          style={{
+            width: DOT,
+            height: DOT,
+            borderRadius: DOT / 2,
+            opacity: l.interpolate({ inputRange: [0, 1], outputRange: [DOT_REST, 1] }).mul(gather),
+            transform: reduceMotion()
+              ? undefined
+              : [
+                  // Toward the middle dot as they gather.
+                  { translateX: gather.interpolate({ inputRange: [0, 1], outputRange: [(1 - i) * (DOT + DOT_GAP), 0] }) },
+                  { translateY: l.interpolate({ inputRange: [0, 1], outputRange: [0, -DOT_LIFT] }) },
+                  { scale: gather.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) },
+                ],
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
+/** The check once the note is in: it springs in turning upright; with reduced motion it fades in. */
+function SavedCheck() {
+  /** Its spring, from 0 to 1, overshooting a little (so its scale and turn do too). */
+  const ok = createAnimatedValue(0);
+  const shown = createAnimatedValue(0);
+  effect(() => {
+    if (!done()) {
+      ok.set(0);
+      shown.set(0);
+    } else if (reduceMotion()) {
+      ok.set(1);
+      void fadeTo(shown, 1, REDUCED_IN_MS);
+    } else {
+      Animated.parallel([
+        Animated.timing(shown, { toValue: 1, duration: CHECK_FADE_MS, delay: CHECK_AFTER, easing: "easeOut" }),
+        Animated.sequence([Animated.delay(CHECK_AFTER), Animated.spring(ok, { toValue: 1, ...springConfig(T.spring.drop) })]),
+      ]).start();
+    }
+  });
+  return (
+    <View
+      class="absolute items-center justify-center bg-ok"
+      style={{
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        opacity: shown,
+        transform: reduceMotion()
+          ? undefined
+          : [
+              { scale: ok.interpolate({ inputRange: [0, 1], outputRange: [CHECK_FROM, 1], extrapolate: "extend" }) },
+              { rotate: ok.interpolate({ inputRange: [0, 1], outputRange: [CHECK_TURN, 0], extrapolate: "extend" }) },
+            ],
+      }}
+    >
+      <Icon name="check" size={18} tint={token("on-accent")} />
+    </View>
   );
 }
 

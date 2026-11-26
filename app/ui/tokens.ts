@@ -120,6 +120,8 @@ export interface PlatformTokens {
     island: Spring;
     drop: Spring;
     collapse: Spring;
+    /** The island's writing mark popping once the note is in: a quick swell that lands on this. */
+    pop: Spring;
   };
   /** Rhythm, in milliseconds. */
   timing: {
@@ -135,6 +137,10 @@ export interface PlatformTokens {
     savedFor: number;
     /** The island stays open after Claude's note is in. */
     islandHold: number;
+    /** One beat of the island's writing mark: the spark twinkles and two ripples leave the circle, then a rest. */
+    islandBeat: number;
+    /** One wave of the island's typing dots, from the first dot rising to the last one's rest. */
+    islandTyping: number;
     /** The append notice goes away on its own. */
     noticeFor: number;
     /** "Moved to the trash" stays this long, and the undo key with it. */
@@ -233,6 +239,8 @@ const TIMING = {
   saveAfter: 300,
   savedFor: 1400,
   islandHold: 1600,
+  islandBeat: 1500,
+  islandTyping: 1100,
   noticeFor: 5000,
   undoFor: 5000,
   downloadPoll: 2000,
@@ -249,6 +257,7 @@ const SPRINGS: PlatformTokens["spring"] = {
   island: { response: 0.36, damping: 0.64 },
   drop: { response: 0.31, damping: 0.63 },
   collapse: { response: 0.32, damping: 0.77 },
+  pop: { response: 0.42, damping: 0.52 },
 };
 
 const macos: PlatformTokens = {
