@@ -866,13 +866,20 @@ function revealMs(letters: number) {
   return TITLE_AFTER + letters * staggerOf(letters) + LETTER_MS;
 }
 
-/** The letters of `title` the island has room for (and the one the edge cuts), a space kept as wide as a space. */
+/**
+ * A space between the title's letters: NSH lays out a Text holding only a space (a no-break one too) zero wide, which
+ * ran the words together, so a space is a gap of a space's width instead.
+ */
+const SPACE = "\u00a0";
+const SPACE_WIDTH = T.type.island * 0.28;
+
+/** The letters of `title` the island has room for (and the one the edge cuts); a space is `SPACE`. */
 function titleLetters(title: string): string[] {
   const letters: string[] = [];
   let width = 0;
   for (const ch of title) {
     if (width > TEXT_ROOM) break;
-    letters.push(/\s/.test(ch) ? " " : ch);
+    letters.push(/\s/.test(ch) ? SPACE : ch);
     width += textWidth(ch);
   }
   return letters;
@@ -955,11 +962,15 @@ function Title(props: { title: string }) {
             style={{ left: 0, top: 0, width: TEXT_ROOM, alignItems: "baseline", transform: [{ translateX: across(-SHEEN_FROM, -SHEEN_TO) }] }}
           >
             <Each of={letters()}>
-              {(l) => (
-                <Text class="font-semibold text-island-fg" style={{ fontSize: T.type.island, flexShrink: 0 }}>
-                  {l().ch}
-                </Text>
-              )}
+              {(l) =>
+                l().ch === SPACE ? (
+                  <View style={{ width: SPACE_WIDTH }} />
+                ) : (
+                  <Text class="font-semibold text-island-fg" style={{ fontSize: T.type.island, flexShrink: 0 }}>
+                    {l().ch}
+                  </Text>
+                )
+              }
             </Each>
           </View>
         </View>
@@ -982,6 +993,7 @@ function Letter(props: { ch: string; index: number; count: number }) {
     coming.start();
     return () => coming.stop();
   });
+  if (props.ch === SPACE) return <View style={{ width: SPACE_WIDTH }} />;
   return (
     <Text
       class="font-semibold text-island-fg"
