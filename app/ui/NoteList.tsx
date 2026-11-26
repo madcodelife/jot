@@ -262,11 +262,9 @@ function RowIcon(props: { row: Row; onAccent: boolean }) {
   );
 }
 
-/** The summary row's title: today's open to-dos; with none left, what is overdue, else whether today's are done or there were none. */
+/** The summary row's title: today's open to-dos; with none left, what is overdue (the row shows only with one of them). */
 function summaryTitle(s: TodaySummary): string {
-  if (s.left) return tn("list.today", s.left);
-  if (s.late) return tn("list.late_title", s.late);
-  return s.total ? t("list.all_done") : t("list.today_none");
+  return s.left ? tn("list.today", s.left) : tn("list.late_title", s.late);
 }
 
 /** The summary row's second line: what is overdue and what comes next; with nothing left today, how today stands under an overdue title. */
