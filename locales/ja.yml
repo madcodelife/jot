@@ -187,7 +187,7 @@ settings:
   sound:
     label: サウンド
     effects: 効果音
-    effects_hint: やることを完了したときに小さな音を鳴らします
+    effects_hint: AI アプリがメモを作成したり、やることを完了したりしたときに小さな音を鳴らします
   language:
     label: 言語
     interface: 表示言語

@@ -10,7 +10,6 @@ import { T } from "./ui/tokens";
 import { syncClients } from "./connections";
 import { todoKeyword, todoKeywords } from "./i18n";
 import { groupOf, parseDue, todaySummary, type TodoGroup } from "./time";
-import { playDone } from "./sounds";
 
 /** Where the panel is: hidden, the summoned capsule, the list, or a note open beside the list. */
 export type Stage = "hidden" | "capsule" | "list" | "editor";
@@ -629,7 +628,6 @@ export function checkTodo(todo: Todo) {
     checking.update((s) => new Set([...s, key]));
     refresh();
   });
-  playDone();
   setTimeout(() => {
     // The rows below close the gap as the group's count flips (and its header folds when it empties).
     morphNext(T.spring.collapse);

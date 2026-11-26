@@ -188,7 +188,7 @@ settings:
   sound:
     label: 声音
     effects: 音效
-    effects_hint: 勾选待办时轻轻响一声
+    effects_hint: AI 应用新建笔记或完成待办时轻轻响一声
   language:
     label: 语言
     interface: 界面语言

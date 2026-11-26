@@ -188,7 +188,7 @@ settings:
   sound:
     label: Sound
     effects: Sound Effects
-    effects_hint: Play a soft sound when you check off a to-do
+    effects_hint: Play a soft sound when an AI app creates a note or completes a to-do
   language:
     label: Language
     interface: App Language

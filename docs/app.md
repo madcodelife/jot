@@ -1,6 +1,6 @@
 # The app
 
-The app's Rust face (`jot/native`), the island, the to-do view's motion and the done sound, the open note's keys and live
+The app's Rust face (`jot/native`), the island, the to-do view's motion and Jot's sounds, the open note's keys and live
 preview, row actions, updates and packaging. Part of [the architecture](architecture.md).
 
 ## The app's Rust face (`jot/native`, src/)
@@ -180,6 +180,11 @@ How much it shows follows what was done:
   one island: one showing says the latest and its hold starts again (a new note still being written goes on), one
   waiting takes the latest in. A new note stays a new note; a note moved to the Trash says so.
 
+A new note sounds as the island opens on it (`assets/new.wav`), a completed to-do as its check pops in
+(`assets/done.wav`); every other write is silent. Once per island: writes merged into one do not play it again, and
+one that turns into a completed to-do after its check is in plays then, once
+([Jot's sounds](#jots-sounds-for-ai-apps-writes-appsoundsts)).
+
 A click on the island while a write shows opens that note in the panel (summoned as from the tray's menu); on a
 trashed note it shows the file in the Trash, selected in Finder (`Folder.showInTrash`), or the Trash itself when the
 log has no path. Either way the island closes. While a write shows, the island's window, room and all, takes clicks,
@@ -210,8 +215,9 @@ locked note's to-do is not ticked: the label says so, nothing bursts, the loops 
 Unticked, it closes after `remind.hold`; its loops stop with it. With reduced motion nothing falls, swings, pulses,
 breathes or bursts: the content and the check only fade.
 
-**Its sound.** The island plays nothing as it shows; a reminder's sound is its notification's (App.tsx, `remind`).
-Ticking it there plays the done sound, as in the to-do view ([below](#the-done-sound-appsoundsts)). Each to-do's
+**Its sound.** The island plays nothing as it shows a reminder, nor as it is ticked there (Jot's own sounds are for
+AI apps' writes: [below](#jots-sounds-for-ai-apps-writes-appsoundsts)); a reminder's sound is its notification's
+(App.tsx, `remind`). Each to-do's
 notification, and the one for reminders missed while the Mac slept, plays Jot's chime (`assets/reminder.wav`, as
 `Notifications.show`'s `sound`) in place of the system's. So the system decides whether it sounds, as for any app's
 notifications: System Settings → Notifications → Jot ("Play sound for notification"), and a Focus that silences Jot.
@@ -222,10 +228,10 @@ Notifications entitlement and a permission prompt. Settings › General › Soun
 for the sounds the app plays itself.
 
 The chime is a glass struck lightly three times, E6, G♯6 and B6 rising 110 ms apart, each ringing about half a second;
-1.1 s in all, at −9 dBFS; mono 16-bit 22.05 kHz WAV, 48 KB. Both of Jot's sounds share that voice: a sine
+1.1 s in all, at −9 dBFS; mono 16-bit 22.05 kHz WAV, 48 KB. All of Jot's sounds share that voice: a sine
 frequency-modulated at 3.5 times its pitch (inharmonic, so it sounds like glass), the modulation dying within tens of
 milliseconds, and a twin 2 Hz above whose beating makes the ring shimmer as it fades. `design/sound/build.py` makes
-it, and the done sound, with Python's standard library alone. `nsh package` copies a WAV the app imports into the
+it, and the sounds of AI apps' writes, with Python's standard library alone. `nsh package` copies a WAV the app imports into the
 bundle's `Contents/Resources`, where macOS finds a notification's sound by its file name; an OTA package cannot put it
 there, so `assets/` is in the native fingerprint ([Updates](#updates-appupdatests)).
 
@@ -258,7 +264,8 @@ checkbox and ten sparks fly out of it, past the row (`Burst`, decoration only). 
 its left as the text and its note dim; after a pause the row slides right while it fades, and only then does the store
 fold it away (`checkTodo` waits `tickFoldAfter()`): the rows below close the gap, the group's count flips
 (`FlipText`: the old number lifts out, the new one springs up from below) and a header whose group emptied folds
-with it. A locked note's to-do never shows ticked. The press plays the done sound (below).
+with it. A locked note's to-do never shows ticked. The user's tick makes no sound (Jot's sounds, below, are for AI
+apps' writes).
 
 A new due time (the picker, or ⌘K's "Remove Reminder"): the chip's label flips to the new time, and the row moves to
 its new group on `T.spring.regroup`, lifted while it moves (above the other rows, on a glass of its own with a soft
@@ -268,23 +275,32 @@ The springs and timings are `T.spring` and `T.timing` (`tick`, `flip`, `remind`;
 responses without overshoot). With reduced motion nothing moves, scales or loops: the check and the fill fade in,
 the line fades in whole, the row fades out where it is, and labels only fade.
 
-## The done sound (app/sounds.ts)
+## Jot's sounds for AI apps' writes (app/sounds.ts)
 
-The user ticks a to-do and Jot plays a soft glass tap (`assets/done.wav`) with the press, once per tick: in the to-do
-view (its checkbox or ⌘↩: `checkTodo`), in the island's reminder (`tick`), and in the open note (a press on a box, or
-⌘↩: Paper's `toggleLine`). It is the app's own `Sound`, decoded as Jot starts (`loadSounds` in `App`), so `play()`
-starts at once, with the fill rather than when the row folds away. Nothing plays on unticking, for a locked note's
-to-do (it never shows ticked), or for to-dos an AI app (jot-mcp) or a notification's "Done" completes: only those three
-places call `playDone`. Where nothing plays sound, the load fails and the ticks stay silent. `nsh.json` grants
-`"audio"`.
+Jot's own sounds are for what AI apps do, as the island says it, never for the user's own actions: ticking a to-do in
+the to-do view, the open note or the island's reminder is silent. Two of an AI app's writes sound
+([the island](#the-island-and-ai-apps-writes-appuiislandtsx)):
 
-It plays while Settings › General › Sound Effects is on (`soundEffectsOn`, `jot.soundEffects`, on by default) and
-macOS's "Play user interface sound effects" is (`SoundEffects.systemAllows`, read at each tick). Neither touches the
+- a new note (`create`): a bright glass tap (`assets/new.wav`) as the island opens on it, with the glow (`next`);
+- a completed to-do (`complete`): a soft one (`assets/done.wav`) as its check pops in, once the avatar has landed.
+
+Every other write (`append`, `todo`, `reschedule`, `replace`, `trash`) is silent. Each island plays at most once
+(`sound` in Island.tsx, `sounded`): writes merged into it do not play it again; one that turns from another write into
+a completed to-do plays as it does if its check is already in, else when the check pops in, and never twice however it
+turns after. Nothing plays where nothing calls the island: with the island off in Settings (`islandOn`), on platforms
+without it, and for notes arriving from another Mac (the island follows only this Mac's activity log). A to-do a
+notification's "Done" completes is silent too.
+
+They are the app's own `Sound`s, decoded as Jot starts (`loadSounds` in `App`), so `play()` starts at once, with the
+island's motion. Where nothing plays sound, the load fails and the island stays silent. `nsh.json` grants `"audio"`.
+
+They play while Settings › General › Sound Effects is on (`soundEffectsOn`, `jot.soundEffects`, on by default) and
+macOS's "Play user interface sound effects" is (`SoundEffects.systemAllows`, read at each sound). Neither touches the
 reminders' chime, which is their notifications' and the system's to govern (above).
 
-The chime's glass, struck twice and short: E6 then B6 a fifth up, 60 ms apart, the second about as the check starts
-drawing (`T.timing.tick.checkAfter`), dying out in 120 ms; 0.35 s in all, at −16 dBFS, well under the chime; mono
-16-bit 22.05 kHz WAV, 15 KB, made by
+Both in the chime's glass, struck twice and short. The new note's: B6 then E7 a fourth up, 40 ms apart, dying out in
+100 ms; 0.3 s in all, at −18 dBFS; 13 KB. The completed to-do's: E6 then B6 a fifth up, 60 ms apart, dying out in
+120 ms; 0.35 s in all, at −16 dBFS; 15 KB. Both well under the chime; mono 16-bit 22.05 kHz WAV, made by
 `design/sound/build.py` with the chime. Tests: app/tests/sounds.test.tsx (`app.audio()`).
 
 ## The open note's Return and ⌘↩ (app/ui/Paper.tsx)
@@ -389,7 +405,7 @@ otherwise send its TSX to apps with the old Rust, and jot-mcp, which is not in a
 fingerprint (`scripts/native-fingerprint.sh`) is a SHA-256, cut to 16 hex digits, of what a package cannot carry: the
 Rust (`src/`, `store/`, `mcp/`, `build.rs`, `Cargo.toml`, `Cargo.lock`, which also pins the NSH runtime), `nsh.lock`,
 `nsh.json` without `version` and `build`, `assets/` (the icon, the reminders' chime, which the bundle carries for
-notifications, and the done sound) and the packaging scripts. `scripts/package-macos.sh` builds the
+notifications, and the sounds of AI apps' writes) and the packaging scripts. `scripts/package-macos.sh` builds the
 app with it (`JOT_NATIVE_FINGERPRINT`, read by `option_env!`; a build without it says "dev" and takes no package), and
 the release publishes the package as `<version>+native.<fingerprint>`. The app compares the two itself, so a copy any
 number of releases behind takes a package only when no release since its own changed native code, and the whole app

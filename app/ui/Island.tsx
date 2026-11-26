@@ -19,7 +19,7 @@ import { displays, Window, type Display, type WindowRef } from "nsh/desktop";
 import { t } from "nsh/i18n";
 import { Folder, type AgentAction, type AgentActivity, type Todo } from "jot/native";
 import { errorCode, errorMessage, notes, open, refresh, summon } from "../store";
-import { playDone } from "../sounds";
+import { playDone, playNew } from "../sounds";
 import { hm, parseDue } from "../time";
 import { Icon } from "./icons";
 import { fadeTo, morphNext, springConfig } from "./motion";
@@ -66,6 +66,8 @@ const sheen = signal(false);
 const leaving = signal(false);
 /** Counts the events shown, so a title's letters are new views (and rise in again) for each note. */
 const shown = signal(0);
+/** Write: its sound has played (`sound`), once per island however many writes it takes in. */
+let sounded = false;
 
 /**
  * An AI app wrote to a note (a line of `jot-mcp`'s activity log): a new note shows being written, then saved; any
@@ -84,6 +86,8 @@ export function showAgentActivity(activity: AgentActivity) {
     current.set(mergeWrite(showing, activity, at));
     // Its hold starts again; a new note still being written goes on, its hold to come.
     if (untracked(done)) {
+      // Its check is in: one that now says a to-do was completed sounds now, unless the island already did.
+      sound(untracked(current));
       clearTimers();
       later(holdOf(untracked(current)), close);
     }
@@ -116,6 +120,18 @@ function mergeWrite(event: WriteEvent, activity: AgentActivity, at: number): Wri
 function holdOf(event: IslandEvent | null): number {
   if (event?.kind !== "write" || event.action === "create") return T.timing.islandHold;
   return event.action === "replace" ? T.timing.islandReplaceHold : T.timing.islandLightHold;
+}
+
+/**
+ * An AI app's write sounds as the island says it, once per island (app/sounds.ts): a new note as the island opens on
+ * it, a completed to-do as its check pops in. Any other write is silent, and so is a merged island that played already.
+ */
+function sound(event: IslandEvent | null) {
+  if (sounded || event?.kind !== "write") return;
+  if (event.action === "create") playNew();
+  else if (event.action === "complete") playDone();
+  else return;
+  sounded = true;
 }
 
 /** A new note: the island shows it being written inside the glow. Other writes are lighter. */
@@ -203,7 +219,9 @@ function next() {
   sheen.set(false);
   leaving.set(false);
   isOpen.set(true);
+  sounded = false;
   if (event.kind === "write" && event.action === "create") {
+    sound(event);
     // The avatar falls out of the notch inside the glow and the title rises in; the sheen sweeps the title while the
     // note is written; then the check, and the island holds. Each step waits for the one before, so reduced motion
     // (which shortens every wait) still shows each.
@@ -219,6 +237,7 @@ function next() {
     // Any other write is done already: the check once the avatar has landed, then a shorter hold.
     later(landed(), () => {
       done.set(true);
+      sound(untracked(current));
       later(holdOf(untracked(current)), close);
     });
   } else if (event.kind === "remind") {
@@ -268,7 +287,6 @@ function tick(todo: Todo) {
   }
   refresh();
   done.set(true);
-  playDone();
   for (const t of timers) clearTimeout(t);
   timers = [];
   later(T.timing.remind.doneHold, close);

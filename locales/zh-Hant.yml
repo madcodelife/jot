@@ -186,7 +186,7 @@ settings:
   sound:
     label: 聲音
     effects: 音效
-    effects_hint: 勾選待辦時輕輕響一聲
+    effects_hint: AI App 新增筆記或完成待辦時輕輕響一聲
   language:
     label: 語言
     interface: 介面語言
