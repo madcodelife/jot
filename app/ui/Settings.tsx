@@ -183,7 +183,7 @@ function Sidebar() {
               class={onAccent("about") ? "text-sys-on-accent" : "text-sys-muted"}
               style={{ fontSize: 11, numberOfLines: 1, fontVariant: ["tabular-nums"], opacity: onAccent("about") ? 0.8 : 1 }}
             >
-              {t("settings.about.version", { version: info.version ?? "1.0.0", build: info.build ?? 1 })}
+              {t("settings.about.version", { version: info.version ?? "0.1.0", build: info.build ?? 1 })}
             </Text>
           </View>
         </Tab>
@@ -1016,7 +1016,7 @@ function AboutPane() {
           {t("settings.about.tagline")}
         </Text>
         <Text testID="settings-version" class="text-sys-muted" style={{ fontSize: 11, fontVariant: ["tabular-nums"], marginTop: 2 }}>
-          {t("settings.about.version", { version: info.version ?? "1.0.0", build: info.build ?? 1 })}
+          {t("settings.about.version", { version: info.version ?? "0.1.0", build: info.build ?? 1 })}
         </Text>
       </View>
       <Group>
