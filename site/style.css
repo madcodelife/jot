@@ -11,13 +11,17 @@
   --faint: #6f7287;
   --line: rgba(18, 19, 39, 0.09);
   --line-2: rgba(18, 19, 39, 0.16);
-  --accent: #2b2f8f;
-  --accent-hi: #3b40c4;
+  /* macOS system blue: #007AFF fills; text in blue uses the deeper ink, which reads at AA on the page. */
+  --accent: #007aff;
+  --accent-ink: #0066cc;
   --on-accent: #ffffff;
   --agent: #a64818;
   --code: rgba(18, 19, 39, 0.055);
   --shadow: 0 1px 2px rgba(30, 32, 80, 0.06), 0 12px 32px -12px rgba(30, 32, 80, 0.18);
-  --logo-sym: #2b2f8f;
+  --logo-sym: #007aff;
+  /* Filled buttons: Apple's button blue, deep enough for white text (4.6:1). */
+  --btn: #0071e3;
+  --btn-hover: #0077ed;
   --logo-word: #15162b;
 
   --key-top: #fdfdfe;
@@ -27,11 +31,11 @@
   --key-fg: #2a2c3c;
 
   --wall:
-    radial-gradient(60% 70% at 8% 0%, #b6c0ff 0%, transparent 60%),
-    radial-gradient(50% 60% at 62% 18%, #f3c9ea 0%, transparent 62%),
-    radial-gradient(60% 70% at 100% 100%, #ffd5bb 0%, transparent 60%),
-    radial-gradient(50% 60% at 0% 100%, #e3d7ff 0%, transparent 60%),
-    #ece8f6;
+    radial-gradient(60% 70% at 8% 0%, #a9cbff 0%, transparent 60%),
+    radial-gradient(50% 60% at 62% 18%, #d3e6ff 0%, transparent 62%),
+    radial-gradient(60% 70% at 100% 100%, #bfeaff 0%, transparent 60%),
+    radial-gradient(50% 60% at 0% 100%, #d9e4ff 0%, transparent 60%),
+    #e7eef9;
 
   --serif: "New York", ui-serif, "Iowan Old Style", "Songti SC", "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
   --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", "Segoe UI", "Microsoft YaHei", sans-serif;
@@ -46,21 +50,21 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0b0b12;
-    --bg-2: #12121b;
-    --card: #14141e;
+    --bg: #0a0b0f;
+    --bg-2: #111318;
+    --card: #14161c;
     --fg: #ecedf5;
-    --muted: #a1a3b9;
-    --faint: #85879d;
+    --muted: #a0a4b4;
+    --faint: #848898;
     --line: rgba(255, 255, 255, 0.08);
     --line-2: rgba(255, 255, 255, 0.15);
-    --accent: #9ea2ff;
-    --accent-hi: #b6b9ff;
-    --on-accent: #15162b;
+    --accent: #0a84ff;
+    --accent-ink: #4ea1ff;
+    --on-accent: #ffffff;
     --agent: #ffb183;
     --code: rgba(255, 255, 255, 0.07);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 40px -16px rgba(0, 0, 0, 0.7);
-    --logo-sym: #9ea2ff;
+    --logo-sym: #0a84ff;
     --logo-word: #f3f3f8;
 
     --key-top: #2b2c38;
@@ -70,11 +74,11 @@
     --key-fg: #e3e4ee;
 
     --wall:
-      radial-gradient(60% 70% at 0% 0%, #4a2f9a 0%, transparent 62%),
-      radial-gradient(50% 60% at 55% 30%, #241a63 0%, transparent 62%),
-      radial-gradient(60% 70% at 100% 100%, #0f5274 0%, transparent 62%),
-      radial-gradient(40% 50% at 0% 100%, #2a1b5a 0%, transparent 60%),
-      #141233;
+      radial-gradient(60% 70% at 0% 0%, #1550b8 0%, transparent 62%),
+      radial-gradient(50% 60% at 55% 30%, #0c2a6b 0%, transparent 62%),
+      radial-gradient(60% 70% at 100% 100%, #0b5a7a 0%, transparent 62%),
+      radial-gradient(40% 50% at 0% 100%, #102a66 0%, transparent 60%),
+      #0b1530;
   }
 }
 
@@ -141,20 +145,20 @@ code, kbd { font-family: var(--mono); }
   display: inline-flex; align-items: center; gap: 9px;
   height: 46px; padding: 0 22px;
   border-radius: var(--pill); border: 0;
-  background: var(--fg); color: var(--bg);
+  background: var(--btn); color: #fff;
   font-size: 15px; font-weight: 600; letter-spacing: -0.005em;
   text-decoration: none; white-space: nowrap; cursor: pointer;
   transition: transform 0.25s var(--ease), background 0.2s, box-shadow 0.25s var(--ease);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset, 0 8px 20px -10px rgba(18, 19, 39, 0.5);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.16) inset, 0 8px 20px -10px rgba(0, 90, 200, 0.6);
 }
-.btn:hover { transform: translateY(-1px); }
+.btn:hover { transform: translateY(-1px); background: var(--btn-hover); }
 .btn:active { transform: translateY(1px) scale(0.985); }
 .btn .ic { font-size: 17px; }
 .btn-small { height: 36px; padding: 0 16px; font-size: 14px; }
 .btn-ghost {
   background: transparent; color: var(--fg); box-shadow: inset 0 0 0 1px var(--line-2);
 }
-.btn-ghost:hover { background: var(--code); }
+.btn-ghost:hover { background: var(--code); color: var(--fg); }
 .btn-ghost[disabled] { opacity: 0.55; cursor: default; transform: none; }
 
 .cmd {
@@ -500,7 +504,7 @@ section { scroll-margin-top: 72px; }
 .chip {
   display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px;
   border-radius: var(--pill); font-size: 13px; font-weight: 600; white-space: nowrap; line-height: 1;
-  background: color-mix(in srgb, var(--accent) 13%, transparent); color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 13%, transparent); color: var(--accent-ink);
   font-family: var(--sans); font-variant-numeric: tabular-nums; vertical-align: 0.05em;
 }
 .chip .ic { font-size: 14px; }
@@ -565,7 +569,7 @@ section { scroll-margin-top: 72px; }
 }
 .md-line:hover, .md-line:focus { background: var(--code); }
 .md-h { font-size: 26px; font-weight: 700; letter-spacing: -0.015em; }
-.md-line a { color: var(--accent); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); text-underline-offset: 3px; }
+.md-line a { color: var(--accent-ink); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); text-underline-offset: 3px; }
 .md-line code { font-size: 14.5px; background: var(--code); padding: 2px 7px; border-radius: 6px; }
 .md-box { display: inline-block; width: 17px; height: 17px; border-radius: 50%; box-shadow: inset 0 0 0 1.75px var(--faint); vertical-align: -0.2em; margin-right: 10px; }
 .mk { display: none; color: var(--faint); font-weight: 400; font-family: var(--mono); font-size: 0.86em; }
@@ -632,7 +636,7 @@ section { scroll-margin-top: 72px; }
 /* Install. */
 .get { text-align: center; padding-bottom: clamp(96px, 14vh, 150px); }
 .get-icon { display: block; width: 112px; height: 112px; margin: 0 auto 32px; }
-.get-icon img { width: 100%; height: 100%; display: block; filter: drop-shadow(0 18px 30px rgba(43, 47, 143, 0.28)); }
+.get-icon img { width: 100%; height: 100%; display: block; filter: drop-shadow(0 18px 30px rgba(0, 90, 200, 0.26)); }
 .get .body { margin-top: 22px; }
 
 .foot { border-top: 1px solid var(--line); }
