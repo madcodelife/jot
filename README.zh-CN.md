@@ -22,7 +22,7 @@
 - **待办长在笔记里** — `- [ ] 交房租 明天 9:00` 就成了一条提醒，到点弹通知。中文、英文、日文的时间说法都认。
 - **和 AI 应用共用** — 一键连接 Claude Code、Claude、Cursor、VS Code、Windsurf、Codex 或 Gemini CLI；应用写的笔记
   带着它的名字。
-- **普通文件，归你所有** — 一条笔记一个 `.md` 文件，放在 iCloud 云盘或任何文件夹里。不用注册账号，没有服务器。
+- **普通文件，归你所有** — 一条笔记一个 `.md` 文件，放在 iCloud 云盘或任何文件夹里。不用注册账号，没有服务器，不做数据统计。
 
 ## 安装
 
@@ -65,6 +65,14 @@ curl -fsSL https://madcodelife.github.io/jot/install.sh | sh
 - Jot 自己不做同步：把文件夹放进 iCloud 云盘、Dropbox 或 Syncthing 即可。
 
 详见 [docs/storage.md](docs/storage.md)（英文）。
+
+## 隐私
+
+- 笔记是你选的文件夹里的普通文件。Jot 没有账号、没有服务器、不做任何数据统计，也不会把你的笔记发到任何地方。
+- 它只在一件事上联网：每 6 小时去 GitHub 看一次有没有新版本，不带任何笔记内容。
+- 语音输入用的是 Apple 的语音识别，视 Mac 和语言而定，你的声音可能会在 Apple 的服务器上处理。
+- 你连接的 AI 应用通过 `jot-mcp` 读取笔记，并按它们各自的规则把读到的内容发给自己的模型服务。
+- 笔记文件夹放在 iCloud 云盘、Dropbox 或 Syncthing 里时，由这些服务负责同步，不经过 Jot。
 
 ## AI 应用与 MCP
 

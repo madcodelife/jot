@@ -24,7 +24,7 @@ they keep one notebook between you.
   English, Chinese and Japanese.
 - **Shared with your AI apps** — connect Claude Code, Claude, Cursor, VS Code, Windsurf, Codex or Gemini CLI in one
   click; a note an app writes carries its name.
-- **Plain files, yours** — one `.md` file per note, in iCloud Drive or any folder. No account, no server.
+- **Plain files, yours** — one `.md` file per note, in iCloud Drive or any folder. No account, no server, no analytics.
 
 ## Install
 
@@ -71,6 +71,17 @@ High Contrast themes. In English, Simplified and Traditional Chinese and Japanes
 - Jot does no syncing itself: keep the folder in iCloud Drive, Dropbox or Syncthing.
 
 More in [docs/storage.md](docs/storage.md).
+
+## Privacy
+
+- Your notes are plain files in a folder you pick. Jot has no account, no server and no analytics, and sends your notes
+  nowhere.
+- It goes online for one thing: every 6 hours it asks GitHub whether a new release is out. No notes go with it.
+- Dictation uses Apple's speech recognition, which may process your voice on Apple's servers, depending on your Mac and
+  the language.
+- The AI apps you connect read your notes through `jot-mcp`, and send what they read to their own model providers, on
+  their own terms.
+- A folder in iCloud Drive, Dropbox or Syncthing is synced by that service, not by Jot.
 
 ## AI apps and MCP
 
