@@ -220,9 +220,10 @@ Neither NSH nor `jot/native` reads whether a Focus is on; it would take `INFocus
 Notifications entitlement and a permission prompt. Settings › General › Sound Effects does not touch it: that switch is
 for the sounds the app plays itself.
 
-The chime is two soft bell notes, G5 then C6 a fourth up, 120 ms apart and 0.55 s in all: sines with a bell's partials
-(an octave, and the inharmonic 2.76 and 5.4), a quick attack and an exponential decay, at −9 dBFS; mono 16-bit 22.05
-kHz WAV, 24 KB. `design/sound/build.py` makes it, and the done sound, with Python's standard library alone. `nsh
+The chime is a glass struck lightly three times, E6, G♯6 and B6 rising 110 ms apart, each ringing about half a second;
+1.1 s in all, at −9 dBFS; mono 16-bit 22.05 kHz WAV, 48 KB. Both of Jot's sounds share that voice: a sine
+frequency-modulated at 3.5 times its pitch (inharmonic, so it sounds like glass), the modulation dying within tens of
+milliseconds, and a twin 2 Hz above whose beating makes the ring shimmer as it fades. `design/sound/build.py` makes it, and the done sound, with Python's standard library alone. `nsh
 package` copies a WAV the app imports into the bundle's `Contents/Resources`, where macOS finds a notification's sound
 by its file name; an OTA package cannot put it there, so `assets/` is in the native fingerprint
 ([Updates](#updates-appupdatests)).
@@ -251,7 +252,7 @@ the line fades in whole, the row fades out where it is, and labels only fade.
 
 ## The done sound (app/sounds.ts)
 
-The user ticks a to-do and Jot plays a soft water drop (`assets/done.wav`) with the press, once per tick: in the to-do
+The user ticks a to-do and Jot plays a soft glass tap (`assets/done.wav`) with the press, once per tick: in the to-do
 view (its checkbox or ⌘↩: `checkTodo`), in the island's reminder (`tick`), and in the open note (a press on a box, or
 ⌘↩: Paper's `toggleLine`). It is the app's own `Sound`, decoded as Jot starts (`loadSounds` in `App`), so `play()`
 starts at once, with the fill rather than when the row folds away. Nothing plays on unticking, for a locked note's
@@ -263,9 +264,9 @@ It plays while Settings › General › Sound Effects is on (`soundEffectsOn`, `
 macOS's "Play user interface sound effects" is (`SoundEffects.systemAllows`, read at each tick). Neither touches the
 reminders' chime, which is their notifications' and the system's to govern (above).
 
-A drop and its ripples: a sine whose pitch rises fast (600 to 1400 Hz in 25 ms) and rings out, starting with the press,
-then three echoes 90 ms apart, each softer and a little higher, like rings spreading on water. 0.55 s in all, a 3 ms
-attack, at −14 dBFS, under the chime; mono 16-bit 22.05 kHz WAV, 24 KB, made by
+The chime's glass, struck twice and short: E6 then B6 a fifth up, 60 ms apart, the second about as the check starts
+drawing (`T.timing.tick.checkAfter`), dying out in 120 ms; 0.35 s in all, at −16 dBFS, well under the chime; mono
+16-bit 22.05 kHz WAV, 15 KB, made by
 `design/sound/build.py` with the chime. Tests: app/tests/sounds.test.tsx (`app.audio()`).
 
 ## The open note's Return and ⌘↩ (app/ui/Paper.tsx)

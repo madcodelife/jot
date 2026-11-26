@@ -1,5 +1,5 @@
 // Jot's own sound effects, which the app plays itself (NSH's `Sound`): a soft
-// water drop as the user ticks a to-do (`assets/done.wav`, made by
+// glass tap as the user ticks a to-do (`assets/done.wav`, made by
 // design/sound/build.py), wherever they tick it: the to-do view, the island's
 // reminder, a box in the open note. Not for a to-do an AI app or a
 // notification's "Done" completes, and never on unticking. The settings' "Sound
