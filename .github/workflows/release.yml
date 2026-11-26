@@ -1,0 +1,101 @@
+name: Release
+
+# A release tag (v1.2.0) is packaged and released. Its own workflow, so pull requests do not list these jobs as
+# skipped checks.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  package:
+    name: Package Jot.app (${{ matrix.arch }})
+    runs-on: macos-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            target: aarch64-apple-darwin
+          - arch: x86_64
+            target: x86_64-apple-darwin
+    steps:
+      - uses: actions/checkout@v7
+
+      # The runner is Apple silicon: x86_64 is cross-compiled.
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Which NSH
+        id: nsh
+        run: echo "which=$(scripts/install-nsh.sh --which)" >> "$GITHUB_OUTPUT"
+
+      # The build of NSH that `test` in `ci.yml` saves on `main` (see there).
+      - uses: actions/cache/restore@v6
+        with:
+          path: ~/.nsh
+          key: nsh-${{ runner.os }}-${{ runner.arch }}-${{ steps.nsh.outputs.which }}
+          restore-keys: nsh-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install NSH
+        run: |
+          scripts/install-nsh.sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Package
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          # The tag (v1.2.0) sets the version.
+          scripts/package-macos.sh --arch "$ARCH" --out dist --build "$GITHUB_RUN_NUMBER" \
+            --app-version "${GITHUB_REF_NAME#v}"
+          # Every executable is for this architecture only.
+          for file in dist/Jot.app/Contents/MacOS/*; do
+            archs=$(lipo -archs "$file" 2> /dev/null) || continue
+            echo "$file: $archs"
+            [ "$archs" = "$ARCH" ] || { echo "::error::$file is $archs, not $ARCH"; exit 1; }
+          done
+
+      - name: Zip
+        id: zip
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          zip="Jot-$GITHUB_REF_NAME-macos-$ARCH.zip"
+          ditto -c -k --keepParent dist/Jot.app "dist/$zip"
+          echo "zip=$zip" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.zip.outputs.zip }}
+          path: dist/${{ steps.zip.outputs.zip }}
+          if-no-files-found: error
+
+  # A release tag: one release with both packages, once both are built.
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: package
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          ls -l dist
+          gh release create "$GITHUB_REF_NAME" dist/*.zip --title "Jot ${GITHUB_REF_NAME#v}" --generate-notes \
+            || gh release upload "$GITHUB_REF_NAME" dist/*.zip --clobber
