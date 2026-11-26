@@ -65,7 +65,8 @@ A release is a `v*` tag; `.github/workflows/release.yml` does the rest. Installe
 
 1. In `nsh.json`, raise `version` (semver) and `build` (a whole number). `build` is one counter for apps and OTA
    packages: raise it by one for every release, never reuse one.
-2. Commit, merge to `main`, then tag that commit `v<version>` and push the tag:
+2. Write the release's notes in `release-notes/v<version>.md` (below).
+3. Commit, merge to `main`, then tag that commit `v<version>` and push the tag:
 
    ```sh
    git tag v0.2.0 && git push origin v0.2.0
@@ -74,7 +75,7 @@ A release is a `v*` tag; `.github/workflows/release.yml` does the rest. Installe
 The workflow then:
 
 - checks the tag is `v` + nsh.json's `version`, and that `version` and `build` are higher than the last release tag's
-  (it fails otherwise: fix nsh.json, tag again);
+  (it fails otherwise: fix nsh.json, tag again), and that `release-notes/v<version>.md` is there;
 - fails while a secret below is missing: a release without a signed `latest.json` would leave every installed copy
   without updates;
 - packages `Jot.app` for arm64 and x86_64 with the native fingerprint, and makes of each the zip `install.sh`
@@ -85,7 +86,33 @@ The workflow then:
   (`latest.json.sig`), and makes the release with all of them.
 
 A release that changed no native code reaches installed copies as the package; one that did, as the whole app (the
-fingerprint decides, in the app). Notes of the release are GitHub's, generated from the pull requests.
+fingerprint decides, in the app).
+
+### Release notes
+
+A release's notes are `release-notes/v<version>.md`, written in the pull request that raises the version, so they are
+reviewed with it. The release shows them first, then GitHub's list of the pull requests since the last release,
+folded under "What's Changed", then the comparison with that release.
+
+They are for people who use Jot: what changed for them, in their words, not the code's. Read the pull requests merged
+since the last tag (`git log --oneline v<last>..main`) and write:
+
+```markdown
+## Highlights
+
+- **What is new, in a few words.** What it does and why it matters, in a sentence or two. (#80)
+
+## Improvements
+
+- A smaller change, one line. (#72, #75)
+
+## Fixes
+
+- What went wrong, and that it no longer does. (#61)
+```
+
+Leave out a section with nothing in it. Group pull requests that make one change, and leave out what users never see
+(the site, the README, CI, tests, refactors), which the folded list still shows.
 
 ### Keys and secrets (once)
 
