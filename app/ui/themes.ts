@@ -1,6 +1,6 @@
 // Jot's themes: each a palette with a light and a dark half (`themes.json`,
-// over the base in `theme.json`, which is "default"). Besides Jot's own indigo
-// and the high-contrast one, they take their colours from popular VS Code
+// over the base in `theme.json`, which is "default"). Besides the default (macOS
+// system blue) and the high-contrast one, they take their colours from popular VS Code
 // themes (GitHub, One Dark Pro and Atom One Light, Dracula and Alucard, Tokyo
 // Night, Catppuccin, Gruvbox; all MIT), picked for a notes panel rather than
 // an editor and held to WCAG AA. The appearance (light,

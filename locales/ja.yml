@@ -236,7 +236,7 @@ settings:
     themes_credit: テーマの配色は GitHub Theme、One Dark Pro、Atom One Light、Dracula、Tokyo Night、Catppuccin、Gruvbox（MIT）を参考にしています。
 
 theme:
-  default: インディゴ
+  default: デフォルト
   github: GitHub
   one: One
   dracula: Dracula
