@@ -61,12 +61,6 @@ jobs:
               exit 1
             fi
           fi
-          # Installed copies trust the keys in nsh.json: without them a release cannot be signed, and its app would
-          # never update itself again.
-          if grep -q 'REPLACE_WITH_' nsh.json; then
-            echo "::error file=nsh.json::nsh.json's updater keys are still placeholders: put in keys/update.pub and keys/root.pub (CONTRIBUTING.md, Releasing)"
-            exit 1
-          fi
           # Without the secrets nothing signs the manifest or the package, and the release would have no
           # latest.json: every installed copy would find none and stop updating. A fork sets up keys of its own.
           missing=""

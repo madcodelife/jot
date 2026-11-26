@@ -72,8 +72,8 @@ The workflow then:
 
 - checks the tag is `v` + nsh.json's `version`, and that `version` and `build` are higher than the last release tag's
   (it fails otherwise: fix nsh.json, tag again);
-- fails while nsh.json's updater keys are placeholders or a secret below is missing: a release without a signed
-  `latest.json` would leave every installed copy without updates;
+- fails while a secret below is missing: a release without a signed `latest.json` would leave every installed copy
+  without updates;
 - packages `Jot.app` for arm64 and x86_64 with the native fingerprint, and makes of each the zip `install.sh`
   downloads (`Jot-v0.2.0-macos-arm64.zip`) and the update archive (`Jot-0.2.0-macos-aarch64.tar.gz`);
 - publishes the OTA package of the code (`com.madcodelife.jot-<build>.nshpkg`, its version

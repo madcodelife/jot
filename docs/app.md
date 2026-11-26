@@ -260,8 +260,6 @@ packages this checkout; `--arch` is `arm64`, `x86_64` or `universal`), copies `j
 (`<name>-<version>-macos-<aarch64|x86_64>.tar.gz`) before `jot-mcp` was in, so the script archives the signed bundle
 again under those names (`tar` with `COPYFILE_DISABLE`, as nsh does). It builds the app's Rust with the native
 fingerprint ([Updates](#updates-appupdatests)): `JOT_NATIVE_FINGERPRINT`, or `scripts/native-fingerprint.sh` when it
-is not set. While nsh.json's updater keys are placeholders (`REPLACE_WITH_…`), which `nsh package` refuses, it packages
-without `"updater"` (that app never updates itself) and puts nsh.json back afterwards. `NSH` picks the CLI, which
-must be the NSH `Cargo.toml`'s `nsh-core` names (a commit of NSH's repository, `rev`, which a nightly CLI's
-`--version` names; or a crates.io release; it warns otherwise), `SIGN_IDENTITY` the identity: ad hoc by default;
-any other signs both with `--timestamp --options runtime`, as notarization asks.
+is not set. `NSH` picks the CLI, which must be the NSH `Cargo.toml`'s `nsh-core` names (a commit of NSH's repository,
+`rev`, which a nightly CLI's `--version` names; or a crates.io release; it warns otherwise), `SIGN_IDENTITY` the
+identity: ad hoc by default; any other signs both with `--timestamp --options runtime`, as notarization asks.

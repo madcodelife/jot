@@ -148,20 +148,10 @@ fi
 export JOT_NATIVE_FINGERPRINT
 echo "native fingerprint $JOT_NATIVE_FINGERPRINT"
 
-# Until the update keys are in nsh.json (CONTRIBUTING, Releasing), nsh refuses its placeholders: the app is packaged
-# without "updater" (it then never updates itself), nsh.json put back afterwards.
+# With an update source, nsh also writes the update archives, which step 5 makes again.
 updater=0
 if grep -q '"updater"' nsh.json; then
   updater=1
-  if grep -q 'REPLACE_WITH_' nsh.json; then
-    echo "package-macos.sh: warning: nsh.json's updater keys are placeholders: packaging without updates" >&2
-    updater=0
-    saved=$(mktemp "${TMPDIR:-/tmp}/jot-nsh-json.XXXXXX")
-    cp nsh.json "$saved"
-    trap 'cp "$saved" nsh.json && rm -f "$saved"' EXIT
-    trap 'exit 130' INT TERM
-    jq 'del(.updater)' "$saved" > nsh.json
-  fi
 fi
 
 rm -rf "$app"

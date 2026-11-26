@@ -46,10 +46,10 @@
   },
   "updater": {
     "github": "madcodelife/jot",
-    "publicKey": "REPLACE_WITH_keys/update.pub",
+    "publicKey": "X3S6vy172GDrELktQEraG3MP7djBwOFPKyMqhti5ALY=",
     "packages": {
       "roots": [
-        "REPLACE_WITH_keys/root.pub"
+        "N1iJSwkFqZmAlmqgjFn7Aqsq45F8othN7jX8oUqkaxY="
       ]
     }
   },
