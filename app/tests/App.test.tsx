@@ -108,6 +108,20 @@ test("only notes an AI app wrote count as its arrivals: a clipped page's or a bo
   app.dispose();
 });
 
+test("the island shows an AI app's note being written, its avatar saying so for screen readers, then saved", async () => {
+  const dir = folder("island-write");
+  const app = await openJot(dir);
+  await app.waitFor("id:search");
+  new Notes(dir).create("周会纪要", "---\nsource: cursor\n---\n议程");
+  await app.waitUntil(() => app.texts().includes("Cursor · 正在记到 Jot"));
+  expect(app.shows("label:正在写")).toBe(true);
+  // The title comes in letter by letter.
+  expect(app.texts()).toContain("纪");
+  await app.waitUntil(() => app.texts().includes("Cursor · 已记下"));
+  expect(app.shows("label:正在写")).toBe(false);
+  app.dispose();
+});
+
 test("today's row says what is overdue when nothing is left today, never 'nothing due' over an overdue line, and is gone when nothing is due", async () => {
   // Only an overdue to-do: the title names it, the line says today has none.
   const late = folder("summary-late");

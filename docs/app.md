@@ -135,6 +135,22 @@ Dictation's language (`app/speechlang.ts`, pure): switched to while listening (t
 first of the user's languages that is Chinese, Japanese or English with a region › Jot's language in its usual region.
 The notch comes from NSH: `displays()` → `cutouts` (`nsh/desktop`).
 
+## The island writing an AI app's note (app/ui/Island.tsx)
+
+When an AI app writes a note, the island opens inside a glow of flowing colors (the theme's `island-aurora-*`) with a
+thin edge of the same colors; the app's avatar falls out of the notch and bounces to rest, and the title's letters rise
+in one after another. While the note is written (`T.timing.islandSheen`, 1.3 s) a sheen sweeps the title. Then the
+colors give way to a green flash, the label says the note is saved, the avatar hops and the check pops in; after
+`T.timing.islandHold` the content lifts out and the island closes. Each step waits for the one before. Reminders and
+dictation keep their own motion.
+
+Everything runs natively: the avatar's fall and hop are physics frames computed once in JS and played as
+`Animated.keyframes`. NSH draws no blur on a view, so the glow is drawn as a blurred box would look: a turning conic
+gradient seen through two nested `maskImage`s whose stops follow a blurred edge's falloff, one across and one down. The
+sheen is a full-white copy of the title in a masked band that moves across while the copy in it moves back as much. The
+island's window leaves room around it for the glow; it takes no clicks unless a reminder shows. With reduced motion
+nothing falls, grows, turns, moves or loops: the glow, the title and the check only fade.
+
 ## The open note's Return and ⌘↩ (app/ui/Paper.tsx)
 
 NSH's `Editor` binds Return (a line break) and ⌘↩ (a line below) itself while it has the focus, before the app's
