@@ -18,7 +18,8 @@
   --agent: #a64818;
   --code: rgba(18, 19, 39, 0.055);
   --shadow: 0 1px 2px rgba(30, 32, 80, 0.06), 0 12px 32px -12px rgba(30, 32, 80, 0.18);
-  --logo-sym: #007aff;
+  /* The logo keeps the brand's inks (design/logo/loop/README.md): indigo, lilac on dark. The UI is blue. */
+  --logo-sym: #2b2f8f;
   /* Filled buttons: Apple's button blue, deep enough for white text (4.6:1). */
   --btn: #0071e3;
   --btn-hover: #0077ed;
@@ -64,7 +65,7 @@
     --agent: #ffb183;
     --code: rgba(255, 255, 255, 0.07);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 40px -16px rgba(0, 0, 0, 0.7);
-    --logo-sym: #0a84ff;
+    --logo-sym: #9ea2ff;
     --logo-word: #f3f3f8;
 
     --key-top: #2b2c38;
