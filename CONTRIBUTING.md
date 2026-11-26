@@ -65,17 +65,20 @@ A release is a `v*` tag; `.github/workflows/release.yml` does the rest. Installe
 
 1. In `nsh.json`, raise `version` (semver) and `build` (a whole number). `build` is one counter for apps and OTA
    packages: raise it by one for every release, never reuse one.
-2. Write the release's notes in `release-notes/v<version>.md` (below).
-3. Commit, merge to `main`, then tag that commit `v<version>` and push the tag:
+2. Commit and merge to `main`.
+3. Write the release's notes ([below](#release-notes)) in a file outside the repository, tag the merged commit
+   `v<version>` with them as the tag's message, and push the tag:
 
    ```sh
-   git tag v0.2.0 && git push origin v0.2.0
+   git tag -a v0.2.0 --cleanup=verbatim -F ~/notes.md && git push origin v0.2.0
    ```
+
+   `--cleanup=verbatim` keeps the notes' `##` headings, which git would otherwise drop as comments.
 
 The workflow then:
 
 - checks the tag is `v` + nsh.json's `version`, and that `version` and `build` are higher than the last release tag's
-  (it fails otherwise: fix nsh.json, tag again), and that `release-notes/v<version>.md` is there;
+  (it fails otherwise: fix nsh.json, tag again), and that the tag is annotated and has notes;
 - fails while a secret below is missing: a release without a signed `latest.json` would leave every installed copy
   without updates;
 - packages `Jot.app` for arm64 and x86_64 with the native fingerprint, and makes of each the zip `install.sh`
@@ -90,9 +93,9 @@ fingerprint decides, in the app).
 
 ### Release notes
 
-A release's notes are `release-notes/v<version>.md`, written in the pull request that raises the version, so they are
-reviewed with it. The release shows them first, then GitHub's list of the pull requests since the last release,
-folded under "What's Changed", then the comparison with that release.
+A release's notes are the message of its tag; they are not kept in the repository. The release shows them first, then
+GitHub's list of the pull requests since the last release, folded under "What's Changed", then the comparison with that
+release.
 
 They are for people who use Jot: what changed for them, in their words, not the code's. Read the pull requests merged
 since the last tag (`git log --oneline v<last>..main`) and write:

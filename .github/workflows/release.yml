@@ -24,6 +24,7 @@ jobs:
       version: ${{ steps.check.outputs.version }}
       build: ${{ steps.check.outputs.build }}
       fingerprint: ${{ steps.check.outputs.fingerprint }}
+      notes: ${{ steps.check.outputs.notes }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -36,6 +37,8 @@ jobs:
           HAS_RELEASE_KEY: ${{ secrets.NSH_RELEASE_KEY != '' }}
           HAS_RELEASE_CERT: ${{ secrets.NSH_RELEASE_CERT != '' }}
           HAS_UPDATE_KEY: ${{ secrets.NSH_UPDATE_KEY != '' }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           version=$(jq -r .version nsh.json)
           build=$(jq -r .build nsh.json)
@@ -61,10 +64,16 @@ jobs:
               exit 1
             fi
           fi
-          # The notes lead the release: written with the version, in the pull request that raises it.
-          notes="release-notes/v$version.md"
-          if [ ! -s "$notes" ]; then
-            echo "::error file=nsh.json::$notes is missing or empty: write the release's notes there (CONTRIBUTING.md, Releasing), commit, and tag that commit"
+          # The notes lead the release: they are the tag's message (an annotated tag), read from GitHub, as the
+          # checkout may not keep the tag object. A signature, if any, is not part of them.
+          ref=$(gh api "repos/$GH_REPO/git/ref/tags/$GITHUB_REF_NAME" --jq '.object.type + " " + .object.sha')
+          notes=""
+          if [ "${ref%% *}" = tag ]; then
+            notes=$(gh api "repos/$GH_REPO/git/tags/${ref#* }" --jq .message |
+              sed '/^-----BEGIN [A-Z ]*SIGNATURE-----$/,$d')
+          fi
+          if [ -z "$(printf '%s' "$notes" | tr -d '[:space:]')" ]; then
+            echo "::error::$GITHUB_REF_NAME has no notes: tag again with the release's notes as its message (CONTRIBUTING.md, Releasing): git tag -a $GITHUB_REF_NAME --cleanup=verbatim -F notes.md"
             exit 1
           fi
           # Without the secrets nothing signs the manifest or the package, and the release would have no
@@ -83,6 +92,7 @@ jobs:
             echo "version=$version"
             echo "build=$build"
             echo "fingerprint=$fingerprint"
+            echo "notes=$(printf '%s\n' "$notes" | base64 | tr -d '\n')"
           } >> "$GITHUB_OUTPUT"
 
   package:
@@ -178,6 +188,7 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       BUILD: ${{ needs.prepare.outputs.build }}
       FINGERPRINT: ${{ needs.prepare.outputs.fingerprint }}
+      NOTES: ${{ needs.prepare.outputs.notes }}
     steps:
       - uses: actions/checkout@v7
 
@@ -268,10 +279,10 @@ jobs:
           for patch in dist/*.patch; do
             if [ -f "$patch" ]; then set -- "$@" "$patch"; fi
           done
-          # The notes written for this version, then GitHub's list of the pull requests, folded, then the comparison.
+          # The tag's notes, then GitHub's list of the pull requests, folded, then the comparison.
           generated=$(gh api "repos/$GH_REPO/releases/generate-notes" -f tag_name="$GITHUB_REF_NAME" --jq .body)
           {
-            cat "release-notes/v$VERSION.md"
+            printf '%s' "$NOTES" | base64 --decode
             printf '\n\n<details><summary>What'"'"'s Changed</summary>\n\n'
             printf '%s\n' "$generated" | grep -v '^\*\*Full Changelog\*\*' || true
             printf '\n</details>\n\n'
