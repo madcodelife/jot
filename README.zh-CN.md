@@ -12,6 +12,11 @@
 记过的，要么按回车新建一条。笔记是你选定的文件夹里的普通 Markdown 文件，你的 AI 应用（Claude、Cursor、Codex……）也能
 搜索、读取、追加同一批笔记，你和它们共用一个本子。
 
+<p align="center">
+  <img src="design/screenshots/light.png" alt="浅色模式、Indigo 主题下的 Jot 浮窗：最近的笔记，其中几条由 Claude、Claude Code 和 Cursor 写下" width="49%" align="top">
+  <img src="design/screenshots/dark.png" alt="深色模式、Tokyo Night 主题下的 Jot 浮窗：搜索 “week”" width="49%" align="top">
+</p>
+
 - **随处呼出** — 连按两下 ⌥，搜索和新建都在同一个输入框里，按 Esc 就收起。
 - **Markdown 实时预览** — 像 Typora 那样，光标所在处才显示 Markdown 符号。边写边保存。
 - **待办长在笔记里** — `- [ ] 交房租 明天 9:00` 就成了一条提醒，到点弹通知。中文、英文、日文的时间说法都认。
