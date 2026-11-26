@@ -31,7 +31,7 @@ import {
   undoTrash,
   binName,
 } from "../store";
-import { actionShortcuts, actionsReturn, actionsTarget, filteredActions, primaryAction, runShortcut, toggleActions, type Action } from "../actions";
+import { actionShortcuts, actionsReturn, actionsTarget, closeActions, filteredActions, primaryAction, runShortcut, toggleActions, type Action } from "../actions";
 import { ActionPanel, actionsHeight } from "./ActionPanel";
 import { DuePicker } from "./DuePicker";
 import { duePicker } from "../due";
@@ -226,7 +226,9 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
         if (untracked(renaming) !== null || untracked(duePicker)) return;
         toggleActions(untracked(stage) === "editor" && !untracked(fieldFocused) ? "editor" : "field");
       },
+      // The action panel, open, closes first: what ⌘↩ does is one of its items.
       "mod+enter": () => {
+        if (untracked(actionsTarget)) closeActions();
         if (untracked(stage) === "editor" && !untracked(fieldFocused)) toggleTaskAtCaret();
         else if (untracked(todoMode)) checkSelected();
         else createFromQuery();

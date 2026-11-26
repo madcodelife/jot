@@ -36,7 +36,7 @@ list:
   blank: 空白笔记
   downloading: "正在下载…"
   create: 新建「%{title}」
-  create_hint: 回车直接开始写
+  create_sub: 新的空白笔记
   today:
     one: 今天 %{count} 件待办
     other: 今天 %{count} 件待办
@@ -302,6 +302,7 @@ actions:
   trash: 移到%{bin}
   copied: 已复制
   create: 新建
+  create_titled: 新建「%{title}」
   todos: 查看待办
   open_note: 打开笔记
   tick: 勾选

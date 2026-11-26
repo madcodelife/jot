@@ -287,6 +287,7 @@ kbd+kbd{margin-left:.3em}
 mark{background:var(--mark);color:var(--mark-fg);border-radius:.25em;padding:0 .1em}
 .row.sel mark{background:var(--sel-mark-bg);color:var(--sel-mark-fg)}
 .row.new .t{font-weight:500}
+.row.new.sel .m{visibility:hidden}
 .row.arrive::before{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:0 0 0 2px var(--agent);opacity:0;animation:glow 1.6s ease-out}
 @keyframes glow{10%{opacity:1}100%{opacity:0}}
 .row.reading::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--agent) 35%,transparent) 50%,transparent 70%);background-size:250% 100%;animation:scan 1.1s ease-in-out 2}
@@ -1346,7 +1347,7 @@ Start a new session after registering and it’s ready.
       panel.style.setProperty('--rows',Math.max(1,rows.length));
       list.innerHTML=rows.map((r,i)=>{
         if(r.sum) return sumRow(i,i===sel);
-        if(r.create) return `<div class="row new${i===sel?' sel':''}" data-i="${i}" style="--i:${i}"><i class="ind"></i><div class="ic">${ICON_PLUS}</div><div class="tx"><span class="t">Create “${esc(r.create)}”</span><span class="s">Press Return to start writing</span></div><span class="m">${kx(L().create)}</span></div>`;
+        if(r.create) return `<div class="row new${i===sel?' sel':''}" data-i="${i}" style="--i:${i}"><i class="ind"></i><div class="ic">${ICON_PLUS}</div><div class="tx"><span class="t">Create “${esc(r.create)}”</span><span class="s">A new, empty note</span></div><span class="m">${kx(L().create)}</span></div>`;
         const n=r.n, cl=n.src==='claude';
         const cls=['row',i===sel?'sel':'',n.t===arriving?'arrive':'',n.t===readingTitle?'reading':''].join(' ');
         return `<div class="${cls}" data-i="${i}" style="--i:${i}"><i class="ind"></i><div class="ic${cl?' cl':''}">${cl?ICON_SPARK:ICON_DOC}</div><div class="tx"><span class="t">${hl(n.t,r.terms)}</span><span class="s">${hl(snippet(n,r.terms),r.terms)}</span></div><span class="m">${esc(n.m)}</span></div>`;
