@@ -6,7 +6,7 @@
 import { batch, signal, untracked, type Bounds, type ViewRef } from "nsh";
 import { t } from "nsh/i18n";
 import type { Todo } from "jot/native";
-import { morphNext } from "./ui/motion";
+import { morphNext, settleMs } from "./ui/motion";
 import { T } from "./ui/tokens";
 import { errorCode, errorMessage, focusRequest, keySteps, notes, notice, refresh, selected, todoItems } from "./store";
 import { dueValue, parseDue } from "./time";
@@ -94,6 +94,11 @@ export function pickDue(due: Date | null) {
   writeTodoDue(target.todo, due);
 }
 
+/** The to-do view's row (its key) moving to its new group after its time changed: lifted while it moves, `landed`
+ * once it is there (its lifted look then fades), until that has faded. */
+export const regrouping = signal<{ key: string; landed: boolean } | null>(null);
+let landing: ReturnType<typeof setTimeout>[] = [];
+
 /** Sets (or removes) the time of a to-do of the to-do view through the store; its row follows to its new group, selected. */
 export function writeTodoDue(todo: Todo, due: Date | null) {
   const n = untracked(notes);
@@ -107,13 +112,21 @@ export function writeTodoDue(todo: Todo, due: Date | null) {
     refresh();
     return;
   }
-  // The row moves to its new group; the selection goes with it, kept in view.
-  morphNext(T.spring.collapse);
+  // The row moves to its new group, lifted over the rows it passes until it lands; the selection goes with it, kept
+  // in view.
+  const key = `${todo.note}\u0000${todo.line}`;
+  morphNext(T.spring.regroup);
   batch(() => {
     notice.set(null);
+    regrouping.set({ key, landed: false });
     refresh();
   });
-  const key = `${todo.note}\u0000${todo.line}`;
+  for (const timer of landing) clearTimeout(timer);
+  const lands = settleMs(T.spring.regroup);
+  landing = [
+    setTimeout(() => regrouping.set({ key, landed: true }), lands),
+    setTimeout(() => regrouping.set(null), lands + T.timing.liftOut),
+  ];
   const item = untracked(todoItems).find((i) => i.kind === "todo" && i.key === key);
   if (item?.kind === "todo") {
     selected.set(item.index);

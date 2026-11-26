@@ -2,7 +2,7 @@
 // list, a note open), the query and the selection, and what the user does
 // with them. Components read these signals; only the functions below write
 // them, so every change goes through one place.
-import { batch, computed, platform, reduceMotion, signal, Storage, untracked } from "nsh";
+import { batch, computed, platform, signal, Storage, untracked } from "nsh";
 import { t } from "nsh/i18n";
 import { Folder, Notes, Reminders, Summon, type DueEvent, type ICloudDrive, type MovedNotes, type NoteMeta, type Todo, type TrashedNote } from "jot/native";
 import { morphNext } from "./ui/motion";
@@ -526,39 +526,43 @@ export function save(title: string, body: string) {
   refresh();
 }
 
-/** Ticks a to-do in the to-do view: it shows checked, then its row folds away. */
+/** From a to-do ticked in the to-do view until its row folds away: its checkbox bursts, a line strikes it through, and
+ * after a pause its row slides out while it fades; the fold follows the fade (`TodoRow` runs the rest). */
+export function tickFoldAfter(): number {
+  const tick = T.timing.tick;
+  return tick.strikeAfter + tick.strike + tick.slideAfter + tick.fadeAfter + tick.fade;
+}
+
+/** Ticks a to-do in the to-do view: it shows checked and slides out, then its row folds away. A locked note's stays as
+ * it is, unticked. */
 export function checkTodo(todo: Todo) {
   const n = untracked(notes);
   if (!n) return;
   const key = stamp(todo);
   if (untracked(checking).has(key)) return;
-  checking.update((s) => new Set([...s, key]));
   try {
     n.setTodoDone(todo.note, todo.line, todo.text, true);
   } catch (error) {
-    // A locked note keeps its to-dos as they are; one that changed under it (`Changed`) shows as it is now.
+    // A locked note keeps its to-dos as they are (the row never shows ticked); one that changed under it (`Changed`)
+    // shows as it is now.
     if (errorCode(error) === "ERR_JOT_LOCKED") {
       notice.set(t("lock.todo", { note: todo.note }));
-      checking.update((s) => {
-        const next = new Set(s);
-        next.delete(key);
-        return next;
-      });
       return;
     }
   }
-  refresh();
-  setTimeout(
-    () => {
-      morphNext(T.spring.collapse);
-      checking.update((s) => {
-        const next = new Set(s);
-        next.delete(key);
-        return next;
-      });
-    },
-    reduceMotion() ? 0 : 280,
-  );
+  batch(() => {
+    checking.update((s) => new Set([...s, key]));
+    refresh();
+  });
+  setTimeout(() => {
+    // The rows below close the gap as the group's count flips (and its header folds when it empties).
+    morphNext(T.spring.collapse);
+    checking.update((s) => {
+      const next = new Set(s);
+      next.delete(key);
+      return next;
+    });
+  }, tickFoldAfter());
 }
 
 /** ⌘↩ in the to-do view: ticks the selected to-do. */

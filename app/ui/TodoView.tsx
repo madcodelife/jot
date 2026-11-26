@@ -1,16 +1,20 @@
 // The to-do view ("待办" or "/todo" in the field): every open to-do by
 // group (overdue, today, tomorrow, later, no time), each with its note and
-// its due time. Ticking one shows it checked for a moment, then its row
-// folds away (the store animates the fold). Pressing the due time (or the
-// alarm a selected row without one shows) opens the reminder time picker.
-import { cleanup, effect, Scroll, Text, token, untracked, View, type ScrollRef, type ViewRef } from "nsh";
+// its due time. Its headers and rows rise in one after another as it opens.
+// Ticking one bursts its checkbox, strikes its text through and slides its
+// row out, then the row folds away (the store times the fold) and its
+// group's count flips. Pressing the due time (or the alarm a selected row
+// without one shows) opens the reminder time picker; a new time flips the
+// chip and lifts the row into its new group.
+import { Animated, cleanup, computed, createAnimatedValue, effect, reduceMotion, Scroll, Text, token, untracked, View, type ScrollRef, type ViewRef } from "nsh";
 import type { Todo } from "jot/native";
-import { clearTodoAnchor, openTodoDue, setTodoAnchor } from "../due";
-import { activate, checking, checkTodo, keySteps, now, selected, todoItems, type TodoItem } from "../store";
+import { clearTodoAnchor, openTodoDue, regrouping, setTodoAnchor } from "../due";
+import { activate, checking, checkTodo, entering, keySteps, listEntrance, now, selected, stage, todoItems, type TodoItem } from "../store";
 import { t } from "nsh/i18n";
 import { dueLabel, groupLabel, parseDue, type TodoGroup } from "../time";
 import { Icon } from "./icons";
-import { TodoCheck } from "./parts";
+import { fadeTo, springConfig } from "./motion";
+import { DRAW, FlipText, StrikeLine, TodoCheck, type Flip } from "./parts";
 import { T } from "./tokens";
 
 type HeaderItem = Extract<TodoItem, { kind: "header" }>;
@@ -81,10 +85,12 @@ export function TodoView() {
       >
         <View style={{ paddingTop: 7, paddingHorizontal: 8 }}>
           <Each of={todoItems()} key={(i) => (i.kind === "header" ? `h:${i.group}` : i.key)}>
-            {(item) => (
+            {(item, index) => (
               <>
-                <If when={asHeader(item())}>{(h: () => HeaderItem) => <GroupHeader group={h().group} count={h().count} />}</If>
-                <If when={asTodo(item())}>{(t: () => TodoRowItem) => <TodoRow item={t()} />}</If>
+                <If when={asHeader(item())}>
+                  {(h: () => HeaderItem) => <GroupHeader group={h().group} count={h().count} index={index()} />}
+                </If>
+                <If when={asTodo(item())}>{(t: () => TodoRowItem) => <TodoRow item={t()} index={index()} />}</If>
               </>
             )}
           </Each>
@@ -97,74 +103,191 @@ export function TodoView() {
 const asHeader = (i: TodoItem) => (i.kind === "header" ? i : null);
 const asTodo = (i: TodoItem) => (i.kind === "todo" ? i : null);
 
-function GroupHeader(props: { group: TodoGroup; count: number }) {
+/** How far each item of the to-do view rises from as the view opens, in points. */
+const RISE_FROM = 10;
+
+/**
+ * The to-do view opening: the item at `index` (headers count) waits its turn, `T.timing.stagger` after the one above,
+ * then rises in while it fades in. An item made later (a search, a tick, a new time) shows at once, as the items it
+ * joins: nothing but the opening replays it. With reduced motion it only fades in.
+ */
+function useEntrance(index: () => number) {
+  const opacity = createAnimatedValue(1);
+  const rise = createAnimatedValue(0);
+  // Hidden: the items wait invisible, so the next summon never shows last time's for a frame before they rise in.
+  effect(() => {
+    if (stage() === "hidden") opacity.set(0);
+  });
+  const born = untracked(listEntrance);
+  effect(() => {
+    const entrance = listEntrance();
+    if (!entrance || (entrance === born && !entering())) return;
+    const delay = untracked(index) * T.timing.stagger;
+    opacity.set(0);
+    if (reduceMotion()) {
+      void fadeTo(opacity, 1, T.timing.riseFade, delay);
+      return;
+    }
+    rise.set(RISE_FROM);
+    const coming = Animated.sequence([
+      Animated.delay(delay),
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 1, duration: T.timing.riseFade, easing: "easeOut" }),
+        Animated.spring(rise, { toValue: 0, ...springConfig(T.spring.rise) }),
+      ]),
+    ]);
+    coming.start();
+    return () => coming.stop();
+  });
+  return { opacity, rise };
+}
+
+/** A group's count flips as it changes: the old number lifts out, the new one springs up from below. */
+const COUNT_FLIP: Flip = { lift: 6, out: T.timing.flip.countOut, rise: 8, in: T.timing.flip.countIn, spring: T.spring.count };
+
+function GroupHeader(props: { group: TodoGroup; count: number; index: number }) {
+  const entrance = useEntrance(() => props.index);
   return (
     <View
       role="header"
       class="flex-row items-end"
-      style={{ height: T.size.groupHeader, gap: 7, paddingHorizontal: 14, paddingBottom: 4 }}
+      style={{
+        height: T.size.groupHeader,
+        gap: 7,
+        paddingHorizontal: 14,
+        paddingBottom: 4,
+        opacity: entrance.opacity,
+        transform: [{ translateY: entrance.rise }],
+      }}
     >
       <Text class={`font-semibold ${props.group === "late" ? "text-late" : "text-glass-muted"}`} style={{ fontSize: T.type.meta }}>
         {groupLabel(props.group)}
       </Text>
-      <Text
+      <FlipText
+        text={String(props.count)}
+        flip={COUNT_FLIP}
         class={props.group === "late" ? "text-late" : "text-glass-muted"}
         style={{ fontSize: T.type.meta, fontVariant: ["tabular-nums"] }}
-      >
-        {String(props.count)}
-      </Text>
+      />
     </View>
   );
 }
 
-function TodoRow(props: { item: TodoRowItem }) {
+/** A ticked row slides this far right as it goes, in points; its text and note dim to `TICK_DIM`. */
+const TICK_SLIDE = 60;
+const TICK_DIM = 0.45;
+
+function TodoRow(props: { item: TodoRowItem; index: number }) {
   const todo = () => props.item.todo;
   const isSelected = () => selected() === props.item.index;
   const onAccent = () => isSelected() && T.selection === "fill";
   const ticking = () => checking().has(props.item.key);
+  const entrance = useEntrance(() => props.index);
+
+  // Ticked: a line strikes the text through from its left while the text and the note dim; a pause, then the row
+  // slides out to the right as it fades. The store folds it away once it has faded (`checkTodo`). With reduced
+  // motion the line fades in and the row fades out where it is.
+  const strike = createAnimatedValue(0);
+  const dim = createAnimatedValue(1);
+  const slide = createAnimatedValue(0);
+  const leave = createAnimatedValue(1);
+  effect(() => {
+    if (!ticking()) return;
+    const tick = T.timing.tick;
+    const still = reduceMotion();
+    const out = tick.strikeAfter + tick.strike + tick.slideAfter;
+    const going = Animated.parallel([
+      Animated.timing(strike, { toValue: 1, duration: tick.strike, delay: tick.strikeAfter, easing: still ? "easeOut" : DRAW }),
+      Animated.timing(dim, { toValue: TICK_DIM, duration: tick.strike, delay: tick.strikeAfter, easing: "easeOut" }),
+      Animated.timing(leave, { toValue: 0, duration: tick.fade, delay: out + tick.fadeAfter, easing: "easeOut" }),
+      ...(still ? [] : [Animated.sequence([Animated.delay(out), Animated.spring(slide, { toValue: TICK_SLIDE, ...springConfig(T.spring.tickSlide) })])]),
+    ]);
+    going.start();
+    return () => going.stop();
+  });
+
+  // A new time moves the row to its new group (`writeTodoDue`): it is lifted while it moves, above the rows it passes,
+  // on a glass of its own with a soft shadow, which fade in as it leaves and out once it has landed.
+  const moving = computed(() => {
+    const r = regrouping();
+    return r?.key === props.item.key ? r : null;
+  });
+  const raised = () => moving() !== null;
+  const lift = createAnimatedValue(0);
+  effect(() => {
+    const r = moving();
+    if (!r) {
+      lift.set(0);
+      return;
+    }
+    void fadeTo(lift, r.landed ? 0 : 1, r.landed ? T.timing.liftOut : T.timing.liftIn);
+  });
+
+  const ink = () => (onAccent() ? "text-on-accent" : "text-glass-fg");
   return (
     <View
-      testID={`todo:${todo().text}`}
-      role="button"
-      accessibilityLabel={t("todo.row", { text: todo().text, note: todo().note })}
-      accessibilityState={{ selected: isSelected() }}
-      onPress={() => activate(props.item.index)}
-      onMouseEnter={() => selected.set(props.item.index)}
-      class="flex-row items-center"
-      classList={{
-        "bg-primary": onAccent(),
-        "bg-glass-hover": isSelected() && T.selection !== "fill",
+      style={{
+        zIndex: ticking() || raised() ? 1 : 0,
+        opacity: entrance.opacity.mul(leave),
+        transform: [{ translateX: slide }, { translateY: entrance.rise }],
       }}
-      style={{ height: T.size.todoRow, gap: 11, paddingHorizontal: 14, borderRadius: T.radius.row, borderCurve: "continuous" }}
     >
-      <If when={T.selection === "bar" && isSelected()}>
-        <View class="absolute bg-primary" style={{ left: 2, top: T.size.todoRow / 2 - 8, width: 3, height: 16, borderRadius: 2 }} />
-      </If>
-      <TodoCheck
-        testID={`check:${todo().text}`}
-        checked={ticking() || todo().done}
-        label={t("todo.tick", { text: todo().text })}
-        onCheck={() => checkTodo(todo())}
-        size={18}
-        onAccent={onAccent()}
-      />
-      <View class="flex-1 flex-row items-baseline" style={{ minWidth: 0, gap: 9 }}>
-        <Text
-          class={onAccent() ? "text-on-accent" : "text-glass-fg"}
-          style={{ numberOfLines: 1,
-            flexShrink: 1,
-            fontSize: T.type.todo,
-            textDecorationLine: ticking() ? "line-through" : "none",
-            opacity: ticking() ? 0.6 : 1,
+      <If when={raised()}>
+        <View
+          class="absolute bg-glass-fill"
+          style={{
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            borderRadius: T.radius.row,
+            borderCurve: "continuous",
+            opacity: lift,
+            boxShadow: [{ x: 0, y: 8, blur: 24, color: token("glass-shadow") }],
           }}
-        >
-          {todo().text}
-        </Text>
-        <Text class={onAccent() ? "text-on-accent-muted" : "text-glass-muted"} style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 0 }}>
-          {todo().note}
-        </Text>
+        />
+      </If>
+      <View
+        testID={`todo:${todo().text}`}
+        role="button"
+        accessibilityLabel={t("todo.row", { text: todo().text, note: todo().note })}
+        accessibilityState={{ selected: isSelected() }}
+        onPress={() => activate(props.item.index)}
+        onMouseEnter={() => selected.set(props.item.index)}
+        class="flex-row items-center"
+        classList={{
+          "bg-primary": onAccent(),
+          "bg-glass-hover": isSelected() && T.selection !== "fill",
+        }}
+        style={{ height: T.size.todoRow, gap: 11, paddingHorizontal: 14, borderRadius: T.radius.row, borderCurve: "continuous" }}
+      >
+        <If when={T.selection === "bar" && isSelected()}>
+          <View class="absolute bg-primary" style={{ left: 2, top: T.size.todoRow / 2 - 8, width: 3, height: 16, borderRadius: 2 }} />
+        </If>
+        <TodoCheck
+          testID={`check:${todo().text}`}
+          checked={ticking() || todo().done}
+          label={t("todo.tick", { text: todo().text })}
+          onCheck={() => checkTodo(todo())}
+          size={18}
+          onAccent={onAccent()}
+        />
+        <View class="flex-1 flex-row items-baseline" style={{ minWidth: 0, gap: 9 }}>
+          <View style={{ flexShrink: 1, minWidth: 0 }}>
+            <Text class={ink()} style={{ numberOfLines: 1, fontSize: T.type.todo, opacity: dim }}>
+              {todo().text}
+            </Text>
+            <StrikeLine progress={strike} class={onAccent() ? "bg-on-accent" : "bg-glass-fg"} opacity={dim} />
+          </View>
+          <Text
+            class={onAccent() ? "text-on-accent-muted" : "text-glass-muted"}
+            style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 0, opacity: dim }}
+          >
+            {todo().note}
+          </Text>
+        </View>
+        <DueButton item={props.item} selected={isSelected()} onAccent={onAccent()} />
       </View>
-      <DueButton item={props.item} selected={isSelected()} onAccent={onAccent()} />
     </View>
   );
 }
@@ -209,7 +332,10 @@ function DueButton(props: { item: TodoRowItem; selected: boolean; onAccent: bool
   );
 }
 
-/** A to-do's due time as a small chip (red once it is past); nothing without one. */
+/** A due chip's label flips to a new time: the old one lifts out, the new one springs up from below. */
+const CHIP_FLIP: Flip = { lift: 8, out: T.timing.flip.chipOut, rise: 8, in: T.timing.flip.chipIn, spring: T.spring.chip };
+
+/** A to-do's due time as a small chip (red once it is past; its label flips to a new time); nothing without one. */
 export function DueChip(props: { todo: Todo; group: TodoGroup | null; onAccent: boolean; size?: number }) {
   const due = () => parseDue(props.todo.due);
   const late = () => !props.todo.done && (due()?.getTime() ?? Infinity) < now();
@@ -232,9 +358,12 @@ export function DueChip(props: { todo: Todo; group: TodoGroup | null; onAccent: 
           tooltip={t("todo.due_tip", { when: dueLabel(d(), null, new Date(now())) })}
         >
           <Icon name="alarm" size={size() * 1.05} tint={tint()} />
-          <Text class={`font-medium ${ink()}`} style={{ fontSize: size(), fontVariant: ["tabular-nums"] }}>
-            {dueLabel(d(), props.group, new Date(now()))}
-          </Text>
+          <FlipText
+            text={dueLabel(d(), props.group, new Date(now()))}
+            flip={CHIP_FLIP}
+            class={`font-medium ${ink()}`}
+            style={{ fontSize: size(), fontVariant: ["tabular-nums"] }}
+          />
         </View>
       )}
     </If>
