@@ -223,8 +223,8 @@ for the sounds the app plays itself.
 The chime is a glass struck lightly three times, E6, G♯6 and B6 rising 110 ms apart, each ringing about half a second;
 1.1 s in all, at −9 dBFS; mono 16-bit 22.05 kHz WAV, 48 KB. Both of Jot's sounds share that voice: a sine
 frequency-modulated at 3.5 times its pitch (inharmonic, so it sounds like glass), the modulation dying within tens of
-milliseconds, and a twin 2 Hz above whose beating makes the ring shimmer as it fades. `design/sound/build.py` makes it, and the done sound, with Python's standard library alone. `nsh
-package` copies a WAV the app imports into the bundle's `Contents/Resources`, where macOS finds a notification's sound
+milliseconds, and a twin 2 Hz above whose beating makes the ring shimmer as it fades. `design/sound/build.py` makes
+it, and the done sound, with Python's standard library alone. `nsh package` copies a WAV the app imports into the bundle's `Contents/Resources`, where macOS finds a notification's sound
 by its file name; an OTA package cannot put it there, so `assets/` is in the native fingerprint
 ([Updates](#updates-appupdatests)).
 
