@@ -84,9 +84,10 @@ jobs:
           path: ~/.nsh
           key: ${{ steps.nsh-cache.outputs.cache-primary-key }}
 
+  # Packages are built on `main`, for tags and by hand; a pull request is only tested.
   package:
     name: Package Jot.app (${{ matrix.arch }})
-    if: github.event.action != 'closed'
+    if: github.event_name != 'pull_request'
     runs-on: macos-latest
     timeout-minutes: 90
     strategy:
