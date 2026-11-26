@@ -1,7 +1,7 @@
 // Jot's settings: each a signal, kept in NSH's Storage under its own key
 // (`jot.*`), and applied the moment it changes: the language (`setLocale`),
 // the appearance and the theme, the reminders' channels and their default
-// time, and dictation's hold key and language. The notes folder is the store's (`jot.dir`, `app/store.ts`).
+// time, dictation's hold key and language, and Jot's sound effects. The notes folder is the store's (`jot.dir`, `app/store.ts`).
 // Whether AI apps may move notes to the Trash and rewrite them lives in a file `jot-mcp` reads too (`AiAccess`).
 import { batch, signal, Storage, untracked } from "nsh";
 import { setLocale } from "nsh/i18n";
@@ -22,6 +22,7 @@ export const KEYS = {
   defaultTime: "jot.defaultTime",
   holdToTalk: "jot.voice.hold",
   speechLanguage: "jot.voice.language",
+  soundEffects: "jot.soundEffects",
 } as const;
 
 /** The language Jot shows in. */
@@ -36,6 +37,8 @@ export const notificationsOn = signal(true);
 export const islandOn = signal(true);
 /** Holding ⌥ dictates (in the panel and the note), and a double press held does anywhere (macOS). */
 export const holdToTalk = signal(true);
+/** Jot plays its sound effects (a to-do ticked: `app/sounds.ts`); the reminders' notifications sound as the system says. */
+export const soundEffectsOn = signal(true);
 /** The language dictation listens for: "auto" follows the input source (`app/speechlang.ts`), else one of `SPEECH_LANGUAGES`. */
 export const speechLanguage = signal<SpeechLanguageChoice>("auto");
 
@@ -62,7 +65,7 @@ const flag = (v: string | null, fallback: boolean) => (v === null ? fallback : v
 
 /** Reads the stored settings and applies them, before the app shows anything. */
 export async function loadSettings() {
-  const [lang, look, palette, notify, island, time, hold, speech] = await Promise.all([
+  const [lang, look, palette, notify, island, time, hold, speech, effects] = await Promise.all([
     Storage.getItem(KEYS.language),
     Storage.getItem(KEYS.appearance),
     Storage.getItem(KEYS.theme),
@@ -71,6 +74,7 @@ export async function loadSettings() {
     Storage.getItem(KEYS.defaultTime),
     Storage.getItem(KEYS.holdToTalk),
     Storage.getItem(KEYS.speechLanguage),
+    Storage.getItem(KEYS.soundEffects),
   ]);
   batch(() => {
     if (isLanguage(lang)) language.set(lang);
@@ -81,6 +85,7 @@ export async function loadSettings() {
     if (isTime(time)) defaultTime.set(time);
     holdToTalk.set(flag(hold, true));
     if (isSpeechLanguage(speech)) speechLanguage.set(speech);
+    soundEffectsOn.set(flag(effects, true));
     aiTrashAndRewrite.set(AiAccess.allowsTrashAndRewrite());
   });
   applyLanguage(untracked(language));
@@ -147,6 +152,11 @@ export function setDefaultTime(value: string) {
 export function setHoldToTalk(on: boolean) {
   holdToTalk.set(on);
   void Storage.setItem(KEYS.holdToTalk, on ? "1" : "0");
+}
+
+export function setSoundEffects(on: boolean) {
+  soundEffectsOn.set(on);
+  void Storage.setItem(KEYS.soundEffects, on ? "1" : "0");
 }
 
 export function setSpeechLanguage(value: SpeechLanguageChoice) {

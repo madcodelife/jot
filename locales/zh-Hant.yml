@@ -183,6 +183,10 @@ settings:
   login:
     label: 登入時開啟
     hint: 登入後 Jot 會待在選單列
+  sound:
+    label: 聲音
+    effects: 音效
+    effects_hint: 勾選待辦時輕輕響一聲
   language:
     label: 語言
     interface: 介面語言

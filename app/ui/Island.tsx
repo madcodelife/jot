@@ -19,6 +19,7 @@ import { displays, Window, type Display, type WindowRef } from "nsh/desktop";
 import { t } from "nsh/i18n";
 import { Folder, type AgentAction, type AgentActivity, type Todo } from "jot/native";
 import { errorCode, errorMessage, notes, open, refresh, summon } from "../store";
+import { playDone } from "../sounds";
 import { hm, parseDue } from "../time";
 import { Icon } from "./icons";
 import { fadeTo, morphNext, springConfig } from "./motion";
@@ -267,6 +268,7 @@ function tick(todo: Todo) {
   }
   refresh();
   done.set(true);
+  playDone();
   for (const t of timers) clearTimeout(t);
   timers = [];
   later(T.timing.remind.doneHold, close);

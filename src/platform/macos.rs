@@ -1,6 +1,7 @@
 //! macOS: the Accessibility permission, AppKit's event monitors, the
 //! main dispatch queue for the hold's timer, and the keyboard input source
-//! (Carbon's Text Input Sources), and whether iCloud Drive is on.
+//! (Carbon's Text Input Sources), whether iCloud Drive is on, and whether
+//! interface sound effects are.
 
 use std::cell::{Cell, RefCell};
 use std::ffi::c_void;
@@ -44,6 +45,11 @@ unsafe extern "C" {
     fn CFStringGetTypeID() -> usize;
     fn CFArrayGetCount(array: CfRef) -> isize;
     fn CFArrayGetValueAtIndex(array: CfRef, index: isize) -> CfRef;
+    /// A boolean preference of `app` (or of every app); `valid` says whether
+    /// it is there and a boolean.
+    fn CFPreferencesGetAppBooleanValue(key: CfRef, app: CfRef, valid: *mut u8) -> u8;
+    /// The domain of every app (the global one, `defaults read -g`).
+    static kCFPreferencesAnyApplication: CfRef;
 }
 
 // libdispatch, part of libSystem.
@@ -286,4 +292,22 @@ pub(crate) fn icloud_drive() -> crate::folder::Drive {
 /// The user's trash, which Finder opens: `~/.Trash`.
 pub(crate) fn trash_folder() -> Option<std::path::PathBuf> {
     std::env::home_dir().map(|home| home.join(".Trash"))
+}
+
+/// Whether "Play user interface sound effects" (System Settings → Sound) is on: the global preference
+/// `com.apple.sound.uiaudio.enabled`, absent (on) until the user first turns it off. Any thread; it reads the
+/// preferences' cache, which the system keeps current.
+pub(crate) fn ui_sounds_on() -> bool {
+    let key = NSString::from_str("com.apple.sound.uiaudio.enabled");
+    let mut valid = 0u8;
+    // SAFETY: `key` is a valid NSString (a CFString, toll-free bridged) that outlives the call; the domain is the
+    // framework's constant, which lives as long as the process; `valid` is a live `Boolean`.
+    let on = unsafe {
+        CFPreferencesGetAppBooleanValue(
+            Retained::as_ptr(&key).cast(),
+            kCFPreferencesAnyApplication,
+            &mut valid,
+        )
+    };
+    valid == 0 || on != 0
 }

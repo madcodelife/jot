@@ -185,6 +185,10 @@ settings:
   login:
     label: 登录时打开
     hint: 登录后 Jot 待在菜单栏里
+  sound:
+    label: 声音
+    effects: 音效
+    effects_hint: 勾选待办时轻轻响一声
   language:
     label: 语言
     interface: 界面语言

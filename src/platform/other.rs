@@ -1,6 +1,7 @@
 //! Platforms without a native implementation yet: no permission is
 //! needed, double taps and holds are not heard, the input source's
-//! language is unknown, and there is no iCloud Drive.
+//! language is unknown, there is no iCloud Drive, and nothing turns
+//! interface sounds off.
 
 use crate::summon::SummonKey;
 
@@ -39,4 +40,9 @@ pub(crate) fn icloud_drive() -> crate::folder::Drive {
 /// No trash folder to open here (the freedesktop.org trash and the Recycle Bin are not opened yet).
 pub(crate) fn trash_folder() -> Option<std::path::PathBuf> {
     None
+}
+
+/// No system setting for interface sounds here: Jot's own setting decides.
+pub(crate) fn ui_sounds_on() -> bool {
+    true
 }
