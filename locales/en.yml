@@ -237,7 +237,7 @@ settings:
     themes_credit: "Theme colors after GitHub Theme, One Dark Pro, Atom One Light, Dracula, Tokyo Night, Catppuccin and Gruvbox (MIT)."
 
 theme:
-  default: Indigo
+  default: Default
   github: GitHub
   one: One
   dracula: Dracula

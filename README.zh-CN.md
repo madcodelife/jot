@@ -13,7 +13,7 @@
 搜索、读取、追加同一批笔记，你和它们共用一个本子。
 
 <p align="center">
-  <img src="design/screenshots/light.png" alt="浅色模式、Indigo 主题下的 Jot 浮窗：最近的笔记，其中几条由 Claude、Claude Code 和 Cursor 写下" width="49%" align="top">
+  <img src="design/screenshots/light.png" alt="浅色模式下的 Jot 浮窗：最近的笔记，其中几条由 Claude、Claude Code 和 Cursor 写下" width="49%" align="top">
   <img src="design/screenshots/dark.png" alt="深色模式、Tokyo Night 主题下的 Jot 待办视图：未完成的待办按过期、今天、明天、以后分组，每条带着所在笔记和提醒时间" width="49%" align="top">
 </p>
 
@@ -53,7 +53,7 @@ curl -fsSL https://madcodelife.github.io/jot/install.sh | sh
 - **连接 AI 应用**：设置 → AI 应用，每个点一下。然后就可以对它们说「把这个命令记到 Jot」「提醒我周五交周报」
   「我今天有什么要做的」。
 
-深浅色外观，浮窗主题有 Jot 自己的靛蓝、GitHub、One、Dracula、Tokyo Night、Catppuccin、Gruvbox 和高对比。界面支持
+深浅色外观，浮窗主题有默认的 macOS 系统蓝、GitHub、One、Dracula、Tokyo Night、Catppuccin、Gruvbox 和高对比。界面支持
 简体中文、繁体中文、英文和日文。
 
 ## 你的笔记

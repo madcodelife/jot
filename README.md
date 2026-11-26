@@ -14,7 +14,7 @@ a folder you choose, and your AI apps (Claude, Cursor, Codex, …) search, read 
 they keep one notebook between you.
 
 <p align="center">
-  <img src="design/screenshots/light.png" alt="Jot's panel in light mode with the Indigo theme: recent notes, some written by Claude, Claude Code and Cursor" width="49%" align="top">
+  <img src="design/screenshots/light.png" alt="Jot's panel in light mode: recent notes, some written by Claude, Claude Code and Cursor" width="49%" align="top">
   <img src="design/screenshots/dark.png" alt="Jot's to-do view in dark mode with the Tokyo Night theme: open to-dos grouped as overdue, today, tomorrow and upcoming, each with its note and reminder time" width="49%" align="top">
 </p>
 
@@ -58,8 +58,8 @@ notarized by Apple, so run `xattr -dr com.apple.quarantine /Applications/Jot.app
 - **Connect your AI apps**: Settings → AI Apps, one click each. Then ask them things like "jot this command down",
   "remind me to send the weekly report on Friday" or "what's on my list today?".
 
-Light and dark, with Jot's own Indigo, GitHub, One, Dracula, Tokyo Night, Catppuccin, Gruvbox and High Contrast
-themes. In English, Simplified and Traditional Chinese and Japanese.
+Light and dark, with Jot's default in macOS system blue, GitHub, One, Dracula, Tokyo Night, Catppuccin, Gruvbox and
+High Contrast themes. In English, Simplified and Traditional Chinese and Japanese.
 
 ## Your notes
 
