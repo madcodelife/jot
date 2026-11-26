@@ -18,10 +18,14 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # A pull request is checked and tested before it merges: a push to main or a tag only packages.
+  # A pull request is checked and tested before it merges. On `main` it runs again beside the packages, which do not
+  # wait for it: what it saves is the cache every pull request starts from. A tag only packages.
+  #
+  # Caches: a pull request can only restore those of its own branch and of `main`, and the repository keeps 10 GB of
+  # them. So only `main` saves (the Rust builds, ~1 GB a job, and the NSH build), and pull requests restore them.
   test:
     name: Check and test
-    if: github.event_name != 'push'
+    if: github.ref_type != 'tag'
     runs-on: macos-latest
     timeout-minutes: 90
     steps:
@@ -32,18 +36,24 @@ jobs:
           components: rustfmt, clippy
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Which NSH
         id: nsh
         run: echo "which=$(scripts/install-nsh.sh --which)" >> "$GITHUB_OUTPUT"
 
-      # A commit of NSH is built from source: keep the build for the next run.
-      - uses: actions/cache@v6
+      # A commit of NSH is built from source. Without a build of that commit, an older one is restored: the script
+      # checks the new commit out over it and cargo rebuilds only what changed.
+      - uses: actions/cache/restore@v6
+        id: nsh-cache
         with:
           path: ~/.nsh
           key: nsh-${{ runner.os }}-${{ runner.arch }}-${{ steps.nsh.outputs.which }}
+          restore-keys: nsh-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install NSH
+        id: install-nsh
         run: |
           scripts/install-nsh.sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
@@ -59,6 +69,15 @@ jobs:
 
       - name: nsh test
         run: nsh test
+
+      # After the tests, so the runtimes `nsh test` built into the checkout are kept too; even when they fail.
+      - uses: actions/cache/save@v6
+        if: >-
+          always() && github.ref == 'refs/heads/main' && steps.install-nsh.outcome == 'success'
+          && steps.nsh-cache.outputs.cache-hit != 'true'
+        with:
+          path: ~/.nsh
+          key: ${{ steps.nsh-cache.outputs.cache-primary-key }}
 
   package:
     name: Package Jot.app (${{ matrix.arch }})
@@ -83,16 +102,18 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: package-${{ matrix.arch }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Which NSH
         id: nsh
         run: echo "which=$(scripts/install-nsh.sh --which)" >> "$GITHUB_OUTPUT"
 
-      # A commit of NSH is built from source: keep the build for the next run.
-      - uses: actions/cache@v6
+      # The build of NSH that `test` saves on `main` (see there).
+      - uses: actions/cache/restore@v6
         with:
           path: ~/.nsh
           key: nsh-${{ runner.os }}-${{ runner.arch }}-${{ steps.nsh.outputs.which }}
+          restore-keys: nsh-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install NSH
         run: |

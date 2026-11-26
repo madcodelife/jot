@@ -46,12 +46,16 @@ case "$source" in
       echo "NSH $rev is checked out"
     else
       echo "Building NSH $rev from source"
-      rm -rf "$dir/source"
-      mkdir -p "$dir/source"
-      git -C "$dir/source" init -q
-      git -C "$dir/source" remote add origin https://github.com/longbridge/nsh.git
+      # Another commit's checkout moves to this one and keeps its target folder, so cargo rebuilds only what changed
+      # (CI restores an older build when it has none of this commit).
+      if [ ! -d "$dir/source/.git" ]; then
+        rm -rf "$dir/source"
+        mkdir -p "$dir/source"
+        git -C "$dir/source" init -q
+        git -C "$dir/source" remote add origin https://github.com/longbridge/nsh.git
+      fi
       git -C "$dir/source" fetch -q --depth 1 origin "$rev"
-      git -C "$dir/source" checkout -q --detach FETCH_HEAD
+      git -C "$dir/source" checkout -q -f --detach FETCH_HEAD
     fi
     # Cargo's own target folder, whatever the caller's CARGO_TARGET_DIR: the CLI's runtimes are built there.
     (cd "$dir/source" && env -u CARGO_TARGET_DIR cargo build --release --locked -p nsh-cli)
