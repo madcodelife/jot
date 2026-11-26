@@ -1,13 +1,16 @@
 // The list under the search field: today's to-dos, the notes that match,
 // and "new note" for a title no note has. With a note open the same rows
 // narrow into a sidebar of titles. Rows drop in one after another as the
-// list opens; filtering and the arrow keys change it without motion.
-import { Animated, computed, createAnimatedValue, effect, keymap, reduceMotion, signal, Text, token, untracked, View, type InputRef } from "nsh";
+// list opens, and on their own for a note new in the folder or back from
+// the trash; a note moved to the trash slides left as it fades, then the
+// rows below close the gap. Filtering and the arrow keys change the list
+// without motion.
+import { Animated, type CompositeAnimation, computed, createAnimatedValue, effect, keymap, reduceMotion, signal, Text, token, untracked, View, type InputRef } from "nsh";
 import { Input } from "nsh/base";
 import { t } from "nsh/i18n";
 import { openActions, type ActionTarget } from "../actions";
 import { tn } from "../i18n";
-import { activate, allTodos, arriving, entering, finishRename, focusRequest, listEntrance, now, renaming, rows, selected, stage, type Row } from "../store";
+import { activate, allTodos, arriving, dropIn, dropping, entering, finishRename, focusRequest, listEntrance, listRows, now, renaming, rowKey, selected, stage, type Row } from "../store";
 import { plainSnippet } from "../tasks";
 import { age, hm, todaySummary, type TodaySummary } from "../time";
 import { Icon, type IconName } from "./icons";
@@ -18,7 +21,11 @@ import { T } from "./tokens";
 type NoteRow = Extract<Row, { kind: "note" }>;
 type CreateRow = Extract<Row, { kind: "create" }>;
 
-const rowKey = (r: Row) => (r.kind === "note" ? `n:${r.meta.title}` : r.kind);
+/** A row drops in from this far above, in points. */
+const DROP_FROM = -9;
+/** A row moved to the trash slides this far left (a ticked to-do slides right) and shrinks to `TRASH_SCALE`. */
+const TRASH_SLIDE = -24;
+const TRASH_SCALE = 0.96;
 
 /** What the action panel acts on for a row. */
 function targetOf(row: Row, index: number): ActionTarget {
@@ -34,18 +41,21 @@ const summary = computed(() => todaySummary(allTodos(), new Date(now())));
 export function NoteList(props: { compact: boolean }) {
   return (
     <View testID="notes" role="list" style={{ paddingTop: T.size.listTop - 2, paddingHorizontal: props.compact ? 6 : 8 }}>
-      <Each of={rows()} key={rowKey}>
-        {(row, index) => <ListRow row={row()} index={index()} compact={props.compact} />}
+      <Each of={listRows()} key={(r) => rowKey(r.row)}>
+        {(item) => <ListRow row={item().row} index={item().index} leaving={item().leaving} compact={props.compact} />}
       </Each>
     </View>
   );
 }
 
-function ListRow(props: { row: Row; index: number; compact: boolean }) {
-  const isSelected = () => selected() === props.index;
+/** A row of the list; `leaving` while a note moved to the trash plays its exit (it takes no input then). */
+function ListRow(props: { row: Row; index: number; leaving: boolean; compact: boolean }) {
+  const isSelected = () => !props.leaving && selected() === props.index;
   const onAccent = () => isSelected() && T.selection === "fill";
   const opacity = createAnimatedValue(1);
   const offset = createAnimatedValue(0);
+  const slide = createAnimatedValue(0);
+  const scale = createAnimatedValue(1);
   const glow = createAnimatedValue(0);
 
   // Hidden: the rows wait invisible, so the next summon never shows last time's rows for a frame before they drop in.
@@ -65,14 +75,71 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
       return;
     }
     opacity.set(0);
-    offset.set(-9);
+    offset.set(DROP_FROM);
     Animated.sequence([
       Animated.delay(delay),
       Animated.parallel([
-        Animated.timing(opacity, { toValue: 1, duration: 220, easing: "easeOut" }),
+        Animated.timing(opacity, { toValue: 1, duration: T.timing.dropFade, easing: "easeOut" }),
         Animated.spring(offset, { toValue: 0, ...springConfig(T.spring.drop) }),
       ]),
     ]).start();
+  });
+
+  // Moved to the trash: the row slides left while it shrinks a little and fades; the store takes it out of the list
+  // once it has faded (`trashNote`), and the rows below close the gap. A note new in the folder, or back from the trash
+  // (even while it was still sliding out), drops in from above as the rows do when the list opens. A row a search
+  // brings in later shows at once. With reduced motion the row only fades out and in, where it is.
+  let motion: CompositeAnimation | null = null;
+  let left = false;
+  // A row made in the turn of a drop-in plays it; else it waits for the next one.
+  let seen = dropping() ? -1 : untracked(dropIn).turn;
+  effect(() => {
+    const going = props.leaving;
+    const drop = dropIn();
+    untracked(() => {
+      const row = props.row;
+      const fresh = drop.turn !== seen;
+      seen = drop.turn;
+      const drops = fresh && row.kind === "note" && drop.titles.has(row.meta.title);
+      const still = reduceMotion();
+      if (going) {
+        if (left) return;
+        left = true;
+        motion?.stop();
+        const exit = { duration: T.timing.trashExit, easing: "easeOut" } as const;
+        motion = Animated.parallel([
+          Animated.timing(opacity, { toValue: 0, ...exit }),
+          ...(still ? [] : [Animated.timing(slide, { toValue: TRASH_SLIDE, ...exit }), Animated.timing(scale, { toValue: TRASH_SCALE, ...exit })]),
+        ]);
+        motion.start();
+        return;
+      }
+      const back = left;
+      left = false;
+      if (!drops) {
+        if (back) {
+          motion?.stop();
+          slide.set(0);
+          scale.set(1);
+          opacity.set(1);
+        }
+        return;
+      }
+      motion?.stop();
+      slide.set(0);
+      scale.set(1);
+      opacity.set(0);
+      if (still) {
+        motion = Animated.timing(opacity, { toValue: 1, duration: T.timing.dropFade, easing: "easeOut" });
+      } else {
+        offset.set(DROP_FROM);
+        motion = Animated.parallel([
+          Animated.timing(opacity, { toValue: 1, duration: T.timing.dropFade, easing: "easeOut" }),
+          Animated.spring(offset, { toValue: 0, ...springConfig(T.spring.drop) }),
+        ]);
+      }
+      motion.start();
+    });
   });
 
   // A note an AI app just wrote: a ring in the agents' orange that fades.
@@ -93,16 +160,16 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
     <View
       testID={note() ? `row:${note()!.meta.title}` : `row:${props.row.kind}`}
       role="button"
-      accessibilityState={{ selected: isSelected() }}
+      accessibilityState={{ selected: isSelected(), disabled: props.leaving }}
       onPress={() => {
-        if (untracked(renaming) === null) activate(props.index);
+        if (!props.leaving && untracked(renaming) === null) activate(props.index);
       }}
       // A right click shows the row's actions: the same panel as ⌘K.
       onContextMenu={() => {
-        if (untracked(renaming) === null) openActions(targetOf(props.row, props.index));
+        if (!props.leaving && untracked(renaming) === null) openActions(targetOf(props.row, props.index));
       }}
       onMouseEnter={() => {
-        if (untracked(stage) !== "editor" && untracked(renaming) === null) selected.set(props.index);
+        if (!props.leaving && untracked(stage) !== "editor" && untracked(renaming) === null) selected.set(props.index);
       }}
       class="flex-row items-center"
       classList={{
@@ -116,7 +183,7 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
         borderRadius: T.radius.row,
         borderCurve: "continuous",
         opacity,
-        transform: [{ translateY: offset }],
+        transform: [{ translateX: slide }, { translateY: offset }, { scale }],
       }}
     >
       <View

@@ -160,8 +160,9 @@ The notch comes from NSH: `displays()` → `cutouts` (`nsh/desktop`).
 The island says what an AI app writes to the notes folder on this Mac, from `jot-mcp`'s activity log
 (`Notes.watchActivity`; [mcp.md](mcp.md#the-activity-log-storesrcactivityrs-mcp)), never from the folder: a note that
 appears there may come from another Mac through iCloud Drive, and says nothing then. The list's rows still drop in for
-any new note an AI app made (`arriving`, from the note's `source`, wherever it was written): the list shows the folder
-as it is, and the rows need nothing the log adds. The island shows only while Settings keep it on (`islandOn`).
+any new note ([The list's motion](#the-lists-motion-appuinotelisttsx)), and an AI app's glows in the agents' orange
+(`arriving`, from the note's `source`, wherever it was written): the list shows the folder as it is, and the rows need
+nothing the log adds. The island shows only while Settings keep it on (`islandOn`).
 
 How much it shows follows what was done:
 
@@ -224,9 +225,26 @@ The chime is a glass struck lightly three times, E6, G♯6 and B6 rising 110 ms 
 1.1 s in all, at −9 dBFS; mono 16-bit 22.05 kHz WAV, 48 KB. Both of Jot's sounds share that voice: a sine
 frequency-modulated at 3.5 times its pitch (inharmonic, so it sounds like glass), the modulation dying within tens of
 milliseconds, and a twin 2 Hz above whose beating makes the ring shimmer as it fades. `design/sound/build.py` makes
-it, and the done sound, with Python's standard library alone. `nsh package` copies a WAV the app imports into the bundle's `Contents/Resources`, where macOS finds a notification's sound
-by its file name; an OTA package cannot put it there, so `assets/` is in the native fingerprint
-([Updates](#updates-appupdatests)).
+it, and the done sound, with Python's standard library alone. `nsh package` copies a WAV the app imports into the
+bundle's `Contents/Resources`, where macOS finds a notification's sound by its file name; an OTA package cannot put it
+there, so `assets/` is in the native fingerprint ([Updates](#updates-appupdatests)).
+
+## The list's motion (app/ui/NoteList.tsx)
+
+As the list opens, its rows drop in one after another: each `T.timing.stagger` after the row above, from 9 points above
+on `T.spring.drop`, fading in over `T.timing.dropFade`. A note that appears later drops in the same way on its own while
+the rows below make room: a note new in the folder (written by another program, synced from another Mac, or an AI
+app's, which also glows) and one brought back from the trash by ⌘Z, which ends selected (`dropIn` in app/store.ts).
+Rows a search brings in show at once: typing never animates the list.
+
+A note moved to the trash goes at once (the file, the undo stack, the footer), but its row stays for
+`T.timing.trashExit` to leave: it slides 24 points left (a ticked to-do slides right), shrinks to 0.96 and fades out;
+then the store takes it out of the list (`listRows` keeps it meanwhile) and the rows below close the gap on
+`T.spring.collapse`. A row leaving takes no input: the selection and the keys are on the rows that stay (`rows`), so ⌃X
+again trashes the next note; ⌘Z while it leaves turns the same row back and drops it in. While it leaves, the note that
+would take its place at the list's end waits for it to go.
+
+With reduced motion nothing moves or scales: rows only fade in and out where they are.
 
 ## The to-do view's motion (app/ui/TodoView.tsx, app/ui/parts.tsx)
 
@@ -322,8 +340,9 @@ panel closed. A note: open ↩, show in Finder ⇧⌘F, rename ⌘R (in place, i
 ⇧⌘A, lock / unlock (no key), move to trash ⌃X (Windows / Linux Ctrl+D; keys in `app/ui/tokens.ts`). A locked note has
 "Unlock" for "Lock" and no rename or reminder time; ⌃X on it says to unlock it first (`ERR_JOT_LOCKED`). "New" row: create; today's row: show
 to-dos; a to-do: open its note, tick ⌘↩, its reminder time ⇧⌘D (and "Remove Reminder" when it has one); in the open
-note, the caret's to-do's reminder time ⇧⌘D. Nothing but a note can be trashed. Moving to the trash folds the row away
-and turns the footer into "Moved to the Trash" with Undo for 5 s (`T.timing.undoFor`); while it shows, ⌘Z takes
+note, the caret's to-do's reminder time ⇧⌘D. Nothing but a note can be trashed. Moving to the trash slides the row out
+to the left before the rows below close the gap ([The list's motion](#the-lists-motion-appuinotelisttsx)) and turns
+the footer into "Moved to the Trash" with Undo for 5 s (`T.timing.undoFor`); while it shows, ⌘Z takes
 the trashed notes back one at a time, the last first (an undo stack); then ⌘Z is the search field's again. With the
 note's text focused, Ctrl+D stays the editor's (select the next occurrence); macOS's ⌃X is no text key.
 

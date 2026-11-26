@@ -21,6 +21,10 @@ export type Row =
   | { kind: "note"; meta: NoteMeta; snippet: string; terms: string[] }
   | { kind: "create"; title: string };
 
+/** A row as the list shows it: `index` is its place in `rows` (what the keys and the selection count); a row `leaving`
+ * (a note just moved to the trash, playing its exit) has none and takes no input. */
+export type ListRow = { row: Row; index: number; leaving: boolean };
+
 /** An item of the to-do view: a group's header, or a to-do. */
 export type TodoItem =
   | { kind: "header"; group: TodoGroup; count: number }
@@ -59,6 +63,19 @@ export const arriving = signal<string | null>(null);
 export const notice = signal<string | null>(null);
 /** Asks the panel to focus the search field or the editor (a new object each time). */
 export const focusRequest = signal<{ target: "field" | "editor" }>({ target: "field" }, { equals: false });
+/** Notes that just appeared in the folder or came back from the trash: their rows drop in once (`turn` changes each time). */
+export const dropIn = signal<{ titles: ReadonlySet<string>; turn: number }>({ titles: new Set(), turn: 0 });
+/** True for the rest of the turn that set `dropIn`: rows made for it drop in, rows a search brings in later do not. */
+let dropTurn = false;
+export const dropping = () => dropTurn;
+/** Drops in the rows of `titles` (those the list shows now). */
+function startDrop(titles: readonly string[]) {
+  dropIn.update((d) => ({ titles: new Set(titles), turn: d.turn + 1 }));
+  dropTurn = true;
+  setTimeout(() => {
+    dropTurn = false;
+  }, 0);
+}
 /** Bumped as the list opens: rows made then drop in one after another. */
 export const listEntrance = signal(0);
 /** True for the rest of the turn that started the list's entrance: rows made for it drop in too, rows a search adds later do not. */
@@ -82,6 +99,14 @@ export const trashCountdown = signal(0);
 export const flash = signal<string | null>(null);
 /** The note whose title is being edited in its row (the action panel's "Rename"). */
 export const renaming = signal<string | null>(null);
+
+/**
+ * Rows of notes just moved to the trash, kept in the list for `T.timing.trashExit` while they play their exit (the
+ * file is in the trash already). Each stays where it was: before the row that followed it then (`before`, its key),
+ * else at `at`; only under the query it was trashed under.
+ */
+type Leaving = { row: Extract<Row, { kind: "note" }>; before: string | null; at: number; query: string };
+const leaving = signal<readonly Leaving[]>([]);
 
 /** Notes Jot itself created this run: not an AI app's arrivals. */
 const createdHere = new Set<string>();
@@ -166,16 +191,39 @@ export const rows = computed<Row[]>(() => {
   const q = query().trim();
   revision();
   if (!n || isTodoQuery(q)) return [];
+  // A row leaving still takes its place: the note that would fill it shows once it has gone.
+  const going = leaving().filter((l) => l.query === q);
+  const limit = Math.max(0, LIMIT - going.length);
   if (!q) {
-    const recent = allNotes().slice(0, LIMIT);
+    const recent = allNotes().slice(0, limit);
     const due = todaySummary(allTodos(), new Date(now()));
     const head: Row[] = due.left || due.late ? [{ kind: "summary" }] : [];
     return [...head, ...recent.map((meta): Row => ({ kind: "note", meta, snippet: meta.preview, terms: [] }))];
   }
   const terms = q.split(/\s+/).filter(Boolean);
-  const hits = n.search(q, LIMIT);
+  const hits = limit ? n.search(q, limit) : [];
   const out: Row[] = hits.map((h) => ({ kind: "note", meta: h.meta, snippet: h.snippet, terms }));
-  if (!hits.some((h) => h.meta.title.toLowerCase() === q.toLowerCase())) out.push({ kind: "create", title: q });
+  const named = (title: string) => title.toLowerCase() === q.toLowerCase();
+  if (!hits.some((h) => named(h.meta.title)) && !going.some((l) => named(l.row.meta.title))) out.push({ kind: "create", title: q });
+  return out;
+});
+
+/** A row's key in the list: a note's by its title, so a note's row stays the same view as it leaves or comes back. */
+export const rowKey = (r: Row) => (r.kind === "note" ? `n:${r.meta.title}` : r.kind);
+
+/** The rows as the list shows them: `rows`, with the rows still playing their exit in their places. */
+export const listRows = computed<ListRow[]>(() => {
+  const out: ListRow[] = rows().map((row, index) => ({ row, index, leaving: false }));
+  const q = query().trim();
+  const going = leaving().filter((l) => l.query === q);
+  // The last trashed first: a row trashed before it may stand before it.
+  for (const l of [...going].reverse()) {
+    const key = rowKey(l.row);
+    if (out.some((r) => rowKey(r.row) === key)) continue;
+    const before = l.before === null ? -1 : out.findIndex((r) => rowKey(r.row) === l.before);
+    const at = before >= 0 ? before : l.before === null ? out.length : Math.min(l.at, out.length);
+    out.splice(at, 0, { row: l.row, index: -1, leaving: true });
+  }
   return out;
 });
 
@@ -253,6 +301,7 @@ function useFolder(n: Notes): Notes {
     if (untracked(stage) === "editor") stage.set("list");
     selected.set(0);
     trashed.set([]);
+    leaving.set([]);
     renaming.set(null);
   });
   if (before && before !== n) before.dispose();
@@ -354,22 +403,27 @@ function settleLocks(n: Notes) {
 }
 
 /**
- * The folder changed on disk: read it again, and drop in the rows of new notes an AI app made (here, or on another Mac
- * and synced). What the island says comes from the activity log instead (`onAgentActivity`).
+ * The folder changed on disk: read it again, and drop in the rows of notes new in it (written by another program, or
+ * synced from another Mac); one an AI app made (here or on another Mac) also glows. What the island says comes from
+ * the activity log instead (`onAgentActivity`).
  */
 function folderChanged() {
   const n = notes();
   if (!n) return;
   settleLocks(n);
   const list = n.list();
-  const fresh = list.filter((m) => !known.has(m.title) && !createdHere.has(m.title) && m.source !== null);
+  const fresh = list.filter((m) => !known.has(m.title) && !createdHere.has(m.title));
+  const byAgent = fresh.filter((m) => m.source !== null);
   known = new Set(list.map((m) => m.title));
-  if (fresh.length) {
-    if (untracked(stage) === "list" && !untracked(query).trim()) morphNext(T.spring.drop);
-    arriving.set(fresh[0].title);
+  if (fresh.length && untracked(stage) === "list" && !untracked(query).trim()) morphNext(T.spring.drop);
+  if (byAgent.length) {
+    arriving.set(byAgent[0].title);
     setTimeout(() => arriving.set(null), 1600);
   }
-  revision.update((r) => r + 1);
+  batch(() => {
+    if (fresh.length) startDrop(fresh.map((m) => m.title));
+    revision.update((r) => r + 1);
+  });
 }
 
 /** Jot changed the folder itself: read it again now, rather than at the watcher's echo. */
@@ -620,6 +674,8 @@ export function trashNote(title: string) {
   gone.add(note.title.toLowerCase());
   known.delete(note.title);
   lastWritten.delete(note.title);
+  // Its row stays where it is while it slides out (`ListRow`), then the rows below close the gap.
+  const exit = leaveRow(note.title);
   morphNext(T.spring.collapse);
   batch(() => {
     if (wasOpen) {
@@ -629,10 +685,30 @@ export function trashNote(title: string) {
     }
     notice.set(null);
     trashed.update((list) => [...list, note]);
+    if (exit) leaving.update((list) => [...list, exit]);
     refresh();
   });
+  if (exit) {
+    setTimeout(() => {
+      // Gone already when it came back meanwhile (`undoTrash`), or the folder changed.
+      if (!untracked(leaving).includes(exit)) return;
+      // Only when it shows: a search typed meanwhile hid it, and its commit must not move.
+      if (exit.query === untracked(query).trim()) morphNext(T.spring.collapse);
+      leaving.update((list) => list.filter((l) => l !== exit));
+    }, T.timing.trashExit);
+  }
   if (wasOpen) focusRequest.set({ target: "field" });
   restartTrashCountdown();
+}
+
+/** The row of `title` as it leaves the list, where it is now; `null` when the list does not show it. */
+function leaveRow(title: string): Leaving | null {
+  const shown = untracked(listRows);
+  const at = shown.findIndex((r) => r.row.kind === "note" && r.row.meta.title.toLowerCase() === title.toLowerCase());
+  const row = shown[at]?.row;
+  if (row?.kind !== "note") return null;
+  const next = shown[at + 1];
+  return { row, before: next ? rowKey(next.row) : null, at, query: untracked(query).trim() };
 }
 
 /** ⌘Z (Ctrl+Z) while "Moved to the trash" shows: the last note trashed comes back where it was, selected. */
@@ -666,6 +742,9 @@ export function undoTrash() {
   batch(() => {
     trashed.set(rest);
     notice.set(null);
+    // Still sliding out (undone at once): the same row turns back and drops in.
+    leaving.update((list) => list.filter((l) => l.row.meta.title.toLowerCase() !== meta.title.toLowerCase()));
+    startDrop([meta.title]);
     refresh();
   });
   selectNote(meta.title);
