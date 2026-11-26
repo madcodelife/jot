@@ -46,11 +46,12 @@ setting they share is a file the app writes and `jot-mcp` reads ([mcp.md](mcp.md
 | `scripts/package-macos.sh` | Builds `Jot.app` with `jot-mcp` inside, and its update archives ([app.md](app.md#packaging-scriptspackage-macossh)). |
 | `scripts/native-fingerprint.sh` | The fingerprint of the native code, which an OTA package must match ([app.md](app.md#updates-appupdatests)). |
 | `scripts/demo-notes.sh` | Writes English example notes into a folder (default `~/Documents/Jot Demo`) for the README's screenshots. |
+| `scripts/screenshots.sh` | Takes the README's screenshots (`design/screenshots/light.png`, `dark.png`) with a `Jot.app` on those notes, its settings put back after; `scripts/screenshots/helper.swift` does what the shell cannot (the backdrop, typing, the capture). |
 | `site/` | The website at `https://madcodelife.github.io/jot/`: one static page (`index.html`, `style.css`, `main.js`, no build step) in the app's languages (English, Simplified and Traditional Chinese, Japanese), with a working copy of the panel; its colors are the app's themes. |
 | `scripts/build-site.sh` | Puts the site together in `_site/`: `site/`, `install.sh`, and the icons and screenshot from `design/`. |
 | `assets/` | The app icon. |
 | `docs/` | This page, the topic pages and the product definition. |
-| `design/` | The interactive design draft and the logo. |
+| `design/` | The interactive design draft, the logo and the README's screenshots (`screenshots/`). |
 | `.github/workflows/ci.yml` | CI: rustfmt, `nsh check`, clippy and `nsh test` on pull requests and `main` (whose run saves the caches pull requests start from). |
 | `.github/workflows/release.yml` | For a `v*` tag: the app packaged for arm64 and x86_64, the OTA package, the signed `latest.json`, and the release ([CONTRIBUTING.md](../CONTRIBUTING.md#releasing)). |
 | `.github/workflows/pages.yml` | Publishes the site (`scripts/build-site.sh`) to GitHub Pages when it or `install.sh` changes on `main`. |

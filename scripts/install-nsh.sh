@@ -7,13 +7,16 @@
 #
 # Usage: scripts/install-nsh.sh           (from any folder)
 #        scripts/install-nsh.sh --which   only print the commit or the release (`v0.6.0`) it would install
-#   NSH_INSTALL_DIR   where NSH goes (default: ~/.nsh); `nsh` is linked into ~/.local/bin
+#   NSH_INSTALL_DIR   where NSH goes (default: ~/.nsh)
+#   NSH_BIN_DIR       where `nsh` is linked (default: ~/.local/bin); empty or `-` links it nowhere, for a second NSH
+#                     beside the one on your PATH (then run `$NSH_INSTALL_DIR/bin/nsh`)
 set -eu
 
 cd "$(dirname "$0")/.."
 
 dir=${NSH_INSTALL_DIR:-$HOME/.nsh}
-bin="$HOME/.local/bin"
+bin=${NSH_BIN_DIR-$HOME/.local/bin}
+[ "$bin" != - ] || bin=""
 
 # The `version` and `source` lines of nsh-core's [[package]] in Cargo.lock.
 field() {
@@ -59,9 +62,12 @@ case "$source" in
     fi
     # Cargo's own target folder, whatever the caller's CARGO_TARGET_DIR: the CLI's runtimes are built there.
     (cd "$dir/source" && env -u CARGO_TARGET_DIR cargo build --release --locked -p nsh-cli)
-    mkdir -p "$dir/bin" "$bin"
+    mkdir -p "$dir/bin"
     ln -sf "$dir/source/target/release/nsh" "$dir/bin/nsh"
-    ln -sf "$dir/bin/nsh" "$bin/nsh"
+    if [ -n "$bin" ]; then
+      mkdir -p "$bin"
+      ln -sf "$dir/bin/nsh" "$bin/nsh"
+    fi
     ;;
   registry+*)
     curl -fsSL "https://github.com/longbridge/nsh/releases/download/$label/install.sh" |
@@ -69,4 +75,4 @@ case "$source" in
     ;;
 esac
 
-"$bin/nsh" --version
+"$dir/bin/nsh" --version
