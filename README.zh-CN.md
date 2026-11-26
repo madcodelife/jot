@@ -30,23 +30,9 @@ curl -fsSL https://madcodelife.github.io/jot/install.sh | sh
 它会下载适合这台 Mac 的最新版，把 `Jot.app` 放进 `/Applications`（没有写权限时放进 `~/Applications`），然后打开。
 再跑一次同样的命令就是更新：先退出 Jot，替换后再打开。笔记不受影响。
 
-选项写在 `sh -s --` 后面：
-
-```sh
-curl -fsSL https://madcodelife.github.io/jot/install.sh | sh -s -- --version v0.1.0      # 装指定版本
-curl -fsSL https://madcodelife.github.io/jot/install.sh | sh -s -- --dir ~/Applications  # 装到别的文件夹
-curl -fsSL https://madcodelife.github.io/jot/install.sh | sh -s -- --no-open             # 装完不打开
-```
-
-已经从 [Releases](https://github.com/madcodelife/jot/releases) 下载了 `Jot-<版本>-macos-arm64.zip`（Apple 芯片）或
-`Jot-<版本>-macos-x86_64.zip`（Intel）的话，交给脚本安装：
-
-```sh
-curl -fsSL https://madcodelife.github.io/jot/install.sh | sh -s -- --zip ~/Downloads/Jot-v0.1.0-macos-arm64.zip
-```
-
-Jot 没有经过 Apple 公证，用浏览器下载的副本 macOS 会拒绝打开，脚本会帮你处理掉。如果自己解压并拖进「应用程序」，
-第一次打开前先运行一次 `xattr -dr com.apple.quarantine /Applications/Jot.app`。
+也可以从 [Releases](https://github.com/madcodelife/jot/releases) 下载 `Jot-<版本>-macos-arm64.zip`（Apple 芯片）或
+`Jot-<版本>-macos-x86_64.zip`（Intel），解压后把 `Jot.app` 拖进「应用程序」。Jot 没有经过 Apple 公证，第一次打开前先运行一次
+`xattr -dr com.apple.quarantine /Applications/Jot.app`。
 
 ## 使用
 

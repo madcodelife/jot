@@ -33,25 +33,9 @@ It downloads the latest release for your Mac, puts `Jot.app` in `/Applications` 
 `/Applications` is not writable) and opens it. Run the same command again to update: it quits Jot, replaces it and
 opens it again. Your notes are not touched.
 
-Options go after `sh -s --`:
-
-```sh
-curl -fsSL https://madcodelife.github.io/jot/install.sh | sh -s -- --version v0.1.0      # a given release
-curl -fsSL https://madcodelife.github.io/jot/install.sh | sh -s -- --dir ~/Applications  # another folder
-curl -fsSL https://madcodelife.github.io/jot/install.sh | sh -s -- --no-open             # do not open it afterwards
-```
-
-To install a package you downloaded, `Jot-<version>-macos-arm64.zip` (Apple silicon) or
-`Jot-<version>-macos-x86_64.zip` (Intel) from the [releases](https://github.com/madcodelife/jot/releases), give it to
-the script:
-
-```sh
-curl -fsSL https://madcodelife.github.io/jot/install.sh | sh -s -- --zip ~/Downloads/Jot-v0.1.0-macos-arm64.zip
-```
-
-Jot is not notarized by Apple, so macOS refuses to open a copy downloaded with a browser; the script clears that for
-you. If you unzip it and move it to Applications yourself, run `xattr -dr com.apple.quarantine /Applications/Jot.app`
-once before opening it.
+Or download `Jot-<version>-macos-arm64.zip` (Apple silicon) or `Jot-<version>-macos-x86_64.zip` (Intel) from the
+[releases](https://github.com/madcodelife/jot/releases), unzip it and move `Jot.app` to Applications. Jot is not
+notarized by Apple, so run `xattr -dr com.apple.quarantine /Applications/Jot.app` once before opening it.
 
 ## Use
 
