@@ -15,7 +15,7 @@ they keep one notebook between you.
 
 <p align="center">
   <img src="design/screenshots/light.png" alt="Jot's panel in light mode with the Indigo theme: recent notes, some written by Claude, Claude Code and Cursor" width="49%" align="top">
-  <img src="design/screenshots/dark.png" alt="Jot's panel in dark mode with the Tokyo Night theme: searching for “week”" width="49%" align="top">
+  <img src="design/screenshots/dark.png" alt="Jot's to-do view in dark mode with the Tokyo Night theme: open to-dos grouped as overdue, today, tomorrow and upcoming, each with its note and reminder time" width="49%" align="top">
 </p>
 
 - **Summon from anywhere** — double-press ⌥, search and create from the same field, Esc and it is gone.
