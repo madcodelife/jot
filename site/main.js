@@ -7,8 +7,8 @@
   const THEME_KEYS = ["primary", "on-accent", "glass-fg", "glass-muted", "glass-line", "glass-hover", "glass-fill", "glass-edge", "glass-shadow", "agent", "agent-ink", "due", "late", "paper", "paper-fg", "paper-muted"];
   const THEMES = {"default":{"swatch":{"light":"#e9ebf1","dark":"#2a2c34"},"light":["#0064e1","#ffffff","#14151a","#14151aa8","#14151a1a","#14151a0f","#ffffffb3","#ffffff4d","#1e285038","#e8743b","#a64818","#0066cc","#a82020","#ffffff","#1a1b20","#6b707c"],"dark":["#0058d0","#ffffff","#f3f4f8","#f3f4f8a8","#ffffff1a","#ffffff12","#1c1d24b3","#ffffff24","#00000080","#f08a55","#f39a6a","#4ea1ff","#ff8f8f","#1b1c21","#eceef3","#8e93a1"]},"github":{"swatch":{"light":"#f6f8fa","dark":"#010409"},"light":["#0969da","#ffffff","#1f2328","#656d76","#1f23281a","#1f23280f","#f6f8faf0","#ffffff4d","#3e3e3e38","#bc4c00","#bc4c00","#0966d3","#c9212d","#ffffff","#1f2328","#656d76"],"dark":["#1d69df","#ffffff","#e6edf3","#7d8590","#e6edf31f","#e6edf314","#010409f0","#ffffff24","#00000080","#db6d28","#db6d28","#4493f8","#f85149","#0d1117","#e6edf3","#7d8590"]},"one":{"swatch":{"light":"#eaeaeb","dark":"#21252b"},"light":["#386ad5","#ffffff","#383a42","#666973","#383a421a","#383a420f","#eaeaebf0","#ffffff4d","#3a3a3b38","#c18401","#8d6001","#3462c6","#c61242","#fafafa","#383a42","#696c77"],"dark":["#61afef","#282c34","#b2b8c4","#8e939c","#b2b8c41f","#b2b8c414","#21252bf0","#ffffff24","#00000080","#d19a66","#d19a66","#61afef","#e78b92","#282c34","#b2b8c4","#8e939c"]},"dracula":{"swatch":{"light":"#f5f0dc","dark":"#21222c"},"light":["#644ac9","#ffffff","#1f1f1f","#6c664b","#1f1f1f1a","#1f1f1f0f","#f5f0dcf0","#ffffff4d","#3d3c3738","#a34d14","#a34d14","#644ac9","#bb3527","#fffbeb","#1f1f1f","#6c664b"],"dark":["#bd93f9","#282a36","#f8f8f2","#8390b7","#f8f8f21f","#f8f8f214","#21222cf0","#ffffff24","#00000080","#ffb86c","#ffb86c","#bd93f9","#ff7777","#282a36","#f8f8f2","#8390b7"]},"tokyo":{"swatch":{"light":"#d6d8df","dark":"#16161e"},"light":["#2959aa","#ffffff","#343b59","#5c5d69","#343b591a","#343b590f","#d6d8dff0","#ffffff4d","#36363838","#965027","#904d25","#2959aa","#8c4351","#e6e7ed","#343b59","#656773"],"dark":["#7aa2f7","#1a1b26","#c0caf5","#7b82a3","#c0caf51f","#c0caf514","#16161ef0","#ffffff24","#00000080","#ff9e64","#ff9e64","#7aa2f7","#f7768e","#1a1b26","#c0caf5","#7b82a3"]},"catppuccin":{"swatch":{"light":"#e6e9ef","dark":"#181825"},"light":["#8839ef","#ffffff","#484b64","#64677c","#484b641a","#484b640f","#e6e9eff0","#ffffff4d","#3a3a3c38","#fe640b","#b24608","#7c34d9","#bd0e33","#eff1f5","#484b64","#6a6d82"],"dark":["#cba6f7","#1e1e2e","#cdd6f4","#a6adc8","#cdd6f41f","#cdd6f414","#181825f0","#ffffff24","#00000080","#fab387","#fab387","#cba6f7","#f38ba8","#1e1e2e","#cdd6f4","#a6adc8"]},"gruvbox":{"swatch":{"light":"#f2e5bc","dark":"#1d2021"},"light":["#427b58","#ffffff","#3c3836","#70645a","#3c38361a","#3c38360f","#f2e5bcf0","#ffffff4d","#3c392f38","#af3a03","#af3a03","#3a6c4d","#9d0006","#fbf1c7","#3c3836","#776b60"],"dark":["#8ec07c","#282828","#ebdbb2","#9a8c7e","#ebdbb21f","#ebdbb214","#1d2021f0","#ffffff24","#00000080","#fe8019","#fe8019","#8ec07c","#fc7565","#282828","#ebdbb2","#9a8c7e"]},"contrast":{"swatch":{"light":"#ffffff","dark":"#000000"},"light":["#003eb8","#ffffff","#000000","#3a3a3a","#00000066","#0000001f","#ffffff","#000000","#00000059","#943600","#943600","#0036a3","#8a0009","#ffffff","#000000","#3a3a3a"],"dark":["#80b3ff","#000000","#ffffff","#d0d0d0","#ffffff73","#ffffff29","#000000","#ffffff","#000000","#ffa36b","#ffa36b","#8dbbff","#ff9090","#000000","#ffffff","#cfcfcf"]}};
   const THEME_NAMES = {
-    default: ["Default", "默认"], github: "GitHub", one: "One", dracula: "Dracula", tokyo: "Tokyo Night",
-    catppuccin: "Catppuccin", gruvbox: "Gruvbox", contrast: ["High Contrast", "高对比度"],
+    default: ["Default", "默认", "預設", "デフォルト"], github: "GitHub", one: "One", dracula: "Dracula", tokyo: "Tokyo Night",
+    catppuccin: "Catppuccin", gruvbox: "Gruvbox", contrast: ["High Contrast", "高对比", "高對比", "ハイコントラスト"],
   };
   const VAR = {
     primary: "--p-primary", "on-accent": "--p-on", "glass-fg": "--p-fg", "glass-muted": "--p-muted",
@@ -26,21 +26,31 @@
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } },
   };
+  // The page's language, one of LANGS; t() takes a string in each, in that order.
+  const LANGS = ["en", "zh", "zh-Hant", "ja"];
   const lang = () => root.dataset.lang;
-  const t = (en, zh) => (lang() === "zh" ? zh : en);
+  const t = (...v) => v[LANGS.indexOf(lang())] ?? v[0];
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const icon = (id, cls) => `<svg class="ic${cls ? " " + cls : ""}"><use href="#i-${id}"/></svg>`;
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   /* Language. */
   const onLang = [];
+  const langPick = $("[data-lang-pick]");
+  function showLang() {
+    langPick.value = lang();
+    $$("[data-set-lang]").forEach((b) => b.setAttribute("aria-current", String(b.dataset.setLang === lang())));
+  }
   function setLang(l) {
-    root.dataset.lang = l;
-    root.lang = l === "zh" ? "zh-CN" : "en";
+    if (!LANGS.includes(l) || l === lang()) return;
+    window.jotLang(l);
     store.set("jot-lang", l);
+    showLang();
     onLang.forEach((f) => f());
   }
-  $$("[data-lang-toggle]").forEach((b) => b.addEventListener("click", () => setLang(lang() === "zh" ? "en" : "zh")));
+  langPick.addEventListener("change", () => setLang(langPick.value));
+  $$("[data-set-lang]").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.setLang)));
+  showLang();
 
   /* Nav border once the page scrolls (an observer on the hero's top, not a scroll listener). */
   const navSentinel = document.createElement("div");
@@ -68,10 +78,10 @@
       await navigator.clipboard.writeText(b.dataset.copy);
       b.classList.add("is-copied");
       b.querySelector("use").setAttribute("href", "#i-check");
-      toast(t("Copied. Paste it into Terminal.", "已复制，去终端粘贴运行"));
+      toast(t("Copied. Paste it into Terminal.", "已复制，去终端粘贴运行", "已拷貝，到「終端機」貼上執行", "コピーしました。ターミナルに貼り付けて実行してください"));
       setTimeout(() => { b.classList.remove("is-copied"); b.querySelector("use").setAttribute("href", "#i-copy"); }, 1800);
     } catch (e) {
-      toast(t("Select the command to copy it.", "复制失败，请手动选中命令"));
+      toast(t("Select the command to copy it.", "复制失败，请手动选中命令", "沒拷貝成功，請手動選取指令", "コピーできませんでした。コマンドを選択してコピーしてください"));
     }
   }));
 
@@ -83,6 +93,7 @@
   const num = (s) => (s == null ? NaN : /^\d+$/.test(s) ? +s : CN_NUM[s] != null ? CN_NUM[s] : NaN);
   const EN_DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
   const ZH_DAYS = { 日: 0, 天: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6 };
+  const ZH_WD = "日一二三四五六";
   const JA_DAYS = { 日: 0, 月: 1, 火: 2, 水: 3, 木: 4, 金: 5, 土: 6 };
   const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
@@ -105,19 +116,19 @@
       s = s.slice(0, m.index) + " " + s.slice(m.index + m[0].length);
       return true;
     };
-    // Relative: in 2 hours, 半小时后, 30分钟后, 2時間後.
+    // Relative: in 2 hours, 半小时后, 30分鐘後, 2時間後.
     take(/\bin\s+(half an hour|an? hour|(\d+)\s*(minutes?|mins?|m|hours?|hrs?|h|days?|d))\b/i, (m) => {
       if (/half/i.test(m[1])) exact = new Date(+now + 30 * 6e4);
       else if (/^an? hour/i.test(m[1])) exact = new Date(+now + 36e5);
       else if (/^d/i.test(m[3])) day = addDays(now, +m[2]);
       else exact = new Date(+now + +m[2] * (/^h/i.test(m[3]) ? 36e5 : 6e4));
     }) ||
-    take(/(半|[\d一二两三四五六七八九十]+)\s*(个)?(小时|分钟|天)后/, (m) => {
+    take(/(半|[\d一二两三四五六七八九十]+)\s*(个|個)?(小时|小時|分钟|分鐘|天)(后|後)/, (m) => {
       if (m[1] === "半") { exact = new Date(+now + 30 * 6e4); return; }
       const n = num(m[1]);
       if (isNaN(n)) return false;
       if (m[3] === "天") day = addDays(now, n);
-      else exact = new Date(+now + n * (m[3] === "小时" ? 36e5 : 6e4));
+      else exact = new Date(+now + n * (/^小/.test(m[3]) ? 36e5 : 6e4));
     }) ||
     take(/(\d+)\s*(時間|分)後/, (m) => { exact = new Date(+now + +m[1] * (m[2] === "分" ? 6e4 : 36e5)); });
 
@@ -131,12 +142,12 @@
         day = new Date(now.getFullYear(), MONTHS.indexOf(m[1].toLowerCase()), +m[2]);
         if (day < startOfDay(now)) day.setFullYear(day.getFullYear() + 1);
       }) ||
-      take(/大后天/, () => { day = addDays(now, 3); }) ||
-      take(/后天|明後日|あさって/, () => { day = addDays(now, 2); }) ||
+      take(/大[后後]天/, () => { day = addDays(now, 3); }) ||
+      take(/[后後]天|明後日|あさって/, () => { day = addDays(now, 2); }) ||
       take(/明天|明日|あした/, () => { day = addDays(now, 1); }) ||
       take(/今天|今日|今晚/, (m) => { day = startOfDay(now); if (m[0] === "今晚") hour = 20; }) ||
-      take(/(下(?:个)?)?(?:周|星期|礼拜)([一二三四五六日天])/, (m) => { day = weekday(now, ZH_DAYS[m[2]], !!m[1]); }) ||
-      take(/(来週)?\s*([日月火水木金土])曜日?/, (m) => { day = weekday(now, JA_DAYS[m[2]], !!m[1]); }) ||
+      take(/(下(?:个|個)?)?(?:周|週|星期|礼拜|禮拜)([一二三四五六日天])/, (m) => { day = weekday(now, ZH_DAYS[m[2]], !!m[1]); }) ||
+      take(/(来週の?)?\s*([日月火水木金土])曜日?/, (m) => { day = weekday(now, JA_DAYS[m[2]], !!m[1]); }) ||
       take(/(\d{1,2})月(\d{1,2})[日号]/, (m) => {
         day = new Date(now.getFullYear(), +m[1] - 1, +m[2]);
         if (day < startOfDay(now)) day.setFullYear(day.getFullYear() + 1);
@@ -180,41 +191,75 @@
   const stamp = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   function dueLabel(d, now) {
     const days = Math.round((startOfDay(d) - startOfDay(now)) / 864e5);
-    const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    if (days === 0) return t("Today ", "今天 ") + hm;
-    if (days === 1) return t("Tomorrow ", "明天 ") + hm;
+    const hm = `${lang() === "ja" ? d.getHours() : pad(d.getHours())}:${pad(d.getMinutes())}`;
+    if (days === 0) return t("Today ", "今天 ", "今天 ", "今日 ") + hm;
+    if (days === 1) return t("Tomorrow ", "明天 ", "明天 ", "明日 ") + hm;
+    if (days === 2 && lang() !== "en") return t("", "后天 ", "後天 ", "明後日 ") + hm;
     if (days > 1 && days < 7) {
-      return (lang() === "zh" ? "周" + "日一二三四五六"[d.getDay()] + " " : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()] + " ") + hm;
+      const wd = d.getDay();
+      return t(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][wd], "周" + ZH_WD[wd], "週" + ZH_WD[wd], "日月火水木金土"[wd] + "曜") + " " + hm;
     }
-    return lang() === "zh" ? `${d.getMonth() + 1}月${d.getDate()}日 ${hm}` : `${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][d.getMonth()]} ${d.getDate()} ${hm}`;
+    const md = `${d.getMonth() + 1}月${d.getDate()}日`;
+    return t(`${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][d.getMonth()]} ${d.getDate()}`, md, md, md) + " " + hm;
   }
 
   /* The panel's notes. */
-  const NOTES = () => [
-    { kind: "todos", title: t("3 to-dos today", "今天 3 条待办"), sub: t("1 overdue · Next: 17:00 Ship the onboarding redesign", "1 条过期 · 下一条：17:00 上线新版引导页") },
-    { title: t("This week", "本周"), sub: t("Three things that matter, everything else can wait.", "只做三件要紧的事，其他的先放一放。"), when: t("2 min ago", "2 分钟前"),
-      body: [["p", t("Three things that matter, everything else can wait.", "只做三件要紧的事，其他的先放一放。")], ["todo", t("Ship the onboarding redesign", "上线新版引导页"), "17:00"], ["todo", t("Call the landlord about the heating", "打电话给房东说暖气的事"), "18:30"], ["todo", t("Renew the passport", "续签护照")]] },
-    { title: t("Design review", "设计评审"), sub: t("Summary of today's review of the new onboarding flow.", "今天评审新版引导流程的结论。"), src: "Claude", when: t("25 min ago", "25 分钟前"),
-      body: [["p", t("Summary of today's review of the new onboarding flow.", "今天评审新版引导流程的结论。")], ["p", t("Keep the three-step layout; cut the welcome video.", "保留三步布局，去掉欢迎视频。")], ["todo", t("Sam: copy for the permission prompt", "Sam：权限弹窗的文案")]] },
-    { title: "Homelab", sub: t("Ubuntu box. Host: nas.local, user admin, key in 1Password.", "Ubuntu 主机：nas.local，用户 admin，密钥在 1Password。"), when: t("Today 09:52", "今天 09:52"),
-      body: [["p", t("Ubuntu box. Host: nas.local, user admin, key in 1Password.", "Ubuntu 主机：nas.local，用户 admin，密钥在 1Password。")], ["code", "ssh admin@nas.local"]] },
-    { title: t("Deploy with Docker Compose", "用 Docker Compose 部署"), sub: t("The steps we used to deploy the API to staging.", "上次把 API 部署到预发环境的步骤。"), src: "Claude Code", when: t("Today 08:42", "今天 08:42"),
-      body: [["p", t("The steps we used to deploy the API to staging.", "上次把 API 部署到预发环境的步骤。")], ["code", "docker compose -f compose.prod.yml up -d --build"]] },
-    { title: t("Trip to Kyoto", "京都之行"), sub: t("Dec 12 to Dec 18, five nights in Higashiyama.", "12 月 12 日到 18 日，在东山住五晚。"), when: t("Today 06:02", "今天 06:02"),
-      body: [["p", t("Dec 12 to Dec 18, five nights in Higashiyama.", "12 月 12 日到 18 日，在东山住五晚。")], ["todo", t("Book the ryokan", "订旅馆"), "21:00"]] },
-    { title: t("Git snippets", "Git 片段"), sub: t("Undo the last commit, keep the changes: git reset --soft HEAD~1", "撤销上次提交，但保留改动：git reset --soft HEAD~1"), src: "Cursor", when: t("Yesterday", "昨天"),
-      body: [["p", t("Undo the last commit, keep the changes:", "撤销上次提交，但保留改动：")], ["code", "git reset --soft HEAD~1"]] },
-  ];
+  // The words the demo notes share, so a to-do reads the same in the panel, the to-do view and the AI apps demo.
+  const W = () => ({
+    week: t("This week", "本周", "本週", "今週"),
+    ship: t("Ship the onboarding redesign", "上线新版引导页", "上線新版引導頁", "新しいオンボーディングをリリース"),
+    landlord: t("Call the landlord about the heating", "打电话给房东说暖气的事", "打電話給房東說熱水器的事", "給湯器のことで管理会社に電話"),
+    passport: t("Renew the passport", "续签护照", "換新護照", "パスポートを更新"),
+    ryokan: t("Book the ryokan", "订旅馆", "訂旅館", "旅館を予約"),
+    kyoto: t("Trip to Kyoto", "京都之行", "京都旅行", "京都旅行"),
+    report: t("Send the weekly report", "发周报", "交週報", "週報を送る"),
+    deploy: t("Deploy with Docker Compose", "用 Docker Compose 部署", "用 Docker Compose 部署", "Docker Compose でデプロイ"),
+    staging: t("The steps we used to deploy the API to staging.", "上次把 API 部署到预发环境的步骤。", "上次把 API 部署到測試環境的步驟。", "API をステージングにデプロイしたときの手順。"),
+    yesterday9: t("Yesterday 09:00", "昨天 09:00", "昨天 09:00", "昨日 9:00"),
+  });
+  const NOTES = () => {
+    const w = W();
+    const week = t("Three things that matter, everything else can wait.", "只做三件要紧的事，其他的先放一放。", "只做三件重要的事，其他的先放著。", "大事なことを3つだけ。ほかは後回し。");
+    const review = t("Summary of today's review of the new onboarding flow.", "今天评审新版引导流程的结论。", "今天審查新版引導流程的結論。", "今日の新しいオンボーディングのレビューまとめ。");
+    const lab = t("Ubuntu box. Host: nas.local, user admin, key in 1Password.", "Ubuntu 主机：nas.local，用户 admin，密钥在 1Password。", "Ubuntu 主機：nas.local，使用者 admin，金鑰在 1Password。", "Ubuntu マシン。ホストは nas.local、ユーザーは admin、鍵は 1Password に。");
+    const trip = t("Dec 12 to Dec 18, five nights in Higashiyama.", "12 月 12 日到 18 日，在东山住五晚。", "12 月 12 日到 18 日，在東山住五晚。", "12月12日〜18日、東山に5泊。");
+    const undo = t("Undo the last commit, keep the changes:", "撤销上次提交，但保留改动：", "撤銷上一次 commit，但保留修改：", "直前のコミットを取り消して、変更は残す：");
+    return [
+      { kind: "todos", title: t("3 to-dos today", "今天 3 条待办", "今天 3 件待辦", "今日のやること 3 件"),
+        sub: t(`1 overdue · Next: 17:00 ${w.ship}`, `1 条过期 · 下一条：17:00 ${w.ship}`, `1 件已過期 · 下一件 17:00 ${w.ship}`, `期限切れ 1 件 · 次は 17:00 ${w.ship}`) },
+      { title: w.week, sub: week, when: t("2 min ago", "2 分钟前", "2 分鐘前", "2 分前"),
+        body: [["p", week], ["todo", w.ship, "17:00"], ["todo", w.landlord, "18:30"], ["todo", w.passport]] },
+      { title: t("Design review", "设计评审", "設計審查", "デザインレビュー"), sub: review, src: "Claude", when: t("25 min ago", "25 分钟前", "25 分鐘前", "25 分前"),
+        body: [["p", review], ["p", t("Keep the three-step layout; cut the welcome video.", "保留三步布局，去掉欢迎视频。", "保留三個步驟的版面，拿掉歡迎影片。", "3 ステップの構成は残して、ウェルカム動画はカット。")], ["todo", t("Sam: copy for the permission prompt", "Sam：权限弹窗的文案", "Sam：權限視窗的文字", "Sam：権限ダイアログの文言")]] },
+      { title: "Homelab", sub: lab, when: t("Today 09:52", "今天 09:52", "今天 09:52", "今日 9:52"),
+        body: [["p", lab], ["code", "ssh admin@nas.local"]] },
+      { title: w.deploy, sub: w.staging, src: "Claude Code", when: t("Today 08:42", "今天 08:42", "今天 08:42", "今日 8:42"),
+        body: [["p", w.staging], ["code", "docker compose -f compose.prod.yml up -d --build"]] },
+      { title: w.kyoto, sub: trip, when: t("Today 06:02", "今天 06:02", "今天 06:02", "今日 6:02"),
+        body: [["p", trip], ["todo", w.ryokan, "21:00"]] },
+      { title: t("Git snippets", "Git 片段", "Git 常用指令", "Git スニペット"), sub: `${undo}${lang() === "en" ? " " : ""}git reset --soft HEAD~1`, src: "Cursor", when: t("Yesterday", "昨天", "昨天", "昨日"),
+        body: [["p", undo], ["code", "git reset --soft HEAD~1"]] },
+    ];
+  };
   const INCOMING = () => [
-    { title: t("Standup notes", "站会记录"), sub: t("Shipped the panel fix. Next: reminders after the Mac wakes.", "面板的问题修好上线了，接下来做唤醒后补发提醒。"), src: "Claude", color: "#d97757" },
-    { title: t("Date regex", "日期正则"), sub: t("\\d{4}-\\d{2}-\\d{2} matches 2026-11-26.", "\\d{4}-\\d{2}-\\d{2} 能匹配 2026-11-26。"), src: "Cursor", color: "#3d3d47" },
-    { title: t("Release checklist", "发版清单"), sub: t("Bump the version, tag it, run package-macos.sh.", "改版本号、打 tag，再跑 package-macos.sh。"), src: "Codex", color: "#10a37f" },
+    { title: t("Standup notes", "站会记录", "站會紀錄", "朝会メモ"),
+      sub: t("Shipped the panel fix. Next: reminders after the Mac wakes.", "面板的问题修好上线了，接下来做唤醒后补发提醒。", "面板的問題修好上線了，接下來做喚醒後補發提醒。", "パネルの不具合は修正してリリース済み。次はスリープ復帰後のリマインダー。"),
+      src: "Claude", color: "#d97757" },
+    { title: t("Date regex", "日期正则", "日期正規表示式", "日付の正規表現"),
+      sub: t("\\d{4}-\\d{2}-\\d{2} matches 2026-11-26.", "\\d{4}-\\d{2}-\\d{2} 能匹配 2026-11-26。", "\\d{4}-\\d{2}-\\d{2} 可以比對 2026-11-26。", "\\d{4}-\\d{2}-\\d{2} で 2026-11-26 にマッチ。"),
+      src: "Cursor", color: "#3d3d47" },
+    { title: t("Release checklist", "发版清单", "發版檢查清單", "リリース手順"),
+      sub: t("Bump the version, tag it, run package-macos.sh.", "改版本号、打 tag，再跑 package-macos.sh。", "改版本號、打 tag，再跑 package-macos.sh。", "バージョンを上げて tag を打ち、package-macos.sh を実行。"),
+      src: "Codex", color: "#10a37f" },
   ];
-  const TODOS = () => [
-    { group: t("Overdue", "已过期"), late: true, items: [[t("Renew the passport", "续签护照"), t("This week", "本周"), t("Yesterday 09:00", "昨天 09:00")]] },
-    { group: t("Today", "今天"), items: [[t("Ship the onboarding redesign", "上线新版引导页"), t("This week", "本周"), "17:00"], [t("Call the landlord about the heating", "打电话给房东说暖气的事"), t("This week", "本周"), "18:30"], [t("Book the ryokan", "订旅馆"), t("Trip to Kyoto", "京都之行"), "21:00"]] },
-    { group: t("Tomorrow", "明天"), items: [[t("Review Maya's pull request", "看 Maya 的 PR"), t("This week", "本周"), "10:30"], [t("Send the weekly report", "给团队发周报"), t("This week", "本周"), "16:00"]] },
-  ];
+  const TODOS = () => {
+    const w = W();
+    return [
+      { group: t("Overdue", "已过期", "已過期", "期限切れ"), late: true, items: [[w.passport, w.week, w.yesterday9]] },
+      { group: t("Today", "今天", "今天", "今日"), items: [[w.ship, w.week, "17:00"], [w.landlord, w.week, "18:30"], [w.ryokan, w.kyoto, "21:00"]] },
+      { group: t("Tomorrow", "明天", "明天", "明日"), items: [[t("Review Maya's pull request", "看 Maya 的 PR", "看 Maya 的 PR", "Maya の PR をレビュー"), w.week, "10:30"], [t("Send the weekly report", "给团队发周报", "寄週報給團隊", "チームに週報を送る"), w.week, "16:00"]] },
+    ];
+  };
 
   /* The panel. */
   const stage = $("#stage");
@@ -241,7 +286,7 @@
       return `<div class="${cls}" data-i="${i}" style="--i:${i}"><span class="row-ic is-todo">${icon("list")}</span><span class="row-t"><div class="row-title">${esc(n.title)}</div><div class="row-sub">${esc(n.sub)}</div></span><span class="row-meta"><span class="dots"><i></i><i></i><i></i></span></span></div>`;
     }
     if (n.kind === "create") {
-      return `<div class="${cls}" data-i="${i}" style="--i:0"><span class="row-ic">${icon("plus")}</span><span class="row-t"><div class="row-title">${t("Create", "新建")} “${esc(n.title)}”</div><div class="row-sub">${t("A new note with this title", "用这个标题新建笔记")}</div></span><span class="row-meta"></span></div>`;
+      return `<div class="${cls}" data-i="${i}" style="--i:0"><span class="row-ic">${icon("plus")}</span><span class="row-t"><div class="row-title">${esc(t(`Create “${n.title}”`, `新建“${n.title}”`, `新增「${n.title}」`, `「${n.title}」を作成`))}</div><div class="row-sub">${t("A new note with this title", "用这个标题新建笔记", "用這個標題新增筆記", "このタイトルで新しいメモを作成")}</div></span><span class="row-meta"></span></div>`;
     }
     const agent = !!n.src;
     return `<div class="${cls}" data-i="${i}" style="--i:${i}"><span class="row-ic${agent ? " is-agent" : ""}">${icon(agent ? "spark" : "doc")}</span><span class="row-t"><div class="row-title">${esc(n.title)}</div><div class="row-sub">${esc(n.sub)}</div></span><span class="row-meta">${agent ? `<span class="row-src">${esc(n.src)}</span>` : ""}<span>${esc(n.when || "")}</span></span></div>`;
@@ -259,23 +304,23 @@
   function render() {
     if (!P.open) return;
     const query = q.value.trim();
-    if (P.view !== "paper") P.view = /^(\/?todo|待办|\/待办)$/i.test(query) ? "todo" : "list";
+    if (P.view !== "paper") P.view = /^\/?(todo|待办|待辦|やること)$/i.test(query) ? "todo" : "list";
     let html = "";
     if (P.view === "list") {
       const list = rows();
       P.sel = Math.max(0, Math.min(P.sel, list.length - 1));
       html = list.map((n, i) => rowHTML(n, i, P.sel)).join("");
       const create = list[0] && list[0].kind === "create";
-      hints(create ? [[t("Create", "新建"), [icon("return")]]] : [[t("Open", "打开"), [icon("return")]], [t("Actions", "操作"), ["⌘", "K"]]]);
+      hints(create ? [[t("Create", "新建", "新增", "作成"), [icon("return")]]] : [[t("Open", "打开", "開啟", "開く"), [icon("return")]], [t("Actions", "操作", "動作", "アクション"), ["⌘", "K"]]]);
     } else if (P.view === "todo") {
       let i = 0;
       html = TODOS().map((g) => {
         const items = g.items.filter((it) => !P.done.has(it[0]));
         if (!items.length) return "";
         const head = `<div class="group${g.late ? " is-late" : ""}" style="--i:${i++}">${esc(g.group)} <b>${items.length}</b></div>`;
-        return head + items.map((it) => `<div class="trow-p${i === 1 ? " is-sel" : ""}" style="--i:${i++}" data-todo="${esc(it[0])}"><button class="tick" type="button" aria-label="${t("Done", "完成")}">${icon("check")}</button><span class="trow-title">${esc(it[0])}</span><span class="trow-note">${esc(it[1])}</span><span class="pchip${g.late ? " is-late" : ""}">${icon("alarm")}${esc(it[2])}</span></div>`).join("");
-      }).join("") || `<div class="group">${t("Nothing left. Nice.", "都做完了")}</div>`;
-      hints([[t("Open Note", "打开笔记"), [icon("return")]], [t("Actions", "操作"), ["⌘", "K"]]]);
+        return head + items.map((it) => `<div class="trow-p${i === 1 ? " is-sel" : ""}" style="--i:${i++}" data-todo="${esc(it[0])}"><button class="tick" type="button" aria-label="${t("Done", "完成", "完成", "完了")}">${icon("check")}</button><span class="trow-title">${esc(it[0])}</span><span class="trow-note">${esc(it[1])}</span><span class="pchip${g.late ? " is-late" : ""}">${icon("alarm")}${esc(it[2])}</span></div>`).join("");
+      }).join("") || `<div class="group">${t("Nothing left. Nice.", "都做完了", "都做完了", "ぜんぶ終わりました")}</div>`;
+      hints([[t("Open Note", "打开笔记", "開啟筆記", "メモを開く"), [icon("return")]], [t("Actions", "操作", "動作", "アクション"), ["⌘", "K"]]]);
     } else {
       const n = P.note;
       const lines = (n.body || []).map((l) => {
@@ -283,8 +328,8 @@
         if (l[0] === "code") return `<p><code>${esc(l[1])}</code></p>`;
         return `<p class="pl-todo"><i></i>${esc(l[1])}${l[2] ? ` <span class="pchip">${icon("alarm")}${esc(l[2])}</span>` : ""}</p>`;
       }).join("");
-      html = `<div class="ppaper"><h4>${esc(n.title)}</h4>${n.src ? `<div class="psrc">${esc(n.src)}</div>` : ""}${n.isNew ? `<textarea placeholder="${t("Write something. It saves as you type.", "写点什么，会自动保存")}"></textarea>` : lines}</div>`;
-      hints([[t("Back", "返回"), ["esc"]]]);
+      html = `<div class="ppaper"><h4>${esc(n.title)}</h4>${n.src ? `<div class="psrc">${esc(n.src)}</div>` : ""}${n.isNew ? `<textarea placeholder="${t("Write something. It saves as you type.", "写点什么，会自动保存", "寫點什麼，會自動儲存", "書いた内容は自動で保存されます")}"></textarea>` : lines}</div>`;
+      hints([[t("Back", "返回", "返回", "戻る"), ["esc"]]]);
     }
     // Rows rise in only when a view first shows (the panel opening, the to-do view, a note); redrawing the same view
     // (typing, a note arriving, a tick) swaps the rows in place, or every keystroke would flash the whole list.
@@ -318,9 +363,10 @@
     const list = rows();
     const n = list[i];
     if (!n) return;
-    if (n.kind === "todos") { q.value = t("todo", "待办"); render(); return; }
+    if (n.kind === "todos") { q.value = t("todo", "待办", "待辦", "やること"); render(); return; }
     if (n.kind === "create") {
-      const note = { title: n.title, sub: t("Just now", "刚刚"), when: t("Just now", "刚刚"), isNew: true };
+      const now = t("Just now", "刚刚", "剛剛", "たった今");
+      const note = { title: n.title, sub: now, when: now, isNew: true };
       P.made.unshift(note);
       P.view = "paper"; P.note = note;
       render();
@@ -351,7 +397,7 @@
     panel.classList.remove("is-out", "is-open");
     panel.classList.add("is-in", "is-capsule");
     q.value = ""; P.view = "list"; P.drawn = null; P.sel = 1; P.extra = []; P.done.clear();
-    q.placeholder = t("Search or create…", "搜索或新建…");
+    q.placeholder = t("Search or create…", "搜索或新建…", "搜尋或新增…", "検索または新規作成…");
     if (!opts.auto) q.focus({ preventScroll: true });
     P.open = true;
     await wait(still.matches ? 0 : 260);
@@ -480,7 +526,7 @@
     await wait(still.matches ? 0 : 1250);
     if (!P.open || P.view !== "list" || q.value) { cur.remove(); scheduleAgents(); return; }
     cur.classList.add("is-click");
-    const note = Object.assign({}, a, { when: t("Just now", "刚刚"), fresh: true });
+    const note = Object.assign({}, a, { when: t("Just now", "刚刚", "剛剛", "たった今"), fresh: true });
     P.extra.unshift(note);
     agentN++;
     if (P.sel >= 1) P.sel++;
@@ -503,7 +549,7 @@
     [stage, $("#mini"), ...keys].forEach((el) => THEME_KEYS.forEach((k, i) => el.style.setProperty(VAR[k], vals[i])));
     $$(".sw", swatchesEl).forEach((b) => b.setAttribute("aria-checked", String(b.dataset.theme === name)));
     const label = THEME_NAMES[name];
-    $("#theme-name").textContent = Array.isArray(label) ? t(label[0], label[1]) : label;
+    $("#theme-name").textContent = Array.isArray(label) ? t(...label) : label;
     store.set("jot-theme", name);
   }
   function drawSwatches() {
@@ -522,26 +568,28 @@
   function nextWeekday(wd, h) { const d = weekday(new Date(), wd, false); d.setHours(h, 0, 0, 0); if (d < new Date()) d.setDate(d.getDate() + 7); return d; }
   const ASKS = () => {
     const fri = nextWeekday(5, 9);
+    const w = W();
     return [
-      { app: "Claude Code", q: t("Jot this command down.", "帮我把这条命令记一下"),
-        call: `create_note(<em>"${t("Deploy with Docker Compose", "用 Docker Compose 部署")}"</em>, …)`,
-        title: t("Deploy with Docker Compose", "用 Docker Compose 部署"), src: "Claude Code",
-        lines: [["p", t("The steps we used to deploy the API to staging.", "上次把 API 部署到预发环境的步骤。")], ["pre", "docker compose -f compose.prod.yml up -d --build"]] },
-      { app: "Claude", q: t("Remind me to send the weekly report on Friday.", "周五提醒我发周报"),
-        call: `add_todo(<em>"${t("Send the weekly report", "发周报")}"</em>, due: <em>"${stamp(fri)}"</em>)`,
-        title: t("This week", "本周"), src: t("To-do added by Claude", "Claude 加的待办"),
-        lines: [["todo", t("Ship the onboarding redesign", "上线新版引导页"), "17:00", true], ["todo", t("Send the weekly report", "发周报"), dueLabel(fri, new Date())]] },
-      { app: "Cursor", q: t("What's on my list today?", "我今天要干嘛？"),
+      { app: "Claude Code", q: t("Jot this command down.", "帮我把这条命令记一下", "幫我把這個指令記一下", "このコマンド、メモしておいて"),
+        call: `create_note(<em>"${esc(w.deploy)}"</em>, …)`,
+        title: w.deploy, src: "Claude Code",
+        lines: [["p", w.staging], ["pre", "docker compose -f compose.prod.yml up -d --build"]] },
+      { app: "Claude", q: t("Remind me to send the weekly report on Friday.", "周五提醒我发周报", "週五提醒我交週報", "金曜に週報を送るよう、リマインドして"),
+        call: `add_todo(<em>"${esc(w.report)}"</em>, due: <em>"${stamp(fri)}"</em>)`,
+        title: w.week, src: t("To-do added by Claude", "Claude 加的待办", "Claude 加的待辦", "Claude が追加したやること"),
+        lines: [["todo", w.ship, "17:00", true], ["todo", w.report, dueLabel(fri, new Date())]] },
+      { app: "Cursor", q: t("What's on my list today?", "我今天要干嘛？", "我今天有什麼要做的？", "今日やることは？"),
         call: `list_todos(<em>"today"</em>)`,
-        title: t("3 open today, 1 overdue", "今天还有 3 件，1 件已过期"), src: t("Cursor read your to-dos", "Cursor 查了你的待办"),
-        lines: [["todo", t("Renew the passport", "续签护照"), t("Yesterday 09:00", "昨天 09:00"), true], ["todo", t("Ship the onboarding redesign", "上线新版引导页"), "17:00", true], ["todo", t("Call the landlord about the heating", "打电话给房东说暖气的事"), "18:30", true], ["todo", t("Book the ryokan", "订旅馆"), "21:00", true]] },
+        title: t("3 open today, 1 overdue", "今天还有 3 件，1 件已过期", "今天還有 3 件，1 件已過期", "今日は残り 3 件、期限切れ 1 件"),
+        src: t("Cursor read your to-dos", "Cursor 查了你的待办", "Cursor 查了你的待辦", "Cursor がやることを確認"),
+        lines: [["todo", w.passport, w.yesterday9, true], ["todo", w.ship, "17:00", true], ["todo", w.landlord, "18:30", true], ["todo", w.ryokan, "21:00", true]] },
     ];
   };
   const asksEl = $("#asks"); const paperEl = $("#ai-paper"); const callEl = $("#call");
   let askI = 0; let askAuto = true; let askTimer; let typing = 0; let aiSeen = false;
   const ASK_MS = 6500;
   function drawAsks() {
-    asksEl.innerHTML = ASKS().map((a, i) => `<button class="ask${i === askI ? " is-on" : ""}${askAuto ? " is-auto" : ""}" type="button" role="tab" aria-selected="${i === askI}" data-i="${i}" style="--dur:${ASK_MS}ms"><span class="ask-app">${esc(t(`Ask ${a.app}`, `对 ${a.app} 说`))}</span><span class="ask-q">${esc(a.q)}</span><span class="ask-bar"><i></i></span></button>`).join("");
+    asksEl.innerHTML = ASKS().map((a, i) => `<button class="ask${i === askI ? " is-on" : ""}${askAuto ? " is-auto" : ""}" type="button" role="tab" aria-selected="${i === askI}" data-i="${i}" style="--dur:${ASK_MS}ms"><span class="ask-app">${esc(t(`Ask ${a.app}`, `对 ${a.app} 说`, `對 ${a.app} 說`, `${a.app} に`))}</span><span class="ask-q">${esc(a.q)}</span><span class="ask-bar"><i></i></span></button>`).join("");
   }
   async function showAsk(i, animate) {
     askI = i; drawAsks();
@@ -590,7 +638,10 @@
 
   /* Time phrases. */
   const tin = $("#tinput"); const tfile = $("#tfile"); const trow = $("#trow"); const tchips = $("#tchips");
-  const EXAMPLES = ["call mom in 2 hours", "standup next monday 10:30", "交房租 明天 9点", "下周五 下午3点 看牙", "明日 9時 ミーティング"];
+  // Examples in every language the parser reads; Chinese in the script the page is in.
+  const EXAMPLES = () => ["call mom in 2 hours", "standup next monday 10:30",
+    ...(lang() === "zh-Hant" ? ["繳房租 明天 9點", "下週五 下午3點 看牙醫"] : ["交房租 明天 9点", "下周五 下午3点 看牙"]),
+    "明日 9時 ミーティング", "来週の金曜 15時 歯医者"];
   let lastDue = null;
   function parseLine() {
     const raw = tin.value.replace(/^\s*-\s*\[\s?\]\s*/, "");
@@ -600,25 +651,25 @@
     lastDue = { text, due };
     if (!raw.trim()) {
       tfile.innerHTML = `- [ ] …`;
-      trow.innerHTML = `<span class="is-none">${t("Type a to-do and a time.", "写一条待办，带上时间试试")}</span>`;
+      trow.innerHTML = `<span class="is-none">${t("Type a to-do and a time.", "写一条待办，带上时间试试", "寫一件待辦，加上時間試試", "やることと時間を書いてみてください")}</span>`;
       return;
     }
     tfile.innerHTML = `- [ ] ${esc(text)}${due ? ` <b>⏰ ${stamp(due)}</b>` : ""}`;
-    trow.innerHTML = `<span class="tbox" aria-hidden="true"></span><span>${esc(text)}</span>${due ? `<span class="chip">${icon("alarm")}${esc(dueLabel(due, now))}</span>` : `<span class="is-none" style="margin-left:auto">${t("No time yet", "没写时间")}</span>`}`;
+    trow.innerHTML = `<span class="tbox" aria-hidden="true"></span><span>${esc(text)}</span>${due ? `<span class="chip">${icon("alarm")}${esc(dueLabel(due, now))}</span>` : `<span class="is-none" style="margin-left:auto">${t("No time yet", "没写时间", "沒寫時間", "時間なし")}</span>`}`;
   }
   function drawChips() {
-    tchips.innerHTML = EXAMPLES.map((x) => `<button class="tchip" type="button">${esc(x)}</button>`).join("");
+    tchips.innerHTML = EXAMPLES().map((x) => `<button class="tchip" type="button">${esc(x)}</button>`).join("");
   }
   tchips.addEventListener("click", (e) => { const b = e.target.closest(".tchip"); if (b) { tin.value = b.textContent; parseLine(); } });
   tin.addEventListener("input", parseLine);
-  function defaultLine() { tin.value = t("pay rent tomorrow 9am", "交房租 明天 9点"); parseLine(); }
+  function defaultLine() { tin.value = t("pay rent tomorrow 9am", "交房租 明天 9点", "繳房租 明天 9點", "家賃を払う 明日 9時"); parseLine(); }
   drawChips(); defaultLine();
 
   /* The island: a reminder coming due. */
   const island = $("#island"); const ringBtn = $("#ring");
   let islandTimer;
   function ring(title) {
-    island.querySelector(".island-in").innerHTML = `<span class="island-bell">${icon("bell")}</span><span class="island-t"><small>${t("Reminder", "提醒")}</small><b>${esc(title)}</b></span><button class="island-done" type="button">${icon("check")}${t("Done", "完成")}</button>`;
+    island.querySelector(".island-in").innerHTML = `<span class="island-bell">${icon("bell")}</span><span class="island-t"><small>${t("Reminder", "提醒", "提醒", "リマインダー")}</small><b>${esc(title)}</b></span><button class="island-done" type="button">${icon("check")}${t("Done", "完成", "完成", "完了")}</button>`;
     island.classList.add("is-peek");
     setTimeout(() => island.classList.add("is-open"), still.matches ? 0 : 280);
     clearTimeout(islandTimer);
@@ -635,11 +686,11 @@
     islandTimer = setTimeout(closeIsland, 600);
   });
   ringBtn.addEventListener("click", async () => {
-    const title = (lastDue && lastDue.text) || t("Pay rent", "交房租");
+    const title = (lastDue && lastDue.text) || t("Pay rent", "交房租", "繳房租", "家賃を払う");
     ringBtn.disabled = true;
-    const label = ringBtn.querySelector(`[data-${lang()}]`);
+    const label = ringBtn.querySelector(`[data-${lang().toLowerCase()}]`);
     const keep = label.textContent;
-    for (let s = 3; s > 0; s--) { label.textContent = t(`Ringing in ${s}…`, `${s} 秒后提醒…`); await wait(1000); }
+    for (let s = 3; s > 0; s--) { label.textContent = t(`Ringing in ${s}…`, `${s} 秒后提醒…`, `${s} 秒後提醒…`, `あと ${s} 秒…`); await wait(1000); }
     label.textContent = keep;
     ringBtn.disabled = false;
     ring(title);
@@ -651,29 +702,29 @@
     const locked = lockCell.dataset.locked === "true";
     lockAgent.classList.remove("is-denied");
     if (locked) {
-      lockAgent.innerHTML = `${icon("spark")}<span>${t("Claude tried to append. The note is locked, so it can only read it.", "Claude 想往里加内容，但笔记锁着，它只能看。")}</span>`;
+      lockAgent.innerHTML = `${icon("spark")}<span>${t("Claude tried to append. The note is locked, so it can only read it.", "Claude 想往里加内容，但笔记锁着，它只能看。", "Claude 想往裡面加內容，但筆記鎖著，它只能看。", "Claude が追記しようとしましたが、ロック中なので読むことしかできません。")}</span>`;
       if (tried) { void lockAgent.offsetWidth; lockAgent.classList.add("is-denied"); }
     } else {
-      lockAgent.innerHTML = `${icon("spark")}<span>${t("Claude appended", "Claude 追加了")} <span class="add">+ ${t("Router: 192.168.1.1", "路由器：192.168.1.1")}</span></span>`;
+      lockAgent.innerHTML = `${icon("spark")}<span>${t("Claude appended", "Claude 追加了", "Claude 加了一行", "Claude が追記")} <span class="add">+ ${t("Router: 192.168.1.1", "路由器：192.168.1.1", "路由器：192.168.1.1", "ルーター：192.168.1.1")}</span></span>`;
     }
   }
   lockBtn.addEventListener("click", () => {
     const locked = lockCell.dataset.locked !== "true";
     lockCell.dataset.locked = String(locked);
     lockBtn.setAttribute("aria-pressed", String(locked));
-    lockBtn.setAttribute("aria-label", locked ? t("Unlock", "解锁") : t("Lock", "锁定"));
+    lockBtn.setAttribute("aria-label", locked ? t("Unlock", "解锁", "解鎖", "ロックを解除") : t("Lock", "锁定", "鎖定", "ロック"));
     drawLock(locked);
   });
   drawLock(false);
 
-  /* Everything that carries words, again in the other language. */
+  /* Everything that carries words, again in the new language. */
   onLang.push(() => {
-    q.placeholder = t("Search or create…", "搜索或新建…");
-    P.extra = INCOMING().slice(0, agentN).reverse().map((a) => Object.assign({}, a, { when: t("Just now", "刚刚") }));
+    q.placeholder = t("Search or create…", "搜索或新建…", "搜尋或新增…", "検索または新規作成…");
+    P.extra = INCOMING().slice(0, agentN).reverse().map((a) => Object.assign({}, a, { when: t("Just now", "刚刚", "剛剛", "たった今") }));
     if (P.view === "paper" && !P.note.isNew) P.view = "list";
     render();
     clearTimeout(askTimer); showAsk(askI, false);
-    defaultLine();
+    drawChips(); defaultLine();
     applyTheme(themeName);
     drawLock(false);
   });
