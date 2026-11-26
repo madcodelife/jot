@@ -25,6 +25,7 @@ nsh test                      # Rust tests, then the TSX tests, headless
 cargo fmt --all               # format the Rust
 cargo build -p jot-mcp        # the MCP server, which `nsh run` (a debug build) finds in cargo's target folder
 scripts/package-macos.sh      # build Jot.app, with jot-mcp inside
+scripts/native-fingerprint.sh # the native fingerprint of this checkout (docs/app.md, Updates)
 scripts/demo-notes.sh         # English example notes for screenshots, in ~/Documents/Jot Demo
 ```
 
@@ -51,8 +52,62 @@ Some store tests are ignored because they need a real iCloud Drive folder; [docs
 universal`, `--out`, `--name`, …), puts `jot-mcp` in `Jot.app/Contents/MacOS` and signs both again (ad hoc;
 `SIGN_IDENTITY` for another identity, then with a secure timestamp and the hardened runtime). It runs the `nsh` on your
 `PATH`, or `NSH=/path/to/nsh`, and warns when that is not the NSH `Cargo.toml`
-names. CI packages `Jot.app` for arm64 and x86_64 only for a `v*` tag, and publishes both as a release. How the script
-works: [docs/app.md](docs/app.md#packaging-scriptspackage-macossh).
+names. It needs `jq`. CI packages `Jot.app` for arm64 and x86_64 only for a `v*` tag ([Releasing](#releasing)). How
+the script works: [docs/app.md](docs/app.md#packaging-scriptspackage-macossh).
+
+## Releasing
+
+A release is a `v*` tag; `.github/workflows/release.yml` does the rest. Installed copies update themselves from it
+([docs/app.md](docs/app.md#updates-appupdatests)).
+
+1. In `nsh.json`, raise `version` (semver) and `build` (a whole number). `build` is one counter for apps and OTA
+   packages: raise it by one for every release, never reuse one.
+2. Commit, merge to `main`, then tag that commit `v<version>` and push the tag:
+
+   ```sh
+   git tag v0.2.0 && git push origin v0.2.0
+   ```
+
+The workflow then:
+
+- checks the tag is `v` + nsh.json's `version`, and that `version` and `build` are higher than the last release tag's
+  (it fails otherwise: fix nsh.json, tag again);
+- fails while a secret below is missing: a release without a signed `latest.json` would leave every installed copy
+  without updates;
+- packages `Jot.app` for arm64 and x86_64 with the native fingerprint, and makes of each the zip `install.sh`
+  downloads (`Jot-v0.2.0-macos-arm64.zip`) and the update archive (`Jot-0.2.0-macos-aarch64.tar.gz`);
+- publishes the OTA package of the code (`com.madcodelife.jot-<build>.nshpkg`, its version
+  `<version>+native.<fingerprint>`);
+- writes `latest.json` for both archives and the package, with patches from the last release's archives, signs it
+  (`latest.json.sig`), and makes the release with all of them.
+
+A release that changed no native code reaches installed copies as the package; one that did, as the whole app (the
+fingerprint decides, in the app). Notes of the release are GitHub's, generated from the pull requests.
+
+### Keys and secrets (once)
+
+Three keys ([NSH's OTA updates](https://github.com/longbridge/nsh/blob/main/website/docs/ota-updates.md#keys)), made
+with the `nsh` CLI, outside the repository; never commit a `.secret`:
+
+```sh
+nsh keygen keys/root      # the root installed copies trust; keep keys/root.secret offline
+nsh keygen keys/release   # signs the packages, in CI
+nsh keygen keys/update    # signs latest.json, in CI
+nsh certify --root keys/root.secret --key keys/release.pub --apps com.madcodelife.jot -o keys/release.cert
+```
+
+Put the contents of `keys/update.pub` in nsh.json's `updater.publicKey` and of `keys/root.pub` in
+`updater.packages.roots`, then store the others as the repository's secrets:
+
+```sh
+gh secret set NSH_RELEASE_KEY < keys/release.secret
+gh secret set NSH_RELEASE_CERT < keys/release.cert
+gh secret set NSH_UPDATE_KEY < keys/update.secret
+```
+
+The certificate lasts 365 days: certify the release key again before then and update `NSH_RELEASE_CERT` (installed
+copies trust the root, so they need no update). The keys in nsh.json are built into every app: a release that changes
+the update key must still be signed with the old one, which the copies installed before it trust.
 
 ## Where code goes
 

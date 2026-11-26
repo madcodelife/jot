@@ -35,8 +35,11 @@ curl -fsSL https://madcodelife.github.io/jot/install.sh | sh
 ```
 
 It downloads the latest release for your Mac, puts `Jot.app` in `/Applications` (or `~/Applications` when
-`/Applications` is not writable) and opens it. Run the same command again to update: it quits Jot, replaces it and
-opens it again. Your notes are not touched.
+`/Applications` is not writable) and opens it. Your notes are not touched.
+
+Jot then updates itself: it checks for a new release in the background and downloads it, and the panel's footer and
+the menu bar's menu offer to restart into it (quitting Jot installs it too). Settings → About checks at once. Running
+the install command again also updates it.
 
 Or download `Jot-<version>-macos-arm64.zip` (Apple silicon) or `Jot-<version>-macos-x86_64.zip` (Intel) from the
 [releases](https://github.com/madcodelife/jot/releases), unzip it and move `Jot.app` to Applications. Jot is not

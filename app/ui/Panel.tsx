@@ -57,6 +57,7 @@ import {
 } from "../voice";
 import { Breathing, LanguageTag, MicButton } from "./Voice";
 import { openSettings } from "./Settings";
+import { readyUpdate, restartToUpdate } from "../updates";
 import { fade } from "./themes";
 import { tn } from "../i18n";
 import { keyCaps, T, materialEdge, materialFill, materialStyle } from "./tokens";
@@ -394,9 +395,9 @@ function EmptyNotes() {
 
 /**
  * Raycast's footer, floating on the glass with no rule above it: on the left a round button to the settings (with
- * a notice or "Copied" beside it while one shows), on the right a capsule of what Return does to the row in focus
- * and the action panel's key, each pressable. While dictating, how it ends; after a note went to the trash, "Moved
- * to the Trash" with Undo.
+ * a notice or "Copied" beside it while one shows, else a downloaded update's restart), on the right a capsule of what
+ * Return does to the row in focus and the action panel's key, each pressable. While dictating, how it ends; after a
+ * note went to the trash, "Moved to the Trash" with Undo.
  */
 function Footer() {
   const message = () => folderError() ?? notice();
@@ -425,7 +426,7 @@ function Footer() {
                 <If
                   when={message()}
                   else={
-                    <If when={flash()}>
+                    <If when={flash()} else={<UpdateReady />}>
                       {(f) => (
                         <Text testID="footer-status" class="text-glass-muted" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
                           {f()}
@@ -495,6 +496,31 @@ function Footer() {
 /** The footer's controls' height (the round button, the capsule) and their inset from the panel's edges: the capsule's corners follow the panel's. */
 const FOOTER_CONTROL = 32;
 const FOOTER_INSET = 8;
+
+/**
+ * A downloaded update, quietly: a dot in the accent and "Update ready · Restart", pressable, beside the settings'
+ * button. Nothing else asks for the restart; quitting Jot installs it too (app/updates.ts).
+ */
+function UpdateReady() {
+  return (
+    <If when={readyUpdate()}>
+      {(ready) => (
+        <Button
+          testID="footer-update"
+          accessibilityLabel={t("update.restart_to", { version: ready().version })}
+          onPress={() => void restartToUpdate()}
+          class="flex-row items-center hover:bg-glass-fg/7 active:opacity-70"
+          style={{ height: FOOTER_CONTROL - 8, gap: 6, paddingHorizontal: 8, borderRadius: Math.min(T.radius.chip, (FOOTER_CONTROL - 8) / 2), flexShrink: 1 }}
+        >
+          <View class="bg-primary" style={{ width: 6, height: 6, borderRadius: 3 }} />
+          <Text class="text-glass-muted" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
+            {t("update.ready_short")}
+          </Text>
+        </Button>
+      )}
+    </If>
+  );
+}
 
 /** One of the footer capsule's actions, pressable: its name, then its keys, on a soft plate on hover. */
 function FooterAction(props: { label: string; keys: readonly string[]; main?: boolean; onPress: () => void; testID?: string }) {

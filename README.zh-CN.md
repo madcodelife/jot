@@ -33,7 +33,10 @@ curl -fsSL https://madcodelife.github.io/jot/install.sh | sh
 ```
 
 它会下载适合这台 Mac 的最新版，把 `Jot.app` 放进 `/Applications`（没有写权限时放进 `~/Applications`），然后打开。
-再跑一次同样的命令就是更新：先退出 Jot，替换后再打开。笔记不受影响。
+笔记不受影响。
+
+之后 Jot 会自己更新：在后台检查并下载新版本，面板底栏和菜单栏菜单里会出现「重启」入口（退出 Jot 时也会自动装上）。
+在「设置 → 关于」里可以立即检查。再跑一次安装命令同样可以更新。
 
 也可以从 [Releases](https://github.com/madcodelife/jot/releases) 下载 `Jot-<版本>-macos-arm64.zip`（Apple 芯片）或
 `Jot-<版本>-macos-x86_64.zip`（Intel），解压后把 `Jot.app` 拖进「应用程序」。Jot 没有经过 Apple 公证，第一次打开前先运行一次

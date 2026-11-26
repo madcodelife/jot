@@ -1,7 +1,9 @@
 name: Release
 
-# A release tag (v1.2.0) is packaged and released. Its own workflow, so pull requests do not list these jobs as
-# skipped checks.
+# A release tag (v1.2.0) is packaged and released: Jot.app for arm64 and x86_64 (the zips install.sh downloads, and
+# the update archives), the OTA package of its code, and `latest.json` with its signature, which installed copies
+# check (CONTRIBUTING.md, Releasing; docs/app.md, Updates). Its own workflow, so pull requests do not list these jobs
+# as skipped checks.
 on:
   push:
     tags: ["v*"]
@@ -13,8 +15,73 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # nsh.json says the version and the build, the tag only repeats it: they must agree, and both must have grown
+  # since the last release tag. The native fingerprint is computed once, for every job.
+  prepare:
+    name: Check the version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      build: ${{ steps.check.outputs.build }}
+      fingerprint: ${{ steps.check.outputs.fingerprint }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The earlier tags, to compare with.
+          fetch-depth: 0
+
+      - name: Check the version, the build and the keys
+        id: check
+        env:
+          HAS_RELEASE_KEY: ${{ secrets.NSH_RELEASE_KEY != '' }}
+          HAS_RELEASE_CERT: ${{ secrets.NSH_RELEASE_CERT != '' }}
+          HAS_UPDATE_KEY: ${{ secrets.NSH_UPDATE_KEY != '' }}
+        run: |
+          version=$(jq -r .version nsh.json)
+          build=$(jq -r .build nsh.json)
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error file=nsh.json::the tag is $GITHUB_REF_NAME, nsh.json's version is $version: raise \"version\" in nsh.json, commit, and tag that commit v$version"
+            exit 1
+          fi
+          case "$build" in
+            '' | *[!0-9]* | 0) echo "::error file=nsh.json::\"build\" is $build, not a whole number from 1"; exit 1 ;;
+          esac
+          # The release tag before this one: its version and build must be lower (`build` is the one counter of
+          # apps and packages: an app takes only a higher one).
+          if previous=$(git describe --tags --abbrev=0 --match 'v*' "$GITHUB_SHA^" 2> /dev/null); then
+            before=$(git show "$previous:nsh.json" | jq -r .version)
+            before_build=$(git show "$previous:nsh.json" | jq -r '.build // 1')
+            highest=$(printf '%s\n%s\n' "$before" "$version" | sort -V | tail -n 1)
+            if [ "$before" = "$version" ] || [ "$highest" != "$version" ]; then
+              echo "::error file=nsh.json::version $version is not higher than $before ($previous)"
+              exit 1
+            fi
+            if [ "$build" -le "$before_build" ]; then
+              echo "::error file=nsh.json::build $build is not higher than $before_build ($previous): raise \"build\" in nsh.json"
+              exit 1
+            fi
+          fi
+          # Without the secrets nothing signs the manifest or the package, and the release would have no
+          # latest.json: every installed copy would find none and stop updating. A fork sets up keys of its own.
+          missing=""
+          [ "$HAS_RELEASE_KEY" = true ] || missing="$missing NSH_RELEASE_KEY"
+          [ "$HAS_RELEASE_CERT" = true ] || missing="$missing NSH_RELEASE_CERT"
+          [ "$HAS_UPDATE_KEY" = true ] || missing="$missing NSH_UPDATE_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::the repository has no secret$missing: set them (CONTRIBUTING.md, Releasing), then run this workflow again"
+            exit 1
+          fi
+          fingerprint=$(scripts/native-fingerprint.sh)
+          echo "Jot $version, build $build, native $fingerprint"
+          {
+            echo "version=$version"
+            echo "build=$build"
+            echo "fingerprint=$fingerprint"
+          } >> "$GITHUB_OUTPUT"
+
   package:
     name: Package Jot.app (${{ matrix.arch }})
+    needs: prepare
     runs-on: macos-latest
     timeout-minutes: 90
     strategy:
@@ -23,8 +90,10 @@ jobs:
         include:
           - arch: arm64
             target: aarch64-apple-darwin
+            platform: macos-aarch64
           - arch: x86_64
             target: x86_64-apple-darwin
+            platform: macos-x86_64
     steps:
       - uses: actions/checkout@v7
 
@@ -52,44 +121,135 @@ jobs:
       - name: Package
         env:
           ARCH: ${{ matrix.arch }}
+          JOT_NATIVE_FINGERPRINT: ${{ needs.prepare.outputs.fingerprint }}
         run: |
-          # The tag (v1.2.0) sets the version.
-          scripts/package-macos.sh --arch "$ARCH" --out dist --build "$GITHUB_RUN_NUMBER" \
-            --app-version "${GITHUB_REF_NAME#v}"
+          # nsh.json sets the version and the build (checked against the tag in `prepare`).
+          scripts/package-macos.sh --arch "$ARCH" --out dist
           # Every executable is for this architecture only.
           for file in dist/Jot.app/Contents/MacOS/*; do
             archs=$(lipo -archs "$file" 2> /dev/null) || continue
             echo "$file: $archs"
             [ "$archs" = "$ARCH" ] || { echo "::error::$file is $archs, not $ARCH"; exit 1; }
           done
+          # The app compares OTA packages with the fingerprint built into it.
+          LC_ALL=C grep -qa "$JOT_NATIVE_FINGERPRINT" dist/Jot.app/Contents/MacOS/Jot ||
+            { echo "::error::the native fingerprint $JOT_NATIVE_FINGERPRINT is not in Jot.app"; exit 1; }
 
       - name: Zip
         id: zip
         env:
           ARCH: ${{ matrix.arch }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          PLATFORM: ${{ matrix.platform }}
         run: |
+          # install.sh downloads the zip (Jot-v1.2.0-macos-arm64.zip); the app updates itself from the update archive
+          # package-macos.sh made of the same bundle (Jot-1.2.0-macos-aarch64.tar.gz).
           zip="Jot-$GITHUB_REF_NAME-macos-$ARCH.zip"
           ditto -c -k --keepParent dist/Jot.app "dist/$zip"
+          archive="Jot-$VERSION-$PLATFORM.tar.gz"
+          [ -f "dist/$archive" ] || { echo "::error::package-macos.sh made no dist/$archive"; exit 1; }
           echo "zip=$zip" >> "$GITHUB_OUTPUT"
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.zip.outputs.zip }}
-          path: dist/${{ steps.zip.outputs.zip }}
+          name: Jot-${{ matrix.arch }}
+          path: |
+            dist/${{ steps.zip.outputs.zip }}
+            dist/${{ steps.zip.outputs.archive }}
           if-no-files-found: error
 
-  # A release tag: one release with both packages, once both are built.
+  # Once both apps are built: the OTA package of the code, `latest.json` for both apps and the package (with patches
+  # from the release before), signed, and one release with all of it.
   release:
     name: Release
-    runs-on: ubuntu-latest
-    needs: package
+    needs: [prepare, package]
+    runs-on: macos-latest
+    timeout-minutes: 60
     permissions:
       contents: write
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      BUILD: ${{ needs.prepare.outputs.build }}
+      FINGERPRINT: ${{ needs.prepare.outputs.fingerprint }}
     steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Which NSH
+        id: nsh
+        run: echo "which=$(scripts/install-nsh.sh --which)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache/restore@v6
+        with:
+          path: ~/.nsh
+          key: nsh-${{ runner.os }}-${{ runner.arch }}-${{ steps.nsh.outputs.which }}
+          restore-keys: nsh-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install NSH
+        run: |
+          scripts/install-nsh.sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
       - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
+
+      - name: Write the keys
+        env:
+          RELEASE_KEY: ${{ secrets.NSH_RELEASE_KEY }}
+          RELEASE_CERT: ${{ secrets.NSH_RELEASE_CERT }}
+          UPDATE_KEY: ${{ secrets.NSH_UPDATE_KEY }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s\n' "$RELEASE_KEY" > "$RUNNER_TEMP/keys/release.secret"
+          printf '%s\n' "$RELEASE_CERT" > "$RUNNER_TEMP/keys/release.cert"
+          printf '%s\n' "$UPDATE_KEY" > "$RUNNER_TEMP/keys/update.secret"
+
+      # The package's version carries the native fingerprint (`+native.<fingerprint>`): an installed Jot takes it only
+      # when it was built from the same native code, else it takes the whole app (app/updates.ts).
+      - name: Publish the package
+        run: |
+          package="dist/$(jq -r .id nsh.json)-$BUILD.nshpkg"
+          nsh publish --app-version "$VERSION+native.$FINGERPRINT" --build "$BUILD" \
+            --key "$RUNNER_TEMP/keys/release.secret" --cert "$RUNNER_TEMP/keys/release.cert" -o "$package"
+          echo "PACKAGE=$package" >> "$GITHUB_ENV"
+
+      # The last release's archives, for patches from it: a copy on that version downloads only the difference.
+      - name: The last release's archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          last=$(gh release list --exclude-drafts --exclude-pre-releases --limit 10 --json tagName --jq '.[].tagName' |
+            grep -vx "$GITHUB_REF_NAME" | head -n 1 || true)
+          mkdir -p previous
+          if [ -n "$last" ] && gh release download "$last" -p 'Jot-*-macos-*.tar.gz' -D previous; then
+            ls -l previous
+          else
+            echo "No update archives in ${last:-any earlier release}: no patches"
+          fi
+
+      - name: Write the manifest
+        run: |
+          args=("dist/Jot-$VERSION-macos-aarch64.tar.gz" "dist/Jot-$VERSION-macos-x86_64.tar.gz"
+            --package "$PACKAGE" --key "$RUNNER_TEMP/keys/update.secret" -o dist)
+          previous=()
+          for archive in previous/*.tar.gz; do
+            if [ -f "$archive" ]; then previous+=(--previous "$archive"); fi
+          done
+          if [ ${#previous[@]} -eq 0 ] || ! nsh update-manifest "${args[@]}" "${previous[@]}"; then
+            [ ${#previous[@]} -eq 0 ] || echo "::warning::no patches from the last release: nsh update-manifest failed with them"
+            rm -f dist/*.patch
+            nsh update-manifest "${args[@]}"
+          fi
+          jq . dist/latest.json
+          # Both apps and the package, as installed copies will read them.
+          jq -e --arg build "$BUILD" '.platforms["macos-aarch64"] and .platforms["macos-x86_64"]
+            and (.package.build | tostring) == $build' dist/latest.json > /dev/null
+          rm -rf "$RUNNER_TEMP/keys"
 
       - name: Release
         env:
@@ -97,5 +257,10 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           ls -l dist
-          gh release create "$GITHUB_REF_NAME" dist/*.zip --title "Jot ${GITHUB_REF_NAME#v}" --generate-notes \
-            || gh release upload "$GITHUB_REF_NAME" dist/*.zip --clobber
+          # gh uploads the assets before it publishes the release, so no copy finds a latest.json without its files.
+          set -- dist/*.zip dist/*.tar.gz "$PACKAGE" dist/latest.json dist/latest.json.sig
+          for patch in dist/*.patch; do
+            if [ -f "$patch" ]; then set -- "$@" "$patch"; fi
+          done
+          gh release create "$GITHUB_REF_NAME" "$@" --title "Jot $VERSION" --generate-notes \
+            || gh release upload "$GITHUB_REF_NAME" "$@" --clobber

@@ -9,6 +9,7 @@ tray:
   summon: 呼出 Jot（%{keys}）
   todos: 待办
   enable_double_tap: 开启连按两下 %{keys}…
+  restart_to_update: 重启以更新到 %{version}
   settings: 设置…
 
 notify:
@@ -338,3 +339,20 @@ lock:
   unlock_failed: 没能解锁「%{title}」：%{error}
   done: 已锁定「%{title}」
   undone: 已解锁「%{title}」
+
+update:
+  label: 软件更新
+  auto: Jot 会自动检查更新，并在后台下载。
+  check: 检查更新
+  checking: 正在检查…
+  downloading: 正在下载 %{version}…
+  current: Jot 已是最新版本。
+  failed: 暂时无法检查更新，Jot 稍后会再试。
+  unavailable: 这个 Jot 是开发版本，不会自动更新。
+  ready_package: Jot %{version} 已下载：重启 Jot 即可使用，下次打开时也会用上。
+  ready_app: Jot %{version} 已下载：重启即可安装，退出 Jot 时也会自动安装。
+  manual: Jot %{version} 已发布。Jot 所在的位置不能写入，无法自动替换：请下载后手动安装。
+  download: 下载
+  restart: 重启并更新
+  restart_to: 重启并更新到 %{version}
+  ready_short: 新版本已就绪 · 重启

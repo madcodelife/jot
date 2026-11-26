@@ -9,6 +9,7 @@ tray:
   summon: Open Jot (%{keys})
   todos: To-Dos
   enable_double_tap: Turn On Double-Press %{keys}…
+  restart_to_update: Restart to Update to %{version}
   settings: Settings…
 
 notify:
@@ -337,3 +338,20 @@ lock:
   unlock_failed: "Couldn’t unlock “%{title}”: %{error}"
   done: "Locked “%{title}”"
   undone: "Unlocked “%{title}”"
+
+update:
+  label: Software Update
+  auto: Jot checks for updates on its own and downloads them in the background.
+  check: Check for Updates
+  checking: Checking…
+  downloading: Downloading %{version}…
+  current: Jot is up to date.
+  failed: Couldn’t check for updates. Jot tries again later.
+  unavailable: This build of Jot doesn’t update itself (a development run).
+  ready_package: "Jot %{version} is downloaded: restart Jot to use it, or it starts with Jot next time."
+  ready_app: "Jot %{version} is downloaded: restart to install it, or it installs when Jot quits."
+  manual: "Jot %{version} is out. Jot can’t replace itself where it is installed: download it and install it by hand."
+  download: Download
+  restart: Restart to Update
+  restart_to: Restart to update to %{version}
+  ready_short: Update ready · Restart
