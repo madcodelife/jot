@@ -9,7 +9,7 @@ import { morphNext } from "./ui/motion";
 import { T } from "./ui/tokens";
 import { syncClients } from "./connections";
 import { todoKeyword, todoKeywords } from "./i18n";
-import { groupOf, parseDue, type TodoGroup } from "./time";
+import { groupOf, parseDue, todaySummary, type TodoGroup } from "./time";
 
 /** Where the panel is: hidden, the summoned capsule, the list, or a note open beside the list. */
 export type Stage = "hidden" | "capsule" | "list" | "editor";
@@ -156,7 +156,10 @@ export const allTodos = computed<Todo[]>(() => {
   return notes()?.todos() ?? [];
 });
 
-/** The list's rows for the query: today's to-dos first while it is empty, a "new note" row last while no note has that title. */
+/**
+ * The list's rows for the query: while it is empty, today's row first when something is left today or overdue (none
+ * when nothing is due: the to-do view is a "todo" away); a "new note" row last while no note has that title.
+ */
 export const rows = computed<Row[]>(() => {
   const n = notes();
   const q = query().trim();
@@ -164,7 +167,8 @@ export const rows = computed<Row[]>(() => {
   if (!n || isTodoQuery(q)) return [];
   if (!q) {
     const recent = allNotes().slice(0, LIMIT);
-    const head: Row[] = recent.length || allTodos().length ? [{ kind: "summary" }] : [];
+    const due = todaySummary(allTodos(), new Date(now()));
+    const head: Row[] = due.left || due.late ? [{ kind: "summary" }] : [];
     return [...head, ...recent.map((meta): Row => ({ kind: "note", meta, snippet: meta.preview, terms: [] }))];
   }
   const terms = q.split(/\s+/).filter(Boolean);

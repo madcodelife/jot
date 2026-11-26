@@ -53,7 +53,8 @@ Jot is still a notebook: to-dos live in notes, not in a separate task manager.
   reminders".
 - The to-do view: typing "todo" (待办 in Chinese, or `/todo`) in the search field lists every open to-do, grouped as
   overdue, today, tomorrow, later and without a time; each shows the note it is in. When the panel has just been
-  summoned and nothing is typed yet, the top of the list has a row "3 to-dos today"; Return opens the to-do view.
+  summoned and nothing is typed yet, the top of the list has a row "3 to-dos today" (or "1 overdue to-do") while
+  something is left today or overdue, and none when nothing is due; Return on it opens the to-do view.
 - AI apps: say "remind me to send the weekly report on Friday" and the app writes a to-do with a time; ask "what do I
   have to do today" and it lists them; say "move paying rent to Friday" and it changes its time.
 
