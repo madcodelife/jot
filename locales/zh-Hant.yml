@@ -220,7 +220,7 @@ settings:
     translocated: Jot 現在是從「下載項目」之類的暫時位置打開的，連線後路徑會失效。先把 Jot 拖進「應用程式」資料夾，再從那裡打開它。
     other: 其他 App
     command: 指令
-    json: 設定
+    json: 設定內容
     then: 之後在 App 裡說「記到 Jot」或「我今天有什麼要做的」。
     access: 權限
     trash_rewrite: 允許 AI App 把筆記丟到垃圾桶和改寫筆記

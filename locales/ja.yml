@@ -191,7 +191,7 @@ settings:
   reminders:
     notifications: 通知
     notifications_hint: 期限が来たらシステムの通知を表示します
-    island: ノッチのアイランド
+    island: ノッチアイランド
     island_hint: リマインダーや AI アプリのメモをノッチから表示します
     island_no_notch: このディスプレイにはノッチがありません
     default_time: デフォルトの時刻
@@ -221,7 +221,7 @@ settings:
     translocated: Jot は「ダウンロード」などの一時的な場所から開かれているため、接続してもパスが使えなくなります。先に Jot を「アプリケーション」フォルダにドラッグし、そこから開いてください。
     other: ほかのアプリ
     command: コマンド
-    json: 設定
+    json: 設定内容
     then: あとはアプリに「Jot にメモして」「今日やることは？」と話しかけるだけです。
     access: 権限
     trash_rewrite: AI アプリにメモのゴミ箱への移動と書き換えを許可
