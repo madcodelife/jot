@@ -33,10 +33,8 @@ you share the notebook with your AI apps (Claude, Cursor, Codex, …), so they c
 Jot is still a notebook: to-dos live in notes, not in a separate task manager.
 
 - `- [ ] text` in any note is a to-do. Click its checkbox or press ⌘↩ on its line to check it off; it becomes `- [x]`,
-  with the completion date at the end of the line: `✅ 2026-11-14`. Checking one off (in a note, the to-do view or the
-  island) plays a short, soft sound with the check, quieter than the reminder's chime; unchecking is silent, and so is
-  a to-do an AI app checks off. Settings › General › Sound Effects turns it off (on by default), as does the system's
-  "Play user interface sound effects"; the reminders' sound is the notifications' and stays the system's to govern.
+  with the completion date at the end of the line: `✅ 2026-11-14`. Checking one off yourself makes no sound: Jot's
+  sounds are for what AI apps do (below).
 - Writing a time makes it a reminder: `- [ ] 交房租 明天 9:00` ("pay rent tomorrow 9:00"). On save, the relative time
   is replaced by an absolute one in the file: `- [ ] 交房租 ⏰ 2026-11-14 09:00`
   ("tomorrow" stops being true the next day, so the file only stores absolute times; `⏰ YYYY-MM-DD HH:mm` is the same
@@ -148,7 +146,11 @@ A note an AI app creates records which app it was (`source: cursor`, from the na
 the list and the note show that name: "By Cursor". The notch island says what an AI app does on this Mac, by name: a new
 note is written and saved ("Claude · Saved to Jot"), and, more lightly, text added to a note, a to-do added, completed or
 given a new time, a note rewritten (its old version in the Trash) or moved to the Trash; a click on it opens the note,
-or shows the trashed one in the Trash.
+or shows the trashed one in the Trash. Two of these make a short, soft sound as the island says them, quieter than the
+reminder's chime: a new note, a bright tap as the island opens on it, and a completed to-do, a softer one as its check
+pops in. Everything else an AI app does is silent, and so is everything the user does. Settings › General › Sound
+Effects turns them off (on by default), as does the system's "Play user interface sound effects"; the reminders' sound
+is the notifications' and stays the system's to govern.
 
 ## What the first version does and doesn't do
 

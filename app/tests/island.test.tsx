@@ -4,6 +4,7 @@
 import { expect, open, test } from "nsh/test";
 import { ActivityLog, Notes, type AgentAction } from "jot/native";
 import { STAND_INS } from "./native";
+import { THEMES, themeVars } from "../ui/themes";
 
 const unique = () => `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 /** A fresh notes folder, and a log beside it. */
@@ -12,14 +13,17 @@ const setup = (name: string) => {
   return { dir: `${base}/Jot`, log: `${base}/Application Support/Jot/activity.jsonl` };
 };
 
-/** Opens Jot on `dir`, following the log `log`; `trashShown` gets what the island asks Finder to show in the Trash. */
-const openJot = (dir: string, log: string, trashShown: (string | null)[] = []) => {
+/**
+ * Opens Jot on `dir`, following the log `log`; `trashShown` gets what the island asks Finder to show in the Trash.
+ * With reduced motion unless `motion`.
+ */
+const openJot = (dir: string, log: string, trashShown: (string | null)[] = [], motion = false) => {
   new Notes(dir);
   return open("../App.tsx", {
     platform: "macos",
     width: 1200,
     height: 800,
-    reducedMotion: true,
+    reducedMotion: !motion,
     locale: "zh-CN",
     storage: { "jot.dir": dir },
     modules: {
@@ -179,5 +183,57 @@ test("a click opens the note the app wrote to, or shows a trashed one in the Tra
   await app.press("id:island-write");
   await app.waitUntil(() => trashShown.length === 1);
   expect(trashShown).toEqual(["/Users/me/.Trash/旧想法.md"]);
+  app.dispose();
+});
+
+/** What the avatar shows each time it changes, while `ms` pass: "ink" while Jot's logo is written, "logo" once whole. */
+async function logoStates(app: { wait(ms: number): Promise<void>; shows(selector: string): boolean }, ms: number) {
+  const states: string[] = [];
+  for (let waited = 0; waited < ms; waited += 20) {
+    const state = app.shows("id:island-ink") ? "ink" : app.shows("id:island-logo") ? "logo" : "none";
+    if (states.at(-1) !== state) states.push(state);
+    await app.wait(20);
+  }
+  return states;
+}
+
+test("the avatar writes Jot's logo as it falls, whole about as it lands and from then on, for every write", async () => {
+  const { dir, log } = setup("logo");
+  const app = await openJot(dir, log, [], true);
+  await app.waitFor("id:search");
+
+  for (const [action, title] of [["complete", "购物"], ["create", "周会纪要"]] as const) {
+    wrote(log, dir, action, title);
+    await app.waitFor("id:island-write");
+    const opened = Date.now();
+    // The pen writes while the avatar falls; whole well within a second, and whole until the island closes (the note
+    // in, the avatar hopping).
+    expect(await logoStates(app, 1000)).toEqual(["ink", "logo"]);
+    expect(app.layout("id:island-logo")?.width).toBe(28);
+    await app.waitUntil(() => !app.shows("id:island-write") || app.shows("id:island-ink"), { timeout: 8000 });
+    expect(app.shows("id:island-ink")).toBe(false);
+    expect(Date.now() - opened).toBeGreaterThan(1000);
+    await app.waitFor("id:island-write", { state: "gone", timeout: 8000 });
+  }
+  app.dispose();
+});
+
+test("the avatar's colors are Jot's mark, the same in every theme and appearance: white on the brand's indigo", () => {
+  for (const name of THEMES) {
+    for (const look of ["light", "dark"] as const) {
+      const v = themeVars(name).cssVars[look] as Record<string, string>;
+      expect([v["island-logo"], v["island-logo-light"], v["island-logo-ink"]]).toEqual(["#2b2f8f", "#4a4fc4", "#ffffff"]);
+    }
+  }
+});
+
+test("with reduced motion the logo is whole at once", async () => {
+  const { dir, log } = setup("logo-still");
+  const app = await openJot(dir, log);
+  await app.waitFor("id:search");
+  wrote(log, dir, "create", "周会纪要");
+  await app.waitFor("id:island-write");
+  expect(app.shows("id:island-logo")).toBe(true);
+  expect(await logoStates(app, 800)).toEqual(["logo"]);
   app.dispose();
 });

@@ -12,14 +12,15 @@
 // else passes through it: its window takes no clicks unless an AI app's
 // write, a reminder (or a refused microphone, which opens the settings)
 // shows.
-import { Animated, computed, createAnimatedValue, effect, openUrl, reduceMotion, signal, Text, token, untracked, View, type AnimatedNode, type AnimatedValue, type Bounds, type Easing, type JSX, type Keyframe } from "nsh";
+import { Animated, computed, createAnimatedValue, effect, Image, openUrl, reduceMotion, signal, Text, token, untracked, View, type AnimatedNode, type AnimatedValue, type Bounds, type Easing, type JSX, type Keyframe } from "nsh";
 import type { SpeechErrorCode } from "nsh-extra";
 import { Button } from "nsh/base";
 import { displays, Window, type Display, type WindowRef } from "nsh/desktop";
 import { t } from "nsh/i18n";
 import { Folder, type AgentAction, type AgentActivity, type Todo } from "jot/native";
+import { inkFrames, playInk } from "../ink";
 import { errorCode, errorMessage, notes, open, refresh, summon } from "../store";
-import { playDone } from "../sounds";
+import { playDone, playNew } from "../sounds";
 import { hm, parseDue } from "../time";
 import { Icon } from "./icons";
 import { fadeTo, morphNext, springConfig } from "./motion";
@@ -66,6 +67,8 @@ const sheen = signal(false);
 const leaving = signal(false);
 /** Counts the events shown, so a title's letters are new views (and rise in again) for each note. */
 const shown = signal(0);
+/** Write: its sound has played (`sound`), once per island however many writes it takes in. */
+let sounded = false;
 
 /**
  * An AI app wrote to a note (a line of `jot-mcp`'s activity log): a new note shows being written, then saved; any
@@ -84,6 +87,8 @@ export function showAgentActivity(activity: AgentActivity) {
     current.set(mergeWrite(showing, activity, at));
     // Its hold starts again; a new note still being written goes on, its hold to come.
     if (untracked(done)) {
+      // Its check is in: one that now says a to-do was completed sounds now, unless the island already did.
+      sound(untracked(current));
       clearTimers();
       later(holdOf(untracked(current)), close);
     }
@@ -116,6 +121,18 @@ function mergeWrite(event: WriteEvent, activity: AgentActivity, at: number): Wri
 function holdOf(event: IslandEvent | null): number {
   if (event?.kind !== "write" || event.action === "create") return T.timing.islandHold;
   return event.action === "replace" ? T.timing.islandReplaceHold : T.timing.islandLightHold;
+}
+
+/**
+ * An AI app's write sounds as the island says it, once per island (app/sounds.ts): a new note as the island opens on
+ * it, a completed to-do as its check pops in. Any other write is silent, and so is a merged island that played already.
+ */
+function sound(event: IslandEvent | null) {
+  if (sounded || event?.kind !== "write") return;
+  if (event.action === "create") playNew();
+  else if (event.action === "complete") playDone();
+  else return;
+  sounded = true;
 }
 
 /** A new note: the island shows it being written inside the glow. Other writes are lighter. */
@@ -203,7 +220,9 @@ function next() {
   sheen.set(false);
   leaving.set(false);
   isOpen.set(true);
+  sounded = false;
   if (event.kind === "write" && event.action === "create") {
+    sound(event);
     // The avatar falls out of the notch inside the glow and the title rises in; the sheen sweeps the title while the
     // note is written; then the check, and the island holds. Each step waits for the one before, so reduced motion
     // (which shortens every wait) still shows each.
@@ -219,6 +238,7 @@ function next() {
     // Any other write is done already: the check once the avatar has landed, then a shorter hold.
     later(landed(), () => {
       done.set(true);
+      sound(untracked(current));
       later(holdOf(untracked(current)), close);
     });
   } else if (event.kind === "remind") {
@@ -268,7 +288,6 @@ function tick(todo: Todo) {
   }
   refresh();
   done.set(true);
-  playDone();
   for (const t of timers) clearTimeout(t);
   timers = [];
   later(T.timing.remind.doneHold, close);
@@ -1222,7 +1241,10 @@ function useDrop() {
   };
 }
 
-/** The agent's avatar: it falls out of the notch and bounces to rest, then hops once the note is in (`useDrop`). */
+/**
+ * The agent's avatar: it falls out of the notch and bounces to rest, then hops once the note is in (`useDrop`), Jot's
+ * logo written on it as it falls (`Logo`).
+ */
 function Avatar() {
   const drop = useDrop();
   return (
@@ -1233,12 +1255,49 @@ function Avatar() {
         width: MARK,
         height: MARK,
         borderRadius: MARK / 2,
-        backgroundImage: `radial-gradient(circle at 35% 30%, ${token("agent-light")}, ${token("agent")} 60%)`,
+        // Jot's mark, in its own colors whatever the theme: white on the brand's indigo.
+        backgroundImage: `radial-gradient(circle at 35% 30%, ${token("island-logo-light")}, ${token("island-logo")} 60%)`,
         ...drop.style(),
       }}
     >
-      <Icon name="spark" size={25} tint={token("on-accent")} />
+      <Logo />
     </View>
+  );
+}
+
+/** The pen writing the avatar's logo: under half a second from as the avatar starts falling, so the dot is in about as
+ * it lands. */
+const AVATAR_PEN = { writeMs: 340, dotMs: 140 };
+/** The logo's box in the avatar, in points (the strokes fill about four fifths of it). */
+const LOGO = 28;
+
+/**
+ * Jot's logo on the avatar, white (`island-logo-ink`): written by one pen stroke, then the dot, as the avatar falls
+ * (app/ink.ts, the tray's writing at its own pace), and drawn from then on. Its frames are made once and kept, and the
+ * logo at rest is their last. With reduced motion it is whole at once. `island-logo` names it whole, `island-ink`
+ * while it is written.
+ */
+function Logo() {
+  // Decoded at three times its size, so it stays sharp on any display.
+  const frames = () => inkFrames(AVATAR_PEN, token("island-logo-ink"), LOGO * 3);
+  /** The frame while the pen writes; null once the logo is whole. */
+  const ink = signal<string | null>(null);
+  effect(() => {
+    const saved = done();
+    if (!isOpen()) return;
+    if (saved || reduceMotion()) {
+      ink.set(null);
+      return;
+    }
+    return playInk(untracked(frames), (frame) => ink.set(frame), { delay: CONTENT_IN, onEnd: () => ink.set(null) });
+  });
+  return (
+    <Image
+      testID={ink() ? "island-ink" : "island-logo"}
+      src={ink() ?? frames()[frames().length - 1]}
+      accessible={false}
+      style={{ width: LOGO, height: LOGO, pointerEvents: "none" }}
+    />
   );
 }
 

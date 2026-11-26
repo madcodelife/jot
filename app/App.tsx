@@ -128,7 +128,7 @@ function endQuickNote(event: { cancelled: boolean }) {
 }
 
 function App() {
-  // Jot's sound effects decode ahead, so a tick plays at once (app/sounds.ts).
+  // Jot's sound effects decode ahead, so the island plays an AI app's write at once (app/sounds.ts).
   loadSounds();
   // The settings first (language, theme), then the notes folder, its reminders, and the first run's welcome.
   void (async () => {
