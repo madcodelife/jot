@@ -120,7 +120,11 @@ export interface PlatformTokens {
     island: Spring;
     drop: Spring;
     collapse: Spring;
-    /** The island's writing mark popping once the note is in: a quick swell that lands on this. */
+    /** The island opening and closing for an AI app's note: a softer open than `island`, under the glow fading in, and
+     * a close that does not bounce, as the content has already lifted out. */
+    islandWrite: Spring;
+    islandWriteClose: Spring;
+    /** The island's check popping in once an AI app's note is in: bouncy, as the avatar hops beside it. */
     pop: Spring;
   };
   /** Rhythm, in milliseconds. */
@@ -137,10 +141,12 @@ export interface PlatformTokens {
     savedFor: number;
     /** The island stays open after Claude's note is in. */
     islandHold: number;
-    /** One beat of the island's writing mark: the spark twinkles and two ripples leave the circle, then a rest. */
-    islandBeat: number;
-    /** One wave of the island's typing dots, from the first dot rising to the last one's rest. */
-    islandTyping: number;
+    /** How long the sheen sweeps the title of an AI app's note before the check: the island's writing phase. */
+    islandSheen: number;
+    /** One sweep of that sheen across the title. Longer than the phase, so it reads as one slow pass, not a loop. */
+    islandSheenSweep: number;
+    /** One turn of the colors flowing around the island while an AI app writes: slow enough to drift, not spin. */
+    islandGlowTurn: number;
     /** The append notice goes away on its own. */
     noticeFor: number;
     /** "Moved to the trash" stays this long, and the undo key with it. */
@@ -239,8 +245,9 @@ const TIMING = {
   saveAfter: 300,
   savedFor: 1400,
   islandHold: 1600,
-  islandBeat: 1500,
-  islandTyping: 1100,
+  islandSheen: 1300,
+  islandSheenSweep: 1600,
+  islandGlowTurn: 2600,
   noticeFor: 5000,
   undoFor: 5000,
   downloadPoll: 2000,
@@ -257,7 +264,9 @@ const SPRINGS: PlatformTokens["spring"] = {
   island: { response: 0.36, damping: 0.64 },
   drop: { response: 0.31, damping: 0.63 },
   collapse: { response: 0.32, damping: 0.77 },
-  pop: { response: 0.42, damping: 0.52 },
+  islandWrite: { response: 0.46, damping: 0.7 },
+  islandWriteClose: { response: 0.36, damping: 0.95 },
+  pop: { response: 0.42, damping: 0.5 },
 };
 
 const macos: PlatformTokens = {
