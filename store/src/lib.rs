@@ -22,6 +22,7 @@ use notify_debouncer_mini::{DebounceEventResult, DebouncedEventBatch, Debouncer,
 mod activity;
 mod cloud;
 mod conflict;
+mod import;
 mod lock;
 mod moving;
 mod settings;
@@ -32,6 +33,7 @@ pub mod when;
 
 pub use activity::{Action, Activity, ActivityTail, ROTATE_AT, watch_activity};
 pub use conflict::{Conflict, Resolution, Resolved};
+pub use import::{APPLE_NOTES_ID, ImportNote, Imported};
 pub use jiff::civil::DateTime;
 pub use moving::Moved;
 pub use settings::AiSettings;
@@ -785,6 +787,8 @@ impl Lowered {
 
 #[cfg(test)]
 mod cloud_tests;
+#[cfg(test)]
+mod import_tests;
 #[cfg(test)]
 mod lock_tests;
 #[cfg(test)]

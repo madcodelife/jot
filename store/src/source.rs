@@ -143,7 +143,10 @@ impl Source {
     /// The source a note's frontmatter records: its top-level `source` value (unquoted, without a trailing
     /// comment) when Jot wrote it (a known app's key, `agent`, `agent:<name>`, in any case), else the user.
     pub(crate) fn of_frontmatter(frontmatter: &str) -> Source {
-        let Some(value) = frontmatter.lines().find_map(top_level_source) else {
+        let Some(value) = frontmatter
+            .lines()
+            .find_map(|line| top_level_string(line, "source"))
+        else {
             return Source::User;
         };
         let value = value.trim();
@@ -170,10 +173,10 @@ impl Source {
     }
 }
 
-/// A line's value when it is the top-level `source` key (not indented): unquoted, without a trailing comment.
-fn top_level_source(line: &str) -> Option<String> {
+/// A line's value when it is the top-level key `name` (not indented): unquoted, without a trailing comment.
+pub(crate) fn top_level_string(line: &str, name: &str) -> Option<String> {
     let (key, value) = line.split_once(':')?;
-    if key.trim_end() != "source" {
+    if key.trim_end() != name {
         return None;
     }
     let value = value.trim_start();
@@ -221,7 +224,7 @@ fn top_level_source(line: &str) -> Option<String> {
 
 /// `value` as a YAML scalar that reads back as this string: plain when it is a word YAML takes as a string
 /// (a letter, then letters, digits, `-`, `_` and `.`; not `true`, `null`, `yes`, …), else in double quotes.
-fn yaml_string(value: &str) -> String {
+pub(crate) fn yaml_string(value: &str) -> String {
     const SPECIAL: &[&str] = &[
         "true", "false", "yes", "no", "on", "off", "y", "n", "null", "nan", "inf",
     ];

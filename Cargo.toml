@@ -36,6 +36,10 @@ tokio = { version = "1", default-features = false, features = ["sync"] }
 serde = "1"
 serde_json = { version = "1", features = ["preserve_order"] }
 toml_edit = "0.25"
+# Apple Notes' HTML read for the import (`apple_notes`): the parser NSH's rich editor uses already, so nothing new is
+# built; the Markdown is written here, for the HTML Notes writes.
+html5ever = "0.27"
+markup5ever_rcdom = "0.3"
 
 [dev-dependencies]
 tempfile = "3"

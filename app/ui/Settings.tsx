@@ -30,7 +30,7 @@ import {
 import { AlertDialog, Radio, RadioGroup, Tab, Tabs } from "nsh/base";
 import { Application, displays, Window, type Display, type WindowRef } from "nsh/desktop";
 import { t } from "nsh/i18n";
-import { Connections, Folder, Summon, type AiClient, type MovedNotes } from "jot/native";
+import { AppleNotes, Connections, Folder, Summon, type AiClient, type MovedNotes } from "jot/native";
 import { aiBusy, aiClients, aiErrors, refreshClients, toggleClient } from "../connections";
 import { LANGUAGES, tn } from "../i18n";
 import {
@@ -60,6 +60,7 @@ import {
 } from "../settings";
 import { PRIVACY_URL, speechAvailable, speechDenied } from "../voice";
 import { changeFolder, errorMessage, folderPath, folderShown, moveNotesTo, trusted } from "../store";
+import { AUTOMATION_URL, importAppleNotes, importing, importReport } from "../importing";
 import { checkForUpdates, downloading, manualUpdate, readyUpdate, restartToUpdate, runningVersion, updatePhase } from "../updates";
 import appIcon from "./app-icon.svg";
 import { FORM, Hint, MacSwitch, PopupButton, PushButton, TimeInput } from "./controls";
@@ -435,6 +436,40 @@ function DriveRow() {
   );
 }
 
+/** Settings › General › Import: Apple Notes, where the platform has it (macOS). */
+function ImportGroup() {
+  if (!AppleNotes.available()) return null;
+  return (
+    <>
+      <SectionTitle>{t("settings.import.label")}</SectionTitle>
+      <Group testID="settings-import">
+        <Row label={t("settings.import.apple_notes")} hint={t("settings.import.hint")}>
+          <If when={importReport()?.denied}>
+            <PushButton
+              testID="settings-import-allow"
+              label={t("settings.import.open_settings")}
+              onPress={() => void openUrl(AUTOMATION_URL).catch(() => {})}
+            />
+          </If>
+          <PushButton
+            testID="settings-import-apple-notes"
+            label={importing() ? t("settings.import.importing") : t("settings.import.button")}
+            disabled={importing() || !folderPath()}
+            onPress={() => void importAppleNotes()}
+          />
+        </Row>
+      </Group>
+      <If when={importReport()} else={<Footnote>{t("settings.import.footnote")}</Footnote>}>
+        {(report) => (
+          <Footnote testID="settings-import-report" tone={report().failed ? "late" : "muted"}>
+            {report().text}
+          </Footnote>
+        )}
+      </If>
+    </>
+  );
+}
+
 function GeneralPane() {
   // Read when the page shows: the user may change it in System Settings meanwhile.
   const atLogin = signal(false);
@@ -508,6 +543,8 @@ function GeneralPane() {
           />
         </Row>
       </Group>
+
+      <ImportGroup />
     </>
   );
 }

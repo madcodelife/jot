@@ -9,10 +9,11 @@ folder. Part of [the architecture](architecture.md).
 - The title is the file stem. A title is trimmed; `/`, `\`, `:` and control characters become `-`; an empty
   title, `.` / `..`, or a title starting with `.` is rejected (`StoreError::InvalidTitle`). Titles compare
   case-insensitively for existence checks (macOS file systems are case-insensitive).
-- Optional YAML frontmatter at the very top (`---` lines). Jot writes two keys: `source`, on notes created through
-  MCP: the app that created it (`source: cursor`, `source: "agent:Goose"`), and `locked: true` on a locked note
-  ([locks.md](locks.md)). Only the values Jot writes mark a note as an app's; any other `source` (a web clipper's URL, a book) is
-  the user's. Unknown keys are preserved on every write. `body` never includes the frontmatter.
+- Optional YAML frontmatter at the very top (`---` lines). Jot writes these keys: `source`, on notes created through
+  MCP: the app that created it (`source: cursor`, `source: "agent:Goose"`), `locked: true` on a locked note
+  ([locks.md](locks.md)), and `apple-notes-id` and `folder` on a note imported from Apple Notes (below). Only the
+  values Jot writes mark a note as an app's; any other `source` (a web clipper's URL, a book) is the user's. Unknown
+  keys are preserved on every write. `body` never includes the frontmatter.
 - Writes are atomic: a temp file in the same folder, then rename.
 - `modified` is the file's mtime.
 
@@ -57,6 +58,33 @@ Drive: renamed-over writes upload (`NSURLUbiquitousItemIsUploadedKey`) and leave
 in for it (`store/src/cloud_tests.rs`: placeholders as real files, dataless files and conflict versions faked).
 `on_icloud_drive` (ignored) runs the store on a real iCloud Drive folder: `JOT_ICLOUD_DIR=<a test folder in iCloud
 Drive> cargo test -p jot-store on_icloud_drive -- --ignored --nocapture`.
+
+## Importing (store/src/import.rs)
+
+`Store::import` writes notes another app had (Apple Notes: [app.md](app.md#importing-from-apple-notes-appimportingts-srcapple_notesrs)),
+their bodies already Markdown, each as a new note:
+
+```markdown
+---
+apple-notes-id: "x-coredata://5C2A…/ICNote/p1234"
+folder: Work/Projects
+---
+The note's text, without its title (the file's name).
+```
+
+- `apple-notes-id` is the note's id in Notes; `folder` its Notes folder (a nested one as `Parent/Child`), left out
+  when it has none. Both are written as `source` is (plain when YAML reads them back as that string, else
+  double-quoted). No `source`: an imported note is the user's own.
+- The file's modification time is the note's in Notes (set before the rename), so the list orders the notes as
+  Notes did.
+- **Nothing here changes.** A note whose id a note of the folder has in its frontmatter (a top-level
+  `apple-notes-id`, any quoting) is left out (`already`), so importing again adds only the new ones; a note
+  renamed or edited in Jot since stays as it is, and one deleted in Jot comes back. A title taken by another note
+  is numbered (`Title 2`…, as `move_into` does); a new file never replaces one (`persist_noclobber`).
+- Titles are cleaned as every title is, leading dots dropped, cut to leave room for a number; an empty one is
+  `Untitled`.
+- A note not downloaded (iCloud Drive) cannot be read for its id: an imported note whose title (or numbered title)
+  meets one is left out for now (`waiting`), its download asked for; importing again once it is here brings it in.
 
 ## jot-store API (store/src/lib.rs)
 
@@ -113,12 +141,18 @@ impl Store {
     /// moves in as `Title 2`… (`renamed`); a note not downloaded moves when the move is a rename (one volume),
     /// else stays (`failed`). Files that are not notes stay. Dates and frontmatter are kept.
     pub fn move_into(&self, to: &Store) -> Result<Moved, StoreError>;
+    /// Writes each note as a new one (`apple-notes-id`, `folder`, its date as the file's), never changing a note
+    /// here: an id the folder has is left out (`already`), a title taken numbered, one taken by a note not
+    /// downloaded left for later (`waiting`). Fails only when the folder cannot be read.
+    pub fn import(&self, notes: &[ImportNote]) -> Result<Imported, StoreError>;
 }
 
 pub struct Conflict { pub id: String, pub device: Option<String>, pub modified: SystemTime, pub body: String }  // non_exhaustive
 pub enum Resolution { KeepCurrent, UseOther, KeepBoth { title: String } }
 pub struct Resolved { pub note: NoteMeta, pub copy: Option<NoteMeta> }  // non_exhaustive
 pub struct Moved { pub moved: Vec<String>, pub renamed: Vec<(String, String)>, pub same: Vec<String>, pub failed: Vec<(String, String)> }  // non_exhaustive
+pub struct ImportNote { pub id: String, pub title: String, pub body: String /* Markdown, no title */, pub folder: Option<String>, pub modified: SystemTime }
+pub struct Imported { pub imported: Vec<String>, pub renamed: Vec<(String, String)>, pub already: Vec<String>, pub waiting: Vec<String>, pub failed: Vec<(String, String)> }  // non_exhaustive
 
 pub struct NoteMeta { pub title: String, pub modified: SystemTime, pub source: Source, pub preview: String /* first ~120 chars of the body, one line */, pub downloading: bool /* its text is not on this Mac yet; asked for */, pub locked: bool /* the flag, or `locked: true` */ }
 pub struct Note { pub meta: NoteMeta, pub body: String }

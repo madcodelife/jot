@@ -1,7 +1,7 @@
 //! Platforms without a native implementation yet: no permission is
 //! needed, double taps and holds are not heard, the input source's
-//! language is unknown, there is no iCloud Drive, and nothing turns
-//! interface sounds off.
+//! language is unknown, there is no iCloud Drive or Apple Notes, and
+//! nothing turns interface sounds off.
 
 use crate::summon::SummonKey;
 
@@ -45,4 +45,12 @@ pub(crate) fn trash_folder() -> Option<std::path::PathBuf> {
 /// No system setting for interface sounds here: Jot's own setting decides.
 pub(crate) fn ui_sounds_on() -> bool {
     true
+}
+
+/// No Apple Notes here.
+pub(crate) const APPLE_NOTES: bool = false;
+
+/// No Apple Notes to read here.
+pub(crate) fn read_apple_notes() -> Result<String, crate::apple_notes::ReadError> {
+    Err(crate::apple_notes::ReadError::Unsupported)
 }

@@ -6,6 +6,7 @@ import { expect, open, test } from "nsh/test";
 import { drawsSurface, swatch, themeFromStored, themeVars, THEMES, type ThemeName } from "../ui/themes";
 import { Notes } from "jot/native";
 import { defaultFolder } from "../store";
+import { AUTOMATION_URL, importFailure } from "../importing";
 import { STAND_INS } from "./native";
 
 /** A fresh, empty notes folder. */
@@ -655,4 +656,57 @@ test("without a folder chosen, iCloud Drive's is the default only on a first run
   expect(defaultFolder(false, { path: null, available: false })).toBe("~/Documents/Jot");
   // Jot ran here before: its notes are in the Documents folder, and stay there.
   expect(defaultFolder(true, { path: icloud, available: true })).toBe("~/Documents/Jot");
+});
+
+test("importing from Apple Notes says what it did, and only when asked", async () => {
+  const dir = folder("import");
+  const imports: string[] = [];
+  const app = await openJot(dir, {}, {
+    "AppleNotes.import": async (to: string) => {
+      imports.push(to);
+      return { imported: 132, renamed: [], already: 5, locked: 3, deleted: 0, waiting: 0, failed: [] };
+    },
+  });
+  await openSettings(app);
+  await app.waitFor("id:settings-import-apple-notes");
+  // Nothing reads Notes until the button is pressed.
+  expect(imports).toEqual([]);
+  expect(app.texts()).toContain("备忘录");
+  expect(app.texts().some((text) => text.startsWith("第一次导入时，macOS 会请你允许 Jot 控制「备忘录」"))).toBe(true);
+
+  await app.press("id:settings-import-apple-notes");
+  await app.waitFor("id:settings-import-report");
+  expect(imports).toEqual([dir]);
+  expect(app.texts()).toContain("导入了 132 条笔记 · 5 条之前已导入 · 跳过了 3 条上锁的备忘录");
+  expect(app.enabled("id:settings-import-apple-notes")).toBe(true);
+  app.dispose();
+});
+
+test("an import Jot may not make says where to allow it", () => {
+  // A stand-in's error reaches the app without its `code`, so the denied report is checked here, not on screen.
+  const denied = importFailure({ name: "Error", message: "Jot is not allowed to control Notes", code: "ERR_JOT_NOT_AUTHORIZED" });
+  expect(denied.denied).toBe(true);
+  expect(denied.failed).toBe(true);
+  expect(importFailure(new Error("disk full")).denied).toBe(false);
+  expect(AUTOMATION_URL).toBe("x-apple.systempreferences:com.apple.preference.security?Privacy_Automation");
+});
+
+test("an import that fails says why; without Apple Notes there is none", async () => {
+  const app = await openJot(folder("import-failed"), {}, {
+    "AppleNotes.import": async () => {
+      throw new Error("cannot read Apple Notes: Notes got an error");
+    },
+  });
+  await openSettings(app);
+  await app.press("id:settings-import-apple-notes");
+  await app.waitFor("id:settings-import-report");
+  expect(app.texts()).toContain("没能从「备忘录」导入：cannot read Apple Notes: Notes got an error");
+  expect(app.shows("id:settings-import-allow")).toBe(false);
+  app.dispose();
+
+  const other = await openJot(folder("import-none"), {}, { "AppleNotes.available": false });
+  await openSettings(other);
+  expect(other.shows("id:settings-import")).toBe(false);
+  expect(other.texts()).not.toContain("导入");
+  other.dispose();
 });

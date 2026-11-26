@@ -1,0 +1,319 @@
+//! Apple Notes' HTML as Markdown, on HTML shaped as Notes writes it, and the JSON its scripting gives.
+
+use std::time::{Duration, SystemTime};
+
+use super::html::{ATTACHMENT, IMAGE, to_markdown};
+use super::{ReadError, parse};
+
+fn md(html: &str) -> String {
+    to_markdown(html, None)
+}
+
+#[test]
+fn a_div_is_a_line_and_an_empty_one_a_blank_line() {
+    let html = "<div>One</div>\n<div>Two</div>\n<div><br></div>\n<div>Three<br></div>\n<div><br></div>\n<div><br></div>\n<div>Four</div>\n";
+    assert_eq!(md(html), "One\nTwo\n\nThree\n\n\nFour");
+    // Lines broken inside one div.
+    assert_eq!(md("<div>a<br>b<br><br>c</div>"), "a\nb\n\nc");
+    // Blank lines at either end go.
+    assert_eq!(md("<div><br></div><div>x</div><div><br></div>"), "x");
+    assert_eq!(md(""), "");
+}
+
+#[test]
+fn the_title_line_is_left_out() {
+    let html = "<div><h1>Groceries</h1></div>\n<div><br></div>\n<div>Milk</div>\n";
+    assert_eq!(to_markdown(html, Some("Groceries")), "Milk");
+    // Another first line stays.
+    assert_eq!(to_markdown(html, Some("Shopping")), "# Groceries\n\nMilk");
+    // An older note's title: a bold first line, spaces and non-breaking ones aside.
+    let html = "<div><b><span style=\"font-size: 24px\">Trip&nbsp; to  Kyoto</span></b></div><div>Day one</div>";
+    assert_eq!(to_markdown(html, Some("Trip to Kyoto")), "Day one");
+    // A list item is never the title.
+    assert_eq!(
+        to_markdown("<ul><li>Milk</li></ul>", Some("Milk")),
+        "- Milk"
+    );
+    // A note that is only its title.
+    assert_eq!(to_markdown("<div><h1>Alone</h1></div>", Some("Alone")), "");
+}
+
+#[test]
+fn headings() {
+    let html = "<div><h1><b>Title</b></h1></div><div><h2>Heading</h2></div><div><h3>Sub <i>heading</i></h3></div><div>text</div>";
+    assert_eq!(md(html), "# Title\n## Heading\n### Sub *heading*\ntext");
+}
+
+#[test]
+fn bold_italic_underline_and_strikethrough() {
+    let html = "<div>a <b>bold </b>and <i>it</i> <u>under</u> <strike>gone</strike> <b><i>both</i></b></div>";
+    assert_eq!(md(html), "a **bold** and *it* under ~~gone~~ ***both***");
+    // Marks around words only: none around spaces, each line its own.
+    assert_eq!(md("<div>w<b> </b>x<b>a<br>b</b></div>"), "w x**a**\n**b**");
+}
+
+#[test]
+fn nested_lists() {
+    let html = "<div>Things:</div>\n<ul>\n<li>Milk</li>\n<li>Eggs</li>\n<ul>\n<li>Free range</li>\n<ul><li>Large</li></ul>\n</ul>\n<li>Bread</li>\n</ul>\n<div><br></div>\n<ol>\n<li>First</li>\n<li>Second</li>\n<ol><li>Inner</li></ol>\n</ol>\n";
+    assert_eq!(
+        md(html),
+        "Things:\n- Milk\n- Eggs\n  - Free range\n    - Large\n- Bread\n\n1. First\n2. Second\n   1. Inner"
+    );
+    // A list inside an item, and a numbered list's start.
+    let html = "<ol start=\"9\"><li>Nine<ol><li>a</li></ol></li><li>Ten</li></ol>";
+    assert_eq!(md(html), "9. Nine\n   1. a\n10. Ten");
+    // An item with lines of its own.
+    assert_eq!(md("<ul><li>one<br>more</li></ul>"), "- one\n  more");
+}
+
+#[test]
+fn checklists_and_dash_lists_are_plain_lists() {
+    let html = "<ul class=\"Apple-dash-list\"><li>dash</li></ul><ul><li>checked or not</li></ul>";
+    assert_eq!(md(html), "- dash\n- checked or not");
+}
+
+#[test]
+fn links() {
+    let html = "<div>See <a href=\"https://example.com/a\">the site</a>, <a href=\"https://example.com\">https://example.com</a>, <a href=\"mailto:me@example.com\">me@example.com</a> and <a href=\"x-apple-data-detectors://3\">tomorrow</a>.</div>";
+    assert_eq!(
+        md(html),
+        "See [the site](https://example.com/a), https://example.com, me@example.com and tomorrow."
+    );
+    assert_eq!(
+        md("<div><a href=\"https://e.com/a b\"><b>bold link</b></a></div>"),
+        "[**bold link**](<https://e.com/a b>)"
+    );
+}
+
+#[test]
+fn monospaced_lines_are_a_code_block() {
+    let html = "<div>Run:</div>\n<div><tt>fn main() {</tt></div>\n<div><tt>&nbsp;&nbsp;&nbsp;&nbsp;println!(\"*hi*\");</tt></div>\n<div><tt><br></tt></div>\n<div><tt>}</tt></div>\n<div>after</div>";
+    assert_eq!(
+        md(html),
+        "Run:\n```\nfn main() {\n    println!(\"*hi*\");\n\n}\n```\nafter"
+    );
+    // A Menlo font, or a style naming one, is monospaced too; a blank line after the code stays after it.
+    let html = "<div><font face=\"Menlo-Regular\">ls -la</font></div><div><span style=\"font-family: Menlo; font-size: 12px\">cd ~</span></div><div><br></div><div>done</div>";
+    assert_eq!(md(html), "```\nls -la\ncd ~\n```\n\ndone");
+    // A fence longer than the backticks inside.
+    assert_eq!(md("<div><tt>```</tt></div>"), "````\n```\n````");
+}
+
+#[test]
+fn preformatted_text_keeps_its_lines_and_spaces() {
+    let html = "<pre>if x:\n    y = 1\n\nz</pre><div>after</div>";
+    assert_eq!(md(html), "```\nif x:\n    y = 1\n\nz\n```\nafter");
+}
+
+#[test]
+fn monospaced_words_in_a_line_are_inline_code() {
+    let html = "<div>Type <tt>git status</tt> or <font face=\"Courier\">a`b</font> then <b>enter</b></div>";
+    assert_eq!(md(html), "Type `git status` or ``a`b`` then **enter**");
+    // In a list item, a monospaced item is inline code, not a block.
+    assert_eq!(md("<ul><li><tt>npm i</tt></li></ul>"), "- `npm i`");
+}
+
+#[test]
+fn tables() {
+    let html = "<div>Before</div><div><table cellspacing=\"0\" cellpadding=\"0\" style=\"border-collapse: collapse\"><tbody><tr><td valign=\"top\"><div><b>Name</b></div></td><td valign=\"top\"><div>Qty</div></td></tr><tr><td valign=\"top\"><div>Milk</div></td><td valign=\"top\"><div>2 | 3</div></td></tr><tr><td><div>Eggs</div><div>brown</div></td></tr></tbody></table></div><div>After</div>";
+    assert_eq!(
+        md(html),
+        "Before\n\n| **Name** | Qty |\n| --- | --- |\n| Milk | 2 \\| 3 |\n| Eggs brown |  |\n\nAfter"
+    );
+}
+
+#[test]
+fn a_table_in_an_object_is_a_table() {
+    // As Notes writes a table: inside an `<object>`, a `<br>` after it, each cell's words in a `<div>`.
+    let td = "<td valign=\"top\" style=\"border-style: solid; border-width: 1.0px 1.0px 1.0px 1.0px; border-color: #ccc; padding: 3.0px 5.0px 3.0px 5.0px; min-width: 70px\">";
+    let html = format!(
+        "<div><object><table cellspacing=\"0\" cellpadding=\"0\" style=\"border-collapse: collapse; direction: ltr\">\n<tbody>\n<tr>{td}<div><b><font face=\".PingFangUITextSC-Bold\">Day</font></b></div>\n</td>{td}<div><b><font face=\".PingFangUITextSC-Bold\">Plan</font></b></div>\n</td></tr>\n<tr><td valign=\"top\"><div><font face=\".PingFangUITextSC-Regular\">Mon</font></div>\n</td><td valign=\"top\"><div>Rest</div><div>or a walk</div>\n</td></tr>\n<tr><td valign=\"top\"><div>Tue<br>Wed</div>\n</td><td valign=\"top\"><div>Swim | run</div>\n</td></tr>\n</tbody>\n</table></object><br></div>\n<div>Total 12</div>"
+    );
+    assert_eq!(
+        md(&html),
+        "| **Day** | **Plan** |\n| --- | --- |\n| Mon | Rest or a walk |\n| Tue Wed | Swim \\| run |\n\nTotal 12"
+    );
+    // A blank line after it stays one blank line.
+    assert_eq!(
+        md(
+            "<div><object><table><tr><td>a</td></tr></table></object><br></div><div><br></div><div>b</div>"
+        ),
+        "| a |\n| --- |\n\nb"
+    );
+}
+
+#[test]
+fn the_spaces_starting_a_line_are_kept() {
+    let html = "<div>## Topics</div>\n<div>  - layout</div>\n<div>    - grids</div>\n<div>    - flex</div>\n<div>      - wrapping</div>";
+    assert_eq!(
+        md(html),
+        "## Topics\n  - layout\n    - grids\n    - flex\n      - wrapping"
+    );
+    // Tabs, non-breaking spaces and spaces before styled words too; spaces inside the line still collapse.
+    assert_eq!(
+        md(
+            "<div>\tstep  one</div><div>&nbsp; two</div><div>  <b>three</b></div><div>a<br>  b</div>"
+        ),
+        "\tstep one\n  two\n  **three**\na\n  b"
+    );
+    // The line breaks between tags in the source are not indentation.
+    assert_eq!(md("<div>\n<b>x</b></div>\n<div>\n  y</div>"), "**x**\ny");
+    // Nor do a heading or a list item take any.
+    assert_eq!(
+        md("<div><h2>  Head</h2></div><ul><li>  item</li></ul>"),
+        "## Head\n- item"
+    );
+    // An indented monospaced line keeps its indent in the code block.
+    assert_eq!(
+        md("<div><tt>if x:</tt></div><div><tt>  y()</tt></div>"),
+        "```\nif x:\n  y()\n```"
+    );
+}
+
+#[test]
+fn runs_of_one_style_side_by_side_are_one_run() {
+    let html = "<ul class=\"Apple-dash-list\">\n<li><strike><font face=\".PingFangUITextSC-Regular\">Buy fish at the market, cook it at </font></strike><strike>the corner place</strike></li>\n</ul>";
+    assert_eq!(
+        md(html),
+        "- ~~Buy fish at the market, cook it at the corner place~~"
+    );
+    assert_eq!(
+        md("<div><b>bo</b><b>ld</b> <i>one </i><i>two</i> <b>a</b> <b>b</b></div>"),
+        "**bold** *one two* **a b**"
+    );
+    // Different styles stay apart.
+    assert_eq!(md("<div><b>a</b> <i>b</i></div>"), "**a** *b*");
+}
+
+#[test]
+fn a_title_over_several_headings_is_left_out() {
+    let html = "<div><h1>Shoes</h1><b><h1>👟</h1></b><h1><br></h1></div>\n<div>Size 42</div>";
+    assert_eq!(to_markdown(html, Some("Shoes👟")), "Size 42");
+    assert_eq!(to_markdown(html, Some("Shoes 👟")), "Size 42");
+    // A first block saying more than the title stays (its first line goes when that is the title).
+    let html = "<div><h1>Shoes</h1><b><h1>Boots</h1></b></div>\n<div>Size 42</div>";
+    assert_eq!(
+        to_markdown(html, Some("Shoes👟")),
+        "# Shoes\n**Boots**\nSize 42"
+    );
+    // A title in one heading or in bold, as before.
+    assert_eq!(
+        to_markdown("<div><h1>Plan</h1></div>\n<div>Ship it</div>", Some("Plan")),
+        "Ship it"
+    );
+    assert_eq!(
+        to_markdown("<div><b>Plan</b></div>\n<div>Ship it</div>", Some("Plan")),
+        "Ship it"
+    );
+}
+
+#[test]
+fn images_and_attachments_leave_a_line() {
+    let html = "<div>Photo:</div><div><img src=\"data:\" style=\"max-width: 100%\"><br></div><div><object type=\"application/pdf\"></object></div><div>end</div>";
+    assert_eq!(md(html), format!("Photo:\n{IMAGE}\n{ATTACHMENT}\nend"));
+}
+
+#[test]
+fn entities_and_spaces() {
+    let html = "<div>Fish &amp; chips &lt;3 &quot;yes&quot; caf&eacute; &#x1F600;&nbsp;&nbsp;x   y\n z</div><div>&nbsp;&nbsp;indented</div>";
+    assert_eq!(
+        md(html),
+        "Fish & chips <3 \"yes\" café 😀  x y z\n  indented"
+    );
+}
+
+#[test]
+fn block_quotes() {
+    let html =
+        "<blockquote><div>quoted</div><div><br></div><div>two</div></blockquote><div>out</div>";
+    assert_eq!(md(html), "> quoted\n>\n> two\nout");
+}
+
+#[test]
+fn a_whole_document_is_read_from_its_body() {
+    let html = "<html><head><style>div { color: red }</style></head><body><div>Hi</div><script>x()</script></body></html>";
+    assert_eq!(md(html), "Hi");
+}
+
+#[test]
+fn notes_json_becomes_notes_to_import() {
+    let json = r#"{"folders": [
+        {"account": "iCloud", "path": ["Notes"], "deleted": false, "notes": [
+            {"id": "x-coredata://A/ICNote/p1", "name": "Groceries", "modified": 1700000000000, "locked": false,
+             "body": "<div><h1>Groceries</h1></div><div>Milk</div>"},
+            {"id": "x-coredata://A/ICNote/p2", "name": "Diary", "modified": 1700000001000, "locked": true, "body": null},
+            {"id": "x-coredata://A/ICNote/p3", "name": "Odd", "modified": 1600000000000, "locked": false, "body": null}
+        ]},
+        {"account": "iCloud", "path": ["Work", "Projects"], "deleted": false, "notes": [
+            {"id": "x-coredata://A/ICNote/p4", "name": "Plan", "modified": 1800000000000, "locked": false,
+             "body": "<div>Plan</div><div>Ship it</div>"}
+        ]},
+        {"account": "iCloud", "path": ["Recently Deleted"], "deleted": true, "notes": [
+            {"id": "x-coredata://A/ICNote/p5", "name": "Old", "modified": 1, "locked": false, "body": null},
+            {"id": "x-coredata://A/ICNote/p6", "name": "Older", "modified": 1, "locked": false, "body": null}
+        ]},
+        {"account": "On My Mac", "path": ["Notes"], "deleted": false, "notes": []}
+    ]}"#;
+    let read = parse(json).unwrap();
+    assert_eq!(read.locked, 1);
+    assert_eq!(read.deleted, 2);
+    assert_eq!(read.unreadable, ["Odd"]);
+    // Newest first.
+    let titles: Vec<&str> = read.notes.iter().map(|n| n.title.as_str()).collect();
+    assert_eq!(titles, ["Plan", "Groceries"]);
+    let plan = &read.notes[0];
+    assert_eq!(plan.id, "x-coredata://A/ICNote/p4");
+    assert_eq!(plan.body, "Ship it");
+    assert_eq!(plan.folder.as_deref(), Some("Work/Projects"));
+    assert_eq!(
+        plan.modified,
+        SystemTime::UNIX_EPOCH + Duration::from_secs(1_800_000_000)
+    );
+    assert_eq!(read.notes[1].body, "Milk");
+    assert_eq!(read.notes[1].folder.as_deref(), Some("Notes"));
+
+    assert!(parse("not json").is_err());
+    assert!(parse("{}").is_err());
+}
+
+#[test]
+fn osascript_refused_is_not_authorized() {
+    let refused =
+        "execution error: Error: Error: Not authorized to send Apple events to Notes. (-1743)\n";
+    assert_eq!(ReadError::of_osascript(refused), ReadError::NotAuthorized);
+    assert_eq!(
+        ReadError::of_osascript(
+            "execution error: Error: Error: Notes got an error: AppleEvent timed out. (-1712)\n"
+        ),
+        ReadError::Failed(
+            "execution error: Error: Error: Notes got an error: AppleEvent timed out. (-1712)"
+                .to_owned()
+        )
+    );
+    assert_eq!(
+        ReadError::of_osascript(""),
+        ReadError::Failed("osascript failed".to_owned())
+    );
+}
+
+/// Imports what Notes' scripting gave on a real Mac, captured with
+/// `osascript -l JavaScript src/platform/apple-notes.js > /tmp/apple-notes.json`, into a folder (never Jot's own):
+/// `JOT_APPLE_NOTES_JSON=/tmp/apple-notes.json JOT_IMPORT_DIR=/tmp/jot-import cargo test -p nsh-app-jot
+/// apple_notes_from_a_capture -- --ignored --nocapture`. Run it twice: the second imports nothing.
+#[test]
+#[ignore = "needs a capture of a real Notes: JOT_APPLE_NOTES_JSON, JOT_IMPORT_DIR"]
+fn apple_notes_from_a_capture() {
+    let json = std::fs::read_to_string(std::env::var("JOT_APPLE_NOTES_JSON").unwrap()).unwrap();
+    let dir = std::env::var("JOT_IMPORT_DIR").unwrap();
+    let read = parse(&json).unwrap();
+    println!(
+        "read {} notes ({} locked, {} in Recently Deleted, {} without text)",
+        read.notes.len(),
+        read.locked,
+        read.deleted,
+        read.unreadable.len()
+    );
+    let store = jot_store::Store::open(&dir).unwrap();
+    let imported = store.import(&read.notes).unwrap();
+    println!("{imported:#?}");
+}

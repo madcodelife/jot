@@ -1,7 +1,7 @@
 # The app
 
 The app's Rust face (`jot/native`), the island, the to-do view's motion and Jot's sounds, the open note's keys and live
-preview, row actions, updates and packaging. Part of [the architecture](architecture.md).
+preview, row actions, importing from Apple Notes, updates and packaging. Part of [the architecture](architecture.md).
 
 ## The app's Rust face (`jot/native`, src/)
 
@@ -130,6 +130,13 @@ module AiAccess {                                // the AI apps' permission (src
   allowsTrashAndRewrite(): boolean;             // off when the file is missing
   set(allowTrashAndRewrite: boolean, language: string): void;  // throws when it cannot be written
 }
+
+module AppleNotes {                             // the settings' import from Apple Notes (src/apple_notes.rs; below)
+  available(): boolean;                         // Apple Notes is here (macOS); asks the system nothing
+  import(dir: string): Promise<AppleNotesImport>;  // reads every note of Notes, then Store::import into `dir`, off the engine thread
+  // Rejects with ERR_JOT_NOT_AUTHORIZED (Jot may not control Notes), ERR_JOT_UNSUPPORTED (no Apple Notes), else why.
+}
+interface AppleNotesImport { imported: number /* renamed ones too */; renamed: { from: string; to: string }[]; already: number; locked: number; deleted: number /* in Recently Deleted */; waiting: number /* a note of the title not downloaded */; failed: { title: string; error: string }[] }
 
 module NativeBuild {                            // what the installed app was built from (src/native_build.rs)
   fingerprint(): string;                        // its native fingerprint, 16 hex digits; "dev" for a build without one (Updates, below)
@@ -434,13 +441,54 @@ otherwise.
 update of a higher build drops a package of a lower one. How a release is made:
 [CONTRIBUTING.md](../CONTRIBUTING.md#releasing).
 
+## Importing from Apple Notes (app/importing.ts, src/apple_notes.rs)
+
+Settings › General › Import: the "Apple Notes" row (shown where `AppleNotes.available()`, macOS) and its "Import…"
+button, the only thing in Jot that reaches Notes: nothing at launch or in use sends Notes an Apple Event, so the
+system's "“Jot” wants access to control “Notes”" prompt shows only when the user presses it (the first time; its text
+is nsh.json's `NSAppleEventsUsageDescription`). While it runs the button says "Importing…" and is disabled (no
+progress: Notes is read in one go). Then the footnote says what it did ("Imported 132 notes · 5 already imported · 3
+locked notes skipped"), or why it failed; refused (`ERR_JOT_NOT_AUTHORIZED`), it says where to allow it and a button
+opens System Settings › Privacy & Security › Automation.
+
+- **Reading** (`platform::read_apple_notes`, macOS): `/usr/bin/osascript -l JavaScript` runs
+  `src/platform/apple-notes.js`, which prints every folder of every account (nested ones with their path) and its
+  notes as JSON: ids, names, dates and locks one request a folder, the bodies too when none is locked (else one by
+  one); none for a locked note or Recently Deleted (a top-level folder of that name, in the languages Notes is in:
+  Notes' scripting has no other mark of it). Images' data (`src="data:…"`) is cut from the HTML there. Apple Events'
+  -1743 / -1744 is `ReadError::NotAuthorized`. `osascript` is a process of Jot's, so the system asks for Jot (from a
+  terminal's `nsh run`, for the terminal). The packaged app is signed with `com.apple.security.automation.apple-events`
+  (nsh.json `macos.entitlements`), which the hardened runtime needs to send Apple Events.
+- **Converting** (`apple_notes::html`, the same on every platform; html5ever, which NSH's rich editor builds
+  already): a `<div>` is a line and `<div><br></div>` a blank one, as Notes writes them; the spaces, tabs and
+  non-breaking spaces a line's text starts with stay (indenting by hand; the source's line breaks between tags are not
+  indent, and a heading or a list item takes none); `<h1>`–`<h3>` are `#`–`###`; bold, italic and struck words `**`,
+  `*`, `~~`, runs of one style side by side one run (`**ab**`, not `**a****b**`; underline has no Markdown and goes);
+  lists, nested inside an item or beside the items, indented under their parent's words; links `[words](url)` (just
+  the address when the words are it; Notes' data detectors keep the words); a line all monospaced (`<tt>`, `<pre>`, a
+  Menlo or Courier font) is code, a run of them one fenced block, other monospaced words inline code; block quotes
+  `>`; tables (Notes puts them in an `<object>`) Markdown tables, the first row the header, a cell on one line (its
+  lines joined by spaces, `|` escaped); an image `[image not imported]`, any other attachment (an `<object>` without a
+  table too) `[attachment not imported]`. Checklists come as plain list items: the HTML does not say which were
+  ticked. The title goes when it starts the note (Notes repeats it there; in Jot the file's name is the title),
+  whitespace aside: the first line, or the whole first `<div>` when its headings and plain lines say it together (Notes
+  may split a title over several headings).
+- **Writing**: `Store::import` ([storage.md](storage.md#importing-storesrcimportrs)): newest first, so of two notes
+  with one title the newer keeps it.
+
+To check against a real Notes (it asks the terminal to control Notes, and only reads):
+`osascript -l JavaScript src/platform/apple-notes.js > /tmp/apple-notes.json`, then import that into a folder of its
+own: `JOT_APPLE_NOTES_JSON=/tmp/apple-notes.json JOT_IMPORT_DIR=/tmp/jot-import cargo test -p nsh-app-jot
+apple_notes_from_a_capture -- --ignored --nocapture`.
+
 ## Packaging (scripts/package-macos.sh)
 
 NSH's `nsh package` bundles its runner and the app's assets only, so the script builds `jot-mcp` (in cargo's
 `target_directory` from `cargo metadata`; lipo'd for `--arch universal`), removes `<out>/<name>.app` (`--name`, else
 nsh.json's), runs `nsh package --target macos` with its options (paths taken from the caller's folder; no ENTRY: it
 packages this checkout; `--arch` is `arm64`, `x86_64` or `universal`), copies `jot-mcp` to
-`<name>.app/Contents/MacOS/jot-mcp`, signs it, signs the bundle again keeping its entitlements, and verifies
+`<name>.app/Contents/MacOS/jot-mcp`, signs it, signs the bundle again keeping its entitlements (nsh.json
+`macos.entitlements`, which `nsh package` signed in: Apple Events, for the import from Apple Notes), and verifies
 (`codesign --verify --deep --strict`). With `"updater"` in nsh.json, nsh also wrote the update archives
 (`<name>-<version>-macos-<aarch64|x86_64>.tar.gz`) before `jot-mcp` was in, so the script archives the signed bundle
 again under those names (`tar` with `COPYFILE_DISABLE`, as nsh does). It builds the app's Rust with the native

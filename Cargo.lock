@@ -1449,8 +1449,10 @@ name = "nsh-app-jot"
 version = "0.1.0"
 dependencies = [
  "block2",
+ "html5ever",
  "jiff",
  "jot-store",
+ "markup5ever_rcdom",
  "nsh-core",
  "nsh-extra",
  "nsh-icon",

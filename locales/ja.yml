@@ -163,6 +163,38 @@ settings:
       one: "%{count} 件は移動できず、%{folder} に残っています：%{error}"
       other: "%{count} 件は移動できず、%{folder} に残っています：%{error}"
     failed: "iCloud Drive に移動できませんでした：%{error}"
+  import:
+    label: 読み込み
+    apple_notes: メモ App
+    hint: "メモ App のメモを Markdown として読み込みます。ロックされたメモ、画像、添付ファイルはメモ App に残ります。"
+    button: "読み込む…"
+    importing: "読み込み中…"
+    footnote: "初回は、メモを読み込めるよう Jot に「メモ」の制御を許可するか macOS が確認します。もう一度読み込むと新しいメモだけが追加され、既存のメモは変更されません。"
+    denied: "Jot にはメモ App を読む許可がありません。「システム設定」›「プライバシーとセキュリティ」›「オートメーション」で許可してから、もう一度読み込んでください。"
+    open_settings: "システム設定を開く…"
+    none: "新しいメモはありません"
+    imported:
+      one: "%{count} 件のメモを読み込みました"
+      other: "%{count} 件のメモを読み込みました"
+    renamed:
+      one: "「%{from}」はここのメモと同じタイトルだったので「%{to}」として保存しました"
+      other: "%{count} 件はここのメモと同じタイトルだったので、「%{to}」のように番号を付けて保存しました"
+    already:
+      one: "%{count} 件は読み込み済み"
+      other: "%{count} 件は読み込み済み"
+    locked:
+      one: "ロックされたメモ %{count} 件をスキップ"
+      other: "ロックされたメモ %{count} 件をスキップ"
+    deleted:
+      one: "「最近削除した項目」の %{count} 件をスキップ"
+      other: "「最近削除した項目」の %{count} 件をスキップ"
+    waiting:
+      one: "%{count} 件は同じタイトルのメモを iCloud Drive がダウンロードし終えるのを待っています。あとでもう一度読み込んでください"
+      other: "%{count} 件は同じタイトルのメモを iCloud Drive がダウンロードし終えるのを待っています。あとでもう一度読み込んでください"
+    failed_some:
+      one: "「%{title}」を読み込めませんでした：%{error}"
+      other: "%{count} 件を読み込めませんでした（「%{title}」など）：%{error}"
+    failed: "メモ App から読み込めませんでした：%{error}"
   summon:
     double: "%{key} を 2 回押す"
     on: オン

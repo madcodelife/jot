@@ -162,6 +162,38 @@ settings:
       one: "%{count} 則無法移動，還在 %{folder}：%{error}"
       other: "%{count} 則無法移動，還在 %{folder}：%{error}"
     failed: "無法移到 iCloud 雲碟：%{error}"
+  import:
+    label: 匯入
+    apple_notes: 備忘錄
+    hint: "把「備忘錄」裡的筆記匯入成 Markdown。上鎖的備忘錄、圖片和附件留在「備忘錄」裡。"
+    button: "匯入…"
+    importing: "正在匯入…"
+    footnote: "第一次匯入時，macOS 會請你允許 Jot 控制「備忘錄」，以便讀取裡面的筆記。再次匯入只會加上新的筆記，已有的一則也不改。"
+    denied: "Jot 沒有讀取「備忘錄」的權限。在「系統設定」›「隱私權與安全性」›「自動化」裡允許後再匯入。"
+    open_settings: "開啟系統設定…"
+    none: "沒有新的筆記"
+    imported:
+      one: "匯入了 %{count} 則筆記"
+      other: "匯入了 %{count} 則筆記"
+    renamed:
+      one: "「%{from}」和這裡的筆記同名，存成了「%{to}」"
+      other: "%{count} 則和這裡的筆記同名，加上編號另存了，例如「%{to}」"
+    already:
+      one: "%{count} 則之前已匯入"
+      other: "%{count} 則之前已匯入"
+    locked:
+      one: "略過了 %{count} 則上鎖的備忘錄"
+      other: "略過了 %{count} 則上鎖的備忘錄"
+    deleted:
+      one: "略過了「最近刪除」裡的 %{count} 則"
+      other: "略過了「最近刪除」裡的 %{count} 則"
+    waiting:
+      one: "%{count} 則要等 iCloud 雲碟下載完同名的筆記，稍後再匯入一次"
+      other: "%{count} 則要等 iCloud 雲碟下載完同名的筆記，稍後再匯入一次"
+    failed_some:
+      one: "「%{title}」無法匯入：%{error}"
+      other: "%{count} 則無法匯入，例如「%{title}」：%{error}"
+    failed: "無法從「備忘錄」匯入：%{error}"
   summon:
     double: 連按兩下 %{key}
     on: 已開啟
