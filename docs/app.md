@@ -447,25 +447,43 @@ update of a higher build drops a package of a lower one. How a release is made:
 Settings › General › Import: the "Apple Notes" row (shown where `AppleNotes.available()`, macOS) and its "Import…"
 button, the only thing in Jot that reaches Notes: nothing at launch or in use sends Notes an Apple Event, so the
 system's "“Jot” wants access to control “Notes”" prompt shows only when the user presses it (the first time; its text
-is nsh.json's `NSAppleEventsUsageDescription`). While it runs the button says "Importing…" and is disabled (no
-progress: Notes is read in one go), and so are the notes folder's "Change…" and "Move to iCloud Drive" (the import
-writes into the folder open when it started; the other way round, no import while the notes move). Then the footnote
-says what it did ("Imported 132 notes · 5 already imported · 3 locked notes skipped"), or why it failed; refused
+is nsh.json's `NSAppleEventsUsageDescription`). While it runs the button says "Importing…" and is disabled, and so
+are the notes folder's "Change…" and "Move to iCloud Drive" (the import writes into the folder open when it started;
+the other way round, no import while the notes move). Meanwhile the footnote says how far it is (`progressText`, from
+the `onProgress` callback `AppleNotes.import` takes): "Reading Notes…" until Notes says how many folders there are
+(the system's prompt may come first), then "Reading Notes… 5/15" (folders whose notes' text is read), then
+"Writing… 12/53" (notes written or left out). Then the footnote says what it did ("Imported 132 notes · 5 already imported · 3 locked notes skipped"), or why it failed; refused
 (`ERR_JOT_NOT_AUTHORIZED`), it says where to allow it and a button opens System Settings › Privacy & Security ›
 Automation; too slow (`ERR_JOT_TIMED_OUT`), that Notes did not answer within 10 minutes. Before an import, the
 footnote says that importing again skips the notes imported before but brings back one deleted in Jot.
 
 - **Reading** (`platform::read_apple_notes`, macOS): `/usr/bin/osascript -l JavaScript` runs
   `src/platform/apple-notes.js`, which prints every folder of every account (nested ones with their path) and its
-  notes as JSON: ids, names, dates and locks one request a folder, the bodies too when none is locked (else one by
-  one); none for a locked note or Recently Deleted (a top-level folder of that name: Notes' scripting has no other mark
-  of it, `sdef` gives a folder a name, an id, `shared` and its container only). The names are generated from macOS's
-  own Notes (`NotesShared.framework`'s `Localizable.loctable`, every language; the script says how to regenerate),
+  notes as JSON. Each request to Notes is an Apple Event, and one can take seconds on a busy Mac, so their number
+  does not grow with the folders more than it must: nine requests for whole collections read every account (ids,
+  names), every folder, nested ones included (ids, names, containers) and every note (ids, names, dates, locks), and
+  the script builds the tree from the folders' containers (a folder's is its parent folder, or its account for a
+  top-level one). A note's container cannot be read that way (Notes answers null for each), so each folder is asked
+  for its notes' ids, which places them. Then the text, folder by folder: one request a folder (its bodies, in the
+  order of the ids just read), or one a note in a folder with a locked note (asking a folder with one for all its
+  bodies fails), or when that failed; none for a locked note or Recently Deleted. For 15 folders and 54 notes:
+  about 35 requests, about a second on an idle Mac, where reading folder by folder and walking the tree took about
+  170. A note no folder lists is kept, in a folder with no path (imported without `folder`); a folder whose parent it did not
+  list is a top-level one. Recently Deleted is a top-level folder of that name (Notes' scripting has no other mark of
+  it, `sdef` gives a folder a name, an id, `shared` and its container only), and a folder in it is deleted too. The
+  names are generated from macOS's own Notes (`NotesShared.framework`'s `Localizable.loctable`, every language; the
+  script says how to regenerate),
   plus a few earlier names an older macOS may give, so a user's own top-level folder named as Recently Deleted in some language ("Eliminate", "Apagadas") is left out
   too. Images' data (`src="data:…"`) is cut from the HTML there. The JSON it prints is ASCII alone (every other
   character `\uXXXX`, lone surrogates U+FFFD first), so it reads the same whatever encoding `osascript` writes in.
   Reading may take 10 minutes at most (`apple_notes::READ_LIMIT`, the system's prompt included): past that
   `osascript` is killed and it is `ReadError::TimedOut`. Apple Events' -1743 / -1744 is `ReadError::NotAuthorized`.
+  **Progress**: the script writes `progress <done> <total>` to stderr (JXA's `console.log` writes there; stdout is
+  only the JSON) before the first folder's text and after each; `apple_notes::output_within` reads stderr line by
+  line as it comes, hands those lines on and keeps the rest for the error. `AppleNotes.import` works on a blocking
+  thread and sends its steps (progress, then the result) over a channel to its task on the engine thread, which
+  posts each progress to the callback (`Callback::post`) before it settles; writing reports each note done
+  (`Store::import_with_progress`).
   A note Notes gives no id or no text for is among `failed`, with why. `osascript` is a process of Jot's, so the system asks for Jot (from a
   terminal's `nsh run`, for the terminal). The packaged app is signed with `com.apple.security.automation.apple-events`
   (nsh.json `macos.entitlements`), which the hardened runtime needs to send Apple Events.
@@ -485,13 +503,15 @@ footnote says that importing again skips the notes imported before but brings ba
   ticked. The title goes when it starts the note (Notes repeats it there; in Jot the file's name is the title),
   whitespace aside: the first line, or the whole first `<div>` when its headings and plain lines say it together (Notes
   may split a title over several headings).
-- **Writing**: `Store::import` ([storage.md](storage.md#importing-storesrcimportrs)): newest first, so of two notes
+- **Writing**: `Store::import_with_progress` ([storage.md](storage.md#importing-storesrcimportrs)): newest first, so of two notes
   with one title the newer keeps it.
 
 To check against a real Notes (it asks the terminal to control Notes, and only reads):
 `osascript -l JavaScript src/platform/apple-notes.js > /tmp/apple-notes.json`, then import that into a folder of its
 own: `JOT_APPLE_NOTES_JSON=/tmp/apple-notes.json JOT_IMPORT_DIR=/tmp/jot-import cargo test -p nsh-app-jot
-apple_notes_from_a_capture -- --ignored --nocapture`.
+apple_notes_from_a_capture -- --ignored --nocapture`. Without Notes, `node scripts/apple-notes-fake.mjs` runs the
+script against an invented Notes and counts its requests; `cargo test -p nsh-app-jot apple_notes_script_under_node --
+--ignored` reads what it gives (not in CI: it needs Node).
 
 ## Packaging (scripts/package-macos.sh)
 

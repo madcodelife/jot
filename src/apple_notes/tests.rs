@@ -3,7 +3,7 @@
 use std::time::{Duration, SystemTime};
 
 use super::html::{ATTACHMENT, IMAGE, to_markdown};
-use super::{NO_ID, NO_TEXT, ReadError, output_within, parse};
+use super::{NO_ID, NO_TEXT, ReadError, output_within, parse, progress_line};
 
 fn md(html: &str) -> String {
     to_markdown(html, None)
@@ -373,7 +373,7 @@ fn a_command_past_its_limit_is_killed() {
     let mut sleep = Command::new("/bin/sleep");
     sleep.arg("30");
     assert!(
-        output_within(sleep, Duration::from_millis(200))
+        output_within(sleep, Duration::from_millis(200), |_, _| {})
             .unwrap()
             .is_none()
     );
@@ -385,10 +385,127 @@ fn a_command_past_its_limit_is_killed() {
         "-c",
         &format!("i=0; while [ $i -lt 2000 ]; do echo '{line}'; echo err >&2; i=$((i+1)); done"),
     ]);
-    let output = output_within(sh, Duration::from_secs(60)).unwrap().unwrap();
+    let output = output_within(sh, Duration::from_secs(60), |_, _| {})
+        .unwrap()
+        .unwrap();
     assert!(output.status.success());
     assert_eq!(output.stdout.len(), 2000 * (line.len() + 1));
     assert_eq!(output.stderr.len(), 2000 * 4);
+}
+
+#[test]
+#[cfg(unix)]
+fn progress_on_stderr_is_reported_as_it_comes_and_left_out() {
+    use std::process::Command;
+    use std::sync::{Arc, Mutex};
+
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let mut sh = Command::new("/bin/sh");
+    sh.args([
+        "-c",
+        "echo 'progress 0 2' >&2; echo warning >&2; echo 'progress 1 2' >&2; echo '{}'; echo 'progress 2 2' >&2",
+    ]);
+    let reported = Arc::clone(&seen);
+    let output = output_within(sh, Duration::from_secs(60), move |done, total| {
+        reported.lock().unwrap().push((done, total))
+    })
+    .unwrap()
+    .unwrap();
+    assert_eq!(*seen.lock().unwrap(), [(0, 2), (1, 2), (2, 2)]);
+    assert_eq!(output.stdout, b"{}\n");
+    assert_eq!(output.stderr, b"warning\n");
+
+    assert_eq!(progress_line(b"progress 5 15\n"), Some((5, 15)));
+    assert_eq!(progress_line(b"progress 5 15\r\n"), Some((5, 15)));
+    assert_eq!(progress_line(b"progress 5"), None);
+    assert_eq!(progress_line(b"progress 5 15 more"), None);
+    assert_eq!(progress_line(b"execution error: progress 5 15"), None);
+}
+
+#[test]
+fn a_note_outside_any_folder_notes_named_is_imported_without_one() {
+    // As the script writes a note whose folder Notes did not list, and a folder whose parent it did not: last, the
+    // note's with no path.
+    let json = r#"{"folders": [
+        {"account": "", "path": ["Stray"], "deleted": false, "notes": [
+            {"id": "x-coredata://A/ICNote/p8", "name": "Strayed", "modified": 2, "locked": false, "body": "<div>a</div>"}
+        ]},
+        {"account": "", "path": [], "deleted": false, "notes": [
+            {"id": "x-coredata://A/ICNote/p9", "name": "Loose", "modified": 1, "locked": false, "body": "<div>b</div>"}
+        ]}
+    ]}"#;
+    let read = parse(json).unwrap();
+    let folders: Vec<(&str, Option<&str>)> = read
+        .notes
+        .iter()
+        .map(|n| (n.title.as_str(), n.folder.as_deref()))
+        .collect();
+    assert_eq!(folders, [("Strayed", Some("Stray")), ("Loose", None)]);
+}
+
+/// Runs src/platform/apple-notes.js under Node against an invented Notes (scripts/apple-notes-fake.mjs), and reads
+/// what it gives as Jot does. Needs Node, so not in CI: `cargo test -p nsh-app-jot apple_notes_script_under_node --
+/// --ignored --nocapture`.
+#[test]
+#[ignore = "needs Node"]
+fn apple_notes_script_under_node() {
+    use std::process::Command;
+
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    for odd in [false, true] {
+        let mut node = Command::new("node");
+        node.arg(root.join("scripts/apple-notes-fake.mjs"));
+        if odd {
+            node.arg("--odd");
+        }
+        let output = node.output().expect("node");
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        println!("{stderr}");
+        let progress: Vec<(u32, u32)> = stderr
+            .lines()
+            .filter_map(|line| progress_line(line.as_bytes()))
+            .collect();
+        assert_eq!(progress.first(), Some(&(0, 12 + if odd { 2 } else { 0 })));
+        assert!(progress.windows(2).all(|w| w[1].0 == w[0].0 + 1));
+        let events: u32 = stderr
+            .lines()
+            .find_map(|line| line.strip_prefix("apple events "))
+            .unwrap()
+            .parse()
+            .unwrap();
+        // Nine for every account, folder and note; one a folder for its notes' ids and one for their text, one a
+        // note in a folder with a locked one or in no folder listed.
+        assert_eq!(events, if odd { 41 } else { 38 });
+
+        let stdout = String::from_utf8(output.stdout).unwrap();
+        assert!(stdout.is_ascii());
+        let read = parse(&stdout).unwrap();
+        assert_eq!(read.locked, 1);
+        assert_eq!(read.deleted, 2);
+        assert!(read.unreadable.is_empty(), "{:?}", read.unreadable);
+        assert_eq!(read.notes.len(), 51 + if odd { 2 } else { 0 });
+        let folder = |title: &str| {
+            let note = read.notes.iter().find(|n| n.title == title).unwrap();
+            (note.folder.clone(), note.body.clone())
+        };
+        assert_eq!(
+            folder("Note 3"),
+            (
+                Some("Work/Projects/Archive".to_owned()),
+                "Line of note 3\n[image not imported]".to_owned()
+            )
+        );
+        assert_eq!(folder("Note 11").0.as_deref(), Some("Ideas/Café 😀"));
+        if odd {
+            assert_eq!(folder("Loose").0, None);
+            assert_eq!(folder("Strayed").0.as_deref(), Some("Stray"));
+        }
+    }
 }
 
 /// Imports what Notes' scripting gave on a real Mac, captured with

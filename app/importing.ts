@@ -1,9 +1,10 @@
 // Importing the user's Apple Notes into the notes folder, from Settings › General › Import (the only place that does):
 // `AppleNotes.import` reads every note of Notes (macOS asks the user to let Jot control Notes, the first time) and
-// writes the ones not imported before; what it did shows under the button. docs/app.md (Importing from Apple Notes).
+// writes the ones not imported before; how far it is, then what it did, shows under the button. docs/app.md (Importing
+// from Apple Notes).
 import { signal, untracked } from "nsh";
 import { t } from "nsh/i18n";
-import { AppleNotes, type AppleNotesImport } from "jot/native";
+import { AppleNotes, type AppleNotesImport, type AppleNotesProgress } from "jot/native";
 import { tn } from "./i18n";
 import { errorCode, errorMessage, folderPath } from "./store";
 
@@ -21,6 +22,15 @@ export interface ImportReport {
 export const importing = signal(false);
 /** What the last import did, or why it failed. */
 export const importReport = signal<ImportReport | null>(null);
+/** How far the import under way is: `null` until Notes says (it may first ask the user to let Jot control Notes). */
+export const importProgress = signal<AppleNotesProgress | null>(null);
+
+/** How far an import is, in a line: "Reading Notes…", "Reading Notes… 5/15" (folders), "Writing… 12/53" (notes). */
+export function progressText(progress: AppleNotesProgress | null): string {
+  if (!progress) return t("settings.import.reading");
+  const counts = { done: progress.done, total: progress.total };
+  return progress.phase === "writing" ? t("settings.import.writing", counts) : t("settings.import.reading_count", counts);
+}
 
 /** What an import did, in one line: "Imported 132 notes · 5 already imported · 3 locked notes skipped". */
 export function importedText(done: AppleNotesImport): string {
@@ -58,12 +68,14 @@ export async function importAppleNotes() {
   if (!dir || untracked(importing)) return;
   importing.set(true);
   importReport.set(null);
+  importProgress.set(null);
   try {
-    const done = await AppleNotes.import(dir);
+    const done = await AppleNotes.import(dir, (progress) => importProgress.set(progress));
     importReport.set({ text: importedText(done), failed: done.failed.length > 0, denied: false });
   } catch (error) {
     importReport.set(importFailure(error));
   } finally {
     importing.set(false);
+    importProgress.set(null);
   }
 }

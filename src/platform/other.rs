@@ -51,6 +51,8 @@ pub(crate) fn ui_sounds_on() -> bool {
 pub(crate) const APPLE_NOTES: bool = false;
 
 /// No Apple Notes to read here.
-pub(crate) fn read_apple_notes() -> Result<String, crate::apple_notes::ReadError> {
+pub(crate) fn read_apple_notes(
+    _on_progress: impl FnMut(u32, u32) + Send + 'static,
+) -> Result<String, crate::apple_notes::ReadError> {
     Err(crate::apple_notes::ReadError::Unsupported)
 }

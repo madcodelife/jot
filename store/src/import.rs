@@ -59,6 +59,15 @@ impl Store {
     /// (`waiting`): that one cannot be read to tell whether it is the same note. Fails only when the folder cannot
     /// be read; a note that cannot be written is reported in `failed`.
     pub fn import(&self, notes: &[ImportNote]) -> Result<Imported, StoreError> {
+        self.import_with_progress(notes, |_| {})
+    }
+
+    /// [`Store::import`], calling `progress` with how many of `notes` are done (written or left out) after each.
+    pub fn import_with_progress(
+        &self,
+        notes: &[ImportNote],
+        mut progress: impl FnMut(usize),
+    ) -> Result<Imported, StoreError> {
         let mut report = Imported::default();
         // The ids imported before, and the titles taken (lowercase: titles compare case-insensitively), with
         // whether that note could be read.
@@ -83,59 +92,72 @@ impl Store {
             }
         }
 
-        for note in notes {
-            let id = one_line(&note.id);
-            if ids.contains(&id) {
-                report.already.push(note.title.clone());
-                continue;
-            }
-            let base = import_title(&note.title);
-            let content = import_content(note);
-            let mut placed = None;
-            for n in 1..=1000 {
-                let title = if n == 1 {
-                    base.clone()
-                } else {
-                    format!("{base} {n}")
-                };
-                let lower = title.to_lowercase();
-                if unread.contains(&lower) {
-                    placed = Some(Err(StoreError::NotDownloaded));
-                    break;
-                }
-                if taken.contains(&lower) {
-                    continue;
-                }
-                match self.write_file(&self.path_for(&title), &content, None, Some(note.modified)) {
-                    Ok(()) => {
-                        taken.insert(lower);
-                        placed = Some(Ok((title, n)));
-                        break;
-                    }
-                    // Taken since the folder was read.
-                    Err(StoreError::AlreadyExists) => {
-                        taken.insert(lower);
-                    }
-                    Err(error) => {
-                        placed = Some(Err(error));
-                        break;
-                    }
-                }
-            }
-            match placed.unwrap_or(Err(StoreError::AlreadyExists)) {
-                Ok((title, n)) => {
-                    ids.insert(id);
-                    if n == 1 {
-                        report.imported.push(title);
-                    } else {
-                        report.renamed.push((note.title.clone(), title));
-                    }
-                }
-                Err(StoreError::NotDownloaded) => report.waiting.push(note.title.clone()),
-                Err(error) => report.failed.push((note.title.clone(), error.to_string())),
-            }
+        for (done, note) in notes.iter().enumerate() {
+            self.import_note(note, &mut ids, &mut taken, &unread, &mut report);
+            progress(done + 1);
         }
         Ok(report)
+    }
+
+    /// Writes `note` as [`Store::import`] does, with what is known of the folder so far.
+    fn import_note(
+        &self,
+        note: &ImportNote,
+        ids: &mut HashSet<String>,
+        taken: &mut HashSet<String>,
+        unread: &HashSet<String>,
+        report: &mut Imported,
+    ) {
+        let id = one_line(&note.id);
+        if ids.contains(&id) {
+            report.already.push(note.title.clone());
+            return;
+        }
+        let base = import_title(&note.title);
+        let content = import_content(note);
+        let mut placed = None;
+        for n in 1..=1000 {
+            let title = if n == 1 {
+                base.clone()
+            } else {
+                format!("{base} {n}")
+            };
+            let lower = title.to_lowercase();
+            if unread.contains(&lower) {
+                placed = Some(Err(StoreError::NotDownloaded));
+                break;
+            }
+            if taken.contains(&lower) {
+                continue;
+            }
+            match self.write_file(&self.path_for(&title), &content, None, Some(note.modified)) {
+                Ok(()) => {
+                    taken.insert(lower);
+                    placed = Some(Ok((title, n)));
+                    break;
+                }
+                // Taken since the folder was read.
+                Err(StoreError::AlreadyExists) => {
+                    taken.insert(lower);
+                }
+                Err(error) => {
+                    placed = Some(Err(error));
+                    break;
+                }
+            }
+        }
+        match placed.unwrap_or(Err(StoreError::AlreadyExists)) {
+            Ok((title, n)) => {
+                ids.insert(id);
+                if n == 1 {
+                    report.imported.push(title);
+                } else {
+                    report.renamed.push((note.title.clone(), title));
+                }
+            }
+            Err(StoreError::NotDownloaded) => report.waiting.push(note.title.clone()),
+            Err(error) => report.failed.push((note.title.clone(), error.to_string())),
+        }
     }
 }
 

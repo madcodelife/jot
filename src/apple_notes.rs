@@ -13,6 +13,7 @@ use std::time::{Duration, Instant, SystemTime};
 use jot_store::{ImportNote, Store};
 use nsh_core::prelude::*;
 use serde_json::Value;
+use tokio::sync::mpsc::unbounded_channel;
 
 use crate::folder::{FailedNote, RenamedNote};
 use crate::notes::{expand_home, store_error};
@@ -61,30 +62,46 @@ impl ReadError {
 pub(crate) const READ_LIMIT: Duration = Duration::from_secs(10 * 60);
 
 /// Runs `command` as `Command::output` does, its stdout and stderr read meanwhile (on threads of their own, so neither
-/// fills up), but for `limit` at most: past it, the process is killed and this is `None`.
+/// fills up), but for `limit` at most: past it, the process is killed and this is `None`. Each line of stderr that is
+/// progress (`progress <done> <total>`, [`progress_line`]) goes to `on_progress` as it comes, and is left out of the
+/// output's `stderr`.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub(crate) fn output_within(
     mut command: Command,
     limit: Duration,
+    mut on_progress: impl FnMut(u32, u32) + Send + 'static,
 ) -> std::io::Result<Option<Output>> {
+    use std::io::{BufRead, BufReader, Read};
+
     let mut child = command
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
-    fn read_all(
-        pipe: Option<impl std::io::Read + Send + 'static>,
-    ) -> std::thread::JoinHandle<Vec<u8>> {
-        std::thread::spawn(move || {
-            let mut bytes = Vec::new();
-            if let Some(mut pipe) = pipe {
-                let _ = pipe.read_to_end(&mut bytes);
+    let stdout = child.stdout.take();
+    let stdout = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        if let Some(mut pipe) = stdout {
+            let _ = pipe.read_to_end(&mut bytes);
+        }
+        bytes
+    });
+    let stderr = child.stderr.take();
+    let stderr = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        if let Some(pipe) = stderr {
+            let mut pipe = BufReader::new(pipe);
+            let mut line = Vec::new();
+            while matches!(pipe.read_until(b'\n', &mut line), Ok(n) if n > 0) {
+                match progress_line(&line) {
+                    Some((done, total)) => on_progress(done, total),
+                    None => bytes.extend_from_slice(&line),
+                }
+                line.clear();
             }
-            bytes
-        })
-    }
-    let stdout = read_all(child.stdout.take());
-    let stderr = read_all(child.stderr.take());
+        }
+        bytes
+    });
     let deadline = Instant::now() + limit;
     let status = loop {
         if let Some(status) = child.try_wait()? {
@@ -108,6 +125,18 @@ pub(crate) fn output_within(
     }))
 }
 
+/// A line of progress the script writes to stderr, `progress <done> <total>` (src/platform/apple-notes.js): the
+/// folders whose text is read, of how many.
+pub(crate) fn progress_line(line: &[u8]) -> Option<(u32, u32)> {
+    let line = std::str::from_utf8(line)
+        .ok()?
+        .trim_end_matches(['\n', '\r']);
+    let mut words = line.strip_prefix("progress ")?.split(' ');
+    let done = words.next()?.parse().ok()?;
+    let total = words.next()?.parse().ok()?;
+    words.next().is_none().then_some((done, total))
+}
+
 /// Importing from Apple Notes.
 #[module]
 pub struct AppleNotes;
@@ -124,27 +153,63 @@ impl AppleNotes {
     /// A note imported before (its id in the folder) is left out, and no note of the folder is changed: a title
     /// taken is numbered (`Title 2`). Locked notes and those in Recently Deleted are left out and counted.
     ///
+    /// Calls `onProgress` as it goes: `reading`, the folders of Notes whose text is read, then `writing`, the notes
+    /// written (or left out), each with how many are done of how many.
+    ///
     /// The first time, the system asks the user to let Jot control Notes. Rejects with `code`
     /// `ERR_JOT_NOT_AUTHORIZED` when that was refused, `ERR_JOT_TIMED_OUT` when Notes did not give every note within
     /// 10 minutes ([`READ_LIMIT`]; nothing imported), `ERR_JOT_UNSUPPORTED` where there is no Apple Notes; with the
     /// system's words for anything else.
-    pub async fn import(dir: String) -> Result<AppleNotesImport, JsError> {
+    pub async fn import(
+        dir: String,
+        #[args(progress)] on_progress: Callback<AppleNotesProgress>,
+    ) -> Result<AppleNotesImport, JsError> {
+        enum Step {
+            Progress(AppleNotesProgress),
+            Done(Result<AppleNotesImport, JsError>),
+        }
         let dir = expand_home(&dir);
-        blocking(move || {
-            let json = platform::read_apple_notes().map_err(read_error)?;
-            let read = parse(&json).map_err(|why| {
-                JsError::Error(format!("cannot read what Apple Notes gave: {why}"))
-            })?;
-            let store = Store::open(&dir).map_err(|e| {
-                store_error(e, format_args!("cannot open the folder {}", dir.display()))
-            })?;
-            let imported = store
-                .import(&read.notes)
-                .map_err(|e| store_error(e, "cannot import the notes"))?;
-            Ok(AppleNotesImport::new(read, imported))
-        })
-        .await
-        .map_err(|error| JsError::Error(error.to_string()))?
+        // The work blocks on its own thread; its steps come back here, on the engine thread, where the callback is
+        // posted.
+        let (steps, mut receiver) = unbounded_channel();
+        let work = blocking(move || {
+            let reading = steps.clone();
+            let progress =
+                |phase, done, total| Step::Progress(AppleNotesProgress { phase, done, total });
+            let import = || {
+                let json = platform::read_apple_notes(move |done, total| {
+                    let _ = reading.send(progress(ImportPhase::Reading, done, total));
+                })
+                .map_err(read_error)?;
+                let read = parse(&json).map_err(|why| {
+                    JsError::Error(format!("cannot read what Apple Notes gave: {why}"))
+                })?;
+                let store = Store::open(&dir).map_err(|e| {
+                    store_error(e, format_args!("cannot open the folder {}", dir.display()))
+                })?;
+                let total = count(read.notes.len());
+                let _ = steps.send(progress(ImportPhase::Writing, 0, total));
+                let imported = store
+                    .import_with_progress(&read.notes, |done| {
+                        let _ = steps.send(progress(ImportPhase::Writing, count(done), total));
+                    })
+                    .map_err(|e| store_error(e, "cannot import the notes"))?;
+                Ok(AppleNotesImport::new(read, imported))
+            };
+            let done = import();
+            let _ = steps.send(Step::Done(done));
+        });
+        while let Some(step) = receiver.recv().await {
+            match step {
+                Step::Progress(progress) => on_progress.post(progress),
+                Step::Done(done) => return done,
+            }
+        }
+        // The thread ended without an answer: it panicked.
+        Err(JsError::Error(match work.await {
+            Err(error) => error.to_string(),
+            Ok(()) => "the import stopped".to_owned(),
+        }))
     }
 }
 
@@ -164,6 +229,31 @@ fn read_error(error: ReadError) -> JsError {
         .with_code("ERR_JOT_TIMED_OUT"),
         ReadError::Failed(why) => JsError::Error(format!("cannot read Apple Notes: {why}")),
     }
+}
+
+/// How far `AppleNotes.import` is.
+#[derive(Debug, Clone, PartialEq, JsObject)]
+pub struct AppleNotesProgress {
+    /// What it does now.
+    pub phase: ImportPhase,
+    /// How many are done: folders of Notes read, or notes written.
+    pub done: u32,
+    /// Of how many.
+    pub total: u32,
+}
+
+/// What `AppleNotes.import` does now.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PropEnum)]
+pub enum ImportPhase {
+    /// Reading the notes' text from Notes, folder by folder.
+    Reading,
+    /// Writing the notes into the notes folder.
+    Writing,
+}
+
+/// `n` as a count for TS.
+fn count(n: usize) -> u32 {
+    u32::try_from(n).unwrap_or(u32::MAX)
 }
 
 /// What `AppleNotes.import` did.
@@ -188,7 +278,6 @@ pub struct AppleNotesImport {
 
 impl AppleNotesImport {
     fn new(read: ReadNotes, imported: jot_store::Imported) -> AppleNotesImport {
-        let count = |n: usize| u32::try_from(n).unwrap_or(u32::MAX);
         let mut failed: Vec<FailedNote> = read
             .unreadable
             .into_iter()

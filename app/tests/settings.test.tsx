@@ -6,7 +6,7 @@ import { expect, open, test } from "nsh/test";
 import { drawsSurface, swatch, themeFromStored, themeVars, THEMES, type ThemeName } from "../ui/themes";
 import { Notes } from "jot/native";
 import { defaultFolder } from "../store";
-import { AUTOMATION_URL, importFailure } from "../importing";
+import { AUTOMATION_URL, importFailure, progressText } from "../importing";
 import { STAND_INS } from "./native";
 
 /** A fresh, empty notes folder. */
@@ -730,6 +730,44 @@ test("while an import runs, the notes folder cannot change, nor an import start 
   expect(importOffWhileMoving).toBe(true);
   expect(app.enabled("id:settings-import-apple-notes")).toBe(true);
   app.dispose();
+});
+
+test("while an import runs, it says how far it is: reading Notes' folders, then writing the notes", async () => {
+  const dir = folder("import-progress");
+  const started = { import: false };
+  const done = { import: false };
+  const later = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const app = await openJot(dir, {}, {
+    "AppleNotes.import": async () => {
+      started.import = true;
+      while (!done.import) await later(10);
+      return { imported: 53, renamed: [], already: 0, locked: 0, deleted: 0, waiting: 0, failed: [] };
+    },
+  });
+  await openSettings(app);
+  await app.waitFor("id:settings-import-apple-notes");
+
+  const importing = app.press("id:settings-import-apple-notes");
+  await app.waitUntil(() => started.import);
+  // Before Notes says how many folders: reading, no counts, in place of the footnote.
+  await app.waitUntil(() => app.texts().includes("正在读取「备忘录」…"));
+  expect(app.shows("id:settings-import-progress")).toBe(true);
+  expect(app.texts().some((text) => text.startsWith("第一次导入时"))).toBe(false);
+
+  done.import = true;
+  await importing;
+  await app.waitFor("id:settings-import-report");
+  expect(app.shows("id:settings-import-progress")).toBe(false);
+  expect(app.texts()).toContain("导入了 53 条笔记");
+  app.dispose();
+});
+
+test("how far an import is, in a line", () => {
+  // A stand-in's arguments reach the test as JSON, without the progress callback, so its lines are checked here (in
+  // English, the test's own language).
+  expect(progressText(null)).toBe("Reading Notes…");
+  expect(progressText({ phase: "reading", done: 5, total: 15 })).toBe("Reading Notes… 5/15");
+  expect(progressText({ phase: "writing", done: 12, total: 53 })).toBe("Writing… 12/53");
 });
 
 test("an import Jot may not make says where to allow it", () => {

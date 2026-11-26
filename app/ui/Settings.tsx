@@ -60,7 +60,7 @@ import {
 } from "../settings";
 import { PRIVACY_URL, speechAvailable, speechDenied } from "../voice";
 import { changeFolder, errorMessage, folderPath, folderShown, moveNotesTo, trusted } from "../store";
-import { AUTOMATION_URL, importAppleNotes, importing, importReport } from "../importing";
+import { AUTOMATION_URL, importAppleNotes, importing, importProgress, importReport, progressText } from "../importing";
 import { checkForUpdates, downloading, manualUpdate, readyUpdate, restartToUpdate, runningVersion, updatePhase } from "../updates";
 import appIcon from "./app-icon.svg";
 import { FORM, Hint, MacSwitch, PopupButton, PushButton, TimeInput } from "./controls";
@@ -465,12 +465,19 @@ function ImportGroup() {
           />
         </Row>
       </Group>
-      <If when={importReport()} else={<Footnote>{t("settings.import.footnote")}</Footnote>}>
-        {(report) => (
-          <Footnote testID="settings-import-report" tone={report().failed ? "late" : "muted"}>
-            {report().text}
-          </Footnote>
-        )}
+      <If
+        when={importing()}
+        else={
+          <If when={importReport()} else={<Footnote>{t("settings.import.footnote")}</Footnote>}>
+            {(report) => (
+              <Footnote testID="settings-import-report" tone={report().failed ? "late" : "muted"}>
+                {report().text}
+              </Footnote>
+            )}
+          </If>
+        }
+      >
+        <Footnote testID="settings-import-progress">{progressText(importProgress())}</Footnote>
       </If>
     </>
   );

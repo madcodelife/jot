@@ -94,6 +94,27 @@ fn importing_again_adds_only_new_notes_and_changes_nothing() {
 }
 
 #[test]
+fn importing_says_how_many_notes_are_done_after_each() {
+    let (_dir, store) = store();
+    store.import(&[note("id-1", "One", "first")]).unwrap();
+    let mut done = Vec::new();
+    let report = store
+        .import_with_progress(
+            &[
+                note("id-1", "One", "again"),
+                note("id-2", "Two", "second"),
+                note("id-3", "Three", "third"),
+            ],
+            |n| done.push(n),
+        )
+        .unwrap();
+    // A note left out counts as done too.
+    assert_eq!(done, [1, 2, 3]);
+    assert_eq!(report.already, ["One"]);
+    assert_eq!(report.imported, ["Two", "Three"]);
+}
+
+#[test]
 fn a_taken_title_is_numbered_and_the_note_there_kept() {
     let (_dir, store) = store();
     store.create("Plan", "mine\n", Source::User).unwrap();

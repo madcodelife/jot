@@ -90,6 +90,8 @@ The note's text, without its title (the file's name).
 - The body is written as it comes, nothing in it escaped: Markdown the user typed in Notes is Markdown here. A line
   typed as `- [ ] …` is a Jot to-do (with a time phrase, a reminder: [todos.md](todos.md)), `2*3*4` italic, a
   literal `<b>` HTML.
+- `Store::import_with_progress` is the same, calling back with how many notes are done (written or left out) after
+  each, for the settings' "Writing… 12/53".
 
 ## jot-store API (store/src/lib.rs)
 
@@ -150,6 +152,9 @@ impl Store {
     /// here: an id the folder has is left out (`already`), a title taken numbered, one taken by a note not
     /// downloaded left for later (`waiting`). Fails only when the folder cannot be read.
     pub fn import(&self, notes: &[ImportNote]) -> Result<Imported, StoreError>;
+    /// `import`, calling `progress` with how many notes are done after each.
+    pub fn import_with_progress(&self, notes: &[ImportNote], progress: impl FnMut(usize))
+        -> Result<Imported, StoreError>;
 }
 
 pub struct Conflict { pub id: String, pub device: Option<String>, pub modified: SystemTime, pub body: String }  // non_exhaustive
