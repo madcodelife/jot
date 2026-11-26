@@ -803,6 +803,7 @@ impl Lowered {
 mod cloud_tests;
 #[cfg(test)]
 mod icon_tests;
+#[cfg(test)]
 mod import_tests;
 #[cfg(test)]
 mod lock_tests;

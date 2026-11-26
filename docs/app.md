@@ -387,20 +387,20 @@ drawn as before.
 
 ## A note's emoji (app/ui/Emoji.tsx, app/ui/Paper.tsx)
 
-The emoji is the note's frontmatter's `icon` ([storage.md](storage.md#a-notes-emoji-storesrciconrs)), so it travels
-with the note and never moves it in the list. It is chosen in NSH's `EmojiPicker` (`nsh/base`), in a glass card like
-the action panel's, inside Jot's window and in the theme's colors. From the list it takes the list's place in the
-panel, as the action panel does (`EmojiPane`, the note's title at its head; the panel takes its height); beside an
-open note it is a card (`EmojiPopover`, an `Overlay` placed by the panel as the reminder time picker is) under the
-note's row in the sidebar, or under the open note's title and date, at the title's left edge. Its search field has the keys:
-typing searches (the emoji's English names: NSH's data has no others unless the app gives them), the arrows move the
-highlight, Return or a press makes the emoji the note's (`pickEmoji` in app/store.ts, then `Notes.setIcon`) and closes
-it. Escape clears the search, then closes it, as a press outside it does; the focus goes back to the search field, or
-to the open note's text. The emoji the folder's notes have come first ("Used in Your Notes", `usedIcons`: no list of
-its own to keep); a note with one has "Remove Emoji" at the card's foot. Emoji newer than 15.1 are left out
-(`emojiVersion`): macOS 14.4's font draws no later ones. While it shows, the list's keys and the
-actions wait (`editingInPlace`); hiding the panel, summoning it again, or opening or closing a note closes it, so
-nothing is left waiting.
+The emoji is the note's frontmatter's `icon` ([storage.md](storage.md#a-notes-emoji-storesrciconrs)), so it travels with
+the note and never moves it in the list. It is chosen in NSH's `EmojiPicker` (`nsh/base`), inside Jot's window and in
+the theme's colors. From the list it takes the list's place in the panel, as the action panel does (`EmojiPane`, the
+note's title at its head; the panel takes its height); beside an open note it is a glass card like the action panel's
+(`EmojiPopover`, an `Overlay` placed by the panel as the reminder time picker is) under the note's row in the sidebar,
+or under the open note's title and date, at the title's left edge. Its search field has the keys: typing searches (the
+emoji's English names: NSH's data has no others unless the app gives them), the arrows move the highlight, Return or a
+press makes the emoji the note's (`pickEmoji` in app/store.ts, then `Notes.setIcon`) and closes it. Escape clears the
+search, then closes it, as a press outside it does; the focus goes back to the search field, or to the open note's text.
+The emoji the folder's notes have come first ("Used in Your Notes", `usedIcons`: no list of its own to keep); a note
+with one has "Remove Emoji", at the pane's head beside the title, at the card's foot. Emoji newer than 15.1 are left out
+(`emojiVersion`): macOS 14.4's font draws no later ones. While it shows, the list's keys and the actions wait
+(`editingInPlace`); hiding the panel, summoning it again, or opening or closing a note closes it, so nothing is left
+waiting.
 
 The picker is a feature of NSH's runtime (`emoji-picker`), which `nsh package` keeps for an app whose TSX imports it.
 The app's crate turns it on too (`nsh-base` in `Cargo.toml`): the headless runner `nsh test` builds has it off, and
