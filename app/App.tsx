@@ -41,6 +41,7 @@ import { openSettings, SettingsWindow } from "./ui/Settings";
 import { T } from "./ui/tokens";
 import { trayInk, writeTrayIcon } from "./trayink";
 import { readyUpdate, restartToUpdate, startUpdates } from "./updates";
+import chime from "../assets/reminder.wav";
 
 /** The island lives at the notch or under the menu bar: macOS's. */
 const hasIsland = platform.os === "macos";
@@ -56,7 +57,11 @@ async function useFallbackShortcut() {
   if (!ok) notice.set(t("notify.shortcut_taken", { keys: T.keys.fallback }));
 }
 
-/** To-dos came due: a notification each (one for several missed while the Mac slept), and the island, as the settings allow. */
+/**
+ * To-dos came due: a notification each (one for several missed while the Mac slept), and the island, as the settings
+ * allow. The notifications play Jot's chime (assets/reminder.wav, made by design/sound/chime.py), so the system's
+ * settings for Jot's notifications and Focus decide whether it sounds; the island itself is silent.
+ */
 function remind(event: DueEvent) {
   const notify = untracked(notificationsOn);
   const island = hasIsland && untracked(islandOn);
@@ -66,12 +71,15 @@ function remind(event: DueEvent) {
         id: "missed",
         title: tn("notify.missed", event.todos.length),
         body: event.todos.map((todo) => todo.text).join(t("notify.list_separator")),
+        sound: chime,
       });
     }
     return;
   }
   for (const todo of event.todos) {
-    if (notify) void Notifications.show({ id: `todo:${todo.note}:${todo.line}`, title: todo.text, body: todo.note });
+    if (notify) {
+      void Notifications.show({ id: `todo:${todo.note}:${todo.line}`, title: todo.text, body: todo.note, sound: chime });
+    }
     if (island && !event.missed) showReminder(todo);
   }
 }

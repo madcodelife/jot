@@ -50,9 +50,9 @@ which `jot-mcp` writes and the app reads for the island ([mcp.md](mcp.md)).
 | `scripts/screenshots.sh` | Takes the README's screenshots (`design/screenshots/light.png`, `dark.png`) with a `Jot.app` on those notes, its settings put back after; `scripts/screenshots/helper.swift` does what the shell cannot (the backdrop, typing, the capture). |
 | `site/` | The website at `https://madcodelife.github.io/jot/`: one static page (`index.html`, `style.css`, `main.js`, no build step) in the app's languages (English, Simplified and Traditional Chinese, Japanese), with a working copy of the panel; its colors are the app's themes. |
 | `scripts/build-site.sh` | Puts the site together in `_site/`: `site/`, `install.sh`, and the icons and screenshot from `design/`. |
-| `assets/` | The app icon. |
+| `assets/` | The app icon, and the reminders' chime (`reminder.wav`, their notifications' sound). |
 | `docs/` | This page, the topic pages and the product definition. |
-| `design/` | The interactive design draft, the logo and the README's screenshots (`screenshots/`). |
+| `design/` | The interactive design draft, the logo, the reminders' chime's generator (`sound/chime.py`) and the README's screenshots (`screenshots/`). |
 | `.github/workflows/ci.yml` | CI: rustfmt, `nsh check`, clippy and `nsh test` on pull requests and `main` (whose run saves the caches pull requests start from). |
 | `.github/workflows/release.yml` | For a `v*` tag: the app packaged for arm64 and x86_64, the OTA package, the signed `latest.json`, and the release ([CONTRIBUTING.md](../CONTRIBUTING.md#releasing)). |
 | `release-notes/` | Each release's notes, `v<version>.md`, which lead its GitHub release ([CONTRIBUTING.md](../CONTRIBUTING.md#release-notes)). |

@@ -203,6 +203,21 @@ locked note's to-do is not ticked: the label says so, nothing bursts, the loops 
 Unticked, it closes after `remind.hold`; its loops stop with it. With reduced motion nothing falls, swings, pulses,
 breathes or bursts: the content and the check only fade.
 
+**Its sound.** The island plays nothing; a reminder's sound is its notification's (App.tsx, `remind`). Each to-do's
+notification, and the one for reminders missed while the Mac slept, plays Jot's chime (`assets/reminder.wav`, as
+`Notifications.show`'s `sound`) in place of the system's. So the system decides whether it sounds, as for any app's
+notifications: System Settings → Notifications → Jot ("Play sound for notification"), and a Focus that silences Jot.
+With notifications off in Jot's settings, the island shows a reminder without a sound. Why not a sound of the app's own
+(`Sound`): it would play through a Focus and past the user's notification settings, and twice with the notification's.
+Neither NSH nor `jot/native` reads whether a Focus is on; it would take `INFocusStatusCenter`, the Communication
+Notifications entitlement and a permission prompt.
+
+The chime is two soft bell notes, G5 then C6 a fourth up, 120 ms apart and 0.55 s in all: sines with a bell's partials
+(an octave, and the inharmonic 2.76 and 5.4), a quick attack and an exponential decay, at −9 dBFS; mono 16-bit 22.05
+kHz WAV, 24 KB. `design/sound/chime.py` makes it, with Python's standard library alone. `nsh package` copies a WAV the
+app imports into the bundle's `Contents/Resources`, where macOS finds a notification's sound by its file name; an OTA
+package cannot put it there, so `assets/` is in the native fingerprint ([Updates](#updates-appupdatests)).
+
 ## The to-do view's motion (app/ui/TodoView.tsx, app/ui/parts.tsx)
 
 Opening the to-do view (from today's row, or summoned on it), its headers and rows rise in one after another, as the
@@ -325,7 +340,8 @@ development run (`nsh run`: `shellInfo().version` is null) checks nothing.
 otherwise send its TSX to apps with the old Rust, and jot-mcp, which is not in a package, would never update. The
 fingerprint (`scripts/native-fingerprint.sh`) is a SHA-256, cut to 16 hex digits, of what a package cannot carry: the
 Rust (`src/`, `store/`, `mcp/`, `build.rs`, `Cargo.toml`, `Cargo.lock`, which also pins the NSH runtime), `nsh.lock`,
-`nsh.json` without `version` and `build`, `assets/` and the packaging scripts. `scripts/package-macos.sh` builds the
+`nsh.json` without `version` and `build`, `assets/` (the icon, and the reminders' chime, which the bundle carries for
+notifications) and the packaging scripts. `scripts/package-macos.sh` builds the
 app with it (`JOT_NATIVE_FINGERPRINT`, read by `option_env!`; a build without it says "dev" and takes no package), and
 the release publishes the package as `<version>+native.<fingerprint>`. The app compares the two itself, so a copy any
 number of releases behind takes a package only when no release since its own changed native code, and the whole app

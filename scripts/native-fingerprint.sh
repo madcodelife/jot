@@ -6,7 +6,8 @@
 #     which also pins the NSH runtime;
 #   - nsh.lock (the nsh packages, which may bring native code with them);
 #   - nsh.json without "version" and "build" (its capabilities, "updater", Info.plist keys, …: the installed app's);
-#   - assets/ (the app icon) and how the bundle is made (scripts/package-macos.sh, this script).
+#   - assets/ (the app icon, and the reminders' chime, which the bundle carries for notifications) and how the bundle
+#     is made (scripts/package-macos.sh, this script).
 #
 # A package carries the TSX, the theme and locales/ (NSH bundles them into the app's code), so they are not in it.
 #

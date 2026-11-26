@@ -47,10 +47,10 @@ Jot is still a notebook: to-dos live in notes, not in a separate task manager.
   Monday" (past ones are left out), then a calendar and a time, set with ⌘↩; when there is a time, "Remove Reminder".
   A change in a note is one edit that ⌘Z takes back; a reminder whose time changed fires at the new time, and an
   earlier "in 10 minutes" snooze is dropped.
-- When it comes due: a system notification on the desktop (the to-do as the title, its note as the body) with the
-  buttons "Done", "In 10 Minutes" and "Open"; on the Mac, the notch island also pops out "Reminder · Pay rent", and a
-  click checks it off. Reminders missed while the computer slept are merged into one on waking: "You missed 2
-  reminders".
+- When it comes due: a system notification on the desktop (the to-do as the title, its note as the body, Jot's own
+  soft chime as its sound, which the system's notification settings and Focus govern) with the buttons "Done", "In 10
+  Minutes" and "Open"; on the Mac, the notch island also pops out "Reminder · Pay rent", and a click checks it off.
+  Reminders missed while the computer slept are merged into one on waking: "You missed 2 reminders".
 - The to-do view: typing "todo" (待办 in Chinese, or `/todo`) in the search field lists every open to-do, grouped as
   overdue, today, tomorrow, later and without a time; each shows the note it is in. When the panel has just been
   summoned and nothing is typed yet, the top of the list has a row "3 to-dos today" (or "1 overdue to-do") while
