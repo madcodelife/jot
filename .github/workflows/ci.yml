@@ -18,8 +18,10 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # A pull request is checked and tested before it merges: a push to main or a tag only packages.
   test:
     name: Check and test
+    if: github.event_name != 'push'
     runs-on: macos-latest
     timeout-minutes: 90
     steps:
@@ -62,7 +64,6 @@ jobs:
     name: Package Jot.app (${{ matrix.arch }})
     runs-on: macos-latest
     timeout-minutes: 90
-    needs: test
     strategy:
       fail-fast: false
       matrix:
