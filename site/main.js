@@ -223,7 +223,7 @@
   const q = $("#q");
   const hintsEl = $("#hints");
   const keys = $$(".key");
-  const P = { open: false, busy: false, view: "list", sel: 1, extra: [], made: [], done: new Set(), note: null, touched: false };
+  const P = { open: false, busy: false, view: "list", drawn: null, sel: 1, extra: [], made: [], done: new Set(), note: null, touched: false };
 
   function rows() {
     const all = NOTES();
@@ -286,7 +286,11 @@
       html = `<div class="ppaper"><h4>${esc(n.title)}</h4>${n.src ? `<div class="psrc">${esc(n.src)}</div>` : ""}${n.isNew ? `<textarea placeholder="${t("Write something. It saves as you type.", "写点什么，边写边保存。")}"></textarea>` : lines}</div>`;
       hints([[t("Back", "返回"), ["esc"]]]);
     }
-    body.innerHTML = `<div class="panel-in">${html}</div>`;
+    // Rows rise in only when a view first shows (the panel opening, the to-do view, a note); redrawing the same view
+    // (typing, a note arriving, a tick) swaps the rows in place, or every keystroke would flash the whole list.
+    const fresh = P.drawn !== P.view;
+    P.drawn = P.view;
+    body.innerHTML = `<div class="panel-in${fresh ? " is-fresh" : ""}">${html}</div>`;
     P.extra.forEach((n) => { n.fresh = false; });
     fit();
     if (P.view === "paper" && P.note.isNew) {
@@ -294,6 +298,14 @@
       ta.focus({ preventScroll: true });
       ta.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); back(); } });
     }
+  }
+
+  // Moving the selection only moves the highlight; the rows stay as they are.
+  function select(i) {
+    P.sel = i;
+    $$(".row", body).forEach((r) => r.classList.toggle("is-sel", +r.dataset.i === i));
+    const row = $(`.row[data-i="${i}"]`, body);
+    if (row) row.scrollIntoView({ block: "nearest" });
   }
 
   function back() {
@@ -338,7 +350,7 @@
     panel.hidden = false;
     panel.classList.remove("is-out", "is-open");
     panel.classList.add("is-in", "is-capsule");
-    q.value = ""; P.view = "list"; P.sel = 1; P.extra = []; P.done.clear();
+    q.value = ""; P.view = "list"; P.drawn = null; P.sel = 1; P.extra = []; P.done.clear();
     q.placeholder = t("Search or create…", "搜索或新建…");
     if (!opts.auto) q.focus({ preventScroll: true });
     P.open = true;
@@ -375,8 +387,8 @@
   q.addEventListener("input", () => { P.sel = q.value.trim() ? 0 : 1; if (P.view === "paper") P.view = "list"; render(); });
   q.addEventListener("keydown", (e) => {
     const n = $$(".row", body).length;
-    if (e.key === "ArrowDown" && n) { e.preventDefault(); P.sel = (P.sel + 1) % n; render(); }
-    else if (e.key === "ArrowUp" && n) { e.preventDefault(); P.sel = (P.sel - 1 + n) % n; render(); }
+    if (e.key === "ArrowDown" && n) { e.preventDefault(); select((P.sel + 1) % n); }
+    else if (e.key === "ArrowUp" && n) { e.preventDefault(); select((P.sel - 1 + n) % n); }
     else if (e.key === "Enter") {
       e.preventDefault();
       if (P.view === "list") activate(P.sel);

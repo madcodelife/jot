@@ -315,9 +315,11 @@ main { overflow-x: clip; }
   display: grid; grid-template-columns: 32px 1fr auto; align-items: center; gap: 14px;
   height: 54px; padding: 0 14px; border-radius: 14px;
   cursor: default; position: relative;
-  animation: rise 0.5s var(--ease) both; animation-delay: calc(var(--i, 0) * 26ms);
 }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+/* A view showing for the first time: its rows rise in, one after another. */
+.is-fresh > .row, .is-fresh > .group, .is-fresh > .trow-p { animation: rise 0.5s var(--ease) both; animation-delay: calc(var(--i, 0) * 26ms); }
+.is-fresh > .ppaper { animation: rise 0.4s var(--ease) both; }
 .row:hover { background: var(--p-hover); }
 .row.is-sel { background: var(--p-primary); color: var(--p-on); }
 .row-ic {
@@ -346,12 +348,11 @@ main { overflow-x: clip; }
 .dots i { width: 9px; height: 9px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px currentColor; }
 
 /* The to-do view. */
-.group { display: flex; gap: 8px; font-size: 13px; font-weight: 600; color: var(--p-muted); padding: 12px 16px 4px; animation: rise 0.5s var(--ease) both; animation-delay: calc(var(--i, 0) * 26ms); }
+.group { display: flex; gap: 8px; font-size: 13px; font-weight: 600; color: var(--p-muted); padding: 12px 16px 4px; }
 .group.is-late { color: var(--p-late); }
 .group b { font-weight: 500; opacity: 0.8; }
 .trow-p {
   display: flex; align-items: center; gap: 14px; height: 46px; padding: 0 14px; border-radius: 14px;
-  animation: rise 0.5s var(--ease) both; animation-delay: calc(var(--i, 0) * 26ms);
   transition: opacity 0.35s, transform 0.45s var(--ease);
 }
 .trow-p:hover { background: var(--p-hover); }
@@ -388,7 +389,6 @@ main { overflow-x: clip; }
   margin: 2px 8px 6px; padding: 22px 26px; border-radius: 20px; min-height: 250px;
   background: var(--p-paper); color: var(--p-paper-fg);
   box-shadow: 0 0 0 1px var(--p-line);
-  animation: rise 0.4s var(--ease) both;
 }
 .ppaper h4 { margin: 0 0 10px; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; color: var(--p-paper-fg); }
 .ppaper p { margin: 0 0 8px; font-size: 15px; line-height: 1.6; }
