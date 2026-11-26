@@ -6,7 +6,7 @@
 
 Quick notes for macOS that you share with your AI apps.
 
-[Download](https://github.com/madcodelife/jot/releases/latest) · [Install](#install) · [中文](README.zh-CN.md)
+[Website](https://madcodelife.github.io/jot/) · [Download](https://github.com/madcodelife/jot/releases/latest) · [Install](#install) · [中文](README.zh-CN.md)
 
 Double-press ⌥ anywhere and a floating panel appears. Its one field is both the search box and the title of a new
 note: type, and either find what you wrote before or press Return to start a new one. Notes are plain Markdown files in

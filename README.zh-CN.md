@@ -6,7 +6,7 @@
 
 你和 AI 应用共用的 macOS 速记本。
 
-[下载](https://github.com/madcodelife/jot/releases/latest) · [安装](#安装) · [English](README.md)
+[官网](https://madcodelife.github.io/jot/?lang=zh) · [下载](https://github.com/madcodelife/jot/releases/latest) · [安装](#安装) · [English](README.md)
 
 在任何地方连按两下 ⌥，就会弹出一个浮窗。浮窗里只有一个输入框，它既是搜索框，也是新笔记的标题：打几个字，要么找到以前
 记过的，要么按回车新建一条。笔记是你选定的文件夹里的普通 Markdown 文件，你的 AI 应用（Claude、Cursor、Codex……）也能
