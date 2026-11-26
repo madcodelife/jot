@@ -4,7 +4,10 @@ on:
   push:
     branches: [main]
     tags: ["v*"]
+  # `closed` is here only to stop the pull request's run once it merges or closes: that run joins the same group and
+  # cancels it, and runs no job itself.
   pull_request:
+    types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
 
 concurrency:
@@ -25,7 +28,7 @@ jobs:
   # them. So only `main` saves (the Rust builds, ~1 GB a job, and the NSH build), and pull requests restore them.
   test:
     name: Check and test
-    if: github.ref_type != 'tag'
+    if: github.ref_type != 'tag' && github.event.action != 'closed'
     runs-on: macos-latest
     timeout-minutes: 90
     steps:
@@ -81,6 +84,7 @@ jobs:
 
   package:
     name: Package Jot.app (${{ matrix.arch }})
+    if: github.event.action != 'closed'
     runs-on: macos-latest
     timeout-minutes: 90
     strategy:
