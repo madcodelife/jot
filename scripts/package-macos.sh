@@ -9,7 +9,7 @@
 # NSH's packaging puts its own runner and the app's assets in the bundle only, so the helper goes in afterwards.
 #
 # Usage: scripts/package-macos.sh [nsh package options]   (from any folder; it packages this checkout)
-#   NSH=/path/to/nsh     the nsh CLI to use (default: `nsh` on PATH); the NSH Cargo.toml's nsh-core names (README)
+#   NSH=/path/to/nsh     the nsh CLI to use (default: `nsh` on PATH); the NSH Cargo.toml's nsh-core names (CONTRIBUTING)
 #   SIGN_IDENTITY=...    a code signing identity for both (default: `-`, ad hoc). Any other identity signs with a
 #                        secure timestamp and the hardened runtime (`--timestamp --options runtime`), as
 #                        notarization asks.

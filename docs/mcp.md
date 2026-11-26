@@ -1,7 +1,34 @@
 # MCP for AI apps
 
-What `jot-mcp` (mcp/) lets AI apps do, and the setting that allows removing and rewriting notes. Part of [the
-architecture](architecture.md).
+How AI apps connect, what `jot-mcp` (mcp/) lets them do, and the setting that allows removing and rewriting notes.
+Part of [the architecture](architecture.md).
+
+## Connecting apps (src/connect.rs)
+
+Settings › AI Apps lists the AI apps installed on this Mac, each with its state, and connects or disconnects each in
+one click:
+
+| App | How Jot registers itself |
+|---|---|
+| Claude Code | `claude mcp add --scope user jot -- …` (Jot finds `claude` in `~/.local/bin`, Homebrew, npm's and Bun's folders) |
+| Claude (desktop) | `mcpServers.jot` in `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Cursor | `mcpServers.jot` in `~/.cursor/mcp.json` |
+| VS Code | `servers.jot` (`"type": "stdio"`) in `~/Library/Application Support/Code/User/mcp.json` |
+| Windsurf | `mcpServers.jot` in `~/.codeium/windsurf/mcp_config.json` |
+| Codex | `[mcp_servers.jot]` in `~/.codex/config.toml` |
+| Gemini CLI | `mcpServers.jot` in `~/.gemini/settings.json` |
+| Zed | by hand: copy the entry into `context_servers` of `~/.config/zed/settings.json` |
+
+How Jot edits those files (only the `jot` entry, a `<file>.jot.bak` copy first, never a file it cannot parse) is
+in [app.md](app.md)'s `Connections`.
+
+`jot-mcp`'s folder is `--dir`, else the `JOT_DIR` environment variable, else `~/Documents/Jot`; it expands a leading
+`~` itself, since MCP clients start it without a shell. From a checkout:
+
+```sh
+cargo build --release -p jot-mcp
+claude mcp add --scope user jot -- "$PWD/target/release/jot-mcp" --dir ~/Documents/Jot
+```
 
 ## AI apps removing and rewriting notes (store/src/settings.rs, mcp/)
 
