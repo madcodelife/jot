@@ -30,14 +30,6 @@ empty:
 keys:
   actions: アクション
 
-footer:
-  notes:
-    one: "メモ %{count} 件 · %{folder}"
-    other: "メモ %{count} 件 · %{folder}"
-  open:
-    one: "未完了 %{count} 件"
-    other: "未完了 %{count} 件"
-
 list:
   blank: 空のメモ
   downloading: "ダウンロード中…"

@@ -30,14 +30,6 @@ empty:
 keys:
   actions: 動作
 
-footer:
-  notes:
-    one: "%{count} 則筆記 · %{folder}"
-    other: "%{count} 則筆記 · %{folder}"
-  open:
-    one: "%{count} 件未完成"
-    other: "%{count} 件未完成"
-
 list:
   blank: 空白筆記
   downloading: "正在下載…"

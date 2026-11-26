@@ -31,14 +31,6 @@ empty:
 keys:
   actions: Actions
 
-footer:
-  notes:
-    one: "1 note · %{folder}"
-    other: "%{count} notes · %{folder}"
-  open:
-    one: "1 open"
-    other: "%{count} open"
-
 list:
   blank: Empty note
   downloading: "Downloading…"

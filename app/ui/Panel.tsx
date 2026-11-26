@@ -5,20 +5,17 @@
 // Holding ⌥ (or the field's microphone) dictates into the field, or into
 // the open note when it has the focus.
 import { Animated, computed, createAnimatedValue, effect, keymap, reduceMotion, signal, Text, token, untracked, View, type AnimatedValue, type InputRef } from "nsh";
-import { Input } from "nsh/base";
+import { Button, Input } from "nsh/base";
 import { t } from "nsh/i18n";
 import { displays, Window, type Display, type WindowRef } from "nsh/desktop";
 import {
   activate,
-  allNotes,
-  allTodos,
   back,
   checkSelected,
   createFromQuery,
   dismiss,
   focusRequest,
   folderError,
-  folderShown,
   move,
   notice,
   query,
@@ -396,19 +393,18 @@ function EmptyNotes() {
 }
 
 /**
- * Raycast's footer: on the left how many notes there are and where they live (a notice or "Copied" in their
- * place), on the right what Return does to the row in focus and the action panel's key. While dictating, how it
- * ends; after a note went to the trash, "Moved to the Trash" with Undo.
+ * Raycast's footer, floating on the glass with no rule above it: on the left a round button to the settings (with
+ * a notice or "Copied" beside it while one shows), on the right a capsule of what Return does to the row in focus
+ * and the action panel's key, each pressable. While dictating, how it ends; after a note went to the trash, "Moved
+ * to the Trash" with Undo.
  */
 function Footer() {
   const message = () => folderError() ?? notice();
-  const left = computed(() => allTodos().filter((t) => !t.done).length);
-  const status = () => flash() ?? (todoMode() ? tn("footer.open", left()) : tn("footer.notes", allNotes().length, { folder: folderShown() }));
   return (
     <View
       testID="footer"
-      class={`flex-row items-center border-t border-glass-line ${fade()}`}
-      style={{ height: T.size.footer, gap: 12, paddingHorizontal: 18 }}
+      class={`flex-row items-center ${fade()}`}
+      style={{ height: T.size.footer, gap: 10, paddingHorizontal: FOOTER_INSET }}
     >
       <If
         when={listening()}
@@ -417,12 +413,25 @@ function Footer() {
             when={trashed().length > 0}
             else={
               <>
+                <Button
+                  testID="footer-settings"
+                  accessibilityLabel={t("tray.settings")}
+                  onPress={() => openSettings()}
+                  class="items-center justify-center bg-glass-fg/5 border border-glass-fg/10 hover:bg-glass-fg/10 active:opacity-70"
+                  style={{ width: FOOTER_CONTROL, height: FOOTER_CONTROL, borderRadius: FOOTER_CONTROL / 2, flexShrink: 0 }}
+                >
+                  <Icon name="gear" size={16} tint={token("glass-muted")} />
+                </Button>
                 <If
                   when={message()}
                   else={
-                    <Text testID="footer-status" class="text-glass-muted" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
-                      {status()}
-                    </Text>
+                    <If when={flash()}>
+                      {(f) => (
+                        <Text testID="footer-status" class="text-glass-muted" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
+                          {f()}
+                        </Text>
+                      )}
+                    </If>
                   }
                 >
                   {(m) => (
@@ -432,16 +441,15 @@ function Footer() {
                   )}
                 </If>
                 <View class="flex-1" />
-                <View class="flex-row items-center" style={{ gap: 12, flexShrink: 0 }}>
+                <View
+                  testID="footer-actions"
+                  class="flex-row items-center bg-glass-fg/5 border border-glass-fg/10"
+                  style={{ height: FOOTER_CONTROL, gap: 2, paddingHorizontal: 3, borderRadius: Math.min(T.radius.chip, FOOTER_CONTROL / 2), flexShrink: 0 }}
+                >
                   <If when={primaryAction()}>
-                    {(primary) => (
-                      <>
-                        <KeyHint label={primary().label} keys={primary().keys} main />
-                        <HintDivider />
-                      </>
-                    )}
+                    {(primary) => <FooterAction testID="footer-primary" label={primary().label} keys={primary().keys} main onPress={() => primary().run()} />}
                   </If>
-                  <KeyHint label={t("keys.actions")} keys={keyCaps(T.keys.actions)} />
+                  <FooterAction testID="footer-actions-key" label={t("keys.actions")} keys={keyCaps(T.keys.actions)} onPress={() => toggleActions()} />
                 </View>
               </>
             }
@@ -451,34 +459,55 @@ function Footer() {
         }
       >
         {/* Dictating: how it ends (let go of ⌥, or press the microphone again), and how it is taken back; a failure says why. */}
-        <If
-          when={message()}
-          else={
-            <>
-              <If
-                when={listeningByHold()}
-                else={
-                  <Text class="text-glass-fg" style={{ fontSize: T.type.meta }}>
-                    {t("voice.finish_press")}
-                  </Text>
-                }
-              >
-                <KeyHint label={t("voice.finish_release")} keys={[T.keys.summonCaps[0]]} main />
-              </If>
-              <HintDivider />
-              <KeyHint label={t("voice.cancel")} keys={T.keys.esc} />
-              <View class="flex-1" />
-            </>
-          }
-        >
-          {(m) => (
-            <Text testID="notice" class="text-late" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
-              {m()}
-            </Text>
-          )}
-        </If>
+        <View class="flex-1 flex-row items-center" style={{ gap: 12, paddingLeft: 10 }}>
+          <If
+            when={message()}
+            else={
+              <>
+                <If
+                  when={listeningByHold()}
+                  else={
+                    <Text class="text-glass-fg" style={{ fontSize: T.type.meta }}>
+                      {t("voice.finish_press")}
+                    </Text>
+                  }
+                >
+                  <KeyHint label={t("voice.finish_release")} keys={[T.keys.summonCaps[0]]} main />
+                </If>
+                <HintDivider />
+                <KeyHint label={t("voice.cancel")} keys={T.keys.esc} />
+                <View class="flex-1" />
+              </>
+            }
+          >
+            {(m) => (
+              <Text testID="notice" class="text-late" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
+                {m()}
+              </Text>
+            )}
+          </If>
+        </View>
       </If>
     </View>
+  );
+}
+
+/** The footer's controls' height (the round button, the capsule) and their inset from the panel's edges: the capsule's corners follow the panel's. */
+const FOOTER_CONTROL = 32;
+const FOOTER_INSET = 8;
+
+/** One of the footer capsule's actions, pressable: its name, then its keys, on a soft plate on hover. */
+function FooterAction(props: { label: string; keys: readonly string[]; main?: boolean; onPress: () => void; testID?: string }) {
+  return (
+    <Button
+      testID={props.testID}
+      accessibilityLabel={props.label}
+      onPress={props.onPress}
+      class="flex-row items-center hover:bg-glass-fg/7 active:opacity-70"
+      style={{ height: FOOTER_CONTROL - 8, paddingHorizontal: 8, borderRadius: Math.min(T.radius.chip, (FOOTER_CONTROL - 8) / 2) }}
+    >
+      <KeyHint label={props.label} keys={props.keys} main={props.main} />
+    </Button>
   );
 }
 
@@ -500,7 +529,7 @@ function TrashBar() {
     });
   });
   return (
-    <View testID="trash-bar" class="flex-1 flex-row items-center" style={{ gap: 10, height: "100%" }}>
+    <View testID="trash-bar" class="flex-1 flex-row items-center" style={{ gap: 10, height: "100%", paddingLeft: 10, paddingRight: 4 }}>
       <Icon name="trash" size={15} tint={token("glass-fg")} opacity={0.7} />
       <Text testID="trash-message" class="text-glass-fg" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
         {tn("trash.moved", trashed().length, { title: last()?.title ?? "", more: trashed().length - 1, bin: binName() })}
@@ -510,7 +539,7 @@ function TrashBar() {
       <Keycaps keys={T.keys.undo} />
       <View
         class="absolute bg-primary"
-        style={{ left: -18, bottom: 0, width: T.size.panelWidth, height: 2, transform: [{ translateX: left }], pointerEvents: "none" }}
+        style={{ left: -FOOTER_INSET, bottom: 0, width: T.size.panelWidth, height: 2, transform: [{ translateX: left }], pointerEvents: "none" }}
       />
     </View>
   );
