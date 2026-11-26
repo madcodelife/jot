@@ -40,6 +40,7 @@ import { PanelWindow } from "./ui/Panel";
 import { openSettings, SettingsWindow } from "./ui/Settings";
 import { T } from "./ui/tokens";
 import { trayInk, writeTrayIcon } from "./trayink";
+import { readyUpdate, restartToUpdate, startUpdates } from "./updates";
 
 /** The island lives at the notch or under the menu bar: macOS's. */
 const hasIsland = platform.os === "macos";
@@ -129,6 +130,8 @@ function App() {
     }
     startReminders(remind);
     if (await firstRun()) summon();
+    // Updates download in the background once Jot is up, and again every few hours (app/updates.ts).
+    startUpdates();
   })();
 
   // Pressing a reminder's notification opens the to-do view.
@@ -158,7 +161,8 @@ function App() {
   setInterval(() => now.set(Date.now()), 30_000);
   effect(() => clampSelection());
 
-  // The tray's menu: new note, summon, the latest notes, the to-dos, the permission while it is missing, settings, quit.
+  // The tray's menu: new note, summon, the latest notes, the to-dos, the permission while it is missing, an update
+  // that waits for a restart, settings, quit.
   // It reads `t`, so the menu is made again in the new language when the language changes.
   const trayMenu = computed(() => {
     const recent = allNotes().slice(0, 3);
@@ -177,6 +181,7 @@ function App() {
       { label: t("tray.todos"), onSelect: () => summon({ query: todoKeyword() }) },
       !trusted() && { label: t("tray.enable_double_tap", { keys: T.keys.summon }), onSelect: () => Summon.requestTrust() },
       { type: "separator" },
+      readyUpdate() && { label: t("tray.restart_to_update", { version: readyUpdate()!.version }), onSelect: () => void restartToUpdate() },
       { label: t("tray.settings"), shortcut: "mod+,", onSelect: () => openSettings() },
       { role: "quit" as const },
     ];

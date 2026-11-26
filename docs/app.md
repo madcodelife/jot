@@ -1,7 +1,7 @@
 # The app
 
-The app's Rust face (`jot/native`), the open note's keys and live preview, row actions and packaging. Part of [the
-architecture](architecture.md).
+The app's Rust face (`jot/native`), the open note's keys and live preview, row actions, updates and packaging. Part of
+[the architecture](architecture.md).
 
 ## The app's Rust face (`jot/native`, src/)
 
@@ -121,6 +121,10 @@ module AiAccess {                                // the AI apps' permission (src
   set(allowTrashAndRewrite: boolean, language: string): void;  // throws when it cannot be written
 }
 
+module NativeBuild {                            // what the installed app was built from (src/native_build.rs)
+  fingerprint(): string;                        // its native fingerprint, 16 hex digits; "dev" for a build without one (Updates, below)
+}
+
 module InputSource {                            // the keyboard input source selected now
   // Its first language, BCP 47 ("zh-Hans" for Pinyin, "ja", "en"); null where the platform does not say.
   // macOS: Carbon's Text Input Sources, read on the main thread (a promise for the hop).
@@ -194,7 +198,8 @@ the trashed notes back one at a time, the last first (an undo stack); then ⌘Z 
 note's text focused, Ctrl+D stays the editor's (select the next occurrence); macOS's ⌃X is no text key.
 
 The footer (app/ui/Panel.tsx) is Raycast's: no rule above it, a round settings button on the left (a notice or
-"Copied" beside it while one shows) and on the right a capsule of the primary action and "Actions ⌘K", each a button
+"Copied" beside it while one shows, else a downloaded update's "Update ready · Restart":
+[Updates](#updates-appupdatests)) and on the right a capsule of the primary action and "Actions ⌘K", each a button
 that does what its keys do.
 
 ## The tray's icon (app/trayink.ts)
@@ -206,6 +211,44 @@ template the menu bar paints in its text color; at rest the icon is `tray.svg` i
 again; with reduced motion the icon does not move. `inkFrame` copies the SVG's markup, so a change to `tray.svg` changes
 it too (and the stroke's length, `LENGTH`, when the path changes).
 
+## Updates (app/updates.ts)
+
+A packaged Jot updates itself from the GitHub releases (`nsh/updater`, `nsh.json`'s `"updater"`: `github`, the key
+that signs the manifest, the roots that certify the packages' release keys). Once it has started, and every 6 hours
+while it runs (`CHECK_EVERY`), it checks in this order:
+
+1. **A package of the code** (`checkForPackage`, an OTA update of the TSX, the theme and the translations): taken only
+   when it was published for this app's native code, its version's build metadata `+native.<fingerprint>` naming the
+   fingerprint built into the app (`NativeBuild.fingerprint()`). It downloads (`downloadPackage`) and runs from Jot's
+   next start, or at once on a restart (`restartToPackage`).
+2. **Else the whole app** (`checkForUpdate`): it downloads (`downloadUpdate`, a patch from the version before when the
+   release has one) and is staged to replace Jot when it quits (`installOnQuit`); a restart installs it at once
+   (`installAndRestart`). An update whose `shell` is true is skipped: the running package is already that release's
+   code, so it was published for this native code and the app would bring nothing new. One that this copy cannot
+   install (it sits where the user cannot write) is offered as a download page in About.
+
+What waits is offered quietly, never in a dialog: "Update ready · Restart" in the panel's footer (when no notice or
+"Copied" shows), "Restart to Update to <version>" in the tray's menu, and a Restart button in Settings → About, which
+also shows the version that runs (a package's, else the app's: `runningPackage()`, `shellInfo()`), where the updates
+stand and "Check for Updates". A check finding what already waits does not download it again. A failed check or
+download is logged (`console.warn`, the unified log) and shown only in About's caption; the next check tries again. A
+development run (`nsh run`: `shellInfo().version` is null) checks nothing.
+
+**Why the fingerprint.** NSH offers a package to any app whose build is lower and whose runtime is new enough
+(`minRuntime`); it knows nothing of Jot's own Rust. A release that changed `jot/native`, jot-store or jot-mcp would
+otherwise send its TSX to apps with the old Rust, and jot-mcp, which is not in a package, would never update. The
+fingerprint (`scripts/native-fingerprint.sh`) is a SHA-256, cut to 16 hex digits, of what a package cannot carry: the
+Rust (`src/`, `store/`, `mcp/`, `build.rs`, `Cargo.toml`, `Cargo.lock`, which also pins the NSH runtime), `nsh.lock`,
+`nsh.json` without `version` and `build`, `assets/` and the packaging scripts. `scripts/package-macos.sh` builds the
+app with it (`JOT_NATIVE_FINGERPRINT`, read by `option_env!`; a build without it says "dev" and takes no package), and
+the release publishes the package as `<version>+native.<fingerprint>`. The app compares the two itself, so a copy any
+number of releases behind takes a package only when no release since its own changed native code, and the whole app
+otherwise.
+
+`build` in `nsh.json` is one counter for apps and packages: an app runs a package only of a higher build, and an app
+update of a higher build drops a package of a lower one. How a release is made:
+[CONTRIBUTING.md](../CONTRIBUTING.md#releasing).
+
 ## Packaging (scripts/package-macos.sh)
 
 NSH's `nsh package` bundles its runner and the app's assets only, so the script builds `jot-mcp` (in cargo's
@@ -213,7 +256,12 @@ NSH's `nsh package` bundles its runner and the app's assets only, so the script 
 nsh.json's), runs `nsh package --target macos` with its options (paths taken from the caller's folder; no ENTRY: it
 packages this checkout; `--arch` is `arm64`, `x86_64` or `universal`), copies `jot-mcp` to
 `<name>.app/Contents/MacOS/jot-mcp`, signs it, signs the bundle again keeping its entitlements, and verifies
-(`codesign --verify --deep --strict`). `NSH` picks the CLI, which must be the NSH `Cargo.toml`'s `nsh-core` names (a
-commit of NSH's repository, `rev`, which a nightly CLI's `--version` names; or a crates.io release; it warns
-otherwise), `SIGN_IDENTITY` the identity: ad hoc by default;
+(`codesign --verify --deep --strict`). With `"updater"` in nsh.json, nsh also wrote the update archives
+(`<name>-<version>-macos-<aarch64|x86_64>.tar.gz`) before `jot-mcp` was in, so the script archives the signed bundle
+again under those names (`tar` with `COPYFILE_DISABLE`, as nsh does). It builds the app's Rust with the native
+fingerprint ([Updates](#updates-appupdatests)): `JOT_NATIVE_FINGERPRINT`, or `scripts/native-fingerprint.sh` when it
+is not set. While nsh.json's updater keys are placeholders (`REPLACE_WITH_…`), which `nsh package` refuses, it packages
+without `"updater"` (that app never updates itself) and puts nsh.json back afterwards. `NSH` picks the CLI, which
+must be the NSH `Cargo.toml`'s `nsh-core` names (a commit of NSH's repository, `rev`, which a nightly CLI's
+`--version` names; or a crates.io release; it warns otherwise), `SIGN_IDENTITY` the identity: ad hoc by default;
 any other signs both with `--timestamp --options runtime`, as notarization asks.

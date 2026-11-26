@@ -8,6 +8,7 @@ tray:
   summon: Jot を開く（%{keys}）
   todos: やること
   enable_double_tap: "%{keys} の 2 回押しをオンにする…"
+  restart_to_update: 再起動して %{version} にアップデート
   settings: 設定…
 
 notify:
@@ -336,3 +337,20 @@ lock:
   unlock_failed: 「%{title}」のロックを解除できませんでした：%{error}
   done: 「%{title}」をロックしました
   undone: 「%{title}」のロックを解除しました
+
+update:
+  label: ソフトウェア・アップデート
+  auto: Jot は自動でアップデートを確認し、バックグラウンドでダウンロードします。
+  check: アップデートを確認
+  checking: 確認中…
+  downloading: "%{version} をダウンロード中…"
+  current: Jot は最新です。
+  failed: アップデートを確認できませんでした。Jot があとでもう一度試します。
+  unavailable: この Jot は開発版のため、自動ではアップデートされません。
+  ready_package: "Jot %{version} をダウンロードしました。Jot を再起動すると使えます。次回の起動時にも反映されます。"
+  ready_app: "Jot %{version} をダウンロードしました。再起動するとインストールされます。Jot を終了したときにもインストールされます。"
+  manual: "Jot %{version} が公開されています。Jot のある場所に書き込めないため自動で置き換えられません。ダウンロードして手動でインストールしてください。"
+  download: ダウンロード
+  restart: 再起動してアップデート
+  restart_to: 再起動して %{version} にアップデート
+  ready_short: アップデート準備完了 · 再起動

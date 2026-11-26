@@ -15,6 +15,8 @@
 //!   place).
 //! - [`AiAccess`]: whether AI apps may move notes to the Trash and rewrite
 //!   them, in a file `jot-mcp` reads too.
+//! - [`NativeBuild`]: the fingerprint of the app's native code, which an
+//!   OTA package must have been published for.
 //!
 //! Platform code lives in `platform/<os>.rs` behind one interface, so
 //! `App.tsx` never checks the platform for these.
@@ -24,6 +26,7 @@ mod connect;
 mod connections;
 mod folder;
 mod input_source;
+mod native_build;
 mod notes;
 #[cfg(target_os = "macos")]
 #[path = "platform/macos.rs"]
@@ -44,6 +47,7 @@ pub use ai_access::AiAccess;
 pub use connections::{AiClient, Connections, GenericSetup, ManualReason};
 pub use folder::{FailedNote, Folder, ICloudDrive, MovedNotes, RenamedNote};
 pub use input_source::InputSource;
+pub use native_build::NativeBuild;
 pub use notes::{
     Conflict, ConflictChoice, Note, NoteMeta, Notes, ResolvedConflict, SearchHit, Todo, TrashedNote,
 };
@@ -62,5 +66,6 @@ fn native(registry: &mut Registry) {
         .module::<Folder>()
         .module::<InputSource>()
         .module::<Connections>()
-        .module::<AiAccess>();
+        .module::<AiAccess>()
+        .module::<NativeBuild>();
 }

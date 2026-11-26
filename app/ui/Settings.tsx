@@ -11,7 +11,6 @@
 // Every change applies at once (`app/settings.ts`); nothing waits for a
 // Save button.
 import {
-  appInfo,
   Clipboard,
   colorScheme,
   createAnimatedValue,
@@ -59,6 +58,7 @@ import {
 } from "../settings";
 import { PRIVACY_URL, speechAvailable, speechDenied } from "../voice";
 import { changeFolder, errorMessage, folderPath, folderShown, moveNotesTo, trusted } from "../store";
+import { checkForUpdates, downloading, manualUpdate, readyUpdate, restartToUpdate, runningVersion, updatePhase } from "../updates";
 import appIcon from "./app-icon.svg";
 import { FORM, Hint, MacSwitch, PopupButton, PushButton, TimeInput } from "./controls";
 import { Icon, type IconName } from "./icons";
@@ -151,7 +151,7 @@ export function SettingsWindow() {
 
 /** The app's card, then the pages; the selection is one soft plate that springs to the next. */
 function Sidebar() {
-  const info = appInfo();
+  const info = runningVersion();
   const select = (id: SettingsTab) => settingsTab.set(id);
   return (
     <View
@@ -183,7 +183,7 @@ function Sidebar() {
               class={onAccent("about") ? "text-sys-on-accent" : "text-sys-muted"}
               style={{ fontSize: 11, numberOfLines: 1, fontVariant: ["tabular-nums"], opacity: onAccent("about") ? 0.8 : 1 }}
             >
-              {t("settings.about.version", { version: info.version ?? "0.1.0", build: info.build ?? 1 })}
+              {t("settings.about.version", info)}
             </Text>
           </View>
         </Tab>
@@ -997,10 +997,65 @@ function AiPane() {
 
 // ——— About ———
 
+/** Where the updates stand, in a caption: a restart waiting, a download, the last check's outcome. */
+function updateHint(): string {
+  const ready = readyUpdate();
+  if (ready) return t(ready.kind === "package" ? "update.ready_package" : "update.ready_app", { version: ready.version });
+  const manual = manualUpdate();
+  if (manual) return t("update.manual", { version: manual.version });
+  switch (updatePhase()) {
+    case "unavailable":
+      return t("update.unavailable");
+    case "checking":
+      return t("update.checking");
+    case "downloading":
+      return t("update.downloading", { version: downloading() ?? "" });
+    case "current":
+      return t("update.current");
+    case "failed":
+      return t("update.failed");
+    default:
+      return t("update.auto");
+  }
+}
+
+/** Software updates: what they are doing, and the one button that fits (restart into one, get one by hand, or check now). */
+function UpdatesGroup() {
+  const busy = () => updatePhase() === "checking" || updatePhase() === "downloading";
+  return (
+    <Group testID="settings-updates">
+      <Row label={t("update.label")} hint={updateHint()}>
+        <If
+          when={readyUpdate()}
+          else={
+            <If
+              when={manualUpdate()}
+              else={
+                <PushButton
+                  testID="settings-update-check"
+                  label={t("update.check")}
+                  disabled={busy() || updatePhase() === "unavailable"}
+                  onPress={() => void checkForUpdates()}
+                />
+              }
+            >
+              {(manual) => (
+                <PushButton testID="settings-update-download" icon="external" label={t("update.download")} onPress={() => void openUrl(manual().url).catch(() => {})} />
+              )}
+            </If>
+          }
+        >
+          <PushButton testID="settings-update-restart" primary label={t("update.restart")} onPress={() => void restartToUpdate()} />
+        </If>
+      </Row>
+    </Group>
+  );
+}
+
 const NSH_URL = "https://github.com/longbridge/nsh";
 
 function AboutPane() {
-  const info = appInfo();
+  const info = runningVersion();
   return (
     <>
       <View class="items-center" style={{ paddingTop: 22, paddingBottom: 18, gap: 3 }}>
@@ -1016,10 +1071,11 @@ function AboutPane() {
           {t("settings.about.tagline")}
         </Text>
         <Text testID="settings-version" class="text-sys-muted" style={{ fontSize: 11, fontVariant: ["tabular-nums"], marginTop: 2 }}>
-          {t("settings.about.version", { version: info.version ?? "0.1.0", build: info.build ?? 1 })}
+          {t("settings.about.version", info)}
         </Text>
       </View>
-      <Group>
+      <UpdatesGroup />
+      <Group gap>
         <Row label={t("settings.about.built_with")}>
           <PushButton
             testID="settings-nsh"

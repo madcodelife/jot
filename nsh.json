@@ -44,6 +44,15 @@
     },
     "speech": true
   },
+  "updater": {
+    "github": "madcodelife/jot",
+    "publicKey": "REPLACE_WITH_keys/update.pub",
+    "packages": {
+      "roots": [
+        "REPLACE_WITH_keys/root.pub"
+      ]
+    }
+  },
   "dependencies": {
     "nsh-icon": "^0.2.2",
     "nsh-icon-lucide": "^0.2.2"
