@@ -61,6 +61,12 @@ jobs:
               exit 1
             fi
           fi
+          # The notes lead the release: written with the version, in the pull request that raises it.
+          notes="release-notes/v$version.md"
+          if [ ! -s "$notes" ]; then
+            echo "::error file=nsh.json::$notes is missing or empty: write the release's notes there (CONTRIBUTING.md, Releasing), commit, and tag that commit"
+            exit 1
+          fi
           # Without the secrets nothing signs the manifest or the package, and the release would have no
           # latest.json: every installed copy would find none and stop updating. A fork sets up keys of its own.
           missing=""
@@ -262,5 +268,20 @@ jobs:
           for patch in dist/*.patch; do
             if [ -f "$patch" ]; then set -- "$@" "$patch"; fi
           done
-          gh release create "$GITHUB_REF_NAME" "$@" --title "Jot $VERSION" --generate-notes \
-            || gh release upload "$GITHUB_REF_NAME" "$@" --clobber
+          # The notes written for this version, then GitHub's list of the pull requests, folded, then the comparison.
+          generated=$(gh api "repos/$GH_REPO/releases/generate-notes" -f tag_name="$GITHUB_REF_NAME" --jq .body)
+          {
+            cat "release-notes/v$VERSION.md"
+            printf '\n\n<details><summary>What'"'"'s Changed</summary>\n\n'
+            printf '%s\n' "$generated" | grep -v '^\*\*Full Changelog\*\*' || true
+            printf '\n</details>\n\n'
+            printf '%s\n' "$generated" | grep '^\*\*Full Changelog\*\*' || true
+          } > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
+          # Run again (a job failed after the release was made): the assets are replaced and the notes written again.
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$@" --clobber
+            gh release edit "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md"
+          else
+            gh release create "$GITHUB_REF_NAME" "$@" --verify-tag --title "Jot $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+          fi
