@@ -84,14 +84,14 @@ paper:
   use_theirs: あちらを使う
   downloading: "このメモはまだこの Mac にありません。ダウンロード中…"
   other_device: "別のデバイス"
-  versions: "このメモは %{device} でも同時に変更され（%{when}）、iCloud に両方の版が残っています。どちらを残しますか？"
-  versions_more: "このメモは %{device} でも同時に変更され（%{when}）、iCloud にはほかに %{more} 件の版が残っています。まずこの版：どちらを残しますか？"
-  keep_mine: "この Mac の版を残す"
+  versions: "このメモは %{device} でも同時に変更され（%{when}）、iCloud に両方のバージョンが残っています。どちらを残しますか？"
+  versions_more: "このメモは %{device} でも同時に変更され（%{when}）、iCloud にはほかに %{more} 件のバージョンが残っています。まずこのバージョンから：どちらを残しますか？"
+  keep_mine: "この Mac のものを残す"
   keep_theirs: "もう一方を使う"
   keep_both: "両方残す"
   copy_title: "%{title}（%{device}）"
-  kept_both: "もう一方の版を「%{title}」として保存しました"
-  resolve_failed: "版を整理できませんでした：%{error}"
+  kept_both: "もう一方のバージョンを「%{title}」として保存しました"
+  resolve_failed: "バージョンを処理できませんでした：%{error}"
 
 time:
   just_now: たった今
@@ -163,7 +163,7 @@ settings:
     footnote: "%{key} の 2 回押しには「プライバシーとセキュリティ › アクセシビリティ」で Jot の許可が必要です。使えないときは予備のショートカットで開きます。"
   voice:
     hold: "%{key} 長押しで話す"
-    hold_hint: Jot で %{key} を長押しして入力。ほかの App では %{key} を 2 回押して長押しすると、ひとことメモ。
+    hold_hint: Jot では %{key} を長押しして音声入力。どのアプリでも %{key} を 2 回押して長押しすると、ひとことメモできます。
     language: 認識する言語
     language_auto: 入力ソースに合わせる
     permission: マイクと音声認識
@@ -196,16 +196,16 @@ settings:
     island_no_notch: このディスプレイにはノッチがありません
     default_time: デフォルトの時刻
     time: 時刻
-    default_time_hint: 「明日 家賃」のように日付だけのときに使う時刻。
+    default_time_hint: 「明日 家賃を払う」のように、日付だけで時刻がないときに使います。
   ai:
     intro: この Mac の AI アプリを Jot につなぐと、このフォルダのメモを検索・読み込み・追記でき、やることも管理できます。
     apps: この Mac のアプリ
     looking: アプリを探しています…
-    none: この Mac に対応する AI アプリが見つかりません。ほかのアプリには下の共通設定を使えます。
+    none: この Mac に対応する AI アプリが見つかりません。ほかのアプリは下の方法で手動で設定できます。
     connected: 接続済み
     not_connected: 未接続
     elsewhere: 別のフォルダに接続中
-    manual: 手動で設定
+    manual: 手動設定が必要
     connect: 接続
     disconnect: 接続解除
     update: 更新
@@ -223,9 +223,9 @@ settings:
     command: コマンド
     json: 設定
     then: あとはアプリに「Jot にメモして」「今日やることは？」と話しかけるだけです。
-    access: 許可
+    access: 権限
     trash_rewrite: AI アプリにメモのゴミ箱への移動と書き換えを許可
-    trash_rewrite_hint: 移動されたメモも、書き換える前のメモもゴミ箱に入るので、そこから戻せます。ロックしたメモは変わりません。
+    trash_rewrite_hint: AI アプリが削除したメモも、書き換える前のメモもゴミ箱に入るので、そこから戻せます。ロックしたメモはそのままです。
     trash_rewrite_failed: この設定を保存できませんでした：%{error}
   about:
     title: Jot について
@@ -250,7 +250,7 @@ voice:
   language_tag: 認識する言語：%{language}。クリックか ⌘L で切り替え
   start: 音声入力
   start_note: カーソル位置に音声入力
-  stop: 終了
+  stop: 完了
   cancel: キャンセル
   finish_release: 離す
   finish_press: もう一度マイクを押して終了
@@ -259,7 +259,7 @@ voice:
   island:
     listening: 聞いています · 離すと保存
     inbox: 保存しました · %{note}
-    todo: リマインダーを追加
+    todo: リマインダーを追加しました
     open_settings: クリックしてシステム設定を開く
     try_again: もう一度話してください
   error:
@@ -278,9 +278,9 @@ actions:
   none: 一致するアクションはありません
   open: 開く
   reveal:
-    macos: Finderに表示
+    macos: Finder に表示
     windows: エクスプローラーで表示
-    linux: ファイルで表示
+    linux: ファイルマネージャで表示
   rename: 名前を変更
   rename_label: 「%{title}」の新しいタイトル
   copy_title: タイトルをコピー
@@ -307,7 +307,7 @@ trash:
     other: 「%{title}」ほか %{more} 件を%{bin}に入れました
   undo: 取り消す
   failed: 「%{title}」を%{bin}に入れられませんでした：%{error}
-  restore_taken: 「%{title}」というメモがあるため、元のメモは%{bin}に残っています
+  restore_taken: 「%{title}」というメモがすでにあるため、元のメモは%{bin}に残っています
   restore_failed: 「%{title}」を戻せませんでした：%{error}
 
 due:
@@ -323,7 +323,7 @@ due:
   remove: リマインダーを削除
   previous_month: 前の月
   next_month: 次の月
-  changed: このやることは変更されたばかりのため、時刻は変えていません
+  changed: このやることは直前に変更されたため、リマインダーの時刻はそのままです
   failed: リマインダーの時刻を変更できませんでした：%{error}
 
 lock:
@@ -339,13 +339,13 @@ lock:
   undone: 「%{title}」のロックを解除しました
 
 update:
-  label: ソフトウェア・アップデート
+  label: ソフトウェアアップデート
   auto: Jot は自動でアップデートを確認し、バックグラウンドでダウンロードします。
   check: アップデートを確認
   checking: 確認中…
   downloading: "%{version} をダウンロード中…"
   current: Jot は最新です。
-  failed: アップデートを確認できませんでした。Jot があとでもう一度試します。
+  failed: アップデートを確認できませんでした。あとでもう一度確認します。
   unavailable: この Jot は開発版のため、自動ではアップデートされません。
   ready_package: "Jot %{version} をダウンロードしました。Jot を再起動すると使えます。次回の起動時にも反映されます。"
   ready_app: "Jot %{version} をダウンロードしました。再起動するとインストールされます。Jot を終了したときにもインストールされます。"

@@ -9,8 +9,8 @@ export type Language = "zh-Hans" | "en" | "zh-Hant" | "ja";
 
 /** The languages, each named in itself (a menu of languages reads the same in every language). */
 export const LANGUAGES: readonly { value: Language; name: string }[] = [
-  { value: "zh-Hans", name: "简体中文" },
   { value: "en", name: "English" },
+  { value: "zh-Hans", name: "简体中文" },
   { value: "zh-Hant", name: "繁體中文" },
   { value: "ja", name: "日本語" },
 ];

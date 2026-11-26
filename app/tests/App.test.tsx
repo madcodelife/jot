@@ -59,7 +59,7 @@ test("a to-do ticked in the to-do view is checked in its note", async () => {
 
   await app.type("id:search", "待办");
   await app.waitFor("id:todo:买咖啡豆");
-  expect(app.texts()).toContain("没有时间");
+  expect(app.texts()).toContain("随时");
 
   await app.press("id:check:买咖啡豆");
   await app.waitUntil(() => (new Notes(dir).read("买菜")?.body ?? "").includes("- [x] 买咖啡豆 ✅"));

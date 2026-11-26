@@ -41,9 +41,9 @@ export const speechLanguage = signal<SpeechLanguageChoice>("auto");
 
 /** The languages dictation offers, as the recognizer names them, each in itself. */
 export const SPEECH_LANGUAGES = [
+  { value: "en-US", name: "English (US)" },
   { value: "zh-CN", name: "简体中文（中国大陆）" },
   { value: "zh-TW", name: "繁體中文（台灣）" },
-  { value: "en-US", name: "English (US)" },
   { value: "ja-JP", name: "日本語" },
 ] as const;
 export type SpeechLanguageChoice = "auto" | (typeof SPEECH_LANGUAGES)[number]["value"];

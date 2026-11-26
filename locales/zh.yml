@@ -9,7 +9,7 @@ tray:
   summon: 呼出 Jot（%{keys}）
   todos: 待办
   enable_double_tap: 开启连按两下 %{keys}…
-  restart_to_update: 重启以更新到 %{version}
+  restart_to_update: 重启并更新到 %{version}
   settings: 设置…
 
 notify:
@@ -17,8 +17,8 @@ notify:
     one: 错过了 %{count} 个提醒
     other: 错过了 %{count} 个提醒
   list_separator: 、
-  reminders_failed: 提醒没能开始：%{error}
-  shortcut_taken: "%{keys} 已被别的 App 占用，从菜单栏的 Jot 呼出"
+  reminders_failed: 提醒没能启动：%{error}
+  shortcut_taken: "%{keys} 已被别的应用占用，可以从菜单栏打开 Jot"
 
 search:
   placeholder: 搜索或新建…
@@ -26,7 +26,7 @@ search:
 
 empty:
   title: 还没有笔记
-  first: 输入一个标题，按 %{keys} 就是第一条。
+  first: 输入标题，按 %{keys} 写下第一条。
   agent: 也可以让 AI 应用帮你「记到 Jot」。
 
 keys:
@@ -60,15 +60,15 @@ todo:
     today: 今天
     tomorrow: 明天
     later: 以后
-    none: 没有时间
-  empty: 没有没勾掉的待办
+    none: 随时
+  empty: 待办都做完了
   tick: 勾掉「%{text}」
   row: "%{text}，%{note}"
   due_tip: "%{when} · 到点提醒"
   due_change: 改「%{text}」的提醒时间
 
 note:
-  invalid_title: 「%{title}」不能作标题
+  invalid_title: 「%{title}」不能用作标题
   create_failed: 没能新建「%{title}」：%{error}
   rename_taken: 已有叫「%{title}」的笔记
   rename_failed: 没能重命名「%{title}」：%{error}
@@ -126,14 +126,14 @@ settings:
     about: 关于
   folder:
     label: 笔记文件夹
-    hint: 每条笔记是这里的一个 .md 文件。用 iCloud 云盘、Dropbox 或 Syncthing 同步这个文件夹。
+    hint: 每条笔记是这里的一个 .md 文件。可以用 iCloud 云盘、Dropbox 或 Syncthing 同步这个文件夹。
     change: 更改…
     choose: 选择
     reveal: 在访达中显示
     failed: 没能打开这个文件夹：%{error}
   icloud:
     label: "iCloud 云盘"
-    move: "放到 iCloud 云盘…"
+    move: "移到 iCloud 云盘…"
     moving: "正在移动…"
     hint: "把笔记移到 iCloud 云盘，在 iPhone、iPad 和其他 Mac 上也能看到。"
     off: "iCloud 云盘没有打开：在「系统设置」›「Apple 账户」›「iCloud」里打开「iCloud 云盘」。"
@@ -164,18 +164,18 @@ settings:
     footnote: 连按两下 %{key} 需要在「隐私与安全性 › 辅助功能」里允许 Jot；不可用时用备用快捷键呼出。
   voice:
     hold: 按住 %{key} 说话
-    hold_hint: 浮窗里按住 %{key} 输入；在别的 App 里连按两下 %{key} 并按住，随手记一句。
+    hold_hint: 在 Jot 里按住 %{key} 说话；在任何应用里连按两下 %{key} 并按住，随手记一句。
     language: 识别语言
     language_auto: 跟随当前输入法
     permission: 麦克风与语音识别
     permission_hint: 第一次说话时 macOS 会请求这两个权限
     permissions: 权限
-    denied_hint: 没有授权，到系统设置的「隐私与安全性」里打开
+    denied_hint: 没有授权，到「系统设置」›「隐私与安全性」里打开
     grant: 去授权…
   startup:
     label: 启动
   login:
-    label: 开机时启动
+    label: 登录时打开
     hint: 登录后 Jot 待在菜单栏里
   language:
     label: 语言
@@ -202,7 +202,7 @@ settings:
     intro: 把这台 Mac 上的 AI 应用接到 Jot，它们就能搜索、读取和添加这个文件夹里的笔记，也能帮你管待办。
     apps: 这台 Mac 上的应用
     looking: 正在查找应用…
-    none: 这台 Mac 上没有找到支持的 AI 应用。其他应用可以用下面的通用设置。
+    none: 这台 Mac 上没有找到支持的 AI 应用。其他应用可以按下面的方式手动设置。
     connected: 已连接
     not_connected: 未连接
     elsewhere: 连接的是另一个文件夹
@@ -281,7 +281,7 @@ actions:
   open: 打开
   reveal:
     macos: 在访达中显示
-    windows: 在资源管理器中显示
+    windows: 在文件资源管理器中显示
     linux: 在文件管理器中显示
   rename: 重命名
   rename_label: 「%{title}」的新标题
@@ -325,7 +325,7 @@ due:
   remove: 移除提醒
   previous_month: 上个月
   next_month: 下个月
-  changed: 这条待办刚被改过，提醒时间没有改
+  changed: 这条待办刚被改过，提醒时间保持不变
   failed: 没能改提醒时间：%{error}
 
 lock:

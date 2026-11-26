@@ -8,7 +8,7 @@ tray:
   summon: 叫出 Jot（%{keys}）
   todos: 待辦
   enable_double_tap: 開啟連按兩下 %{keys}…
-  restart_to_update: 重新啟動以更新至 %{version}
+  restart_to_update: 重新啟動並更新至 %{version}
   settings: 設定…
 
 notify:
@@ -17,7 +17,7 @@ notify:
     other: 錯過了 %{count} 個提醒
   list_separator: 、
   reminders_failed: 提醒無法啟動：%{error}
-  shortcut_taken: "%{keys} 已被其他 App 佔用，請從選單列的 Jot 叫出"
+  shortcut_taken: "%{keys} 已被其他 App 佔用，可以從選單列打開 Jot"
 
 search:
   placeholder: 搜尋或新增…
@@ -25,7 +25,7 @@ search:
 
 empty:
   title: 還沒有筆記
-  first: 輸入一個標題，按 %{keys} 就是第一則。
+  first: 輸入標題，按 %{keys} 寫下第一則。
   agent: 也可以讓 AI App 幫你「記到 Jot」。
 
 keys:
@@ -58,7 +58,7 @@ todo:
     today: 今天
     tomorrow: 明天
     later: 之後
-    none: 沒有時間
+    none: 隨時
   empty: 沒有未完成的待辦
   tick: 勾選「%{text}」
   row: "%{text}，%{note}"
@@ -124,21 +124,21 @@ settings:
     about: 關於
   folder:
     label: 筆記資料夾
-    hint: 每則筆記是這裡的一個 .md 檔案。用 iCloud 雲碟、Dropbox 或 Syncthing 同步這個資料夾。
+    hint: 每則筆記是這裡的一個 .md 檔案。可以用 iCloud 雲碟、Dropbox 或 Syncthing 同步這個資料夾。
     change: 更改…
     choose: 選擇
     reveal: 在 Finder 中顯示
     failed: 無法開啟這個資料夾：%{error}
   icloud:
     label: "iCloud 雲碟"
-    move: "放到 iCloud 雲碟…"
+    move: "移到 iCloud 雲碟…"
     moving: "正在移動…"
     hint: "把筆記移到 iCloud 雲碟，在 iPhone、iPad 和其他 Mac 上也能看到。"
     off: "iCloud 雲碟沒有開啟：在「系統設定」›「Apple 帳號」›「iCloud」裡開啟「iCloud 雲碟」。"
     on: "筆記在 iCloud 雲碟裡，會同步到你的其他裝置。"
     synced: "已在 iCloud 雲碟"
     confirm_title: "把筆記移到 iCloud 雲碟？"
-    confirm: "%{from} 裡的筆記會移到 %{to}，之後 Jot 和連接的 AI 應用程式都用那個資料夾。那裡已有的筆記不會被覆蓋：同名的加上編號另存。"
+    confirm: "%{from} 裡的筆記會移到 %{to}，之後 Jot 和已連線的 AI App 都用那個資料夾。那裡已有的筆記不會被覆蓋：同名的加上編號另存。"
     confirm_move: "移到 iCloud 雲碟"
     cancel: "取消"
     moved:
@@ -162,14 +162,14 @@ settings:
     footnote: 連按兩下 %{key} 需要在「隱私權與安全性 › 輔助使用」裡允許 Jot；無法使用時用備用快速鍵叫出。
   voice:
     hold: 按住 %{key} 說話
-    hold_hint: 浮窗裡按住 %{key} 輸入；在其他 App 裡連按兩下 %{key} 並按住，隨口記一句。
+    hold_hint: 在 Jot 裡按住 %{key} 說話；在任何 App 裡連按兩下 %{key} 並按住，隨口記一句。
     language: 辨識語言
-    language_auto: 跟隨目前的輸入法
+    language_auto: 跟隨目前的輸入方式
     permission: 麥克風與語音辨識
     permission_hint: 第一次說話時 macOS 會請求這兩項權限
     permissions: 權限
-    denied_hint: 尚未授權，到系統設定的「隱私權與安全性」裡打開
-    grant: 去授權…
+    denied_hint: 尚未授權，請到「系統設定」›「隱私權與安全性」開啟
+    grant: 前往授權…
   startup:
     label: 啟動
   login:
@@ -184,8 +184,8 @@ settings:
     light: 淺色
     dark: 深色
   theme:
-    label: 浮窗主題
-    footnote: 主題只換浮窗的顏色。
+    label: 面板主題
+    footnote: 主題只會改變面板的顏色。
     selected: 已選
   reminders:
     notifications: 桌面通知
@@ -200,7 +200,7 @@ settings:
     intro: 把這台 Mac 上的 AI App 接到 Jot，它們就能搜尋、讀取和新增這個資料夾裡的筆記，也能幫你管待辦。
     apps: 這台 Mac 上的 App
     looking: 正在尋找 App…
-    none: 這台 Mac 上沒有找到支援的 AI App。其他 App 可以用下面的通用設定。
+    none: 這台 Mac 上沒有找到支援的 AI App。其他 App 可以照下面的方式手動設定。
     connected: 已連線
     not_connected: 未連線
     elsewhere: 連線的是另一個資料夾
@@ -307,7 +307,7 @@ trash:
   undo: 復原
   failed: 無法把「%{title}」丟到%{bin}：%{error}
   restore_taken: 已經有叫「%{title}」的筆記，原本那則還在%{bin}裡
-  restore_failed: 無法復原「%{title}」：%{error}
+  restore_failed: 無法還原「%{title}」：%{error}
 
 due:
   title: 提醒時間
