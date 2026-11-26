@@ -19,13 +19,13 @@ nsh-icon-lucide = "0.2.2"
 nsh-icon = "0.2.2"
 # NSH's repository at a commit, not a release: the open note's live preview needs `EditorDecoration`'s `label` /
 # `labelClass` / `labelStyle` (NSH #3178) and `fontSize` / `fontFamily` (NSH #3177), new after 0.7.0, and the fix
-# that keeps label boxes from laying the rows out again without end (NSH #3272; the commit is its merge on main).
+# that keeps label boxes from laying the rows out again without end (NSH #3272, on main before the commit).
 # The `nsh` CLI must be the same commit (README, Building; `scripts/install-nsh.sh` builds it). Back to crates.io
 # (`nsh-core = "<version>"`) once a release of NSH has them.
-nsh-core = { git = "https://github.com/longbridge/nsh", rev = "250f55723bed4f6019185e3f7ae0e22efa395f3c" }
+nsh-core = { git = "https://github.com/longbridge/nsh", rev = "dccbe7edf99790add1e95b3be26eac72116ae594" }
 # Dictation's `Speech` (TSX: `import { Speech } from "nsh-extra"`), out of NSH's runtime since 0.6. NSH links a Rust
 # nshm the app's crate depends on. The same commit as nsh-core, and the same move back to crates.io.
-nsh-extra = { git = "https://github.com/longbridge/nsh", rev = "250f55723bed4f6019185e3f7ae0e22efa395f3c", features = ["speech"] }
+nsh-extra = { git = "https://github.com/longbridge/nsh", rev = "dccbe7edf99790add1e95b3be26eac72116ae594", features = ["speech"] }
 jot-store = { path = "store" }
 jiff = "1.0.0"
 # Channels from other threads (the folder watcher, the reminders' thread,
@@ -61,4 +61,4 @@ objc2-app-kit = { version = "0.3.2", default-features = false, features = [
 
 # nsh-icon and nsh-icon-lucide ask for nsh-core 0.7.0 from crates.io: they build with the same commit as the app's.
 [patch.crates-io]
-nsh-core = { git = "https://github.com/longbridge/nsh", rev = "250f55723bed4f6019185e3f7ae0e22efa395f3c" }
+nsh-core = { git = "https://github.com/longbridge/nsh", rev = "dccbe7edf99790add1e95b3be26eac72116ae594" }
