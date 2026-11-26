@@ -19,7 +19,7 @@ import {
   move,
   notice,
   query,
-  rows,
+  listRows,
   setQuery,
   stage,
   todoItems,
@@ -92,8 +92,8 @@ function visibleSize(s: Exclude<ReturnType<typeof stage>, "hidden">) {
   if (s === "capsule") return { width: T.size.panelWidth, height: T.size.field };
   const body = todoMode()
     ? todoViewHeight(todoItems())
-    : rows().length
-      ? T.size.listTop + rows().length * T.size.row
+    : listRows().length
+      ? T.size.listTop + listRows().length * T.size.row
       : emptyHeight;
   return { width: T.size.panelWidth, height: T.size.field + body + T.size.footer };
 }
@@ -295,7 +295,7 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
           else={
             <View class="flex-1 flex-row">
               <View style={{ width: editing() ? T.size.sidebar : T.size.panelWidth - 2 }}>
-                <If when={rows().length > 0 || query().trim()} else={<EmptyNotes />}>
+                <If when={listRows().length > 0 || query().trim()} else={<EmptyNotes />}>
                   <NoteList compact={editing()} />
                 </If>
               </View>

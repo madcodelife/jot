@@ -145,6 +145,12 @@ export interface PlatformTokens {
   timing: {
     /** Each row's delay after the one before as the list opens. */
     stagger: number;
+    /** A row dropping in (the list opening, a note new in the folder or back from the trash) fades in over this, while
+     * it falls into place on `spring.drop`. */
+    dropFade: number;
+    /** A note moved to the trash: its row slides left, shrinks and fades out over this, then the rows below close the
+     * gap on `spring.collapse`. */
+    trashExit: number;
     /** From the capsule to the list. */
     expandAfter: number;
     /** Typing pauses this long before a time phrase becomes a chip. */
@@ -314,6 +320,8 @@ const SIZE = {
 
 const TIMING = {
   stagger: 28,
+  dropFade: 220,
+  trashExit: 180,
   expandAfter: 140,
   chipAfter: 800,
   saveAfter: 300,
