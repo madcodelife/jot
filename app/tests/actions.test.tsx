@@ -208,6 +208,31 @@ test("Escape leaves a rename without changing the title", async () => {
   app.dispose();
 });
 
+test("the footer's buttons do what their keys do: Actions opens the panel, the primary action opens the note, the round one the settings", async () => {
+  const dir = twoNotes("footer");
+  const app = await openJot(dir);
+  await app.waitFor("id:row:护照到期");
+  await app.type("id:search", "护照");
+  await app.waitFor("id:row:create");
+
+  await app.press("id:footer-actions-key");
+  await app.waitFor("id:actions");
+  expect(app.shows("id:action:open")).toBe(true);
+  await app.keyboard.press("escape");
+  await app.waitUntil(() => !app.shows("id:actions"));
+
+  await app.press("id:footer-primary");
+  await app.waitFor("id:paper");
+  // The open note has no footer.
+  expect(app.shows("id:footer")).toBe(false);
+  await app.keyboard.press("escape");
+  await app.waitFor("id:footer-settings");
+
+  await app.press("id:footer-settings");
+  await app.waitFor("id:settings");
+  app.dispose();
+});
+
 test("⌘K in the open note offers no \"Open\", and the footer names no Return action there", async () => {
   const dir = twoNotes("actions-open");
   const app = await openJot(dir);

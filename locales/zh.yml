@@ -31,14 +31,6 @@ empty:
 keys:
   actions: 操作
 
-footer:
-  notes:
-    one: "%{count} 条笔记 · %{folder}"
-    other: "%{count} 条笔记 · %{folder}"
-  open:
-    one: "%{count} 件没勾掉"
-    other: "%{count} 件没勾掉"
-
 list:
   blank: 空白笔记
   downloading: "正在下载…"

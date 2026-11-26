@@ -210,7 +210,7 @@ const SIZE = {
   todoRow: 36,
   groupHeader: 26,
   todoMaxHeight: 387,
-  footer: 39,
+  footer: 48,
   actionsWidth: 300,
   actionsField: 42,
   actionRow: 32,

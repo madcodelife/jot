@@ -193,6 +193,10 @@ and turns the footer into "Moved to the Trash" with Undo for 5 s (`T.timing.undo
 the trashed notes back one at a time, the last first (an undo stack); then ⌘Z is the search field's again. With the
 note's text focused, Ctrl+D stays the editor's (select the next occurrence); macOS's ⌃X is no text key.
 
+The footer (app/ui/Panel.tsx) is Raycast's: no rule above it, a round settings button on the left (a notice or
+"Copied" beside it while one shows) and on the right a capsule of the primary action and "Actions ⌘K", each a button
+that does what its keys do.
+
 ## Packaging (scripts/package-macos.sh)
 
 NSH's `nsh package` bundles its runner and the app's assets only, so the script builds `jot-mcp` (in cargo's
