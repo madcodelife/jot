@@ -13,6 +13,7 @@ import { Notes } from "jot/native";
 import { fileQuickNote, todoText } from "../quicknote";
 import { chooseSpeechLang, inputSpeechLang, nextSpeechLang, speechLangMark } from "../speechlang";
 import { joinSpoken } from "../spoken";
+import { STAND_INS } from "./native";
 
 /** A fresh, empty notes folder. */
 const folder = (name: string) => `/tmp/jot-voice-${name}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
@@ -32,9 +33,7 @@ const openJot = async (
     storage: { "jot.dir": dir, ...storage },
     modules: {
       "jot/native": {
-        "Summon.isTrusted": true,
-        "Summon.requestTrust": null,
-        "Summon.onDoubleTap": null,
+        ...STAND_INS,
         "Summon.onDoubleTapHold": null,
         "InputSource.language": options.input === undefined ? "zh-Hans" : options.input,
       },

@@ -35,3 +35,8 @@ pub(crate) fn icloud_drive() -> crate::folder::Drive {
         on: false,
     }
 }
+
+/// No trash folder to open here (the freedesktop.org trash and the Recycle Bin are not opened yet).
+pub(crate) fn trash_folder() -> Option<std::path::PathBuf> {
+    None
+}

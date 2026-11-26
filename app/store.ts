@@ -4,7 +4,7 @@
 // them, so every change goes through one place.
 import { batch, computed, platform, signal, Storage, untracked } from "nsh";
 import { t } from "nsh/i18n";
-import { Folder, Notes, Reminders, Summon, type DueEvent, type ICloudDrive, type MovedNotes, type NoteMeta, type Todo, type TrashedNote } from "jot/native";
+import { ActivityLog, Folder, Notes, Reminders, Summon, type AgentActivity, type DueEvent, type ICloudDrive, type MovedNotes, type NoteMeta, type Todo, type TrashedNote } from "jot/native";
 import { morphNext } from "./ui/motion";
 import { T } from "./ui/tokens";
 import { syncClients } from "./connections";
@@ -52,7 +52,7 @@ export const query = signal("");
 export const selected = signal(0);
 /** The note open in the editor; `token` changes on each opening (the editor reloads), `line` is where its caret goes. */
 export const opened = signal<{ title: string; line: number | null; focus: boolean; token: number } | null>(null);
-/** A row that just arrived from an AI app: it glows once. */
+/** A row that just arrived from an AI app (a new note whose `source` is an app's, from this Mac or synced from another): it drops in once. */
 export const arriving = signal<string | null>(null);
 /** A short message in the footer (a title the folder cannot take). */
 export const notice = signal<string | null>(null);
@@ -242,6 +242,7 @@ function useFolder(n: Notes): Notes {
   gone.clear();
   clearTimeout(trashTimer);
   n.watch(folderChanged);
+  watchActivity(n);
   batch(() => {
     notes.set(n);
     folderPath.set(n.dir);
@@ -314,11 +315,28 @@ export async function firstRun(): Promise<boolean> {
   return true;
 }
 
-/** Listeners to notes an AI app wrote, with the app's name (the island shows them). */
-const arrivals = new Set<(title: string, agent: string) => void>();
-export function onAgentNote(listener: (title: string, agent: string) => void): () => void {
-  arrivals.add(listener);
-  return () => arrivals.delete(listener);
+/** Listeners to what AI apps write to the notes folder on this Mac (the island shows it). */
+const activities = new Set<(activity: AgentActivity) => void>();
+export function onAgentActivity(listener: (activity: AgentActivity) => void): () => void {
+  activities.add(listener);
+  return () => activities.delete(listener);
+}
+
+/**
+ * Follows the activity log `jot-mcp` writes (every write of an AI app's, `ActivityLog`) for the folder `n`: the only
+ * word of what an app did, since a note appearing in the folder may come from another Mac through iCloud Drive.
+ */
+function watchActivity(n: Notes) {
+  const log = ActivityLog.path();
+  if (!log) return;
+  try {
+    n.watchActivity(log, (activity) => {
+      for (const l of activities) l(activity);
+    });
+  } catch (error) {
+    // Without it the island says nothing of AI apps; the notes work as ever.
+    console.warn(`cannot watch the AI apps' activity: ${errorMessage(error)}`);
+  }
 }
 
 /**
@@ -334,7 +352,10 @@ function settleLocks(n: Notes) {
   }
 }
 
-/** The folder changed on disk: read it again, and tell apart the notes an AI app just wrote. */
+/**
+ * The folder changed on disk: read it again, and drop in the rows of new notes an AI app made (here, or on another Mac
+ * and synced). What the island says comes from the activity log instead (`onAgentActivity`).
+ */
 function folderChanged() {
   const n = notes();
   if (!n) return;
@@ -348,7 +369,6 @@ function folderChanged() {
     setTimeout(() => arriving.set(null), 1600);
   }
   revision.update((r) => r + 1);
-  for (const m of fresh) for (const l of arrivals) l(m.title, m.source ?? "");
 }
 
 /** Jot changed the folder itself: read it again now, rather than at the watcher's echo. */

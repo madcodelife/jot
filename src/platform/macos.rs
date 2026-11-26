@@ -282,3 +282,8 @@ pub(crate) fn icloud_drive() -> crate::folder::Drive {
             .is_some();
     crate::folder::Drive { root, on }
 }
+
+/// The user's trash, which Finder opens: `~/.Trash`.
+pub(crate) fn trash_folder() -> Option<std::path::PathBuf> {
+    std::env::home_dir().map(|home| home.join(".Trash"))
+}

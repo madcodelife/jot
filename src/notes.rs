@@ -4,10 +4,11 @@ use std::fmt::Display;
 use std::path::PathBuf;
 use std::time::UNIX_EPOCH;
 
-use jot_store::{Resolution, Source, Store, StoreError, Trashed, Watcher};
+use jot_store::{ActivityTail, Resolution, Source, Store, StoreError, Trashed, Watcher};
 use nsh_core::element::io_code;
 use nsh_core::prelude::*;
 
+use crate::activity::{AgentActivity, resolved, same_folder};
 use crate::relay::relay;
 
 /// The notes folder: one Markdown file per note, the file name its title.
@@ -25,6 +26,9 @@ pub struct Notes {
     store: Store,
     /// The folder watcher `watch` started; replaced by the next `watch`.
     watcher: Option<Watcher>,
+    /// The activity log's watcher `watch_activity` started; replaced by the
+    /// next `watch_activity`.
+    activity: Option<Watcher>,
     /// The notes `trash` moved to the trash this run, by token, oldest
     /// first: what `restore` brings back.
     trashed: Vec<(u32, Trashed)>,
@@ -47,6 +51,7 @@ impl Notes {
         Ok(Notes {
             store,
             watcher: None,
+            activity: None,
             trashed: Vec::new(),
             next_token: 1,
         })
@@ -282,6 +287,39 @@ impl Notes {
             })
             .map_err(|e| store_error(e, "cannot watch the notes folder"))?;
         self.watcher = Some(watcher);
+        Ok(())
+    }
+
+    /// Calls the listener for each write an AI app makes to this folder
+    /// from now on, as `jot-mcp` records them in the activity log at `log`
+    /// (`ActivityLog.path()`): the lines added to it, not those before; a
+    /// rotated log is followed. Writes to other folders are left out (the
+    /// folder compared with links resolved). Replaces the previous listener.
+    pub fn watch_activity(
+        &mut self,
+        log: String,
+        #[args(activity)] on_activity: Callback<AgentActivity>,
+        cx: CallCx<'_>,
+    ) -> Result<(), JsError> {
+        self.activity = None;
+        let log = expand_home(&log);
+        let folder = resolved(self.store.root());
+        let activity = relay(cx, move |activity: AgentActivity| {
+            on_activity.post(activity)
+        });
+        let tail = std::sync::Mutex::new(ActivityTail::from_end(&log));
+        let watcher = jot_store::watch_activity(&log, move || {
+            let Ok(mut tail) = tail.lock() else {
+                return;
+            };
+            for record in tail.read() {
+                if same_folder(&record.dir, &folder) {
+                    let _ = activity.send(record.into());
+                }
+            }
+        })
+        .map_err(|e| store_error(e, "cannot watch the AI apps' activity"))?;
+        self.activity = Some(watcher);
         Ok(())
     }
 

@@ -108,6 +108,14 @@ time:
 island:
   writing: "%{agent} · Writing to Jot"
   written: "%{agent} · Saved to Jot"
+  appended: "%{agent} · Added to"
+  todo_added: "%{agent} · Added a to-do to"
+  todo_done: "%{agent} · Completed a to-do in"
+  rescheduled: "%{agent} · Changed a reminder in"
+  replaced: "%{agent} · Rewrote · the old version is in the Trash"
+  trashed: "%{agent} · Moved to the Trash"
+  open_note: "Open “%{title}”"
+  show_trashed: "Show “%{title}” in the Trash"
   done: Done
   remind: Reminder · %{time} · %{note}
   now: Now

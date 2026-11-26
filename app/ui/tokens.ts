@@ -155,6 +155,12 @@ export interface PlatformTokens {
     savedFor: number;
     /** The island stays open after Claude's note is in. */
     islandHold: number;
+    /** It stays this long after a lighter write of an AI app's (appended to a note, a to-do added, ticked or moved,
+     * a note moved to the Trash), and this long after a rewrite, whose label says where the old version went. */
+    islandLightHold: number;
+    islandReplaceHold: number;
+    /** Writes of one app to one note this close together are one on the island: the one showing stays longer. */
+    islandMerge: number;
     /** How long the sheen sweeps the title of an AI app's note before the check: the island's writing phase. */
     islandSheen: number;
     /** One sweep of that sheen across the title. Longer than the phase, so it reads as one slow pass, not a loop. */
@@ -313,6 +319,9 @@ const TIMING = {
   saveAfter: 300,
   savedFor: 1400,
   islandHold: 1600,
+  islandLightHold: 1800,
+  islandReplaceHold: 3600,
+  islandMerge: 3000,
   islandSheen: 1300,
   islandSheenSweep: 1600,
   islandGlowTurn: 2600,

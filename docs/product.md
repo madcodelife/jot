@@ -142,7 +142,10 @@ any other MCP app the page gives the command and the JSON entry to copy; by hand
 `claude mcp add --scope user jot -- <path to jot-mcp> --dir <notes folder>`.
 
 A note an AI app creates records which app it was (`source: cursor`, from the name the app gives when it connects), and
-the list, the note and the notch island show that name: "By Cursor", "Claude · Saved to Jot".
+the list and the note show that name: "By Cursor". The notch island says what an AI app does on this Mac, by name: a new
+note is written and saved ("Claude · Saved to Jot"), and, more lightly, text added to a note, a to-do added, completed or
+given a new time, a note rewritten (its old version in the Trash) or moved to the Trash; a click on it opens the note,
+or shows the trashed one in the Trash.
 
 ## What the first version does and doesn't do
 

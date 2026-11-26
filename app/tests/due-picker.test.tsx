@@ -7,6 +7,7 @@ import { expect, open, test } from "nsh/test";
 import { Notes } from "jot/native";
 import { withDue } from "../tasks";
 import { quickChoices } from "../time";
+import { STAND_INS } from "./native";
 
 const folder = (name: string) => `/tmp/jot-due-${name}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
@@ -18,7 +19,7 @@ const openJot = (dir: string) =>
     reducedMotion: true,
     locale: "zh-CN",
     storage: { "jot.dir": dir },
-    modules: { "jot/native": { "Summon.isTrusted": true, "Summon.requestTrust": null, "Summon.onDoubleTap": null } },
+    modules: { "jot/native": { ...STAND_INS } },
   });
 
 const pad = (n: number) => String(n).padStart(2, "0");

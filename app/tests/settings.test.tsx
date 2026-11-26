@@ -6,6 +6,7 @@ import { expect, open, test } from "nsh/test";
 import { drawsSurface, swatch, themeFromStored, themeVars, THEMES, type ThemeName } from "../ui/themes";
 import { Notes } from "jot/native";
 import { defaultFolder } from "../store";
+import { STAND_INS } from "./native";
 
 /** A fresh, empty notes folder. */
 const folder = (name: string) => `/tmp/jot-settings-${name}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
@@ -81,9 +82,7 @@ const openJot = (dir: string | null, storage: Record<string, string> = {}, modul
     storage: { ...(dir === null ? {} : { "jot.dir": dir }), ...storage },
     modules: {
       "jot/native": {
-        "Summon.isTrusted": true,
-        "Summon.requestTrust": null,
-        "Summon.onDoubleTap": null,
+        ...STAND_INS,
         ...CONNECTIONS,
         ...NO_ICLOUD,
         ...AI_ACCESS,

@@ -7,8 +7,9 @@
 // sets code in the code font, and draws a to-do's box, which a press ticks.
 import { expect, open, test } from "nsh/test";
 import { Notes } from "jot/native";
+import { STAND_INS } from "./native";
 
-const MODULES = { "jot/native": { "Summon.isTrusted": true, "Summon.requestTrust": null, "Summon.onDoubleTap": null } };
+const MODULES = { "jot/native": { ...STAND_INS } };
 
 /** Opens Jot on a fresh folder holding the note `title`, opens the note and puts the caret at its end. */
 async function openNote(title: string, body: string) {

@@ -24,7 +24,7 @@ import {
   firstRun,
   notice,
   now,
-  onAgentNote,
+  onAgentActivity,
   notes,
   open,
   openFolder,
@@ -35,7 +35,7 @@ import {
   toggle,
   trusted,
 } from "./store";
-import { dismissDictation, IslandWindow, settleDictation, showAgentWrite, showDictation, showReminder, updateDictation } from "./ui/Island";
+import { dismissDictation, IslandWindow, settleDictation, showAgentActivity, showDictation, showReminder, updateDictation } from "./ui/Island";
 import { PanelWindow } from "./ui/Panel";
 import { openSettings, SettingsWindow } from "./ui/Settings";
 import { T } from "./ui/tokens";
@@ -150,10 +150,11 @@ function App() {
   }, 3000);
   if (untracked(trusted)) clearInterval(trustPoll);
 
-  // Notes Claude writes: the island says so, while the settings keep it on.
+  // What AI apps write to the notes on this Mac (jot-mcp's activity log): the island says so, while the settings
+  // keep it on.
   if (hasIsland) {
-    onAgentNote((title, agent) => {
-      if (untracked(islandOn)) showAgentWrite(title, agent);
+    onAgentActivity((activity) => {
+      if (untracked(islandOn)) showAgentActivity(activity);
     });
   }
 

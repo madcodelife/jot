@@ -108,6 +108,14 @@ time:
 island:
   writing: "%{agent} · 正在记到 Jot"
   written: "%{agent} · 已记下"
+  appended: "%{agent} · 追加到"
+  todo_added: "%{agent} · 加了一条待办"
+  todo_done: "%{agent} · 勾选了一条待办"
+  rescheduled: "%{agent} · 改了提醒时间"
+  replaced: "%{agent} · 改写了 · 旧版本在废纸篓"
+  trashed: "%{agent} · 移到了废纸篓"
+  open_note: 打开「%{title}」
+  show_trashed: 在废纸篓里显示「%{title}」
   done: 已完成
   remind: 提醒 · %{time} · %{note}
   now: 现在

@@ -107,6 +107,14 @@ time:
 island:
   writing: "%{agent} · Jot に書き込み中"
   written: "%{agent} · 保存しました"
+  appended: "%{agent} · 追記しました"
+  todo_added: "%{agent} · やることを追加しました"
+  todo_done: "%{agent} · やることを完了にしました"
+  rescheduled: "%{agent} · リマインダーの時刻を変更しました"
+  replaced: "%{agent} · 書き換えました · 以前の版はゴミ箱に"
+  trashed: "%{agent} · ゴミ箱に入れました"
+  open_note: 「%{title}」を開く
+  show_trashed: ゴミ箱で「%{title}」を表示
   done: 完了
   remind: リマインダー · %{time} · %{note}
   now: 今

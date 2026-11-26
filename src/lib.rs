@@ -15,12 +15,15 @@
 //!   place).
 //! - [`AiAccess`]: whether AI apps may move notes to the Trash and rewrite
 //!   them, in a file `jot-mcp` reads too.
+//! - [`ActivityLog`]: the log where `jot-mcp` records what AI apps wrote,
+//!   which `Notes::watch_activity` follows for the island.
 //! - [`NativeBuild`]: the fingerprint of the app's native code, which an
 //!   OTA package must have been published for.
 //!
 //! Platform code lives in `platform/<os>.rs` behind one interface, so
 //! `App.tsx` never checks the platform for these.
 
+mod activity;
 mod ai_access;
 mod connect;
 mod connections;
@@ -43,6 +46,7 @@ mod when;
 use nsh_core::prelude::*;
 use nsh_extra as _;
 
+pub use activity::{ActivityLog, AgentAction, AgentActivity};
 pub use ai_access::AiAccess;
 pub use connections::{AiClient, Connections, GenericSetup, ManualReason};
 pub use folder::{FailedNote, Folder, ICloudDrive, MovedNotes, RenamedNote};
@@ -66,6 +70,7 @@ fn native(registry: &mut Registry) {
         .module::<Folder>()
         .module::<InputSource>()
         .module::<Connections>()
+        .module::<ActivityLog>()
         .module::<AiAccess>()
         .module::<NativeBuild>();
 }

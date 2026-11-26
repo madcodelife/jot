@@ -7,13 +7,19 @@
 //! call): `trash_note` moves a note to the system trash, `replace_note` rewrites a whole note after putting its
 //! previous version in the trash; nothing is ever deleted for good. A note the user locked in Jot is read-only to
 //! every tool, and none unlocks one.
+//!
+//! Every write is recorded in Jot's activity log (`jot_store::Activity`, beside the settings), which the app reads
+//! to show what the app did; a record that cannot be written changes nothing of the tool's result.
 
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use jiff::civil::{Date, DateTime};
-use jot_store::{AiSettings, DEFAULT_TODO_NOTE, NoteMeta, Source, Store, StoreError, Todo, when};
+use jot_store::{
+    Action, Activity, AiSettings, DEFAULT_TODO_NOTE, NoteMeta, Source, Store, StoreError, Todo,
+    when,
+};
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerConfig};
@@ -77,6 +83,11 @@ pub struct JotServer {
     /// Jot's settings for AI apps (`AiSettings`): read on every call that needs them, so a change in the app
     /// applies at once. `None`: no home folder, nothing allowed.
     settings: Option<PathBuf>,
+    /// Jot's activity log, where every write is recorded for the app to show (`Activity`). `None`: no home folder,
+    /// nothing recorded.
+    activity: Option<PathBuf>,
+    /// The notes folder as the log names it: absolute, links resolved, so the app finds its own folder in it.
+    dir: PathBuf,
     tool_router: ToolRouter<Self>,
 }
 
@@ -215,8 +226,11 @@ enum Found {
 impl JotServer {
     /// A server over `store`, on the system's local time.
     pub fn new(store: Store) -> Self {
+        let dir = std::fs::canonicalize(store.root()).unwrap_or_else(|_| store.root().to_owned());
         Self {
             store,
+            dir,
+            activity: Activity::default_path(),
             now: local_now,
             download_wait: DOWNLOAD_WAIT,
             settings: AiSettings::default_path(),
@@ -227,6 +241,12 @@ impl JotServer {
     /// The same server reading Jot's settings for AI apps from `path` instead of the user's (for tests).
     pub fn with_settings_file(mut self, path: impl Into<PathBuf>) -> Self {
         self.settings = Some(path.into());
+        self
+    }
+
+    /// The same server recording its writes in the activity log at `path` instead of the user's (for tests).
+    pub fn with_activity_file(mut self, path: impl Into<PathBuf>) -> Self {
+        self.activity = Some(path.into());
         self
     }
 
@@ -341,6 +361,7 @@ impl JotServer {
             .create(&params.title, &params.body, client_source(&context))
         {
             Ok(meta) => {
+                self.record(&context, Action::Create, &meta.title, |a| a);
                 let mut out = format!("Created the note \"{}\".", meta.title);
                 if meta.title != params.title.trim() {
                     out.push_str(&format!(
@@ -371,7 +392,11 @@ impl JotServer {
             open_world_hint = false
         )
     )]
-    async fn append_note(&self, Parameters(params): Parameters<AppendParams>) -> CallToolResult {
+    async fn append_note(
+        &self,
+        Parameters(params): Parameters<AppendParams>,
+        context: RequestContext<RoleServer>,
+    ) -> CallToolResult {
         if params.text.trim().is_empty() {
             return error("There is no text to append.".to_owned());
         }
@@ -379,7 +404,10 @@ impl JotServer {
             .downloaded(|| self.store.append(&params.title, &params.text))
             .await
         {
-            Ok(meta) => text(format!("Appended to the note \"{}\".", meta.title)),
+            Ok(meta) => {
+                self.record(&context, Action::Append, &meta.title, |a| a);
+                text(format!("Appended to the note \"{}\".", meta.title))
+            }
             Err(StoreError::NotFound) => not_found(&params.title),
             Err(error) => failure(&error, &params.title),
         }
@@ -438,11 +466,22 @@ impl JotServer {
             .map(str::trim)
             .filter(|note| !note.is_empty());
         let source = client_source(&context);
+        // Whether the note was there, for the record: a to-do into a note it makes is a new note.
+        let existed = matches!(
+            self.store.path(note.unwrap_or(DEFAULT_TODO_NOTE)),
+            Ok(Some(_))
+        );
         match self
             .downloaded(|| self.store.add_todo(note, &task, due, source.clone()))
             .await
         {
             Ok(todo) => {
+                let action = if existed {
+                    Action::Todo
+                } else {
+                    Action::Create
+                };
+                self.record(&context, action, &todo.note, |a| a);
                 let mut out = format!(
                     "Added the to-do \"{}\" to the note \"{}\"",
                     todo.text, todo.note
@@ -546,6 +585,7 @@ impl JotServer {
     async fn complete_todo(
         &self,
         Parameters(params): Parameters<CompleteTodoParams>,
+        context: RequestContext<RoleServer>,
     ) -> CallToolResult {
         let todo = match self
             .find_open_todo(&params.note, &params.text, "check off")
@@ -572,10 +612,13 @@ impl JotServer {
             })
             .await
         {
-            Ok(_) => text(format!(
-                "Checked off \"{}\" in the note \"{}\".",
-                todo.text, todo.note
-            )),
+            Ok(meta) => {
+                self.record(&context, Action::Complete, &meta.title, |a| a);
+                text(format!(
+                    "Checked off \"{}\" in the note \"{}\".",
+                    todo.text, todo.note
+                ))
+            }
             Err(StoreError::Changed) => error(format!(
                 "The note \"{}\" changed while Jot was checking off the to-do. Call complete_todo again.",
                 todo.note
@@ -604,6 +647,7 @@ impl JotServer {
     async fn reschedule_todo(
         &self,
         Parameters(params): Parameters<RescheduleTodoParams>,
+        context: RequestContext<RoleServer>,
     ) -> CallToolResult {
         let now = (self.now)();
         let due = match params.due.as_deref().map(str::trim) {
@@ -659,7 +703,8 @@ impl JotServer {
             })
             .await
         {
-            Ok(_) => {
+            Ok(meta) => {
+                self.record(&context, Action::Reschedule, &meta.title, |a| a);
                 let was = todo
                     .due
                     .map(|at| format!(" (it was due {})", format_due(at)))
@@ -703,15 +748,24 @@ impl JotServer {
             open_world_hint = false
         )
     )]
-    async fn trash_note(&self, Parameters(params): Parameters<TrashParams>) -> CallToolResult {
+    async fn trash_note(
+        &self,
+        Parameters(params): Parameters<TrashParams>,
+        context: RequestContext<RoleServer>,
+    ) -> CallToolResult {
         if !self.ai_settings().allow_trash_and_rewrite {
             return not_allowed("move notes to the Trash");
         }
         match self.downloaded(|| self.store.trash(&params.title)).await {
-            Ok(trashed) => text(format!(
-                "Moved the note \"{}\" to the Trash. The user can put it back from the Trash.",
-                trashed.title
-            )),
+            Ok(trashed) => {
+                self.record(&context, Action::Trash, &trashed.title, |a| {
+                    a.with_in_trash(trashed.in_trash.clone())
+                });
+                text(format!(
+                    "Moved the note \"{}\" to the Trash. The user can put it back from the Trash.",
+                    trashed.title
+                ))
+            }
             Err(error) => failure(&error, &params.title),
         }
     }
@@ -732,7 +786,11 @@ impl JotServer {
             open_world_hint = false
         )
     )]
-    async fn replace_note(&self, Parameters(params): Parameters<ReplaceParams>) -> CallToolResult {
+    async fn replace_note(
+        &self,
+        Parameters(params): Parameters<ReplaceParams>,
+        context: RequestContext<RoleServer>,
+    ) -> CallToolResult {
         let settings = self.ai_settings();
         if !settings.allow_trash_and_rewrite {
             return not_allowed("rewrite notes");
@@ -762,11 +820,17 @@ impl JotServer {
             .await
         {
             Ok(replaced) => match replaced.previous {
-                Some(previous) => text(format!(
-                    "Rewrote the note \"{}\". Its previous version is in the Trash as \"{}.md\"; the user can \
+                Some(previous) => {
+                    self.record(&context, Action::Replace, &replaced.note.title, |a| {
+                        a.with_previous(previous.title.clone())
+                            .with_in_trash(previous.in_trash.clone())
+                    });
+                    text(format!(
+                        "Rewrote the note \"{}\". Its previous version is in the Trash as \"{}.md\"; the user can \
                      put it back from there.",
-                    replaced.note.title, previous.title
-                )),
+                        replaced.note.title, previous.title
+                    ))
+                }
                 None => text(format!(
                     "The note \"{}\" already reads exactly so; nothing changed.",
                     replaced.note.title
@@ -778,6 +842,30 @@ impl JotServer {
 }
 
 impl JotServer {
+    /// Records in the activity log that the calling app did `action` to the note `title` (`more` adds to the
+    /// record). A record that cannot be written is left out: the app just shows nothing of it.
+    fn record(
+        &self,
+        context: &RequestContext<RoleServer>,
+        action: Action,
+        title: &str,
+        more: impl FnOnce(Activity) -> Activity,
+    ) {
+        let Some(path) = self.activity.as_deref() else {
+            return;
+        };
+        let agent = client_source(context)
+            .label()
+            .unwrap_or_else(|| "AI".to_owned());
+        let activity = more(Activity::new((self.now)(), &self.dir, agent, action, title));
+        if let Err(error) = activity.append(path) {
+            eprintln!(
+                "jot-mcp: cannot record the write in {}: {error}",
+                path.display()
+            );
+        }
+    }
+
     /// Jot's settings for AI apps as the file says now.
     fn ai_settings(&self) -> AiSettings {
         self.settings

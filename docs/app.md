@@ -24,6 +24,7 @@ class Notes {                                   // wraps jot_store::Store
   restore(token: number): NoteMeta;             // ERR_JOT_ALREADY_EXISTS (token stays good), ERR_JOT_NOT_FOUND (unknown / used token)
   path(title: string): string | null;           // the note's file (Folder.reveal shows it)
   watch(onChange: () => void): void;            // folder changed (debounced); replaces the previous listener
+  watchActivity(log: string, listener: (activity: AgentActivity) => void): void;  // AI apps' writes to this folder from now on (the log: ActivityLog.path()); replaces the previous listener
   conflicts(title: string): Conflict[];         // iCloud's conflict versions, newest first
   resolveConflict(title: string, id: string, choice: "mine" | "theirs" | "both", copyTitle?: string | null): ResolvedConflict;  // ERR_JOT_CHANGED
   lock(title: string): NoteMeta;                // locked: true + the file's flag, mtime kept
@@ -43,6 +44,14 @@ interface Note { meta: NoteMeta; body: string }
 interface SearchHit { meta: NoteMeta; snippet: string; titleMatch: boolean }
 interface TrashedNote { title: string; token: number }   // the last 64 trashed per folder can be restored
 interface Todo { note: string; line: number; text: string; done: boolean; due: string | null /* "2026-11-14T09:00" */; doneOn: string | null }
+
+module ActivityLog {                            // the log jot-mcp records AI apps' writes in (src/activity.rs; mcp.md, The activity log)
+  path(): string | null;                        // ~/Library/Application Support/Jot/activity.jsonl; null without a home folder
+  append(path: string, activity: AgentActivity): void;  // a line, as jot-mcp writes it (tests)
+}
+interface AgentActivity { at: string /* local, "2026-11-26T14:30:05" */; dir: string; agent: string /* "Claude Code" */; action: "create" | "append" | "todo" | "complete" | "reschedule" | "replace" | "trash"; title: string; previous?: string | null; inTrash?: string | null }
+// watchActivity starts at the log's end and reads only the lines added (a rotated log followed), keeping those whose
+// `dir` is the folder's, links resolved and, on the Mac, case aside.
 
 module When {                                   // phrases of every language are read whatever the locale
   parse(text: string, options?: WhenOptions): { start: number; end: number; due: string; label: string } | null;   // start/end: UTF-16 offsets
@@ -64,6 +73,7 @@ class Reminders {                               // fires at due times while the 
 module Folder {                                 // the settings' notes folder (src/folder.rs)
   choose(start: string, button: string): Promise<string | null>;
   reveal(path: string): Promise<void>;
+  showInTrash(path?: string | null): Promise<void>;  // a trashed note's file selected in Finder; without one (or gone), the Trash opened
   shown(path: string): string;                  // "~/Documents/Jot"
   icloud(): { path: string | null; available: boolean };   // Jot's folder in iCloud Drive; on = signed in + Drive on
   moveNotes(from: string, to: string): Promise<MovedNotes>; // Store::move_into, off the engine thread
@@ -139,21 +149,42 @@ Dictation's language (`app/speechlang.ts`, pure): switched to while listening (t
 first of the user's languages that is Chinese, Japanese or English with a region › Jot's language in its usual region.
 The notch comes from NSH: `displays()` → `cutouts` (`nsh/desktop`).
 
-## The island writing an AI app's note (app/ui/Island.tsx)
+## The island and AI apps' writes (app/ui/Island.tsx)
 
-When an AI app writes a note, the island opens inside a glow of flowing colors (the theme's `island-aurora-*`) with a
-thin edge of the same colors; the app's avatar falls out of the notch and bounces to rest, and the title's letters rise
-in one after another. While the note is written (`T.timing.islandSheen`, 1.3 s) a sheen sweeps the title. Then the
-colors give way to a green flash, the label says the note is saved, the avatar hops and the check pops in; after
-`T.timing.islandHold` the content lifts out and the island closes. Each step waits for the one before. A reminder
-shares the fall, the hop and the lift-out (below); dictation keeps its own motion.
+The island says what an AI app writes to the notes folder on this Mac, from `jot-mcp`'s activity log
+(`Notes.watchActivity`; [mcp.md](mcp.md#the-activity-log-storesrcactivityrs-mcp)), never from the folder: a note that
+appears there may come from another Mac through iCloud Drive, and says nothing then. The list's rows still drop in for
+any new note an AI app made (`arriving`, from the note's `source`, wherever it was written): the list shows the folder
+as it is, and the rows need nothing the log adds. The island shows only while Settings keep it on (`islandOn`).
+
+How much it shows follows what was done:
+
+- **A new note** (`create`): the island opens inside a glow of flowing colors (the theme's `island-aurora-*`) with a
+  thin edge of the same colors; the app's avatar falls out of the notch and bounces to rest, and the title's letters
+  rise in one after another. While the note is written (`T.timing.islandSheen`, 1.3 s) a sheen sweeps the title. Then
+  the colors give way to a green flash, the label says the note is saved, the avatar hops and the check pops in; after
+  `T.timing.islandHold` the content lifts out and the island closes. Each step waits for the one before.
+- **Any other write**, said at once with no glow and no letters: "Claude · Added to" (`append`), "Added a to-do to"
+  (`todo`), "Completed a to-do in" (`complete`), "Changed a reminder in" (`reschedule`), each over the note's title; the
+  avatar falls, the check pops in as it lands, and the island closes after `T.timing.islandLightHold`. A rewrite
+  (`replace`) says "Rewrote · the old version is in the Trash" and stays `T.timing.islandReplaceHold`; a note moved to
+  the Trash (`trash`) says "Moved to the Trash".
+- **Several writes in a row** of one app to one note, each within `T.timing.islandMerge` (3 s) of the one before, are
+  one island: one showing says the latest and its hold starts again (a new note still being written goes on), one
+  waiting takes the latest in. A new note stays a new note; a note moved to the Trash says so.
+
+A click on the island while a write shows opens that note in the panel (summoned as from the tray's menu); on a
+trashed note it shows the file in the Trash, selected in Finder (`Folder.showInTrash`), or the Trash itself when the
+log has no path. Either way the island closes. While a write shows, the island's window, room and all, takes clicks,
+as for a reminder. A reminder shares the fall, the hop and the lift-out (below); dictation keeps its own motion.
 
 Everything runs natively: the avatar's fall and hop are physics frames computed once in JS and played as
 `Animated.keyframes`. NSH draws no blur on a view, so the glow is drawn as a blurred box would look: a turning conic
 gradient seen through two nested `maskImage`s whose stops follow a blurred edge's falloff, one across and one down. The
 sheen is a full-white copy of the title in a masked band that moves across while the copy in it moves back as much. The
-island's window leaves room around it for the glow; it takes no clicks unless a reminder shows. With reduced motion
-nothing falls, grows, turns, moves or loops: the glow, the title and the check only fade.
+island's window leaves room around it for the glow; it takes no clicks unless an AI app's write or a reminder shows.
+With reduced motion nothing falls, grows, turns, moves or loops: the glow, the title and the check only fade (and
+every wait of the island is 600 ms at most).
 
 ## The island's reminder (app/ui/Island.tsx)
 

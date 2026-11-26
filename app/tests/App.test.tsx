@@ -4,6 +4,7 @@
 // run, so the tests start with the search field in front of them.
 import { expect, open, test } from "nsh/test";
 import { Notes } from "jot/native";
+import { STAND_INS } from "./native";
 
 /** A fresh, empty notes folder. */
 const folder = (name: string) => `/tmp/jot-test-${name}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
@@ -20,9 +21,7 @@ const openJot = (dir: string) =>
     storage: { "jot.dir": dir },
     modules: {
       "jot/native": {
-        "Summon.isTrusted": true,
-        "Summon.requestTrust": null,
-        "Summon.onDoubleTap": null,
+        ...STAND_INS,
       },
     },
   });
@@ -83,7 +82,7 @@ test("Escape steps back: from the to-do view to the notes, then hides the panel"
   app.dispose();
 });
 
-test("only notes an AI app wrote count as its arrivals: a clipped page's or a book's source is the user's", async () => {
+test("only notes an AI app wrote are shown as its: a clipped page's or a book's source is the user's", async () => {
   const dir = folder("source");
   const app = await openJot(dir);
   await app.waitFor("id:search");
@@ -103,22 +102,6 @@ test("only notes an AI app wrote count as its arrivals: a clipped page's or a bo
   await app.waitFor("id:row:命令");
   await app.waitUntil(() => app.count("id:note-agent") === 1);
   expect(app.texts()).toContain("Cursor");
-  // The island shows it (so its silence above was not for want of an island).
-  await app.waitUntil(() => app.texts().some((s) => s.startsWith("Cursor · ")));
-  app.dispose();
-});
-
-test("the island shows an AI app's note being written, its avatar saying so for screen readers, then saved", async () => {
-  const dir = folder("island-write");
-  const app = await openJot(dir);
-  await app.waitFor("id:search");
-  new Notes(dir).create("周会纪要", "---\nsource: cursor\n---\n议程");
-  await app.waitUntil(() => app.texts().includes("Cursor · 正在记到 Jot"));
-  expect(app.shows("label:正在写")).toBe(true);
-  // The title comes in letter by letter.
-  expect(app.texts()).toContain("纪");
-  await app.waitUntil(() => app.texts().includes("Cursor · 已记下"));
-  expect(app.shows("label:正在写")).toBe(false);
   app.dispose();
 });
 

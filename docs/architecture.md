@@ -23,8 +23,9 @@ mcp/     jot-mcp       stdio MCP server for AI apps, on jot-store
 
 The root `Cargo.toml` is the app crate and the workspace (`members = ["store", "mcp"]`).
 
-The app and `jot-mcp` never talk to each other: both work on the same notes folder through jot-store, and the one
-setting they share is a file the app writes and `jot-mcp` reads ([mcp.md](mcp.md)).
+The app and `jot-mcp` never talk to each other: both work on the same notes folder through jot-store, and beside it
+share two files outside the folder: the setting the app writes and `jot-mcp` reads, and the log of what AI apps wrote,
+which `jot-mcp` writes and the app reads for the island ([mcp.md](mcp.md)).
 
 ## Paths
 
@@ -39,7 +40,7 @@ setting they share is a file the app writes and `jot-mcp` reads ([mcp.md](mcp.md
 | `app/tests/` | The client's TSX tests (`*.test.tsx`), which `nsh test` runs headless. |
 | `locales/` | The client's translations (`en`, `zh`, `zh-Hant`, `ja`), read by `nsh/i18n`. |
 | `src/` | `nsh-app-jot`, the Rust that `App.tsx` imports as `jot/native` ([app.md](app.md)); platform code in `src/platform/<os>.rs`. |
-| `store/` | `jot-store`: the notes folder, iCloud Drive, locks, to-dos and time phrases (`store/src/when/`), in plain Rust. |
+| `store/` | `jot-store`: the notes folder, iCloud Drive, locks, to-dos and time phrases (`store/src/when/`), the AI apps' setting and activity log, in plain Rust. |
 | `mcp/` | `jot-mcp`, the MCP server AI apps start ([mcp.md](mcp.md)). |
 | `install.sh` | Installs `Jot.app` from the latest GitHub release (`curl … \| sh`; README's "Install"); published at `https://madcodelife.github.io/jot/install.sh`. |
 | `scripts/install-nsh.sh` | Installs the `nsh` CLI that `Cargo.lock` pins (CI uses it too). |
@@ -94,7 +95,7 @@ setting they share is a file the app writes and `jot-mcp` reads ([mcp.md](mcp.md
   synced folder.
 - [locks.md](locks.md): locked notes, in the store and in the app.
 - [todos.md](todos.md): to-dos, time phrases (`when`) and the reminder time picker.
-- [mcp.md](mcp.md): `jot-mcp`'s tools, and AI apps removing and rewriting notes.
+- [mcp.md](mcp.md): `jot-mcp`'s tools, AI apps removing and rewriting notes, and the activity log.
 - [app.md](app.md): the app's Rust face (`jot/native`), the open note's Return and ⌘↩, its live Markdown preview, row
   actions, updates, packaging.
 - [product.md](product.md): the product definition.

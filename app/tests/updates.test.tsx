@@ -4,6 +4,7 @@
 // not update itself (`nsh run`) checks nothing, and a failed check only says so on the About page.
 import { expect, open, test } from "nsh/test";
 import { packageFingerprint, packageFits, plainVersion, sameAsReady } from "../updates";
+import { STAND_INS } from "./native";
 
 const NATIVE = "0123456789abcdef";
 const OTHER = "fedcba9876543210";
@@ -51,9 +52,7 @@ const openJot = (name: string, fake: ReturnType<typeof updater>, native = NATIVE
     modules: {
       "nsh/updater": fake,
       "jot/native": {
-        "Summon.isTrusted": true,
-        "Summon.requestTrust": null,
-        "Summon.onDoubleTap": null,
+        ...STAND_INS,
         "Folder.icloud": { path: "/tmp/jot-updates-no-icloud/Jot", available: false },
         "NativeBuild.fingerprint": native,
       },
