@@ -1451,7 +1451,7 @@ dependencies = [
  "block2",
  "jiff",
  "jot-store",
- "nsh-core",
+ "nsh-core 0.7.0 (git+https://github.com/longbridge/nsh?rev=250f55723bed4f6019185e3f7ae0e22efa395f3c)",
  "nsh-extra",
  "nsh-icon",
  "nsh-icon-lucide",
@@ -1468,14 +1468,14 @@ dependencies = [
 [[package]]
 name = "nsh-base"
 version = "0.7.0"
-source = "git+https://github.com/longbridge/nsh?rev=250f55723bed4f6019185e3f7ae0e22efa395f3c#250f55723bed4f6019185e3f7ae0e22efa395f3c"
+source = "git+https://github.com/longbridge/nsh?rev=dccbe7edf99790add1e95b3be26eac72116ae594#dccbe7edf99790add1e95b3be26eac72116ae594"
 dependencies = [
  "chrono",
  "html5ever",
  "log",
  "markdown",
  "markup5ever_rcdom",
- "nsh-core",
+ "nsh-core 0.7.0 (git+https://github.com/longbridge/nsh?rev=dccbe7edf99790add1e95b3be26eac72116ae594)",
  "regex",
  "rustc-hash",
  "serde",
@@ -1498,7 +1498,7 @@ dependencies = [
  "imagesize",
  "libc",
  "log",
- "nsh-macros",
+ "nsh-macros 0.7.0 (git+https://github.com/longbridge/nsh?rev=250f55723bed4f6019185e3f7ae0e22efa395f3c)",
  "ordered-float",
  "percent-encoding",
  "resvg",
@@ -1520,15 +1520,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "nsh-core"
+version = "0.7.0"
+source = "git+https://github.com/longbridge/nsh?rev=dccbe7edf99790add1e95b3be26eac72116ae594#dccbe7edf99790add1e95b3be26eac72116ae594"
+dependencies = [
+ "cap-std",
+ "chrono",
+ "crc32fast",
+ "httpdate",
+ "imagesize",
+ "libc",
+ "log",
+ "nsh-macros 0.7.0 (git+https://github.com/longbridge/nsh?rev=dccbe7edf99790add1e95b3be26eac72116ae594)",
+ "ordered-float",
+ "percent-encoding",
+ "rust-i18n",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "slab",
+ "taffy",
+ "tokio",
+ "ttf-parser",
+ "unicode-linebreak",
+ "unicode-properties",
+ "url",
+ "windows-sys 0.61.2",
+ "wuff",
+]
+
+[[package]]
 name = "nsh-engine"
 version = "0.7.0"
-source = "git+https://github.com/longbridge/nsh?rev=250f55723bed4f6019185e3f7ae0e22efa395f3c#250f55723bed4f6019185e3f7ae0e22efa395f3c"
+source = "git+https://github.com/longbridge/nsh?rev=dccbe7edf99790add1e95b3be26eac72116ae594#dccbe7edf99790add1e95b3be26eac72116ae594"
 dependencies = [
  "crossbeam-channel",
  "env_filter",
  "libc",
  "log",
- "nsh-core",
+ "nsh-core 0.7.0 (git+https://github.com/longbridge/nsh?rev=dccbe7edf99790add1e95b3be26eac72116ae594)",
  "objc2-io-surface",
  "rustc-hash",
  "serde_json",
@@ -1539,7 +1570,7 @@ dependencies = [
 [[package]]
 name = "nsh-extra"
 version = "0.7.0"
-source = "git+https://github.com/longbridge/nsh?rev=250f55723bed4f6019185e3f7ae0e22efa395f3c#250f55723bed4f6019185e3f7ae0e22efa395f3c"
+source = "git+https://github.com/longbridge/nsh?rev=dccbe7edf99790add1e95b3be26eac72116ae594#dccbe7edf99790add1e95b3be26eac72116ae594"
 dependencies = [
  "block2",
  "dispatch2",
@@ -1547,7 +1578,7 @@ dependencies = [
  "libc",
  "log",
  "ndk-context",
- "nsh-core",
+ "nsh-core 0.7.0 (git+https://github.com/longbridge/nsh?rev=dccbe7edf99790add1e95b3be26eac72116ae594)",
  "nsh-platform-android",
  "nsh-platform-apple",
  "nsh-platform-ios",
@@ -1567,7 +1598,7 @@ version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "638773b01e553407287797cc85f42a697ae9f86e5189746a784d18c5eaab37ac"
 dependencies = [
- "nsh-core",
+ "nsh-core 0.7.0 (git+https://github.com/longbridge/nsh?rev=250f55723bed4f6019185e3f7ae0e22efa395f3c)",
 ]
 
 [[package]]
@@ -1576,7 +1607,7 @@ version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e19459bd683caf459782a18f318e1a1629255ff2e1e5ddb45a2e0ac962861ad"
 dependencies = [
- "nsh-core",
+ "nsh-core 0.7.0 (git+https://github.com/longbridge/nsh?rev=250f55723bed4f6019185e3f7ae0e22efa395f3c)",
  "nsh-icon",
 ]
 
@@ -1594,16 +1625,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "nsh-macros"
+version = "0.7.0"
+source = "git+https://github.com/longbridge/nsh?rev=dccbe7edf99790add1e95b3be26eac72116ae594#dccbe7edf99790add1e95b3be26eac72116ae594"
+dependencies = [
+ "imagesize",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+ "ttf-parser",
+ "wuff",
+]
+
+[[package]]
 name = "nsh-platform-android"
 version = "0.7.0"
-source = "git+https://github.com/longbridge/nsh?rev=250f55723bed4f6019185e3f7ae0e22efa395f3c#250f55723bed4f6019185e3f7ae0e22efa395f3c"
+source = "git+https://github.com/longbridge/nsh?rev=dccbe7edf99790add1e95b3be26eac72116ae594#dccbe7edf99790add1e95b3be26eac72116ae594"
 dependencies = [
  "jni",
  "libc",
  "log",
  "ndk-context",
  "nsh-base",
- "nsh-core",
+ "nsh-core 0.7.0 (git+https://github.com/longbridge/nsh?rev=dccbe7edf99790add1e95b3be26eac72116ae594)",
  "nsh-engine",
  "rustc-hash",
  "serde_json",
@@ -1614,14 +1658,14 @@ dependencies = [
 [[package]]
 name = "nsh-platform-apple"
 version = "0.7.0"
-source = "git+https://github.com/longbridge/nsh?rev=250f55723bed4f6019185e3f7ae0e22efa395f3c#250f55723bed4f6019185e3f7ae0e22efa395f3c"
+source = "git+https://github.com/longbridge/nsh?rev=dccbe7edf99790add1e95b3be26eac72116ae594#dccbe7edf99790add1e95b3be26eac72116ae594"
 dependencies = [
  "block2",
  "cc",
  "dispatch2",
  "libc",
  "log",
- "nsh-core",
+ "nsh-core 0.7.0 (git+https://github.com/longbridge/nsh?rev=dccbe7edf99790add1e95b3be26eac72116ae594)",
  "nsh-engine",
  "objc2",
  "objc2-app-kit",
@@ -1638,14 +1682,14 @@ dependencies = [
 [[package]]
 name = "nsh-platform-ios"
 version = "0.7.0"
-source = "git+https://github.com/longbridge/nsh?rev=250f55723bed4f6019185e3f7ae0e22efa395f3c#250f55723bed4f6019185e3f7ae0e22efa395f3c"
+source = "git+https://github.com/longbridge/nsh?rev=dccbe7edf99790add1e95b3be26eac72116ae594#dccbe7edf99790add1e95b3be26eac72116ae594"
 dependencies = [
  "block2",
  "dispatch2",
  "libc",
  "log",
  "nsh-base",
- "nsh-core",
+ "nsh-core 0.7.0 (git+https://github.com/longbridge/nsh?rev=dccbe7edf99790add1e95b3be26eac72116ae594)",
  "nsh-engine",
  "nsh-platform-apple",
  "objc2",
