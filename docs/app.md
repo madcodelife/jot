@@ -190,6 +190,19 @@ trashed note it shows the file in the Trash, selected in Finder (`Folder.showInT
 log has no path. Either way the island closes. While a write shows, the island's window, room and all, takes clicks,
 as for a reminder. A reminder shares the fall, the hop and the lift-out (below); dictation keeps its own motion.
 
+**The avatar** is Jot's mark, in Jot's colors whatever the theme: a circle of the brand's indigo (`#2B2F8F`,
+design/logo/loop) with a lighter indigo highlight up and to the left (a radial gradient, `island-logo-light` into
+`island-logo`), and Jot's logo on it in white (`island-logo-ink`). These three tokens are in `theme.json`'s base, the
+same in light and dark, and no theme sets them. The agents' orange (`agent`) stays on the rows and the note's "By …"
+tag. For every write, a new note included, the pen writes the logo as the avatar falls (`Logo`): the stroke of
+`tray.svg` from its start to its end, then the dot, with the tray icon's pen
+([below](#the-trays-icon-appinkts-apptrayinkts)) at its own pace. It starts as the content does (`CONTENT_IN`) and
+takes 480 ms (340 for the stroke, 140 for the dot), so the dot is in about as the avatar lands. Then the logo stays
+whole, through the hop. The logo is 28 points square in the
+46-point circle (its strokes about 23 across), decoded at three times that so it stays sharp. Its frames are made once
+for its color and kept (`inkFrames`); one is shown per display frame while the pen writes, and once the logo is whole
+it does not change. With reduced motion it is whole at once.
+
 Everything runs natively: the avatar's fall and hop are physics frames computed once in JS and played as
 `Animated.keyframes`. NSH draws no blur on a view, so the glow is drawn as a blurred box would look: a turning conic
 gradient seen through two nested `maskImage`s whose stops follow a blurred edge's falloff, one across and one down. The
@@ -367,14 +380,16 @@ The footer (app/ui/Panel.tsx) is Raycast's: no rule above it, a round settings b
 [Updates](#updates-appupdatests)) and on the right a capsule of the primary action and "Actions ⌘K", each a button
 that does what its keys do.
 
-## The tray's icon (app/trayink.ts)
+## The tray's icon (app/ink.ts, app/trayink.ts)
 
 A click on the tray's icon summons or hides Jot, and the icon writes itself again: the stroke of `app/ui/tray.svg` is
 drawn from its start to its end at a pen's pace (420 ms, slow in and out), then the dot lands, a touch too big, and
 settles (160 ms). Each frame is that SVG as a `data:` URL with the stroke dashed up to where the pen is, so it stays a
 template the menu bar paints in its text color; at rest the icon is `tray.svg` itself. A click while it writes starts it
-again; with reduced motion the icon does not move. `inkFrame` copies the SVG's markup, so a change to `tray.svg` changes
-it too (and the stroke's length, `LENGTH`, when the path changes).
+again; with reduced motion the icon does not move. The pen is app/ink.ts (`inkFrame`, `inkFrames`, `playInk`), which
+the island's avatar also writes with ([above](#the-island-and-ai-apps-writes-appuiislandtsx)): the frames are made once
+for each color, size and pace, and played at one per display frame. `inkFrame` copies the SVG's markup, so a change to
+`tray.svg` changes it too (and the stroke's length, `LENGTH`, when the path changes).
 
 ## Updates (app/updates.ts)
 

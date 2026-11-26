@@ -35,7 +35,7 @@ which `jot-mcp` writes and the app reads for the island ([mcp.md](mcp.md)).
 | `Cargo.toml`, `Cargo.lock` | The app's Rust crate and the workspace; `Cargo.lock` pins the NSH crates, and so the `nsh` CLI to use. |
 | `app/tsconfig.json` | The client's TypeScript project; it extends the `app/.nsh/tsconfig.json` the `nsh` CLI writes. |
 | `app/App.tsx` | The client's entry: the menu bar app's windows (the panel, settings, the island), the tray, summoning, reminders and dictation. |
-| `app/*.ts` | The client's logic, no components: `store.ts` (Jot's state: the notes folder, the panel's stage, the query and the selection), `settings.ts`, `i18n.ts`, `time.ts`, `tasks.ts`, `due.ts`, `markdown.ts`, `actions.ts`, `voice.ts`, `speechlang.ts`, `spoken.ts`, `quicknote.ts`, `connections.ts`, `trayink.ts`, `updates.ts`, `sounds.ts` (the sounds of AI apps' writes). |
+| `app/*.ts` | The client's logic, no components: `store.ts` (Jot's state: the notes folder, the panel's stage, the query and the selection), `settings.ts`, `i18n.ts`, `time.ts`, `tasks.ts`, `due.ts`, `markdown.ts`, `actions.ts`, `voice.ts`, `speechlang.ts`, `spoken.ts`, `quicknote.ts`, `connections.ts`, `ink.ts` (Jot's logo written by one pen stroke), `trayink.ts`, `updates.ts`, `sounds.ts` (the sounds of AI apps' writes). |
 | `app/ui/` | Components (`Panel.tsx`, `Paper.tsx`, `NoteList.tsx`, `TodoView.tsx`, `Settings.tsx`, `Island.tsx`, …), design tokens (`tokens.ts`), motion (`motion.ts`), themes (`theme.json`, `themes.json`, `themes.ts`) and the app's SVGs. |
 | `app/tests/` | The client's TSX tests (`*.test.tsx`), which `nsh test` runs headless. |
 | `locales/` | The client's translations (`en`, `zh`, `zh-Hant`, `ja`), read by `nsh/i18n`. |
