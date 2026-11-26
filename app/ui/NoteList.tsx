@@ -197,7 +197,7 @@ function ListRow(props: { row: Row; index: number; compact: boolean }) {
                 {(agent) => (
                   <Text
                     testID="note-agent"
-                    class={onAccent() ? "text-on-accent-muted" : "text-agent-ink"}
+                    class={sub()}
                     style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 0, maxWidth: 120 }}
                   >
                     {agent()}
@@ -230,22 +230,21 @@ function LockMark(props: { onAccent: boolean }) {
   );
 }
 
-/** The row's icon tile: a document, an AI app's spark, the to-do list, or a plus. */
+/** The row's icon tile: a document, an AI app's spark, the to-do list, or a plus. An AI app's note keeps the plain tile
+ * and only its spark is orange, in the darker ink: a tinted tile over the glass muddies when a dark window is behind. */
 function RowIcon(props: { row: Row; onAccent: boolean }) {
   const byAgent = () => props.row.kind === "note" && props.row.meta.source !== null;
   const tile = () =>
     props.onAccent
       ? "bg-on-accent-fill"
-      : byAgent()
-        ? "bg-agent/20"
-        : props.row.kind === "summary"
+      : props.row.kind === "summary"
           ? "bg-primary/15"
           : "bg-glass-hover";
   const tint = () =>
     props.onAccent
       ? token("on-accent")
       : byAgent()
-        ? token("agent")
+        ? token("agent-ink")
         : props.row.kind === "summary"
           ? token("accent-ink")
           : token("glass-fg");
