@@ -9,7 +9,8 @@ the platform code are Rust. Only macOS is supported for now.
 - The `nsh` CLI of the version `Cargo.lock` pins for the NSH crates (`nsh-core`, `nsh-extra`): the CLI and the crates
   must be the same. `scripts/install-nsh.sh` installs that one (a release, or a commit of NSH's repository built from
   source), as CI does; `scripts/install-nsh.sh --which` only prints which it would install. `NSH_INSTALL_DIR` sets
-  where NSH goes (default `~/.nsh`); `nsh` is linked into `~/.local/bin`.
+  where NSH goes (default `~/.nsh`); `nsh` is linked into `NSH_BIN_DIR` (default `~/.local/bin`; empty for no link,
+  to keep another `nsh` on your `PATH` and run this one as `$NSH_INSTALL_DIR/bin/nsh`).
 
 Jot builds against NSH's repository at a commit (`Cargo.toml`'s `nsh-core` and `nsh-extra`), not a release: the
 note's live preview needs the editor decorations' labels and font sizes and a fix to them (NSH #3272), which no release
@@ -27,6 +28,7 @@ cargo build -p jot-mcp        # the MCP server, which `nsh run` (a debug build) 
 scripts/package-macos.sh      # build Jot.app, with jot-mcp inside
 scripts/native-fingerprint.sh # the native fingerprint of this checkout (docs/app.md, Updates)
 scripts/demo-notes.sh         # English example notes for screenshots, in ~/Documents/Jot Demo
+scripts/screenshots.sh        # the README's screenshots (design/screenshots/), taken with .nsh/out/Jot.app
 scripts/build-site.sh         # the website (site/) put together in _site/; preview: python3 -m http.server -d _site
 ```
 
