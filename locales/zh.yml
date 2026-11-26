@@ -62,7 +62,7 @@ todo:
     later: 以后
     none: 随时
   empty: 待办都做完了
-  tick: 勾掉「%{text}」
+  tick: 勾选「%{text}」
   row: "%{text}，%{note}"
   due_tip: "%{when} · 到点提醒"
   due_change: 改「%{text}」的提醒时间
@@ -292,7 +292,7 @@ actions:
   create: 新建
   todos: 查看待办
   open_note: 打开笔记
-  tick: 勾掉
+  tick: 勾选
   due: 提醒时间…
   due_add: 添加提醒…
   due_remove: 移除提醒

@@ -47,7 +47,7 @@ curl -fsSL https://madcodelife.github.io/jot/install.sh | sh
 - **打开浮窗**：连按两下 ⌥。第一次 macOS 会请求辅助功能权限，连按 ⌥ 需要它；没授权时用 ⌃⌥J 打开。
 - **查找或新建**：边输入边按标题和正文过滤；搜不到时按回车，就以输入内容为标题新建。
 - **操作笔记**：在一行上按 ⌘K，可以打开、重命名、复制、在访达中显示、锁定或移到废纸篓（可撤销）。
-- **待办**：输入「待办」（或 `/todo`）列出所有没勾掉的待办，按时间分组；⇧⌘D 改提醒时间。
+- **待办**：输入「待办」（或 `/todo`）列出所有未完成的待办，按时间分组；⇧⌘D 改提醒时间。
 - **语音输入**：按住 ⌥ 说话，写进搜索框或笔记；在任何 App 里连按两下 ⌥ 并按住，记一条速记。
 - **锁定笔记**：⌘K →「锁定」让笔记只读，Jot、你的 AI 应用和其他任何程序都改不了它（访达里的「已锁定」）。
 - **连接 AI 应用**：设置 → AI 应用，每个点一下。然后就可以对它们说「把这个命令记到 Jot」「提醒我周五交周报」
@@ -60,7 +60,7 @@ curl -fsSL https://madcodelife.github.io/jot/install.sh | sh
 
 - 一条笔记就是笔记文件夹里的一个 `.md` 文件，文件名就是标题。打开了 iCloud 云盘时文件夹默认是 `iCloud 云盘/Jot`，
   否则是 `~/Documents/Jot`；可以在设置里改。
-- 提醒在笔记里写成普通的时间：`- [ ] 交房租 ⏰ 2026-11-14 09:00`；勾掉的待办记下日期：`- [x] 交房租 ✅ 2026-11-14`。
+- 提醒在笔记里写成普通的时间：`- [ ] 交房租 ⏰ 2026-11-14 09:00`；勾选完成的待办会记下日期：`- [x] 交房租 ✅ 2026-11-14`。
 - AI 应用新建的笔记开头有 frontmatter 记下是谁写的（`source: claude`）；你自己写的笔记没有。
 - Jot 自己不做同步：把文件夹放进 iCloud 云盘、Dropbox 或 Syncthing 即可。
 
@@ -90,8 +90,8 @@ Jot.app 里自带 `jot-mcp`（`Jot.app/Contents/MacOS/jot-mcp`），一个 MCP �
 | `create_note(title, body)` | 新建笔记，标上应用的名字 |
 | `append_note(title, text)` | 往笔记末尾追加 |
 | `add_todo(text, due?, note?)` | 加一条待办；`due` 是 ISO 本地时间，或 `明天 9点`、`tomorrow 3pm` 这类说法 |
-| `list_todos(range?)` | 没勾掉的待办：`overdue`、`today`、`upcoming` 或 `all`（默认今天的和已过期的） |
-| `complete_todo(note, text)` | 勾掉一条待办 |
+| `list_todos(range?)` | 未完成的待办：`overdue`、`today`、`upcoming` 或 `all`（默认今天的和已过期的） |
+| `complete_todo(note, text)` | 勾选完成一条待办 |
 | `reschedule_todo(note, text, due)` | 改一条待办的提醒时间；`null` 移除提醒 |
 | `trash_note(title)` | 把笔记移到废纸篓（需要你允许） |
 | `replace_note(title, body)` | 改写整条笔记，改写前的版本放进废纸篓（需要你允许） |
