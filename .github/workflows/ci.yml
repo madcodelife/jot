@@ -23,8 +23,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # A pull request is checked and tested before it merges. On `main` it runs again beside the packages, which do not
-  # wait for it: what it saves is the cache every pull request starts from. A tag only packages.
+  # A pull request is checked and tested before it merges. On `main` it runs again: what it saves is the cache every
+  # pull request starts from. A tag only packages.
   #
   # Caches: a pull request can only restore those of its own branch and of `main`, and the repository keeps 10 GB of
   # them. So only `main` saves (the Rust builds, ~1 GB a job, and the NSH build), and pull requests restore them.
@@ -84,10 +84,10 @@ jobs:
           path: ~/.nsh
           key: ${{ steps.nsh-cache.outputs.cache-primary-key }}
 
-  # Packages are built on `main`, for tags and by hand; a pull request is only tested.
+  # Only a release tag (v1.2.0) is packaged.
   package:
     name: Package Jot.app (${{ matrix.arch }})
-    if: github.event_name != 'pull_request'
+    if: github.ref_type == 'tag'
     runs-on: macos-latest
     timeout-minutes: 90
     strategy:
@@ -105,11 +105,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: package-${{ matrix.arch }}
-          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Which NSH
         id: nsh
@@ -131,12 +126,9 @@ jobs:
         env:
           ARCH: ${{ matrix.arch }}
         run: |
-          set -- --arch "$ARCH" --out dist --build "$GITHUB_RUN_NUMBER"
-          # A release tag (v1.2.0) sets the version; otherwise nsh.json's stays.
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            set -- "$@" --app-version "${GITHUB_REF_NAME#v}"
-          fi
-          scripts/package-macos.sh "$@"
+          # The tag (v1.2.0) sets the version.
+          scripts/package-macos.sh --arch "$ARCH" --out dist --build "$GITHUB_RUN_NUMBER" \
+            --app-version "${GITHUB_REF_NAME#v}"
           # Every executable is for this architecture only.
           for file in dist/Jot.app/Contents/MacOS/*; do
             archs=$(lipo -archs "$file" 2> /dev/null) || continue
@@ -149,12 +141,7 @@ jobs:
         env:
           ARCH: ${{ matrix.arch }}
         run: |
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            label="$GITHUB_REF_NAME"
-          else
-            label="$(git rev-parse --short HEAD)"
-          fi
-          zip="Jot-$label-macos-$ARCH.zip"
+          zip="Jot-$GITHUB_REF_NAME-macos-$ARCH.zip"
           ditto -c -k --keepParent dist/Jot.app "dist/$zip"
           echo "zip=$zip" >> "$GITHUB_OUTPUT"
 

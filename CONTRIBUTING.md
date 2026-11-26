@@ -50,8 +50,8 @@ Some store tests are ignored because they need a real iCloud Drive folder; [docs
 universal`, `--out`, `--name`, …), puts `jot-mcp` in `Jot.app/Contents/MacOS` and signs both again (ad hoc;
 `SIGN_IDENTITY` for another identity, then with a secure timestamp and the hardened runtime). It runs the `nsh` on your
 `PATH`, or `NSH=/path/to/nsh`, and warns when that is not the NSH `Cargo.toml`
-names. CI packages a universal `Jot.app` on every run, and a `v*` tag publishes it as a release. How the script works:
-[docs/app.md](docs/app.md#packaging-scriptspackage-macossh).
+names. CI packages `Jot.app` for arm64 and x86_64 only for a `v*` tag, and publishes both as a release. How the script
+works: [docs/app.md](docs/app.md#packaging-scriptspackage-macossh).
 
 ## Where code goes
 
