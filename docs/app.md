@@ -251,7 +251,7 @@ the line fades in whole, the row fades out where it is, and labels only fade.
 
 ## The done sound (app/sounds.ts)
 
-The user ticks a to-do and Jot plays a short, soft pluck (`assets/done.wav`) with the press, once per tick: in the to-do
+The user ticks a to-do and Jot plays a soft water drop (`assets/done.wav`) with the press, once per tick: in the to-do
 view (its checkbox or ⌘↩: `checkTodo`), in the island's reminder (`tick`), and in the open note (a press on a box, or
 ⌘↩: Paper's `toggleLine`). It is the app's own `Sound`, decoded as Jot starts (`loadSounds` in `App`), so `play()`
 starts at once, with the fill rather than when the row folds away. Nothing plays on unticking, for a locked note's
@@ -263,9 +263,9 @@ It plays while Settings › General › Sound Effects is on (`soundEffectsOn`, `
 macOS's "Play user interface sound effects" is (`SoundEffects.systemAllows`, read at each tick). Neither touches the
 reminders' chime, which is their notifications' and the system's to govern (above).
 
-E6 then A6 a fourth up, 80 ms apart, so the second lands about as the check starts drawing (`T.timing.tick.checkAfter`):
-plucked, not struck like the chime, with whole-number partials (2 and 3) that die within tens of milliseconds, a 3 ms
-attack and 0.2 s in all, at −18 dBFS, well under the chime; mono 16-bit 22.05 kHz WAV, 9 KB, made by
+A drop and its ripples: a sine whose pitch rises fast (600 to 1400 Hz in 25 ms) and rings out, starting with the press,
+then three echoes 90 ms apart, each softer and a little higher, like rings spreading on water. 0.55 s in all, a 3 ms
+attack, at −14 dBFS, under the chime; mono 16-bit 22.05 kHz WAV, 24 KB, made by
 `design/sound/build.py` with the chime. Tests: app/tests/sounds.test.tsx (`app.audio()`).
 
 ## The open note's Return and ⌘↩ (app/ui/Paper.tsx)
