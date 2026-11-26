@@ -1,21 +1,24 @@
 // The island: a black shape hanging from the top of the screen (from the
 // notch where there is one, the menu bar's middle where there is none). It
-// grows to say that an AI app is writing a note to Jot, then that it is saved
-// (inside a glow of flowing colors, the app's avatar falling out of the
-// notch), and to show a reminder that can be ticked where it is (its bell
+// grows to say that an AI app is writing a new note to Jot, then that it is
+// saved (inside a glow of flowing colors, the app's avatar falling out of the
+// notch), or, more lightly, what else an AI app did to a note (appended to
+// it, a to-do added, ticked or moved, rewritten, moved to the Trash), which a
+// click opens; and to show a reminder that can be ticked where it is (its bell
 // falling out of the notch and ringing, a halo pulsing around it while it
 // waits). A quick note said
 // anywhere (the double press of ⌥ held) opens it as dictation: a breathing
 // dot and the words as they come, then where they were filed. Everything
-// else passes through it: its window takes no clicks unless a reminder (or
-// a refused microphone, which opens the settings) shows.
+// else passes through it: its window takes no clicks unless an AI app's
+// write, a reminder (or a refused microphone, which opens the settings)
+// shows.
 import { Animated, computed, createAnimatedValue, effect, openUrl, reduceMotion, signal, Text, token, untracked, View, type AnimatedNode, type AnimatedValue, type Bounds, type Easing, type JSX, type Keyframe } from "nsh";
 import type { SpeechErrorCode } from "nsh-extra";
 import { Button } from "nsh/base";
 import { displays, Window, type Display, type WindowRef } from "nsh/desktop";
 import { t } from "nsh/i18n";
-import type { Todo } from "jot/native";
-import { errorCode, notes, refresh } from "../store";
+import { Folder, type AgentAction, type AgentActivity, type Todo } from "jot/native";
+import { errorCode, errorMessage, notes, open, refresh, summon } from "../store";
 import { hm, parseDue } from "../time";
 import { Icon } from "./icons";
 import { fadeTo, morphNext, springConfig } from "./motion";
@@ -24,8 +27,14 @@ import { T } from "./tokens";
 import { listening, listeningLang, PRIVACY_URL } from "../voice";
 import { Breathing, LanguageTag } from "./Voice";
 
+/**
+ * An AI app's write: what the app (`agent`, its name: "Claude", "Cursor") did to the note `title`; `inTrash` is where
+ * a trashed note went. `last` is when its latest write came (several in a row are one: `showAgentActivity`).
+ */
+type WriteEvent = { kind: "write"; action: AgentAction; title: string; agent: string; inTrash: string | null; last: number };
+
 /** What the island says. */
-type IslandEvent = { kind: "write"; title: string; agent: string } | { kind: "remind"; todo: Todo } | { kind: "dictate" };
+type IslandEvent = WriteEvent | { kind: "remind"; todo: Todo } | { kind: "dictate" };
 
 /** A quick note's dictation: listening (the words so far), filed, or failed. */
 export type Dictation =
@@ -57,9 +66,70 @@ const leaving = signal(false);
 /** Counts the events shown, so a title's letters are new views (and rise in again) for each note. */
 const shown = signal(0);
 
-/** An AI app (`agent`, its name: "Claude", "Cursor") wrote a note: the island shows it being written, then saved. */
-export function showAgentWrite(title: string, agent: string) {
-  enqueue({ kind: "write", title, agent });
+/**
+ * An AI app wrote to a note (a line of `jot-mcp`'s activity log): a new note shows being written, then saved; any
+ * other write is said more lightly. Writes of one app to one note within `islandMerge` of each other are one: the one
+ * showing says the latest and stays longer, one waiting takes it in.
+ */
+export function showAgentActivity(activity: AgentActivity) {
+  const at = Date.now();
+  const same = (event: IslandEvent | null | undefined): event is WriteEvent =>
+    event?.kind === "write" &&
+    event.agent === activity.agent &&
+    event.title === activity.title &&
+    at - event.last < T.timing.islandMerge;
+  const showing = untracked(current);
+  if (same(showing) && untracked(isOpen) && !untracked(leaving)) {
+    current.set(mergeWrite(showing, activity, at));
+    // Its hold starts again; a new note still being written goes on, its hold to come.
+    if (untracked(done)) {
+      clearTimers();
+      later(holdOf(untracked(current)), close);
+    }
+    return;
+  }
+  const waiting = queue.findIndex(same);
+  if (waiting >= 0) {
+    queue[waiting] = mergeWrite(queue[waiting] as WriteEvent, activity, at);
+    return;
+  }
+  enqueue({
+    kind: "write",
+    action: activity.action,
+    title: activity.title,
+    agent: activity.agent,
+    inTrash: activity.inTrash ?? null,
+    last: at,
+  });
+}
+
+/** `event` with the app's next write to its note: a note moved to the Trash says so; else a new note stays one (and
+ * another write never becomes one: the island does not start writing again), and the latest says what was done. */
+function mergeWrite(event: WriteEvent, activity: AgentActivity, at: number): WriteEvent {
+  const action =
+    activity.action === "trash" ? "trash" : event.action === "create" || activity.action === "create" ? event.action : activity.action;
+  return { ...event, action, inTrash: activity.inTrash ?? event.inTrash, last: at };
+}
+
+/** How long the island stays once `event` is done: a new note, a rewrite (its label says more), any other write. */
+function holdOf(event: IslandEvent | null): number {
+  if (event?.kind !== "write" || event.action === "create") return T.timing.islandHold;
+  return event.action === "replace" ? T.timing.islandReplaceHold : T.timing.islandLightHold;
+}
+
+/** A new note: the island shows it being written inside the glow. Other writes are lighter. */
+const isCreate = (event: IslandEvent | null | undefined) => event?.kind === "write" && event.action === "create";
+
+/** A click on an AI app's write: the note opens in the panel; a trashed one shows in the Trash. */
+function openWrite(event: WriteEvent) {
+  if (event.action === "trash") {
+    void Folder.showInTrash(event.inTrash).catch((error: unknown) => console.warn(`cannot show the Trash: ${errorMessage(error)}`));
+  } else {
+    summon();
+    open(event.title);
+  }
+  clearTimers();
+  close();
 }
 
 /** A to-do is due: the island shows it, with its checkbox. */
@@ -132,7 +202,7 @@ function next() {
   sheen.set(false);
   leaving.set(false);
   isOpen.set(true);
-  if (event.kind === "write") {
+  if (event.kind === "write" && event.action === "create") {
     // The avatar falls out of the notch inside the glow and the title rises in; the sheen sweeps the title while the
     // note is written; then the check, and the island holds. Each step waits for the one before, so reduced motion
     // (which shortens every wait) still shows each.
@@ -143,6 +213,12 @@ function next() {
         done.set(true);
         later(T.timing.islandHold, close);
       });
+    });
+  } else if (event.kind === "write") {
+    // Any other write is done already: the check once the avatar has landed, then a shorter hold.
+    later(landed(), () => {
+      done.set(true);
+      later(holdOf(untracked(current)), close);
     });
   } else if (event.kind === "remind") {
     later(T.timing.remind.hold, close);
@@ -199,8 +275,8 @@ function tick(todo: Todo) {
 /**
  * Room around the open island in its window, in points: an AI app's note glows past the island's sides and bottom
  * (`GLOW`), and its green flash grows past that while it fades (`FLASH_GROW`); a reminder's halo grows past them too
- * (`HALO_GROW`, well within). Clicks pass through it then; only while a reminder shows does the window, room and all,
- * take them.
+ * (`HALO_GROW`, well within). Clicks pass through it then; only while an AI app's write or a reminder shows does the
+ * window, room and all, take them.
  */
 const ROOM = { side: 80, below: 70 };
 
@@ -233,13 +309,15 @@ export function IslandWindow() {
   /** An AI app's note lifts its content out before the island closes. */
   const contentLift = createAnimatedValue(0);
   const aurora = useAurora();
-  const writing = () => current()?.kind === "write";
+  const writing = () => isCreate(current());
 
-  // Clicks pass through unless a reminder (with its checkbox) or a refused microphone (which opens the settings) shows.
+  // Clicks pass through unless an AI app's write (which opens the note), a reminder (with its checkbox) or a refused
+  // microphone (which opens the settings) shows.
   effect(() => {
     const d = dictation();
     const denied = current()?.kind === "dictate" && d.phase === "failed" && d.error === "not-allowed";
-    const takesClicks = isOpen() && (current()?.kind === "remind" || denied);
+    const kind = current()?.kind;
+    const takesClicks = isOpen() && (kind === "remind" || kind === "write" || denied);
     win?.set({ pointerEvents: takesClicks ? "auto" : "none" });
   });
   // Displays change (a lid closed, a monitor plugged in): follow the primary one.
@@ -723,7 +801,6 @@ const TEXT_ROOM = T.size.islandWidth - 50 - 46 - 35 - 30;
 // green flash, the label says it is saved, the avatar hops and the check pops in. Then the content lifts out and the
 // island closes. With reduced motion nothing falls, grows, turns, moves or loops: things only fade.
 
-type WriteEvent = Extract<IslandEvent, { kind: "write" }>;
 const writeOf = (event: IslandEvent): WriteEvent | null => (event.kind === "write" ? event : null);
 
 /** CSS's `cubic-bezier(.2, .8, .2, 1)`: quick to arrive, long to settle. */
@@ -817,7 +894,7 @@ function useAurora(): AuroraValues {
     rim: createAnimatedValue(0),
     flash: createAnimatedValue(0),
   };
-  const writing = () => isOpen() && current()?.kind === "write";
+  const writing = () => isOpen() && isCreate(current());
   // The colors turn while the island is open for the note (they are faded out by the time it closes).
   effect(() => {
     if (!writing() || reduceMotion()) return;
@@ -941,18 +1018,59 @@ function Rim(props: { aurora: AuroraValues; radius: number }) {
   );
 }
 
-/** The island as an AI app writes a note: its avatar, what it does, the note's title, and the check once it is in. */
+/**
+ * The island as an AI app writes to a note: its avatar, what it does, the note's title, and the check once it is in.
+ * A new note's title comes in letter by letter while it is written; any other write says what was done at once. A
+ * click opens the note (a trashed one: shows it in the Trash).
+ */
 function WriteContent(props: { event: WriteEvent }) {
+  const trashed = () => props.event.action === "trash";
   return (
-    <>
+    <Button
+      testID="island-write"
+      accessibilityLabel={t(trashed() ? "island.show_trashed" : "island.open_note", { title: props.event.title })}
+      onPress={() => openWrite(props.event)}
+      class="flex-1 flex-row items-center"
+      style={{ gap: 15, alignSelf: "stretch" }}
+    >
       <Avatar />
       <View class="flex-1" style={{ minWidth: 0, gap: 2 }}>
-        <WriteLabel agent={props.event.agent} />
-        <Title title={props.event.title} />
+        <If when={props.event.action === "create"} else={<DoneWrite event={props.event} />}>
+          <WriteLabel agent={props.event.agent} />
+          <Title title={props.event.title} />
+        </If>
       </View>
       <View class="items-center justify-center" style={{ width: 35, height: 35 }}>
         <SavedCheck />
       </View>
+    </Button>
+  );
+}
+
+/** What each write other than a new note says. */
+const DONE_LABEL: Record<Exclude<AgentAction, "create">, string> = {
+  append: "island.appended",
+  todo: "island.todo_added",
+  complete: "island.todo_done",
+  reschedule: "island.rescheduled",
+  replace: "island.replaced",
+  trash: "island.trashed",
+};
+
+/** A write other than a new note: what the app did, and the note's title, at once. */
+function DoneWrite(props: { event: WriteEvent }) {
+  const label = () => {
+    const action = props.event.action;
+    return action === "create" ? t("island.written", { agent: props.event.agent }) : t(DONE_LABEL[action], { agent: props.event.agent });
+  };
+  return (
+    <>
+      <Text testID="island-label" class="text-island-muted" style={{ numberOfLines: 1, fontSize: T.type.islandLabel }}>
+        {label()}
+      </Text>
+      <Text testID="island-title" class="font-semibold text-island-fg" style={{ numberOfLines: 1, fontSize: T.type.island }}>
+        {props.event.title}
+      </Text>
     </>
   );
 }

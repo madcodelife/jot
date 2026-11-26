@@ -55,6 +55,12 @@ impl Setup {
         self.dir.path().join("Application Support/Jot/ai.json")
     }
 
+    fn activity(&self) -> PathBuf {
+        self.dir
+            .path()
+            .join("Application Support/Jot/activity.jsonl")
+    }
+
     fn allow(&self, on: bool, language: Option<&str>) {
         AiSettings::new(on, language.map(str::to_owned))
             .write(&self.settings())
@@ -74,7 +80,8 @@ impl Setup {
     async fn connect(&self) -> Connection {
         let server = JotServer::new(self.store())
             .with_clock(wednesday)
-            .with_settings_file(self.settings());
+            .with_settings_file(self.settings())
+            .with_activity_file(self.activity());
         let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
         tokio::spawn(async move {
             server

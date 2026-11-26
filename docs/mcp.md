@@ -1,7 +1,7 @@
 # MCP for AI apps
 
-How AI apps connect, what `jot-mcp` (mcp/) lets them do, and the setting that allows removing and rewriting notes.
-Part of [the architecture](architecture.md).
+How AI apps connect, what `jot-mcp` (mcp/) lets them do, the setting that allows removing and rewriting notes, and the
+activity log that tells the app what they wrote. Part of [the architecture](architecture.md).
 
 ## Connecting apps (src/connect.rs)
 
@@ -72,3 +72,38 @@ Chinese, English or Japanese; without `due`, a phrase in `text` becomes the time
 `reschedule_todo(note, text, due)` (`due` required: ISO or a phrase `when::parse` reads; `null` removes the reminder;
 only the `⏰` part of the line changes). The last two find the open to-do the same way: the exact text, else the one
 whose text holds it; several or none fail, listing the candidates.
+
+## The activity log (store/src/activity.rs, mcp/)
+
+The app learns what AI apps write from a log `jot-mcp` keeps, not from the notes folder: a note appearing there says
+neither who wrote it nor on which Mac (one an AI app made on another Mac arrives through iCloud Drive like any other).
+`jot-mcp` writes the log and the app reads it; nothing else is shared between them but the folder and `ai.json`.
+
+- **Where**: beside `ai.json`, `~/Library/Application Support/Jot/activity.jsonl` (`Activity::path`, the same rule as
+  `AiSettings::path`; `~/.config/jot/activity.jsonl` elsewhere).
+- **What**: one JSON object a line, for every write a tool made, after it succeeded (a tool that fails or changes
+  nothing writes none):
+
+  ```json
+  {"at":"2026-11-26T14:30:05","dir":"/Users/me/Documents/Jot","agent":"Claude Code","action":"replace","title":"Plan","previous":"Plan (before rewrite · 2026-11-26 14.30)","inTrash":"/Users/me/.Trash/Plan (before rewrite · 2026-11-26 14.30).md"}
+  ```
+
+  `at` is the local time; `dir` the notes folder, absolute with links resolved; `agent` the app's name as Jot shows it
+  (`Source::label` of the `initialize` handshake's `clientInfo.name`: "Claude Code", "Cursor", or the name an unknown
+  app gave); `title` the note's. `action`: `create` (`create_note`, and `add_todo` into a note it made), `append`
+  (`append_note`), `todo` (`add_todo` into a note that was there), `complete` (`complete_todo`), `reschedule`
+  (`reschedule_todo`), `replace` (`replace_note`; `previous` is the name the old version took in the Trash) or `trash`
+  (`trash_note`). `inTrash` is where the trashed note (or the old version) went, when the system says.
+- **Writing**: each line is one `write` to the file opened for appending (`O_APPEND`), so lines from several
+  `jot-mcp` processes (one per AI app) never mix. Past about 256 KB (`ROTATE_AT`) the file is renamed
+  `activity.1.jsonl`, over the one before, and a new one is started. A record that cannot be written is left out
+  (a line on stderr): the tool's result is the same, the app just shows nothing of it.
+- **Reading** (`ActivityTail`, `watch_activity`): the app starts at the log's end (nothing from before it started is
+  shown), keeps how far it read and which file (device and inode), and reads only the lines added, on the folder
+  watcher's word (debounced ~150 ms). A file that was replaced or got shorter was rotated: the rest of the old one
+  (now `activity.1.jsonl`) is read, then the new one from its start. A line still being written waits for its end; one
+  that is not a record is skipped. The app keeps the records whose `dir` is its notes folder, compared with links
+  resolved (and case aside on the Mac); what it does with them is in [app.md](app.md).
+
+The server's tests write to a log of their own (`JotServer::with_activity_file`), never the user's; the island's tests
+point the app at one of theirs (`ActivityLog.path`, faked).

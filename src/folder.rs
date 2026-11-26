@@ -55,6 +55,20 @@ impl Folder {
         reveal_path(expand_home(&path)).await
     }
 
+    /// Shows a note moved to the trash: its file at `path` (where the
+    /// trash put it) selected in the file manager, else, when there is no
+    /// `path` or the file is not there any more, the trash itself. Rejects
+    /// when neither can show.
+    pub async fn show_in_trash(path: Option<String>) -> Result<(), String> {
+        if let Some(path) = path.map(|path| expand_home(&path))
+            && path.exists()
+        {
+            return reveal_path(path).await;
+        }
+        let trash = platform::trash_folder().ok_or("this system has no trash to open")?;
+        open_path(trash).await
+    }
+
     /// Jot's folder in iCloud Drive (`~/Library/Mobile Documents/com~apple~CloudDocs/Jot`), and whether
     /// iCloud Drive is on here (signed in to iCloud, iCloud Drive turned on). `path` is null where there is no
     /// iCloud Drive (not macOS).

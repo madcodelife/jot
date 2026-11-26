@@ -49,11 +49,13 @@ async fn call(
 async fn create_search_read_append() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(dir.path()).unwrap();
+    let activity = dir.path().join(".activity.jsonl");
     fs::write(dir.path().join("Groceries.md"), "milk, eggs\n").unwrap();
 
     let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
     let server = tokio::spawn(async move {
         JotServer::new(store)
+            .with_activity_file(activity)
             .serve(server_transport)
             .await
             .unwrap()
@@ -221,11 +223,13 @@ fn friday_morning() -> DateTime {
 async fn add_list_complete_todos() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(dir.path()).unwrap();
+    let activity = dir.path().join(".activity.jsonl");
     fs::write(dir.path().join("Groceries.md"), "milk, eggs\n").unwrap();
 
     let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
     let server = tokio::spawn(async move {
         JotServer::new(store)
+            .with_activity_file(activity)
             .with_clock(friday_morning)
             .serve(server_transport)
             .await
@@ -441,6 +445,7 @@ async fn add_list_complete_todos() {
 async fn reschedule_todos() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(dir.path()).unwrap();
+    let activity = dir.path().join(".activity.jsonl");
     let todo_note = dir.path().join("待办.md");
     fs::write(
         &todo_note,
@@ -451,6 +456,7 @@ async fn reschedule_todos() {
     let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
     let server = tokio::spawn(async move {
         JotServer::new(store)
+            .with_activity_file(activity)
             .with_clock(friday_morning)
             .serve(server_transport)
             .await
@@ -600,9 +606,11 @@ async fn notes_are_marked_with_the_client_that_wrote_them() {
         ("Goose: nightly", "source: \"agent:Goose: nightly\""),
     ] {
         let store = Store::open(dir.path()).unwrap();
+        let activity = dir.path().join(".activity.jsonl");
         let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
         tokio::spawn(async move {
             JotServer::new(store)
+                .with_activity_file(activity)
                 .serve(server_transport)
                 .await
                 .unwrap()
@@ -647,9 +655,11 @@ async fn notes_are_marked_with_the_client_that_wrote_them() {
     )
     .unwrap();
     let store = Store::open(dir.path()).unwrap();
+    let activity = dir.path().join(".activity.jsonl");
     let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
     tokio::spawn(async move {
         let _ = JotServer::new(store)
+            .with_activity_file(activity)
             .serve(server_transport)
             .await
             .unwrap()
@@ -671,12 +681,14 @@ async fn notes_are_marked_with_the_client_that_wrote_them() {
 async fn notes_not_downloaded_are_waited_for() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(dir.path()).unwrap();
+    let activity = dir.path().join(".activity.jsonl");
     let placeholder = dir.path().join(".Away.md.icloud");
     fs::write(&placeholder, "bplist00").unwrap();
 
     let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
     tokio::spawn(async move {
         JotServer::new(store)
+            .with_activity_file(activity)
             .with_download_wait(std::time::Duration::from_millis(1500))
             .serve(server_transport)
             .await
@@ -723,6 +735,7 @@ async fn notes_not_downloaded_are_waited_for() {
 async fn todos_in_fenced_code_are_not_listed() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(dir.path()).unwrap();
+    let activity = dir.path().join(".activity.jsonl");
     // A shell snippet and a Markdown sample kept in a note: their task-looking lines are code.
     fs::write(
         dir.path().join("Setup.md"),
@@ -733,6 +746,7 @@ async fn todos_in_fenced_code_are_not_listed() {
     let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
     let server = tokio::spawn(async move {
         JotServer::new(store)
+            .with_activity_file(activity)
             .with_clock(friday_morning)
             .serve(server_transport)
             .await
@@ -770,4 +784,134 @@ async fn todos_in_fenced_code_are_not_listed() {
 
     client.cancel().await.unwrap();
     server.await.unwrap();
+}
+
+#[tokio::test]
+async fn every_write_is_recorded_for_the_app() {
+    let dir = tempfile::tempdir().unwrap();
+    let notes = dir.path().join("Jot");
+    let trash = dir.path().join("Trash");
+    let settings = dir.path().join("Application Support/Jot/ai.json");
+    let activity = dir.path().join("Application Support/Jot/activity.jsonl");
+    jot_store::AiSettings::new(true, Some("en".into()))
+        .write(&settings)
+        .unwrap();
+    let store = Store::open(&notes).unwrap().with_trash_folder(&trash);
+    fs::write(notes.join("Plan.md"), "old plan\n").unwrap();
+
+    let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
+    let log = activity.clone();
+    tokio::spawn(async move {
+        JotServer::new(store)
+            .with_clock(friday_morning)
+            .with_settings_file(settings)
+            .with_activity_file(log)
+            .serve(server_transport)
+            .await
+            .unwrap()
+            .waiting()
+            .await
+            .unwrap();
+    });
+    let client = Client("claude-code").serve(client_transport).await.unwrap();
+
+    let calls = [
+        (
+            "create_note",
+            serde_json::json!({ "title": "Deploy", "body": "cargo build" }),
+        ),
+        (
+            "append_note",
+            serde_json::json!({ "title": "deploy", "text": "then ship" }),
+        ),
+        // Into a note that is not there: it is made, so it is a new note.
+        (
+            "add_todo",
+            serde_json::json!({ "text": "交周报", "due": "2026-11-14T09:00" }),
+        ),
+        ("add_todo", serde_json::json!({ "text": "交房租" })),
+        (
+            "complete_todo",
+            serde_json::json!({ "note": "待办", "text": "交房租" }),
+        ),
+        (
+            "reschedule_todo",
+            serde_json::json!({ "note": "待办", "text": "交周报", "due": "2026-11-15T10:00" }),
+        ),
+        (
+            "replace_note",
+            serde_json::json!({ "title": "Plan", "body": "new plan" }),
+        ),
+        ("trash_note", serde_json::json!({ "title": "Deploy" })),
+        // Nothing written, nothing recorded: a failure, and a rewrite to the same text.
+        (
+            "append_note",
+            serde_json::json!({ "title": "Missing", "text": "x" }),
+        ),
+        (
+            "replace_note",
+            serde_json::json!({ "title": "Plan", "body": "new plan" }),
+        ),
+    ];
+    for (tool, arguments) in calls {
+        call(&client, tool, arguments).await;
+    }
+
+    let folder = fs::canonicalize(&notes).unwrap();
+    let records: Vec<jot_store::Activity> = fs::read_to_string(&activity)
+        .unwrap()
+        .lines()
+        .map(|line| jot_store::Activity::parse(line).unwrap_or_else(|| panic!("{line}")))
+        .collect();
+    let seen: Vec<(&str, &str)> = records
+        .iter()
+        .map(|record| (record.action.as_str(), record.title.as_str()))
+        .collect();
+    assert_eq!(
+        seen,
+        [
+            ("create", "Deploy"),
+            ("append", "Deploy"),
+            ("create", "待办"),
+            ("todo", "待办"),
+            ("complete", "待办"),
+            ("reschedule", "待办"),
+            ("replace", "Plan"),
+            ("trash", "Deploy"),
+        ]
+    );
+    for record in &records {
+        assert_eq!(record.agent, "Claude Code");
+        assert_eq!(record.dir, folder);
+        assert_eq!(record.at, friday_morning());
+    }
+    let replaced = &records[6];
+    assert_eq!(
+        replaced.previous.as_deref(),
+        Some("Plan (before rewrite · 2026-11-13 10.30)")
+    );
+    assert_eq!(
+        replaced.in_trash.as_deref(),
+        Some(
+            trash
+                .join("Plan (before rewrite · 2026-11-13 10.30).md")
+                .as_path()
+        )
+    );
+    let trashed = &records[7];
+    assert_eq!(trashed.previous, None);
+    assert_eq!(
+        trashed.in_trash.as_deref(),
+        Some(trash.join("Deploy.md").as_path())
+    );
+    assert!(
+        records[..6]
+            .iter()
+            .all(|r| r.previous.is_none() && r.in_trash.is_none())
+    );
+    // One line each, as the app reads them.
+    assert_eq!(
+        fs::read_to_string(&activity).unwrap().lines().count(),
+        records.len()
+    );
 }

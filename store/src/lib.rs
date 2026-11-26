@@ -19,6 +19,7 @@ use std::time::{Duration, SystemTime};
 use notify_debouncer_mini::notify::{self, RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{DebounceEventResult, DebouncedEventBatch, Debouncer, new_debouncer};
 
+mod activity;
 mod cloud;
 mod conflict;
 mod lock;
@@ -29,6 +30,7 @@ mod todo;
 mod trash;
 pub mod when;
 
+pub use activity::{Action, Activity, ActivityTail, ROTATE_AT, watch_activity};
 pub use conflict::{Conflict, Resolution, Resolved};
 pub use jiff::civil::DateTime;
 pub use moving::Moved;
