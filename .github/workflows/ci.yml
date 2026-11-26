@@ -10,8 +10,10 @@ on:
     types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
 
+# A pull request's runs are grouped by its number: once it merges, `github.ref` of the `closed` run is `main`'s, and
+# grouping by it would cancel `main`'s run instead.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number && format('pr-{0}', github.event.pull_request.number) || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
