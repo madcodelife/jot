@@ -248,6 +248,90 @@ test("⌘K in the open note offers no \"Open\", and the footer names no Return a
   await app.keyboard.press("mod+k");
   await app.waitFor("id:actions");
   expect(app.shows("id:action:open")).toBe(false);
+  expect(app.shows("id:action:create-titled")).toBe(false);
   for (const id of ["reveal", "rename", "copy-title", "copy-body", "trash"]) expect(app.shows(`id:action:${id}`)).toBe(true);
+  app.dispose();
+});
+
+test("the new-note row's ⌘↩ shows while a search hit is selected; selected itself, the footer's Return says it", async () => {
+  const dir = twoNotes("create-keys");
+  const app = await openJot(dir);
+  await app.waitFor("id:row:护照到期");
+  await app.type("id:search", "护照");
+  await app.waitFor("id:row:create");
+  // The hit is selected: Return opens it, ⌘↩ makes the note, as the row's keycaps say. Its second line names no key.
+  expect(app.shows("id:row:create >> label:⌘ ↩")).toBe(true);
+  expect(app.texts()).toContain("新的空白笔记");
+  expect(app.texts()).toContain("打开");
+
+  await app.keyboard.press("down");
+  await app.waitUntil(() => !app.shows("id:row:create >> label:⌘ ↩"));
+  expect(app.shows("id:footer-primary >> text:新建")).toBe(true);
+
+  await app.keyboard.press("up");
+  await app.waitFor("id:row:create >> label:⌘ ↩");
+  app.dispose();
+});
+
+test("⌘K on a search hit offers to create the query on ⌘↩, while the list has a new-note row", async () => {
+  const dir = twoNotes("create-action");
+  const app = await openJot(dir);
+  await app.waitFor("id:row:护照到期");
+  await app.type("id:search", "护照到期");
+  await app.waitUntil(() => !app.shows("id:row:create"));
+  // The query is a note's title: no new-note row, no action for it.
+  await app.keyboard.press("mod+k");
+  await app.waitFor("id:action:open");
+  expect(app.shows("id:action:create-titled")).toBe(false);
+  await app.keyboard.press("escape");
+  await app.waitUntil(() => !app.shows("id:actions"));
+
+  await app.clear("id:search");
+  await app.type("id:search", "护照");
+  await app.waitFor("id:row:create");
+  await app.keyboard.press("mod+k");
+  await app.waitFor("id:action:create-titled");
+  expect(app.texts()).toContain("新建「护照」");
+  expect(app.shows("id:action:create-titled >> label:⌘ ↩")).toBe(true);
+
+  await app.press("id:action:create-titled");
+  await app.waitFor("id:paper");
+  expect(app.shows("id:actions")).toBe(false);
+  const n = new Notes(dir);
+  expect(n.read("护照")).not.toBeNull();
+  expect(n.list().length).toBe(3);
+  app.dispose();
+});
+
+test("⌘↩ on a search hit makes one note of the query", async () => {
+  const dir = twoNotes("create-once");
+  const app = await openJot(dir);
+  await app.waitFor("id:row:护照到期");
+  await app.type("id:search", "护照");
+  await app.waitFor("id:row:create");
+  await app.keyboard.press("mod+enter");
+  await app.waitFor("id:paper");
+  await app.wait(300);
+  const n = new Notes(dir);
+  expect(n.read("护照")).not.toBeNull();
+  expect(n.list().length).toBe(3);
+  app.dispose();
+});
+
+test("⌘↩ with the action panel open closes it, then makes the note", async () => {
+  const dir = twoNotes("create-panel");
+  const app = await openJot(dir);
+  await app.waitFor("id:row:护照到期");
+  await app.type("id:search", "护照");
+  await app.waitFor("id:row:create");
+  await app.keyboard.press("mod+k");
+  await app.waitFor("id:action:create-titled");
+
+  await app.keyboard.press("mod+enter");
+  await app.waitFor("id:paper");
+  await app.waitUntil(() => !app.shows("id:actions"));
+  const n = new Notes(dir);
+  expect(n.read("护照")).not.toBeNull();
+  expect(n.list().length).toBe(3);
   app.dispose();
 });

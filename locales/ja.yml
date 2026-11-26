@@ -35,7 +35,7 @@ list:
   blank: 空のメモ
   downloading: "ダウンロード中…"
   create: 「%{title}」を作成
-  create_hint: Return ですぐに書き始められます
+  create_sub: 新しい空のノート
   today:
     one: 今日のやること %{count} 件
     other: 今日のやること %{count} 件
@@ -300,6 +300,7 @@ actions:
   trash: "%{bin}に入れる"
   copied: コピーしました
   create: 作成
+  create_titled: 「%{title}」を作成
   todos: やることを表示
   open_note: メモを開く
   tick: 完了

@@ -36,7 +36,7 @@ list:
   blank: Empty note
   downloading: "Downloading…"
   create: Create “%{title}”
-  create_hint: Press Return to start writing
+  create_sub: A new, empty note
   today:
     one: 1 to-do today
     other: "%{count} to-dos today"
@@ -301,6 +301,7 @@ actions:
   trash: Move to %{bin}
   copied: Copied
   create: Create
+  create_titled: Create “%{title}”
   todos: Show To-Dos
   open_note: Open Note
   tick: Complete

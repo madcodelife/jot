@@ -35,7 +35,7 @@ list:
   blank: 空白筆記
   downloading: "正在下載…"
   create: 新增「%{title}」
-  create_hint: 按 Return 直接開始寫
+  create_sub: 新的空白筆記
   today:
     one: 今天 %{count} 件待辦
     other: 今天 %{count} 件待辦
@@ -299,6 +299,7 @@ actions:
   trash: 丟到%{bin}
   copied: 已拷貝
   create: 新增
+  create_titled: 新增「%{title}」
   todos: 查看待辦
   open_note: 開啟筆記
   tick: 勾選

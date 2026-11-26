@@ -242,7 +242,7 @@ function ListRow(props: { row: Row; index: number; leaving: boolean; compact: bo
               </Text>
               <If when={!props.compact}>
                 <Text class={sub()} style={{ numberOfLines: 1, fontSize: T.type.snippet }}>
-                  {t("list.create_hint")}
+                  {t("list.create_sub")}
                 </Text>
               </If>
             </>
@@ -280,7 +280,8 @@ function ListRow(props: { row: Row; index: number; leaving: boolean; compact: bo
             </View>
           )}
         </If>
-        <If when={create()}>
+        {/* ⌘↩ makes the note while a search hit is selected (Return opens the hit); selected, the footer says Return. */}
+        <If when={create() && !isSelected()}>
           <Keycaps keys={T.keys.create} onAccent={onAccent()} />
         </If>
       </If>

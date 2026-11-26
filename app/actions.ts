@@ -11,6 +11,7 @@ import {
   binName,
   desktopOs,
   checkTodo,
+  createFromQuery,
   errorMessage,
   isLocked,
   notes,
@@ -91,6 +92,8 @@ export function actionsFor(target: ActionTarget): Action[] {
       return [
         // A note in the list opens on Return; one already open has nothing to open (Escape puts the caret back).
         ...(target.index === null ? [] : [action("open", t("actions.open"), "enter", () => activate(target.index as number))]),
+        // In a search with a "new note" row: ⌘↩ makes that note, as the row's keycap says.
+        ...(target.index === null ? [] : createAction()),
         // In the open note, with the caret on an open to-do: its reminder time.
         ...(target.index === null && caretOnTodo() && !locked ? [action("due", t("actions.due"), T.keys.due, () => void openDueAtCaret())] : []),
         action("reveal", t(`actions.reveal.${desktopOs}`), T.keys.reveal, () => revealNote(title)),
@@ -115,6 +118,12 @@ export function actionsFor(target: ActionTarget): Action[] {
         ...(target.todo.due ? [action("due-remove", t("actions.due_remove"), "", () => writeTodoDue(target.todo, null))] : []),
       ];
   }
+}
+
+/** The list's "new note" row, as an action of the other rows: ⌘↩ (the panel's own key, app/ui/Panel.tsx) runs it. */
+function createAction(): Action[] {
+  const row = rows().find((r) => r.kind === "create");
+  return row?.kind === "create" ? [action("create-titled", t("actions.create_titled", { title: row.title }), "mod+enter", () => createFromQuery())] : [];
 }
 
 /** The action Return runs on the row in focus (the footer names it); none in the open note, where Return is a line break. */

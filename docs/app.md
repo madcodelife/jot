@@ -336,15 +336,19 @@ drawn as before.
 
 One list of actions per row kind drives the action panel (⌘K / Ctrl+K, and a right click on a row:
 `app/ui/ActionPanel.tsx`), the footer's primary action (what Return does) and the actions' own keys, which work with the
-panel closed. A note: open ↩, show in Finder ⇧⌘F, rename ⌘R (in place, in its row), copy title ⇧⌘C, copy text
-⇧⌘A, lock / unlock (no key), move to trash ⌃X (Windows / Linux Ctrl+D; keys in `app/ui/tokens.ts`). A locked note has
-"Unlock" for "Lock" and no rename or reminder time; ⌃X on it says to unlock it first (`ERR_JOT_LOCKED`). "New" row: create; today's row: show
-to-dos; a to-do: open its note, tick ⌘↩, its reminder time ⇧⌘D (and "Remove Reminder" when it has one); in the open
-note, the caret's to-do's reminder time ⇧⌘D. Nothing but a note can be trashed. Moving to the trash slides the row out
-to the left before the rows below close the gap ([The list's motion](#the-lists-motion-appuinotelisttsx)) and turns
-the footer into "Moved to the Trash" with Undo for 5 s (`T.timing.undoFor`); while it shows, ⌘Z takes
-the trashed notes back one at a time, the last first (an undo stack); then ⌘Z is the search field's again. With the
-note's text focused, Ctrl+D stays the editor's (select the next occurrence); macOS's ⌃X is no text key.
+panel closed. A note: open ↩, create the query ⌘↩ (in a search that has a "New" row: what that row does, run by the
+panel's own ⌘↩, `createFromQuery`), show in Finder ⇧⌘F, rename ⌘R (in place, in its row), copy title ⇧⌘C, copy text ⇧⌘A,
+lock / unlock (no key), move to trash ⌃X (Windows / Linux Ctrl+D; keys in `app/ui/tokens.ts`). A locked note has
+"Unlock" for "Lock" and no rename or reminder time; ⌃X on it says to unlock it first (`ERR_JOT_LOCKED`). "New" row:
+create (its second line names no key: "A new, empty note"; its ⌘↩ keycap shows while another row is selected, and
+selected itself, the footer's "Create ↩" says it); today's row: show to-dos; a to-do: open its note, tick ⌘↩, its
+reminder time ⇧⌘D (and "Remove Reminder" when it has one); in the open note, the caret's to-do's reminder time ⇧⌘D.
+⌘↩ with the action panel open closes it first, then does what it does with the panel closed. Nothing but a note can be
+trashed. Moving to the trash slides the row out to the left before the rows below close the gap ([The list's
+motion](#the-lists-motion-appuinotelisttsx)) and turns the footer into "Moved to the Trash" with Undo for
+5 s (`T.timing.undoFor`); while it shows, ⌘Z takes the trashed notes back one at a time, the last first (an undo stack);
+then ⌘Z is the search field's again. With the note's text focused, Ctrl+D stays the editor's (select the next
+occurrence); macOS's ⌃X is no text key.
 
 The footer (app/ui/Panel.tsx) is Raycast's: no rule above it, a round settings button on the left (a notice or
 "Copied" beside it while one shows, else a downloaded update's "Update ready · Restart":
