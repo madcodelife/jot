@@ -186,10 +186,15 @@ test("a click opens the note the app wrote to, or shows a trashed one in the Tra
   app.dispose();
 });
 
-/** What the avatar shows each time it changes, while `ms` pass: "ink" while Jot's logo is written, "logo" once whole. */
+/**
+ * What the avatar shows each time it changes, while `ms` pass or until the island closes: "ink" while Jot's logo is
+ * written, "logo" once whole. Timed by the clock, not by the steps: on a slow machine a step takes longer than its wait,
+ * and counting them would go on sampling after the island has closed.
+ */
 async function logoStates(app: { wait(ms: number): Promise<void>; shows(selector: string): boolean }, ms: number) {
   const states: string[] = [];
-  for (let waited = 0; waited < ms; waited += 20) {
+  const until = Date.now() + ms;
+  while (Date.now() < until && app.shows("id:island-write")) {
     const state = app.shows("id:island-ink") ? "ink" : app.shows("id:island-logo") ? "logo" : "none";
     if (states.at(-1) !== state) states.push(state);
     await app.wait(20);
