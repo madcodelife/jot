@@ -270,10 +270,10 @@
         </div>
         <h3 class="h3"><span data-en>One file per note</span><span data-zh>一条笔记一个文件</span><span data-zh-hant>一則筆記一個檔案</span><span data-ja>メモ1件にファイル1つ</span></h3>
         <p class="small">
-          <span data-en>In iCloud Drive or any folder. No account, no server.</span>
-          <span data-zh>放在 iCloud 云盘或任意文件夹。不用注册，也没有服务器。</span>
-          <span data-zh-hant>放在 iCloud 雲碟或任何資料夾。不用註冊，也沒有伺服器。</span>
-          <span data-ja>iCloud Drive でも、好きなフォルダでも。アカウントもサーバーもいりません。</span>
+          <span data-en>In iCloud Drive or any folder. No account, no server, no analytics.</span>
+          <span data-zh>放在 iCloud 云盘或任意文件夹。不用注册，没有服务器，也不做数据统计。</span>
+          <span data-zh-hant>放在 iCloud 雲碟或任何資料夾。不用註冊，沒有伺服器，也不做資料統計。</span>
+          <span data-ja>iCloud Drive でも、好きなフォルダでも。アカウントもサーバーも、利用状況の収集もありません。</span>
         </p>
       </div>
 
@@ -336,6 +336,12 @@
         <svg class="ic cmd-ic"><use href="#i-copy"/></svg>
       </button>
     </div>
+    <p class="fine center reveal" id="privacy">
+      <span data-en>Your notes stay yours: plain files in a folder you pick. Jot sends them nowhere, and goes online only to check GitHub for updates. Dictation uses Apple's speech recognition, and the AI apps you connect read your notes on their own terms.</span>
+      <span data-zh>笔记始终是你的：它们是你选的文件夹里的普通文件。Jot 不会把笔记发到任何地方，只在检查更新时连一下 GitHub。语音输入用的是 Apple 的语音识别；你连接的 AI 应用读取笔记后，按它们各自的规则处理。</span>
+      <span data-zh-hant>筆記始終是你的：它們是你選的資料夾裡的一般檔案。Jot 不會把筆記傳到任何地方，只在檢查更新時連線到 GitHub。語音輸入用的是 Apple 的語音辨識；你連接的 AI 應用程式讀取筆記後，依照它們各自的規則處理。</span>
+      <span data-ja>メモはあなたのもの。選んだフォルダにある普通のファイルです。Jot はメモをどこにも送らず、ネットにつなぐのは GitHub でアップデートを確かめるときだけ。音声入力には Apple の音声認識を使い、接続した AI アプリはそれぞれの規約でメモを読みます。</span>
+    </p>
     <p class="fine center reveal">
       <span data-en>Jot is not notarized by Apple yet. If you download the zip, run <code>xattr -dr com.apple.quarantine /Applications/Jot.app</code> once before opening it.</span>
       <span data-zh>Jot 暂未经过 Apple 公证。如果是下载 zip 安装，第一次打开前先运行 <code>xattr -dr com.apple.quarantine /Applications/Jot.app</code></span>
