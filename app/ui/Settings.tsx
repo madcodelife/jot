@@ -48,8 +48,10 @@ import {
   setIsland,
   setLanguage,
   setNotifications,
+  setSoundEffects,
   setSpeechLanguage,
   setThemeName,
+  soundEffectsOn,
   SPEECH_LANGUAGES,
   speechLanguage,
   theme,
@@ -484,6 +486,13 @@ function GeneralPane() {
       <Group>
         <Row label={t("settings.login.label")} hint={t("settings.login.hint")}>
           <MacSwitch testID="settings-login" label={t("settings.login.label")} checked={atLogin()} onChange={(on) => void setAtLogin(on)} />
+        </Row>
+      </Group>
+
+      <SectionTitle>{t("settings.sound.label")}</SectionTitle>
+      <Group>
+        <Row label={t("settings.sound.effects")} hint={t("settings.sound.effects_hint")}>
+          <MacSwitch testID="settings-sound-effects" label={t("settings.sound.effects")} checked={soundEffectsOn()} onChange={setSoundEffects} />
         </Row>
       </Group>
 

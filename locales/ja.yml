@@ -184,6 +184,10 @@ settings:
   login:
     label: ログイン時に開く
     hint: ログイン後、Jot はメニューバーで待機します
+  sound:
+    label: サウンド
+    effects: 効果音
+    effects_hint: やることを完了したときに小さな音を鳴らします
   language:
     label: 言語
     interface: 表示言語

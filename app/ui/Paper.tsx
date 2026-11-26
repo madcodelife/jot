@@ -23,6 +23,7 @@ import { When, type Conflict } from "jot/native";
 import { caretOnTodo, openDuePicker, setEditorDue } from "../due";
 import { codeBlocks, continuation, fenceMark, fencedLines, isQuote, lineMarks, type Mark, type MarkKind } from "../markdown";
 import { whenOptions } from "../settings";
+import { playDone } from "../sounds";
 import { allNotes, errorMessage, lastWritten, notes, now, opened, refresh, revision, save, setEditorFlush, setLocked, showFlash } from "../store";
 import { taskLine, toggledLine, withDue } from "../tasks";
 import { age, parseDue } from "../time";
@@ -252,6 +253,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     if (!task || !editor) return;
     const next = toggledLine(content, !task.done, new Date(untracked(now)));
     editor.edit([{ range: { start: { line, column: 0 }, end: { line, column: content.length } }, text: next }]);
+    if (!task.done) playDone();
   }
 
   /**

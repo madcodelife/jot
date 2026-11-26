@@ -8,7 +8,7 @@ has its own page (below), and the product itself is defined in [product.md](prod
 
 ```
 app/App.tsx            the client's entry (NSH, TSX); nsh.json names it ("entry")
-  app/*.ts             the client's logic: store, settings, to-dos, reminders, dictation, actions
+  app/*.ts             the client's logic: store, settings, to-dos, reminders, dictation, actions, sounds
   app/ui/              components and design tokens
         │  import … from "jot/native"
         ▼
@@ -35,7 +35,7 @@ which `jot-mcp` writes and the app reads for the island ([mcp.md](mcp.md)).
 | `Cargo.toml`, `Cargo.lock` | The app's Rust crate and the workspace; `Cargo.lock` pins the NSH crates, and so the `nsh` CLI to use. |
 | `app/tsconfig.json` | The client's TypeScript project; it extends the `app/.nsh/tsconfig.json` the `nsh` CLI writes. |
 | `app/App.tsx` | The client's entry: the menu bar app's windows (the panel, settings, the island), the tray, summoning, reminders and dictation. |
-| `app/*.ts` | The client's logic, no components: `store.ts` (Jot's state: the notes folder, the panel's stage, the query and the selection), `settings.ts`, `i18n.ts`, `time.ts`, `tasks.ts`, `due.ts`, `markdown.ts`, `actions.ts`, `voice.ts`, `speechlang.ts`, `spoken.ts`, `quicknote.ts`, `connections.ts`, `trayink.ts`, `updates.ts`. |
+| `app/*.ts` | The client's logic, no components: `store.ts` (Jot's state: the notes folder, the panel's stage, the query and the selection), `settings.ts`, `i18n.ts`, `time.ts`, `tasks.ts`, `due.ts`, `markdown.ts`, `actions.ts`, `voice.ts`, `speechlang.ts`, `spoken.ts`, `quicknote.ts`, `connections.ts`, `trayink.ts`, `updates.ts`, `sounds.ts` (the done sound). |
 | `app/ui/` | Components (`Panel.tsx`, `Paper.tsx`, `NoteList.tsx`, `TodoView.tsx`, `Settings.tsx`, `Island.tsx`, …), design tokens (`tokens.ts`), motion (`motion.ts`), themes (`theme.json`, `themes.json`, `themes.ts`) and the app's SVGs. |
 | `app/tests/` | The client's TSX tests (`*.test.tsx`), which `nsh test` runs headless. |
 | `locales/` | The client's translations (`en`, `zh`, `zh-Hant`, `ja`), read by `nsh/i18n`. |
@@ -50,9 +50,9 @@ which `jot-mcp` writes and the app reads for the island ([mcp.md](mcp.md)).
 | `scripts/screenshots.sh` | Takes the README's screenshots (`design/screenshots/light.png`, `dark.png`) with a `Jot.app` on those notes, its settings put back after; `scripts/screenshots/helper.swift` does what the shell cannot (the backdrop, typing, the capture). |
 | `site/` | The website at `https://madcodelife.github.io/jot/`: one static page (`index.html`, `style.css`, `main.js`, no build step) in the app's languages (English, Simplified and Traditional Chinese, Japanese), with a working copy of the panel; its colors are the app's themes. |
 | `scripts/build-site.sh` | Puts the site together in `_site/`: `site/`, `install.sh`, and the icons and screenshot from `design/`. |
-| `assets/` | The app icon, and the reminders' chime (`reminder.wav`, their notifications' sound). |
+| `assets/` | The app icon, the reminders' chime (`reminder.wav`, their notifications' sound) and the done sound (`done.wav`, a to-do ticked). |
 | `docs/` | This page, the topic pages and the product definition. |
-| `design/` | The interactive design draft, the logo, the reminders' chime's generator (`sound/chime.py`) and the README's screenshots (`screenshots/`). |
+| `design/` | The interactive design draft, the logo, the generator of Jot's sounds (`sound/build.py`) and the README's screenshots (`screenshots/`). |
 | `.github/workflows/ci.yml` | CI: rustfmt, `nsh check`, clippy and `nsh test` on pull requests and `main` (whose run saves the caches pull requests start from). |
 | `.github/workflows/release.yml` | For a `v*` tag: the app packaged for arm64 and x86_64, the OTA package, the signed `latest.json`, and the release ([CONTRIBUTING.md](../CONTRIBUTING.md#releasing)). |
 | `release-notes/` | Each release's notes, `v<version>.md`, which lead its GitHub release ([CONTRIBUTING.md](../CONTRIBUTING.md#release-notes)). |

@@ -19,6 +19,8 @@
 //!   which `Notes::watch_activity` follows for the island.
 //! - [`NativeBuild`]: the fingerprint of the app's native code, which an
 //!   OTA package must have been published for.
+//! - [`SoundEffects`]: whether the system lets apps play interface sound
+//!   effects.
 //!
 //! Platform code lives in `platform/<os>.rs` behind one interface, so
 //! `App.tsx` never checks the platform for these.
@@ -39,6 +41,7 @@ mod platform;
 mod platform;
 mod relay;
 mod reminders;
+mod sound_effects;
 mod summon;
 mod when;
 
@@ -56,6 +59,7 @@ pub use notes::{
     Conflict, ConflictChoice, Note, NoteMeta, Notes, ResolvedConflict, SearchHit, Todo, TrashedNote,
 };
 pub use reminders::{DueEvent, Reminders};
+pub use sound_effects::SoundEffects;
 pub use summon::{Summon, SummonKey};
 pub use when::{When, WhenMatch};
 
@@ -72,5 +76,6 @@ fn native(registry: &mut Registry) {
         .module::<Connections>()
         .module::<ActivityLog>()
         .module::<AiAccess>()
-        .module::<NativeBuild>();
+        .module::<NativeBuild>()
+        .module::<SoundEffects>();
 }

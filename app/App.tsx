@@ -41,6 +41,7 @@ import { openSettings, SettingsWindow } from "./ui/Settings";
 import { T } from "./ui/tokens";
 import { trayInk, writeTrayIcon } from "./trayink";
 import { readyUpdate, restartToUpdate, startUpdates } from "./updates";
+import { loadSounds } from "./sounds";
 import chime from "../assets/reminder.wav";
 
 /** The island lives at the notch or under the menu bar: macOS's. */
@@ -59,7 +60,7 @@ async function useFallbackShortcut() {
 
 /**
  * To-dos came due: a notification each (one for several missed while the Mac slept), and the island, as the settings
- * allow. The notifications play Jot's chime (assets/reminder.wav, made by design/sound/chime.py), so the system's
+ * allow. The notifications play Jot's chime (assets/reminder.wav, made by design/sound/build.py), so the system's
  * settings for Jot's notifications and Focus decide whether it sounds; the island itself is silent.
  */
 function remind(event: DueEvent) {
@@ -127,6 +128,8 @@ function endQuickNote(event: { cancelled: boolean }) {
 }
 
 function App() {
+  // Jot's sound effects decode ahead, so a tick plays at once (app/sounds.ts).
+  loadSounds();
   // The settings first (language, theme), then the notes folder, its reminders, and the first run's welcome.
   void (async () => {
     await loadSettings();

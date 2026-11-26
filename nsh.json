@@ -42,7 +42,8 @@
         "x-apple.systempreferences"
       ]
     },
-    "speech": true
+    "speech": true,
+    "audio": true
   },
   "updater": {
     "github": "madcodelife/jot",

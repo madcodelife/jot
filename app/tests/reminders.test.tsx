@@ -1,6 +1,7 @@
 // A reminder's sound: the to-do's notification plays Jot's chime (assets/reminder.wav), so the system's notification
-// settings and Focus govern it; the island shows the reminder and plays nothing itself. The notifications are the
-// test's (a stand-in for `Notifications.show`), so none reaches this Mac.
+// settings and Focus govern it; the island shows the reminder and plays nothing itself, until the user ticks it there:
+// Jot's done sound (app/sounds.ts). The notifications are the test's (a stand-in for `Notifications.show`), so none
+// reaches this Mac.
 import { expect, open, test } from "nsh/test";
 import { Notes } from "jot/native";
 import { STAND_INS } from "./native";
@@ -17,7 +18,7 @@ function nextMinute(): string {
 
 type Shown = { id?: string; title?: string; sound?: string | null };
 
-test("a due to-do's notification plays Jot's chime, and the island plays nothing", async () => {
+test("a due to-do's notification plays Jot's chime, the island nothing, and a tick there the done sound", async () => {
   const dir = `/tmp/jot-test-chime-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
   new Notes(dir).create("家", `- [ ] 交房租 ⏰ ${nextMinute()}`);
   const shown: Shown[] = [];
@@ -41,6 +42,11 @@ test("a due to-do's notification plays Jot's chime, and the island plays nothing
   expect(shown.length).toBe(1);
   expect(shown[0].title).toBe("交房租");
   expect(shown[0].sound).toMatch(/(^|\/)reminder\.wav$/);
-  expect(app.audio()).toEqual([]);
+  const played = () => app.audio().filter((call) => call.command === "play");
+  expect(played()).toEqual([]);
+
+  await app.press("id:island-check");
+  expect(new Notes(dir).read("家")?.body).toContain("- [x] 交房租");
+  expect(played().map((call) => call.src.split("/").pop())).toEqual(["done.wav"]);
   app.dispose();
 }, 90000);

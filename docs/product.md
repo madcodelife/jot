@@ -33,7 +33,10 @@ you share the notebook with your AI apps (Claude, Cursor, Codex, …), so they c
 Jot is still a notebook: to-dos live in notes, not in a separate task manager.
 
 - `- [ ] text` in any note is a to-do. Click its checkbox or press ⌘↩ on its line to check it off; it becomes `- [x]`,
-  with the completion date at the end of the line: `✅ 2026-11-14`.
+  with the completion date at the end of the line: `✅ 2026-11-14`. Checking one off (in a note, the to-do view or the
+  island) plays a short, soft sound with the check, quieter than the reminder's chime; unchecking is silent, and so is
+  a to-do an AI app checks off. Settings › General › Sound Effects turns it off (on by default), as does the system's
+  "Play user interface sound effects"; the reminders' sound is the notifications' and stays the system's to govern.
 - Writing a time makes it a reminder: `- [ ] 交房租 明天 9:00` ("pay rent tomorrow 9:00"). On save, the relative time
   is replaced by an absolute one in the file: `- [ ] 交房租 ⏰ 2026-11-14 09:00`
   ("tomorrow" stops being true the next day, so the file only stores absolute times; `⏰ YYYY-MM-DD HH:mm` is the same
