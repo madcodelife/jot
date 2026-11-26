@@ -169,8 +169,9 @@ mistakes, not against a program determined to change it.
 Jot is built with [NSH](https://github.com/longbridge/nsh): the UI is TSX, and the notes store, the reminders and the
 platform code are Rust.
 
-Jot builds against NSH's repository at commit `8328505` (`Cargo.toml`'s `nsh-core` and `nsh-extra`), not a release: the
-note's live preview needs the editor decorations' labels and font sizes, which no release has yet (0.7.0 lacks them).
+Jot builds against NSH's repository at commit `250f557` (`Cargo.toml`'s `nsh-core` and `nsh-extra`), not a release: the
+note's live preview needs the editor decorations' labels and font sizes and a fix to them (NSH #3272), which no release
+has yet (0.7.0 lacks them).
 The `nsh` CLI must be the same commit. `scripts/install-nsh.sh` installs the one `Cargo.lock` pins (here that commit,
 built from source, which takes a while; for a release, its installer), as CI does. Then:
 

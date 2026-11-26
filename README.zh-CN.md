@@ -150,8 +150,8 @@ claude mcp add --scope user jot -- "$PWD/target/release/jot-mcp" --dir ~/Documen
 
 Jot 用 [NSH](https://github.com/longbridge/nsh) 构建：界面是 TSX，笔记存储、提醒和平台相关的代码是 Rust。
 
-Jot 依赖 NSH 仓库的提交 `8328505`（`Cargo.toml` 里的 `nsh-core` 和 `nsh-extra`），不是正式版：笔记的实时预览要用编辑器装饰的
-label 和字号，0.7.0 还没有，等 NSH 发了包含它们的版本再换回 crates.io。`nsh` 命令行必须是同一个提交。
+Jot 依赖 NSH 仓库的提交 `250f557`（`Cargo.toml` 里的 `nsh-core` 和 `nsh-extra`），不是正式版：笔记的实时预览要用编辑器装饰的
+label 和字号，以及对它们的一个修复（NSH #3272），0.7.0 还没有，等 NSH 发了包含它们的版本再换回 crates.io。`nsh` 命令行必须是同一个提交。
 `scripts/install-nsh.sh` 会装上 `Cargo.lock` 锁定的那个（这里是从源码编译这个提交，比较慢；正式版则用它的安装脚本），CI 也用它。然后：
 
 ```sh
