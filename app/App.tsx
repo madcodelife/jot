@@ -10,7 +10,7 @@
 // or the open note (app/ui/Panel.tsx, app/ui/Paper.tsx); the double press
 // of ⌥ held anywhere says a quick note, which the island shows and files
 // (below).
-import { effect, mount, Notifications, platform, untracked } from "nsh";
+import { computed, effect, mount, Notifications, platform, untracked } from "nsh";
 import { t } from "nsh/i18n";
 import { GlobalShortcut, Tray } from "nsh/desktop";
 import { Summon, type DueEvent } from "jot/native";
@@ -39,7 +39,7 @@ import { dismissDictation, IslandWindow, settleDictation, showAgentWrite, showDi
 import { PanelWindow } from "./ui/Panel";
 import { openSettings, SettingsWindow } from "./ui/Settings";
 import { T } from "./ui/tokens";
-import trayIcon from "./ui/tray.svg";
+import { trayInk, writeTrayIcon } from "./trayink";
 
 /** The island lives at the notch or under the menu bar: macOS's. */
 const hasIsland = platform.os === "macos";
@@ -158,32 +158,39 @@ function App() {
   setInterval(() => now.set(Date.now()), 30_000);
   effect(() => clampSelection());
 
-  // The tray: new note, summon, the latest notes, the to-dos, the permission while it is missing, settings, quit.
+  // The tray's menu: new note, summon, the latest notes, the to-dos, the permission while it is missing, settings, quit.
   // It reads `t`, so the menu is made again in the new language when the language changes.
-  effect(() => {
+  const trayMenu = computed(() => {
     const recent = allNotes().slice(0, 3);
+    return [
+      { label: t("tray.new_note"), onSelect: () => summon() },
+      { label: t("tray.summon", { keys: trusted() ? T.keys.summon : T.keys.fallback }), onSelect: () => summon() },
+      { type: "separator" },
+      ...recent.map((meta) => ({
+        label: meta.title,
+        onSelect: () => {
+          summon();
+          open(meta.title);
+        },
+      })),
+      recent.length > 0 && { type: "separator" as const },
+      { label: t("tray.todos"), onSelect: () => summon({ query: todoKeyword() }) },
+      !trusted() && { label: t("tray.enable_double_tap", { keys: T.keys.summon }), onSelect: () => Summon.requestTrust() },
+      { type: "separator" },
+      { label: t("tray.settings"), shortcut: "mod+,", onSelect: () => openSettings() },
+      { role: "quit" as const },
+    ];
+  });
+  // The tray: a click summons or hides Jot and writes the icon's stroke again (app/trayink.ts).
+  effect(() => {
     Tray.set({
-      icon: trayIcon,
+      icon: trayInk(),
       tooltip: "Jot",
-      onClick: () => toggle(),
-      menu: [
-        { label: t("tray.new_note"), onSelect: () => summon() },
-        { label: t("tray.summon", { keys: trusted() ? T.keys.summon : T.keys.fallback }), onSelect: () => summon() },
-        { type: "separator" },
-        ...recent.map((meta) => ({
-          label: meta.title,
-          onSelect: () => {
-            summon();
-            open(meta.title);
-          },
-        })),
-        recent.length > 0 && { type: "separator" as const },
-        { label: t("tray.todos"), onSelect: () => summon({ query: todoKeyword() }) },
-        !trusted() && { label: t("tray.enable_double_tap", { keys: T.keys.summon }), onSelect: () => Summon.requestTrust() },
-        { type: "separator" },
-        { label: t("tray.settings"), shortcut: "mod+,", onSelect: () => openSettings() },
-        { role: "quit" },
-      ],
+      onClick: () => {
+        writeTrayIcon();
+        toggle();
+      },
+      menu: trayMenu(),
     });
   });
 

@@ -197,6 +197,15 @@ The footer (app/ui/Panel.tsx) is Raycast's: no rule above it, a round settings b
 "Copied" beside it while one shows) and on the right a capsule of the primary action and "Actions ⌘K", each a button
 that does what its keys do.
 
+## The tray's icon (app/trayink.ts)
+
+A click on the tray's icon summons or hides Jot, and the icon writes itself again: the stroke of `app/ui/tray.svg` is
+drawn from its start to its end at a pen's pace (420 ms, slow in and out), then the dot lands, a touch too big, and
+settles (160 ms). Each frame is that SVG as a `data:` URL with the stroke dashed up to where the pen is, so it stays a
+template the menu bar paints in its text color; at rest the icon is `tray.svg` itself. A click while it writes starts it
+again; with reduced motion the icon does not move. `inkFrame` copies the SVG's markup, so a change to `tray.svg` changes
+it too (and the stroke's length, `LENGTH`, when the path changes).
+
 ## Packaging (scripts/package-macos.sh)
 
 NSH's `nsh package` bundles its runner and the app's assets only, so the script builds `jot-mcp` (in cargo's
