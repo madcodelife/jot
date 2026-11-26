@@ -90,7 +90,9 @@ const CODE_FONT = "ui-monospace";
 /** How a label in place of a mark looks: a to-do's box drawn, a bullet's `•` muted, a fence's language small and muted; hidden syntax, nothing. */
 function labelLook(m: Mark): Pick<EditorDecoration, "labelClass" | "labelStyle"> {
   if (m.kind === "box") {
-    const box = { width: 15, height: 15, borderRadius: 4, borderCurve: "continuous", marginRight: 1, alignItems: "center", justifyContent: "center" } as const;
+    // The editor centers a label on the x-height's middle, lower than the middle of capitals, digits and CJK glyphs:
+    // a bottom margin lifts the box by half its size (1.5 points), onto the middle of the words beside it.
+    const box = { width: 15, height: 15, borderRadius: 4, borderCurve: "continuous", marginRight: 1, marginBottom: 3, alignItems: "center", justifyContent: "center" } as const;
     return m.done
       ? { labelClass: "bg-paper-muted text-paper text-[11px] font-bold", labelStyle: box }
       : { labelClass: "border-accent-ink", labelStyle: { ...box, borderWidth: 1.5 } };
