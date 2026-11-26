@@ -25,6 +25,7 @@ nsh test                      # Rust tests, then the TSX tests, headless
 cargo fmt --all               # format the Rust
 cargo build -p jot-mcp        # the MCP server, which `nsh run` (a debug build) finds in cargo's target folder
 scripts/package-macos.sh      # build Jot.app, with jot-mcp inside
+scripts/demo-notes.sh         # English example notes for screenshots, in ~/Documents/Jot Demo
 ```
 
 While developing, `nsh run` (a debug build) finds `jot-mcp` in cargo's target folder: build it once with
