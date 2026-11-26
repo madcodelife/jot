@@ -1,0 +1,339 @@
+# English. The voice is short and plain, as in Things and Raycast: sentence
+# case for hints, title case for menu items and buttons.
+
+language:
+  system: System
+
+tray:
+  new_note: New Note
+  summon: Open Jot (%{keys})
+  todos: To-Dos
+  enable_double_tap: Turn On Double-Press %{keys}…
+  settings: Settings…
+
+notify:
+  missed:
+    one: You missed a reminder
+    other: You missed %{count} reminders
+  list_separator: ", "
+  reminders_failed: "Reminders couldn’t start: %{error}"
+  shortcut_taken: "%{keys} is taken by another app. Open Jot from the menu bar."
+
+search:
+  placeholder: Search or create…
+  label: Search or create a note
+
+empty:
+  title: No notes yet
+  first: Type a title and press %{keys} to start your first.
+  agent: Or ask your AI app to “jot this down.”
+
+keys:
+  actions: Actions
+
+list:
+  blank: Empty note
+  downloading: "Downloading…"
+  create: Create “%{title}”
+  create_hint: Press Return to start writing
+  today:
+    one: 1 to-do today
+    other: "%{count} to-dos today"
+  today_none: Nothing due today
+  late:
+    one: 1 overdue
+    other: "%{count} overdue"
+  late_title:
+    one: 1 overdue to-do
+    other: "%{count} overdue to-dos"
+  all_done: All done for today
+  next: "Next: %{time} %{text}"
+  see_all: Press Return to see all to-dos
+  dots: "%{done} of %{total} done today"
+
+todo:
+  # Typed in the search field (or /todo), these open the to-do view; the first is the one the menu and notifications use.
+  keywords: todo|todos|to-dos|to-do
+  group:
+    late: Overdue
+    today: Today
+    tomorrow: Tomorrow
+    later: Upcoming
+    none: Anytime
+  empty: You’re all caught up
+  tick: Complete “%{text}”
+  row: "%{text}, %{note}"
+  due_tip: "%{when} · reminder"
+  due_change: "Change the reminder time of “%{text}”"
+
+note:
+  invalid_title: "“%{title}” can’t be a title"
+  create_failed: "Couldn’t create “%{title}”: %{error}"
+  rename_taken: "A note named “%{title}” already exists"
+  rename_failed: "Couldn’t rename “%{title}”: %{error}"
+
+paper:
+  by_agent: By %{agent}
+  saved: Saved
+  placeholder: Start writing…
+  label: Note “%{title}”
+  save_failed: "Couldn’t save: %{error}"
+  appended: Text was added at the end. Your cursor stayed put.
+  conflict: This note changed somewhere else
+  view_end: Show ↓
+  use_theirs: Use Theirs
+  downloading: "This note isn’t on this Mac yet. Downloading…"
+  other_device: "another device"
+  versions: "This note was also changed on %{device} at the same time (%{when}), and iCloud kept both versions. Which one stays?"
+  versions_more: "This note was also changed on %{device} at the same time (%{when}); iCloud kept %{more} more versions too. This one first: which stays?"
+  keep_mine: "Keep This Mac’s"
+  keep_theirs: "Use the Other"
+  keep_both: "Keep Both"
+  copy_title: "%{title} (%{device})"
+  kept_both: "Saved the other version as “%{title}”"
+  resolve_failed: "Couldn’t settle the versions: %{error}"
+
+time:
+  just_now: Just now
+  minutes_ago:
+    one: 1 min ago
+    other: "%{count} min ago"
+  today_at: Today %{time}
+  today: Today
+  tomorrow: Tomorrow
+  day_after: In 2 days
+  yesterday: Yesterday
+
+island:
+  writing: "%{agent} · Writing to Jot"
+  written: "%{agent} · Saved to Jot"
+  done: Done
+  remind: Reminder · %{time} · %{note}
+  now: Now
+  writing_label: Writing
+  locked: Locked · unlock the note in Jot to check this off
+
+settings:
+  title: Settings
+  tabs:
+    general: General
+    summon: Summon & Shortcuts
+    voice: Voice
+    appearance: Appearance
+    reminders: Reminders
+    ai: AI Apps
+    about: About
+  folder:
+    label: Notes Folder
+    hint: Each note is a .md file in this folder. Sync the folder with iCloud Drive, Dropbox or Syncthing.
+    change: Change…
+    choose: Choose
+    reveal: Show in Finder
+    failed: "Couldn’t open that folder: %{error}"
+  icloud:
+    label: "iCloud Drive"
+    move: "Move to iCloud Drive…"
+    moving: "Moving…"
+    hint: "Move your notes to iCloud Drive to see them on your iPhone, iPad and other Macs."
+    off: "iCloud Drive is off. Turn it on in System Settings › Apple Account › iCloud."
+    on: "Your notes are in iCloud Drive and sync to your other devices."
+    synced: "In iCloud Drive"
+    confirm_title: "Move your notes to iCloud Drive?"
+    confirm: "The notes in %{from} move to %{to}, and Jot and your connected AI apps use that folder from now on. Notes already there are never replaced: one with the same title is saved with a number."
+    confirm_move: "Move to iCloud Drive"
+    cancel: "Cancel"
+    moved:
+      one: "Moved 1 note to iCloud Drive."
+      other: "Moved %{count} notes to iCloud Drive."
+    renamed:
+      one: "“%{from}” had the same title as a note there and was saved as “%{to}”."
+      other: "%{count} had the same titles as notes there and were saved with a number, like “%{to}”."
+    same:
+      one: "1 was already there, word for word, and stayed in %{folder}."
+      other: "%{count} were already there, word for word, and stayed in %{folder}."
+    failed_some:
+      one: "1 couldn’t be moved and is still in %{folder}: %{error}"
+      other: "%{count} couldn’t be moved and are still in %{folder}: %{error}"
+    failed: "Couldn’t move to iCloud Drive: %{error}"
+  summon:
+    double: Double-press %{key}
+    on: "On"
+    grant: Allow…
+    fallback: Fallback Shortcut
+    footnote: Double-press %{key} needs Jot allowed in Privacy & Security › Accessibility; until then, use the fallback shortcut.
+  voice:
+    hold: Hold %{key} to Talk
+    hold_hint: Hold %{key} in Jot to dictate; double-press and hold %{key} in any app for a quick note.
+    language: Recognition Language
+    language_auto: Follow the input source
+    permission: Microphone & Speech Recognition
+    permission_hint: macOS asks for both the first time you talk
+    permissions: Permissions
+    denied_hint: Not allowed. Turn them on in System Settings › Privacy & Security
+    grant: Allow…
+  startup:
+    label: Startup
+  login:
+    label: Open at Login
+    hint: Jot waits in the menu bar after you log in
+  language:
+    label: Language
+    interface: App Language
+  appearance:
+    label: Appearance
+    system: Auto
+    light: Light
+    dark: Dark
+  theme:
+    label: Panel Theme
+    footnote: Themes only change the panel’s colors.
+    selected: Selected
+  reminders:
+    notifications: Notifications
+    notifications_hint: Show a notification when a to-do is due
+    island: Notch Island
+    island_hint: Opens from the notch for reminders and notes from AI apps
+    island_no_notch: This display has no notch
+    default_time: Default Time
+    time: Time
+    default_time_hint: Used when a reminder has a date but no time, like “pay rent tomorrow”.
+  ai:
+    intro: Connect the AI apps on this Mac to Jot. They can then search, read and add to the notes in this folder, and keep your to-dos.
+    apps: Apps on This Mac
+    looking: Looking for apps…
+    none: No supported AI apps found on this Mac. Use the setup below for any other app.
+    connected: Connected
+    not_connected: Not connected
+    elsewhere: Connected to another folder
+    manual: Set up by hand
+    connect: Connect
+    disconnect: Disconnect
+    update: Update
+    copy: Copy
+    copied: Copied
+    copy_setup: Copy Setup
+    restart: If %{app} is open, restart it to load Jot.
+    no_cli: "The claude command wasn’t found. Copy the command and run it in Terminal."
+    unreadable: "%{file} has comments or can’t be read, so Jot won’t change it. Copy the setup and add it yourself."
+    unsupported: "Copy the setup into %{file}."
+    not_moved: "It’s still connected to the previous folder: Jot can’t move it."
+    no_server: "jot-mcp wasn’t found next to Jot. While developing, build it with “cargo build -p jot-mcp” and open this page again."
+    translocated: "Jot is running from a temporary location (opened from Downloads, say), which apps can’t keep. Drag Jot to the Applications folder and open it from there first."
+    other: Other Apps
+    command: Command
+    json: Configuration
+    then: Then ask the app to “jot this down” or “what’s on my list today?”
+    access: Permissions
+    trash_rewrite: Allow AI apps to move notes to the Trash and rewrite notes
+    trash_rewrite_hint: "Notes they remove, and each note as it was before a rewrite, go to the Trash, where you can get them back. Locked notes stay as they are."
+    trash_rewrite_failed: "Couldn’t save this setting: %{error}"
+  about:
+    title: About Jot
+    tagline: A notebook you share with your AI
+    version: Version %{version} (%{build})
+    built_with: Built with Native Shell
+    open: Open
+    themes_credit: "Theme colors after GitHub Theme, One Dark Pro, Atom One Light, Dracula, Tokyo Night, Catppuccin and Gruvbox (MIT)."
+
+theme:
+  default: Indigo
+  github: GitHub
+  one: One
+  dracula: Dracula
+  tokyo: Tokyo Night
+  catppuccin: Catppuccin
+  gruvbox: Gruvbox
+  contrast: High Contrast
+
+voice:
+  listening: Listening…
+  language_tag: "Listening for %{language}. Click or press ⌘L to switch"
+  start: Dictate
+  start_note: Dictate at the Cursor
+  stop: Done
+  cancel: Cancel
+  finish_release: Release
+  finish_press: Click the microphone to finish
+  # Where a quick note without a time goes.
+  inbox: Inbox
+  island:
+    listening: Listening · release to save
+    inbox: Saved · %{note}
+    todo: Reminder added
+    open_settings: Click to open System Settings
+    try_again: Try saying it again
+  error:
+    empty: Didn’t catch that
+    not-allowed: No access to the microphone or speech recognition
+    no-speech: Didn’t hear anything
+    audio-capture: The microphone isn’t available
+    network: Speech recognition needs the internet
+    language-not-supported: This language can’t be recognized yet
+    unavailable: Speech recognition isn’t available on this device
+    failed: Couldn’t recognize that
+
+actions:
+  label: Actions
+  filter: Search actions…
+  none: No matching actions
+  open: Open
+  reveal:
+    macos: Show in Finder
+    windows: Show in File Explorer
+    linux: Show in Files
+  rename: Rename
+  rename_label: "New title for “%{title}”"
+  copy_title: Copy Title
+  copy_body: Copy Text
+  trash: Move to %{bin}
+  copied: Copied
+  create: Create
+  todos: Show To-dos
+  open_note: Open Note
+  tick: Complete
+  due: Reminder Time…
+  due_add: Add Reminder…
+  due_remove: Remove Reminder
+  lock: Lock
+  unlock: Unlock
+
+trash:
+  bin:
+    macos: Trash
+    windows: Recycle Bin
+    linux: Trash
+  moved:
+    one: "Moved “%{title}” to the %{bin}"
+    other: "Moved “%{title}” and %{more} more to the %{bin}"
+  undo: Undo
+  failed: "Couldn’t move “%{title}” to the %{bin}: %{error}"
+  restore_taken: "A note named “%{title}” exists; the other one is still in the %{bin}"
+  restore_failed: "Couldn’t restore “%{title}”: %{error}"
+
+due:
+  title: Reminder Time
+  none: No reminder
+  quick:
+    hour: In an Hour
+    tonight: This Evening
+    tomorrow: Tomorrow Morning
+    monday: Next Monday
+  time: Time
+  set: Set
+  remove: Remove Reminder
+  previous_month: Previous month
+  next_month: Next month
+  changed: The to-do just changed; its reminder time stays as it was
+  failed: "Couldn’t change the reminder time: %{error}"
+
+lock:
+  locked: Locked
+  unlock_label: "“%{title}” is locked. Click to unlock"
+  row: Locked
+  trash: "“%{title}” is locked. Unlock it to move it to the %{bin}"
+  rename: "“%{title}” is locked. Unlock it to rename it"
+  todo: "“%{note}” is locked. Unlock it to change its to-dos"
+  failed: "Couldn’t lock “%{title}”: %{error}"
+  unlock_failed: "Couldn’t unlock “%{title}”: %{error}"
+  done: "Locked “%{title}”"
+  undone: "Unlocked “%{title}”"

@@ -1,0 +1,64 @@
+[package]
+name = "nsh-app-jot"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "MIT"
+
+[workspace]
+members = ["store", "mcp"]
+
+[workspace.dependencies]
+# Moving notes to the system trash: Foundation's file manager on macOS
+# (jot-store), the `trash` crate elsewhere.
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std"] }
+trash = "5"
+
+[dependencies]
+nsh-icon-lucide = "0.2.2"
+nsh-icon = "0.2.2"
+# NSH's repository at a commit, not a release: the open note's live preview needs `EditorDecoration`'s `label` /
+# `labelClass` / `labelStyle` (NSH #3178) and `fontSize` / `fontFamily` (NSH #3177), new after 0.7.0, and the fix
+# that keeps label boxes from laying the rows out again without end (NSH #3272, on main before the commit).
+# The `nsh` CLI must be the same commit (CONTRIBUTING, Setting up; `scripts/install-nsh.sh` builds it). Back to
+# crates.io (`nsh-core = "<version>"`) once a release of NSH has them.
+nsh-core = { git = "https://github.com/longbridge/nsh", rev = "dccbe7edf99790add1e95b3be26eac72116ae594" }
+# Dictation's `Speech` (TSX: `import { Speech } from "nsh-extra"`), out of NSH's runtime since 0.6. NSH links a Rust
+# nshm the app's crate depends on. The same commit as nsh-core, and the same move back to crates.io.
+nsh-extra = { git = "https://github.com/longbridge/nsh", rev = "dccbe7edf99790add1e95b3be26eac72116ae594", features = ["speech"] }
+jot-store = { path = "store" }
+jiff = "1.0.0"
+# Channels from other threads (the folder watcher, the reminders' thread,
+# AppKit's monitors) to tasks on the engine thread.
+tokio = { version = "1", default-features = false, features = ["sync"] }
+# The AI apps' configuration files (`connect`): edited in place, their keys
+# kept in order (JSON) and their comments and layout kept (TOML).
+serde = "1"
+serde_json = { version = "1", features = ["preserve_order"] }
+toml_edit = "0.25"
+
+[dev-dependencies]
+tempfile = "3"
+
+# The versions NSH's workspace uses, default features off as there.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6.5"
+block2 = "0.6.2"
+objc2-foundation = { workspace = true, features = [
+  "NSDictionary",
+  "NSFileManager",
+  "NSObject",
+  "NSString",
+  "NSURL",
+  "NSValue",
+] }
+objc2-app-kit = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "block2",
+  "NSEvent",
+  "NSWorkspace",
+] }
+
+# nsh-icon and nsh-icon-lucide ask for nsh-core 0.7.0 from crates.io: they build with the same commit as the app's.
+[patch.crates-io]
+nsh-core = { git = "https://github.com/longbridge/nsh", rev = "dccbe7edf99790add1e95b3be26eac72116ae594" }

@@ -1,0 +1,338 @@
+# 日本語。macOS の用語に合わせる（設定、一般、Finder、ログイン時に開く）。
+
+language:
+  system: システムに合わせる
+
+tray:
+  new_note: 新規メモ
+  summon: Jot を開く（%{keys}）
+  todos: やること
+  enable_double_tap: "%{keys} の 2 回押しをオンにする…"
+  settings: 設定…
+
+notify:
+  missed:
+    one: リマインダーを %{count} 件見逃しました
+    other: リマインダーを %{count} 件見逃しました
+  list_separator: 、
+  reminders_failed: リマインダーを開始できませんでした：%{error}
+  shortcut_taken: "%{keys} はほかのアプリが使用中です。メニューバーの Jot から開いてください"
+
+search:
+  placeholder: 検索または新規作成…
+  label: メモを検索または新規作成
+
+empty:
+  title: メモはまだありません
+  first: タイトルを入力して %{keys} を押すと、最初のメモができます。
+  agent: AI アプリに「Jot にメモして」と頼むこともできます。
+
+keys:
+  actions: アクション
+
+list:
+  blank: 空のメモ
+  downloading: "ダウンロード中…"
+  create: 「%{title}」を作成
+  create_hint: Return ですぐに書き始められます
+  today:
+    one: 今日のやること %{count} 件
+    other: 今日のやること %{count} 件
+  today_none: 今日のやることはありません
+  late:
+    one: "期限切れ %{count} 件"
+    other: "期限切れ %{count} 件"
+  late_title:
+    one: "期限切れのやること %{count} 件"
+    other: "期限切れのやること %{count} 件"
+  all_done: 今日の分はすべて完了
+  next: 次は %{time} %{text}
+  see_all: Return ですべてのやることを表示
+  dots: 今日 %{total} 件中 %{done} 件完了
+
+todo:
+  # 検索フィールドにこれ（または /todo）を入力すると、やることの一覧になります。最初の語はメニューと通知で使います。
+  keywords: やること|todo
+  group:
+    late: 期限切れ
+    today: 今日
+    tomorrow: 明日
+    later: 今後
+    none: 日時なし
+  empty: 未完了のやることはありません
+  tick: 「%{text}」を完了
+  row: "%{text}、%{note}"
+  due_tip: "%{when} · リマインダー"
+  due_change: 「%{text}」のリマインダーの時刻を変更
+
+note:
+  invalid_title: 「%{title}」はタイトルに使えません
+  create_failed: 「%{title}」を作成できませんでした：%{error}
+  rename_taken: 「%{title}」というメモはすでにあります
+  rename_failed: 「%{title}」の名前を変更できませんでした：%{error}
+
+paper:
+  by_agent: "%{agent} が作成"
+  saved: 保存済み
+  placeholder: 書き始める…
+  label: メモ「%{title}」
+  save_failed: 保存できませんでした：%{error}
+  appended: 末尾に追記されました。カーソルはそのままです
+  conflict: このメモはほかの場所で変更されました
+  view_end: 表示 ↓
+  use_theirs: あちらを使う
+  downloading: "このメモはまだこの Mac にありません。ダウンロード中…"
+  other_device: "別のデバイス"
+  versions: "このメモは %{device} でも同時に変更され（%{when}）、iCloud に両方の版が残っています。どちらを残しますか？"
+  versions_more: "このメモは %{device} でも同時に変更され（%{when}）、iCloud にはほかに %{more} 件の版が残っています。まずこの版：どちらを残しますか？"
+  keep_mine: "この Mac の版を残す"
+  keep_theirs: "もう一方を使う"
+  keep_both: "両方残す"
+  copy_title: "%{title}（%{device}）"
+  kept_both: "もう一方の版を「%{title}」として保存しました"
+  resolve_failed: "版を整理できませんでした：%{error}"
+
+time:
+  just_now: たった今
+  minutes_ago:
+    one: "%{count} 分前"
+    other: "%{count} 分前"
+  today_at: 今日 %{time}
+  today: 今日
+  tomorrow: 明日
+  day_after: 明後日
+  yesterday: 昨日
+
+island:
+  writing: "%{agent} · Jot に書き込み中"
+  written: "%{agent} · 保存しました"
+  done: 完了
+  remind: リマインダー · %{time} · %{note}
+  now: 今
+  writing_label: 書き込み中
+  locked: ロック中 · Jot でメモのロックを解除するとチェックできます
+
+settings:
+  title: 設定
+  tabs:
+    general: 一般
+    summon: 呼び出しとショートカット
+    voice: 音声
+    appearance: 外観
+    reminders: リマインダー
+    ai: AI アプリ
+    about: 情報
+  folder:
+    label: メモのフォルダ
+    hint: メモは 1 件ずつ、このフォルダの .md ファイルになります。iCloud Drive、Dropbox、Syncthing でフォルダを同期できます。
+    change: 変更…
+    choose: 選択
+    reveal: Finder に表示
+    failed: このフォルダを開けませんでした：%{error}
+  icloud:
+    label: "iCloud Drive"
+    move: "iCloud Drive に移動…"
+    moving: "移動中…"
+    hint: "メモを iCloud Drive に移すと、iPhone、iPad、ほかの Mac でも見られます。"
+    off: "iCloud Drive がオフです。「システム設定」›「Apple アカウント」›「iCloud」でオンにしてください。"
+    on: "メモは iCloud Drive にあり、ほかのデバイスと同期されます。"
+    synced: "iCloud Drive にあります"
+    confirm_title: "メモを iCloud Drive に移動しますか？"
+    confirm: "%{from} のメモを %{to} に移し、以後 Jot と接続中の AI アプリはそのフォルダを使います。移動先のメモは上書きしません。同じタイトルのメモは番号を付けて保存します。"
+    confirm_move: "iCloud Drive に移動"
+    cancel: "キャンセル"
+    moved:
+      one: "%{count} 件のメモを iCloud Drive に移しました。"
+      other: "%{count} 件のメモを iCloud Drive に移しました。"
+    renamed:
+      one: "「%{from}」は移動先のメモと同じタイトルだったので「%{to}」として保存しました。"
+      other: "%{count} 件は移動先のメモと同じタイトルだったので、「%{to}」のように番号を付けて保存しました。"
+    same:
+      one: "%{count} 件は移動先にまったく同じメモがあったので、%{folder} に残しました。"
+      other: "%{count} 件は移動先にまったく同じメモがあったので、%{folder} に残しました。"
+    failed_some:
+      one: "%{count} 件は移動できず、%{folder} に残っています：%{error}"
+      other: "%{count} 件は移動できず、%{folder} に残っています：%{error}"
+    failed: "iCloud Drive に移動できませんでした：%{error}"
+  summon:
+    double: "%{key} を 2 回押す"
+    on: オン
+    grant: 許可…
+    fallback: 予備のショートカット
+    footnote: "%{key} の 2 回押しには「プライバシーとセキュリティ › アクセシビリティ」で Jot の許可が必要です。使えないときは予備のショートカットで開きます。"
+  voice:
+    hold: "%{key} 長押しで話す"
+    hold_hint: Jot で %{key} を長押しして入力。ほかの App では %{key} を 2 回押して長押しすると、ひとことメモ。
+    language: 認識する言語
+    language_auto: 入力ソースに合わせる
+    permission: マイクと音声認識
+    permission_hint: 初めて話すときに macOS が両方の許可を求めます
+    permissions: 権限
+    denied_hint: 許可されていません。システム設定の「プライバシーとセキュリティ」でオンにしてください
+    grant: 許可…
+  startup:
+    label: 起動
+  login:
+    label: ログイン時に開く
+    hint: ログイン後、Jot はメニューバーで待機します
+  language:
+    label: 言語
+    interface: 表示言語
+  appearance:
+    label: 外観
+    system: 自動
+    light: ライト
+    dark: ダーク
+  theme:
+    label: パネルのテーマ
+    footnote: テーマで変わるのはパネルの色だけです。
+    selected: 選択中
+  reminders:
+    notifications: 通知
+    notifications_hint: 期限が来たらシステムの通知を表示します
+    island: ノッチのアイランド
+    island_hint: リマインダーや AI アプリのメモをノッチから表示します
+    island_no_notch: このディスプレイにはノッチがありません
+    default_time: デフォルトの時刻
+    time: 時刻
+    default_time_hint: 「明日 家賃」のように日付だけのときに使う時刻。
+  ai:
+    intro: この Mac の AI アプリを Jot につなぐと、このフォルダのメモを検索・読み込み・追記でき、やることも管理できます。
+    apps: この Mac のアプリ
+    looking: アプリを探しています…
+    none: この Mac に対応する AI アプリが見つかりません。ほかのアプリには下の共通設定を使えます。
+    connected: 接続済み
+    not_connected: 未接続
+    elsewhere: 別のフォルダに接続中
+    manual: 手動で設定
+    connect: 接続
+    disconnect: 接続解除
+    update: 更新
+    copy: コピー
+    copied: コピーしました
+    copy_setup: 設定をコピー
+    restart: "%{app} を開いている場合は、再起動すると Jot が読み込まれます。"
+    no_cli: claude コマンドが見つかりません。コマンドをコピーしてターミナルで実行してください。
+    unreadable: "%{file} にコメントがあるか読み込めないため、Jot は変更しません。設定をコピーして追加してください。"
+    unsupported: "設定をコピーして %{file} に追加してください。"
+    not_moved: まだ前のフォルダに接続されています。Jot からは切り替えられません。
+    no_server: Jot の隣に jot-mcp が見つかりません。開発中は「cargo build -p jot-mcp」でビルドしてから、このページを開き直してください。
+    translocated: Jot は「ダウンロード」などの一時的な場所から開かれているため、接続してもパスが使えなくなります。先に Jot を「アプリケーション」フォルダにドラッグし、そこから開いてください。
+    other: ほかのアプリ
+    command: コマンド
+    json: 設定
+    then: あとはアプリに「Jot にメモして」「今日やることは？」と話しかけるだけです。
+    access: 許可
+    trash_rewrite: AI アプリにメモのゴミ箱への移動と書き換えを許可
+    trash_rewrite_hint: 移動されたメモも、書き換える前のメモもゴミ箱に入るので、そこから戻せます。ロックしたメモは変わりません。
+    trash_rewrite_failed: この設定を保存できませんでした：%{error}
+  about:
+    title: Jot について
+    tagline: AI と共有するメモ帳
+    version: バージョン %{version}（%{build}）
+    built_with: Native Shell で構築
+    open: 開く
+    themes_credit: テーマの配色は GitHub Theme、One Dark Pro、Atom One Light、Dracula、Tokyo Night、Catppuccin、Gruvbox（MIT）を参考にしています。
+
+theme:
+  default: インディゴ
+  github: GitHub
+  one: One
+  dracula: Dracula
+  tokyo: Tokyo Night
+  catppuccin: Catppuccin
+  gruvbox: Gruvbox
+  contrast: ハイコントラスト
+
+voice:
+  listening: 聞いています…
+  language_tag: 認識する言語：%{language}。クリックか ⌘L で切り替え
+  start: 音声入力
+  start_note: カーソル位置に音声入力
+  stop: 終了
+  cancel: キャンセル
+  finish_release: 離す
+  finish_press: もう一度マイクを押して終了
+  # 時間のないひとことはこのノートに入ります。
+  inbox: 受信箱
+  island:
+    listening: 聞いています · 離すと保存
+    inbox: 保存しました · %{note}
+    todo: リマインダーを追加
+    open_settings: クリックしてシステム設定を開く
+    try_again: もう一度話してください
+  error:
+    empty: 聞き取れませんでした
+    not-allowed: マイクまたは音声認識が許可されていません
+    no-speech: 声が聞こえませんでした
+    audio-capture: マイクを使用できません
+    network: 音声認識にはインターネット接続が必要です
+    language-not-supported: この言語はまだ認識できません
+    unavailable: このデバイスでは音声認識を使用できません
+    failed: 認識できませんでした
+
+actions:
+  label: アクション
+  filter: アクションを検索…
+  none: 一致するアクションはありません
+  open: 開く
+  reveal:
+    macos: Finderに表示
+    windows: エクスプローラーで表示
+    linux: ファイルで表示
+  rename: 名前を変更
+  rename_label: 「%{title}」の新しいタイトル
+  copy_title: タイトルをコピー
+  copy_body: 本文をコピー
+  trash: "%{bin}に入れる"
+  copied: コピーしました
+  create: 作成
+  todos: やることを表示
+  open_note: メモを開く
+  tick: 完了
+  due: リマインダーの時刻…
+  due_add: リマインダーを追加…
+  due_remove: リマインダーを削除
+  lock: ロック
+  unlock: ロックを解除
+
+trash:
+  bin:
+    macos: ゴミ箱
+    windows: ごみ箱
+    linux: ゴミ箱
+  moved:
+    one: 「%{title}」を%{bin}に入れました
+    other: 「%{title}」ほか %{more} 件を%{bin}に入れました
+  undo: 取り消す
+  failed: 「%{title}」を%{bin}に入れられませんでした：%{error}
+  restore_taken: 「%{title}」というメモがあるため、元のメモは%{bin}に残っています
+  restore_failed: 「%{title}」を戻せませんでした：%{error}
+
+due:
+  title: リマインダーの時刻
+  none: リマインダーなし
+  quick:
+    hour: 1時間後
+    tonight: 今夜
+    tomorrow: 明日の朝
+    monday: 来週の月曜
+  time: 時刻
+  set: 設定
+  remove: リマインダーを削除
+  previous_month: 前の月
+  next_month: 次の月
+  changed: このやることは変更されたばかりのため、時刻は変えていません
+  failed: リマインダーの時刻を変更できませんでした：%{error}
+
+lock:
+  locked: ロック中
+  unlock_label: 「%{title}」はロックされています。クリックでロックを解除
+  row: ロック中
+  trash: 「%{title}」はロックされています。%{bin}に入れるにはロックを解除してください
+  rename: 「%{title}」はロックされています。名前を変更するにはロックを解除してください
+  todo: 「%{note}」はロックされています。やることを変えるにはロックを解除してください
+  failed: 「%{title}」をロックできませんでした：%{error}
+  unlock_failed: 「%{title}」のロックを解除できませんでした：%{error}
+  done: 「%{title}」をロックしました
+  undone: 「%{title}」のロックを解除しました
