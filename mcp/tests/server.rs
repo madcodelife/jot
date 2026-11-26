@@ -50,12 +50,14 @@ async fn create_search_read_append() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(dir.path()).unwrap();
     let activity = dir.path().join(".activity.jsonl");
+    let settings = dir.path().join(".ai.json");
     fs::write(dir.path().join("Groceries.md"), "milk, eggs\n").unwrap();
 
     let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
     let server = tokio::spawn(async move {
         JotServer::new(store)
             .with_activity_file(activity)
+            .with_settings_file(settings)
             .serve(server_transport)
             .await
             .unwrap()
@@ -224,12 +226,14 @@ async fn add_list_complete_todos() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(dir.path()).unwrap();
     let activity = dir.path().join(".activity.jsonl");
+    let settings = dir.path().join(".ai.json");
     fs::write(dir.path().join("Groceries.md"), "milk, eggs\n").unwrap();
 
     let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
     let server = tokio::spawn(async move {
         JotServer::new(store)
             .with_activity_file(activity)
+            .with_settings_file(settings)
             .with_clock(friday_morning)
             .serve(server_transport)
             .await
@@ -446,6 +450,7 @@ async fn reschedule_todos() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(dir.path()).unwrap();
     let activity = dir.path().join(".activity.jsonl");
+    let settings = dir.path().join(".ai.json");
     let todo_note = dir.path().join("待办.md");
     fs::write(
         &todo_note,
@@ -457,6 +462,7 @@ async fn reschedule_todos() {
     let server = tokio::spawn(async move {
         JotServer::new(store)
             .with_activity_file(activity)
+            .with_settings_file(settings)
             .with_clock(friday_morning)
             .serve(server_transport)
             .await
@@ -607,10 +613,12 @@ async fn notes_are_marked_with_the_client_that_wrote_them() {
     ] {
         let store = Store::open(dir.path()).unwrap();
         let activity = dir.path().join(".activity.jsonl");
+        let settings = dir.path().join(".ai.json");
         let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
         tokio::spawn(async move {
             JotServer::new(store)
                 .with_activity_file(activity)
+                .with_settings_file(settings)
                 .serve(server_transport)
                 .await
                 .unwrap()
@@ -656,10 +664,12 @@ async fn notes_are_marked_with_the_client_that_wrote_them() {
     .unwrap();
     let store = Store::open(dir.path()).unwrap();
     let activity = dir.path().join(".activity.jsonl");
+    let settings = dir.path().join(".ai.json");
     let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
     tokio::spawn(async move {
         let _ = JotServer::new(store)
             .with_activity_file(activity)
+            .with_settings_file(settings)
             .serve(server_transport)
             .await
             .unwrap()
@@ -682,6 +692,7 @@ async fn notes_not_downloaded_are_waited_for() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(dir.path()).unwrap();
     let activity = dir.path().join(".activity.jsonl");
+    let settings = dir.path().join(".ai.json");
     let placeholder = dir.path().join(".Away.md.icloud");
     fs::write(&placeholder, "bplist00").unwrap();
 
@@ -689,6 +700,7 @@ async fn notes_not_downloaded_are_waited_for() {
     tokio::spawn(async move {
         JotServer::new(store)
             .with_activity_file(activity)
+            .with_settings_file(settings)
             .with_download_wait(std::time::Duration::from_millis(1500))
             .serve(server_transport)
             .await
@@ -736,6 +748,7 @@ async fn todos_in_fenced_code_are_not_listed() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(dir.path()).unwrap();
     let activity = dir.path().join(".activity.jsonl");
+    let settings = dir.path().join(".ai.json");
     // A shell snippet and a Markdown sample kept in a note: their task-looking lines are code.
     fs::write(
         dir.path().join("Setup.md"),
@@ -747,6 +760,7 @@ async fn todos_in_fenced_code_are_not_listed() {
     let server = tokio::spawn(async move {
         JotServer::new(store)
             .with_activity_file(activity)
+            .with_settings_file(settings)
             .with_clock(friday_morning)
             .serve(server_transport)
             .await

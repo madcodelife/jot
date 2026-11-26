@@ -3,6 +3,7 @@
 // (`ActivityLog.append`).
 import { expect, open, test } from "nsh/test";
 import { ActivityLog, Notes, type AgentAction } from "jot/native";
+import { STAND_INS } from "./native";
 
 const unique = () => `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 /** A fresh notes folder, and a log beside it. */
@@ -23,9 +24,7 @@ const openJot = (dir: string, log: string, trashShown: (string | null)[] = []) =
     storage: { "jot.dir": dir },
     modules: {
       "jot/native": {
-        "Summon.isTrusted": true,
-        "Summon.requestTrust": null,
-        "Summon.onDoubleTap": null,
+        ...STAND_INS,
         "ActivityLog.path": log,
         "Folder.showInTrash": async (path: string | null) => void trashShown.push(path ?? null),
       },

@@ -4,6 +4,7 @@
 // run, so the tests start with the search field in front of them.
 import { expect, open, test } from "nsh/test";
 import { Notes } from "jot/native";
+import { STAND_INS } from "./native";
 
 /** A fresh, empty notes folder. */
 const folder = (name: string) => `/tmp/jot-test-${name}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
@@ -20,11 +21,7 @@ const openJot = (dir: string) =>
     storage: { "jot.dir": dir },
     modules: {
       "jot/native": {
-        "Summon.isTrusted": true,
-        "Summon.requestTrust": null,
-        "Summon.onDoubleTap": null,
-        // No activity log: the island says nothing of AI apps here (app/tests/island.test.tsx has it).
-        "ActivityLog.path": null,
+        ...STAND_INS,
       },
     },
   });

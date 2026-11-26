@@ -5,6 +5,7 @@
 // leaves the user's trash as it was.
 import { expect, open, test } from "nsh/test";
 import { Notes } from "jot/native";
+import { STAND_INS } from "./native";
 
 const folder = (name: string) => `/tmp/jot-test-${name}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
@@ -18,9 +19,7 @@ const openJot = (dir: string) =>
     storage: { "jot.dir": dir },
     modules: {
       "jot/native": {
-        "Summon.isTrusted": true,
-        "Summon.requestTrust": null,
-        "Summon.onDoubleTap": null,
+        ...STAND_INS,
       },
     },
   });

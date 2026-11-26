@@ -105,5 +105,7 @@ neither who wrote it nor on which Mac (one an AI app made on another Mac arrives
   that is not a record is skipped. The app keeps the records whose `dir` is its notes folder, compared with links
   resolved (and case aside on the Mac); what it does with them is in [app.md](app.md).
 
-The server's tests write to a log of their own (`JotServer::with_activity_file`), never the user's; the island's tests
-point the app at one of theirs (`ActivityLog.path`, faked).
+Tests never touch the user's `~/Library/Application Support/Jot`: the server's tests give it a log and a settings file
+of their own (`JotServer::with_activity_file`, `with_settings_file`); the app's tests start from the stand-ins in
+`app/tests/native.ts`, which give it no log and no settings file (`ActivityLog.path`, `AiAccess`), and the island's
+tests give it a log of their own.

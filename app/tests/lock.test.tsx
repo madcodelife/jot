@@ -10,6 +10,7 @@
 // could not be deleted with its temporary folder otherwise.
 import { expect, open, test } from "nsh/test";
 import { Notes } from "jot/native";
+import { STAND_INS } from "./native";
 
 const folder = (name: string) => `/tmp/jot-lock-${name}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
@@ -37,9 +38,7 @@ const openJot = (dir: string, modules: Record<string, unknown> = access().module
     storage: { "jot.dir": dir },
     modules: {
       "jot/native": {
-        "Summon.isTrusted": true,
-        "Summon.requestTrust": null,
-        "Summon.onDoubleTap": null,
+        ...STAND_INS,
         "Connections.server": "/Applications/Jot.app/Contents/MacOS/jot-mcp",
         "Connections.translocated": false,
         "Connections.clients": async () => [],
