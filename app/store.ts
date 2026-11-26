@@ -29,8 +29,8 @@ export type TodoItem =
   | { kind: "header"; group: TodoGroup; count: number }
   | { kind: "todo"; todo: Todo; group: TodoGroup; key: string; index: number };
 
-/** How many notes a search shows. */
-const LIMIT = 6;
+/** How many notes the list holds, recent or found; it shows `T.size.listRows` of them and scrolls to the rest. */
+const LIMIT = 100;
 
 /** Storage keys: the notes folder (the user may move it), and whether Jot was shown once. */
 const DIR_KEY = "jot.dir";

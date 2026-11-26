@@ -4,13 +4,15 @@
 // list opens, and on their own for a note new in the folder or back from
 // the trash; a note moved to the trash slides left as it fades, then the
 // rows below close the gap. Filtering and the arrow keys change the list
-// without motion.
-import { Animated, type CompositeAnimation, computed, createAnimatedValue, effect, keymap, reduceMotion, signal, Text, token, untracked, View, type InputRef } from "nsh";
+// without motion. It shows `T.size.listRows` rows and scrolls to the rest:
+// an arrow-key step keeps the selected row in view, a new search or summon
+// starts at the top.
+import { Animated, type CompositeAnimation, computed, createAnimatedValue, effect, keymap, reduceMotion, Scroll, signal, Text, token, untracked, View, type InputRef, type ScrollRef } from "nsh";
 import { Input } from "nsh/base";
 import { t } from "nsh/i18n";
 import { openActions, type ActionTarget } from "../actions";
 import { tn } from "../i18n";
-import { activate, allTodos, arriving, dropIn, dropping, entering, finishRename, focusRequest, listEntrance, listRows, now, renaming, rowKey, selected, stage, type Row } from "../store";
+import { activate, allTodos, arriving, dropIn, dropping, entering, finishRename, focusRequest, keySteps, listEntrance, listRows, now, query, renaming, rowKey, selected, stage, type Row } from "../store";
 import { plainSnippet } from "../tasks";
 import { age, hm, todaySummary, type TodaySummary } from "../time";
 import { Icon, type IconName } from "./icons";
@@ -39,12 +41,56 @@ const summary = computed(() => todaySummary(allTodos(), new Date(now())));
 
 /** The rows; `compact` with a note open (titles only, a sidebar). */
 export function NoteList(props: { compact: boolean }) {
+  let scroll: ScrollRef | undefined;
+  let offset = 0;
+  let viewport = 0;
+  const rowHeight = () => (props.compact ? T.size.sidebarRow : T.size.row);
+  const to = (y: number) => {
+    if (!scroll || y === offset) return;
+    offset = y;
+    scroll.scrollTo({ y, animated: false });
+  };
+  // A new search, or the list summoned again: back to the top, where the first row is selected.
+  effect(() => {
+    query();
+    listEntrance();
+    untracked(() => to(0));
+  });
+  // An arrow-key step (with a note open too: the next note opens) keeps the selected row in view, set at once as the
+  // to-do view does: a held key steps faster than a scroll animation. A hover does not scroll. So does a note opened:
+  // the sidebar's rows are shorter, and the open one stays in view.
+  effect(() => {
+    keySteps();
+    void props.compact;
+    untracked(() => {
+      const at = listRows().findIndex((r) => r.index === selected());
+      if (at < 0) return;
+      const height = viewport || T.size.listRows * rowHeight();
+      const top = T.size.listTop - 2 + at * rowHeight();
+      const bottom = top + rowHeight();
+      if (at === 0) to(0);
+      else if (top < offset) to(top);
+      else if (bottom > offset + height) to(bottom - height);
+    });
+  });
   return (
-    <View testID="notes" role="list" style={{ paddingTop: T.size.listTop - 2, paddingHorizontal: props.compact ? 6 : 8 }}>
-      <Each of={listRows()} key={(r) => rowKey(r.row)}>
-        {(item) => <ListRow row={item().row} index={item().index} leaving={item().leaving} compact={props.compact} />}
-      </Each>
-    </View>
+    <Scroll
+      testID="notes-scroll"
+      class="flex-1"
+      ref={(r) => {
+        scroll = r;
+      }}
+      onScroll={({ offset: at, size }) => {
+        offset = at.y;
+        viewport = size.height;
+      }}
+    >
+      <View testID="notes" role="list" style={{ paddingTop: T.size.listTop - 2, paddingHorizontal: props.compact ? 6 : 8 }}>
+        <Each of={listRows()} key={(r) => rowKey(r.row)}>
+          {(item) => <ListRow row={item().row} index={item().index} leaving={item().leaving} compact={props.compact} />}
+        </Each>
+      </View>
+    </Scroll>
   );
 }
 
@@ -63,12 +109,19 @@ function ListRow(props: { row: Row; index: number; leaving: boolean; compact: bo
     if (stage() === "hidden") opacity.set(0);
   });
   // The list opening: each row drops in 28 ms after the one above it. A row a search brings in later (made after
-  // the entrance's turn) shows at once, as the rows it joins: typing never replays the entrance.
+  // the entrance's turn) shows at once, as the rows it joins: typing never replays the entrance. So do the rows below
+  // the ones the list shows, which are scrolled to later.
   const born = untracked(listEntrance);
   effect(() => {
     const entrance = listEntrance();
     if (!entrance || (entrance === born && !entering())) return;
-    const delay = untracked(() => props.index) * T.timing.stagger;
+    const index = untracked(() => props.index);
+    if (index >= T.size.listRows) {
+      offset.set(0);
+      opacity.set(1);
+      return;
+    }
+    const delay = index * T.timing.stagger;
     if (reduceMotion()) {
       opacity.set(0);
       Animated.timing(opacity, { toValue: 1, duration: 180, delay, easing: "easeOut" }).start();

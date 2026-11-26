@@ -250,8 +250,13 @@ there, so `assets/` is in the native fingerprint ([Updates](#updates-appupdatest
 
 ## The list's motion (app/ui/NoteList.tsx)
 
+The list holds up to 100 notes (the latest, or a search's best), shows `T.size.listRows` (six) and scrolls to the rest;
+with a note open the sidebar holds the same rows and scrolls in its height. ↑↓ go through every row, wrapping at the
+ends, and keep the selected one in view, set at once as the to-do view's are (a held key steps faster than a scroll
+animation); a hover does not scroll. A new search, or the list summoned again, starts at the top.
+
 As the list opens, its rows drop in one after another: each `T.timing.stagger` after the row above, from 9 points above
-on `T.spring.drop`, fading in over `T.timing.dropFade`. A note that appears later drops in the same way on its own while
+on `T.spring.drop`, fading in over `T.timing.dropFade`; the rows below the ones it shows are there at once. A note that appears later drops in the same way on its own while
 the rows below make room: a note new in the folder (written by another program, synced from another Mac, or an AI
 app's, which also glows) and one brought back from the trash by ⌘Z, which ends selected (`dropIn` in app/store.ts).
 Rows a search brings in show at once: typing never animates the list.
