@@ -190,7 +190,7 @@ test("⌘K on a to-do row offers Reminder Time… and Remove Reminder, and Add R
   await app.press("id:action:due-remove");
   await app.waitUntil(() => new Notes(dir).read("家")?.body === "- [ ] 交房租\n- [ ] 买牛奶");
 
-  // The selection followed it into "没有时间": ⌘K now adds one, and the picker opens from there.
+  // The selection followed it into "随时": ⌘K now adds one, and the picker opens from there.
   await app.keyboard.press("mod+k");
   await app.waitFor("id:actions");
   expect(app.texts()).toContain("添加提醒…");

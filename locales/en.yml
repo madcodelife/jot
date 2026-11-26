@@ -92,7 +92,7 @@ paper:
   keep_both: "Keep Both"
   copy_title: "%{title} (%{device})"
   kept_both: "Saved the other version as “%{title}”"
-  resolve_failed: "Couldn’t settle the versions: %{error}"
+  resolve_failed: "Couldn’t sort out the versions: %{error}"
 
 time:
   just_now: Just now
@@ -161,7 +161,7 @@ settings:
     on: "On"
     grant: Allow…
     fallback: Fallback Shortcut
-    footnote: Double-press %{key} needs Jot allowed in Privacy & Security › Accessibility; until then, use the fallback shortcut.
+    footnote: To double-press %{key}, allow Jot in Privacy & Security › Accessibility; until then, use the fallback shortcut.
   voice:
     hold: Hold %{key} to Talk
     hold_hint: Hold %{key} in Jot to dictate; double-press and hold %{key} in any app for a quick note.
@@ -199,14 +199,14 @@ settings:
     time: Time
     default_time_hint: Used when a reminder has a date but no time, like “pay rent tomorrow”.
   ai:
-    intro: Connect the AI apps on this Mac to Jot. They can then search, read and add to the notes in this folder, and keep your to-dos.
+    intro: Connect the AI apps on this Mac to Jot. They can then search, read and add to the notes in this folder, and manage your to-dos.
     apps: Apps on This Mac
     looking: Looking for apps…
     none: No supported AI apps found on this Mac. Use the setup below for any other app.
     connected: Connected
     not_connected: Not connected
     elsewhere: Connected to another folder
-    manual: Set up by hand
+    manual: Manual setup
     connect: Connect
     disconnect: Disconnect
     update: Update
@@ -219,11 +219,11 @@ settings:
     unsupported: "Copy the setup into %{file}."
     not_moved: "It’s still connected to the previous folder: Jot can’t move it."
     no_server: "jot-mcp wasn’t found next to Jot. While developing, build it with “cargo build -p jot-mcp” and open this page again."
-    translocated: "Jot is running from a temporary location (opened from Downloads, say), which apps can’t keep. Drag Jot to the Applications folder and open it from there first."
+    translocated: "Jot is running from a temporary location (opened from Downloads, say), so connections to it would break. Drag Jot to the Applications folder and open it from there first."
     other: Other Apps
     command: Command
     json: Configuration
-    then: Then ask the app to “jot this down” or “what’s on my list today?”
+    then: Then tell the app to “jot this down,” or ask “what’s on my list today?”
     access: Permissions
     trash_rewrite: Allow AI apps to move notes to the Trash and rewrite notes
     trash_rewrite_hint: "Notes they remove, and each note as it was before a rewrite, go to the Trash, where you can get them back. Locked notes stay as they are."
@@ -234,7 +234,7 @@ settings:
     version: Version %{version} (%{build})
     built_with: Built with Native Shell
     open: Open
-    themes_credit: "Theme colors after GitHub Theme, One Dark Pro, Atom One Light, Dracula, Tokyo Night, Catppuccin and Gruvbox (MIT)."
+    themes_credit: "Theme colors based on GitHub Theme, One Dark Pro, Atom One Light, Dracula, Tokyo Night, Catppuccin and Gruvbox (MIT)."
 
 theme:
   default: Indigo
@@ -289,7 +289,7 @@ actions:
   trash: Move to %{bin}
   copied: Copied
   create: Create
-  todos: Show To-dos
+  todos: Show To-Dos
   open_note: Open Note
   tick: Complete
   due: Reminder Time…
@@ -308,7 +308,7 @@ trash:
     other: "Moved “%{title}” and %{more} more to the %{bin}"
   undo: Undo
   failed: "Couldn’t move “%{title}” to the %{bin}: %{error}"
-  restore_taken: "A note named “%{title}” exists; the other one is still in the %{bin}"
+  restore_taken: "A note named “%{title}” already exists; the other one is still in the %{bin}"
   restore_failed: "Couldn’t restore “%{title}”: %{error}"
 
 due:
@@ -346,11 +346,11 @@ update:
   checking: Checking…
   downloading: Downloading %{version}…
   current: Jot is up to date.
-  failed: Couldn’t check for updates. Jot tries again later.
+  failed: Couldn’t check for updates. Jot will try again later.
   unavailable: This build of Jot doesn’t update itself (a development run).
-  ready_package: "Jot %{version} is downloaded: restart Jot to use it, or it starts with Jot next time."
+  ready_package: "Jot %{version} is downloaded: restart Jot to use it, or it loads the next time Jot opens."
   ready_app: "Jot %{version} is downloaded: restart to install it, or it installs when Jot quits."
-  manual: "Jot %{version} is out. Jot can’t replace itself where it is installed: download it and install it by hand."
+  manual: "Jot %{version} is out, but Jot can’t update itself where it’s installed. Download it and install it by hand."
   download: Download
   restart: Restart to Update
   restart_to: Restart to update to %{version}
