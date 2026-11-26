@@ -2,7 +2,9 @@
 // notch where there is one, the menu bar's middle where there is none). It
 // grows to say that an AI app is writing a note to Jot, then that it is saved
 // (inside a glow of flowing colors, the app's avatar falling out of the
-// notch), and to show a reminder that can be ticked where it is. A quick note said
+// notch), and to show a reminder that can be ticked where it is (its bell
+// falling out of the notch and ringing, a halo pulsing around it while it
+// waits). A quick note said
 // anywhere (the double press of ⌥ held) opens it as dictation: a breathing
 // dot and the words as they come, then where they were filed. Everything
 // else passes through it: its window takes no clicks unless a reminder (or
@@ -17,7 +19,7 @@ import { errorCode, notes, refresh } from "../store";
 import { hm, parseDue } from "../time";
 import { Icon } from "./icons";
 import { fadeTo, morphNext, springConfig } from "./motion";
-import { TodoCheck } from "./parts";
+import { DRAW, FlipText, StrikeLine, TodoCheck, type Flip } from "./parts";
 import { T } from "./tokens";
 import { listening, listeningLang, PRIVACY_URL } from "../voice";
 import { Breathing, LanguageTag } from "./Voice";
@@ -143,18 +145,21 @@ function next() {
       });
     });
   } else if (event.kind === "remind") {
-    later(8000, close);
+    later(T.timing.remind.hold, close);
   }
   // Dictation stays open until it is settled.
 }
 
-/** An AI app's note lifts its content out over this, and the island starts closing this far into it. */
+/** An AI app's note (and a ticked reminder) lifts its content out over this, and the island starts closing this far
+ * into it. */
 const LEAVE_MS = 220;
 const LEAVE_LIFT = 10;
 const COLLAPSE_AFTER = 90;
 
 function close() {
-  if (untracked(current)?.kind === "write" && !untracked(leaving)) {
+  const event = untracked(current);
+  const lifts = event?.kind === "write" || (event?.kind === "remind" && untracked(done));
+  if (lifts && !untracked(leaving)) {
     leaving.set(true);
     later(COLLAPSE_AFTER, collapse);
     return;
@@ -163,7 +168,7 @@ function close() {
 }
 
 function collapse() {
-  morphNext(untracked(current)?.kind === "write" ? T.spring.islandWriteClose : T.spring.collapse);
+  morphNext(untracked(current)?.kind === "write" || untracked(leaving) ? T.spring.islandWriteClose : T.spring.collapse);
   isOpen.set(false);
   later(420, next);
 }
@@ -188,13 +193,14 @@ function tick(todo: Todo) {
   done.set(true);
   for (const t of timers) clearTimeout(t);
   timers = [];
-  later(900, close);
+  later(T.timing.remind.doneHold, close);
 }
 
 /**
  * Room around the open island in its window, in points: an AI app's note glows past the island's sides and bottom
- * (`GLOW`), and its green flash grows past that while it fades (`FLASH_GROW`). Clicks pass through it then; only while
- * a reminder shows does the window, room and all, take them.
+ * (`GLOW`), and its green flash grows past that while it fades (`FLASH_GROW`); a reminder's halo grows past them too
+ * (`HALO_GROW`, well within). Clicks pass through it then; only while a reminder shows does the window, room and all,
+ * take them.
  */
 const ROOM = { side: 80, below: 70 };
 
@@ -241,8 +247,9 @@ export function IslandWindow() {
     const at = where();
     if (at) win?.setBounds({ origin: at.origin });
   });
-  // The content fades and grows in once the shape has started to open, and out at once. An AI app's note does not
-  // grow in: its avatar falls into place instead (`Avatar`), so only the content's fade stays.
+  // The content fades and grows in once the shape has started to open, and out at once. An AI app's note and a
+  // reminder do not grow in: the avatar or the bell falls into place instead (`useDrop`), so only the content's fade
+  // stays.
   effect(() => {
     if (isOpen()) {
       contentOpacity.set(0);
@@ -250,7 +257,7 @@ export function IslandWindow() {
       if (reduceMotion()) {
         void fadeTo(contentOpacity, 1, 180, CONTENT_IN);
         contentScale.set(1);
-      } else if (untracked(current)?.kind === "write") {
+      } else if (untracked(current)?.kind !== "dictate") {
         contentScale.set(1);
         void contentOpacity.timing(1, { duration: 140, delay: CONTENT_IN, easing: "easeOut" });
       } else {
@@ -264,7 +271,8 @@ export function IslandWindow() {
       void fadeTo(contentOpacity, 0, 120);
     }
   });
-  // An AI app's note: the content lifts out and fades, and the island starts closing on the way (`close`).
+  // An AI app's note, a ticked reminder: the content lifts out and fades, and the island starts closing on the way
+  // (`close`).
   effect(() => {
     if (!leaving()) return;
     const easing: Easing = [0.4, 0, 1, 1];
@@ -300,6 +308,9 @@ export function IslandWindow() {
       <View class="flex-1 items-center" style={{ backgroundColor: "transparent" }}>
         <If when={writing()}>
           <Aurora aurora={aurora} />
+        </If>
+        <If when={current()?.kind === "remind"}>
+          <Halo />
         </If>
         <View
           testID="island"
@@ -352,6 +363,23 @@ export function IslandWindow() {
 /** The content starts showing this long after the island starts to open, once its shape has made room. */
 const CONTENT_IN = 110;
 
+// A reminder. Its bell falls out of the notch as an AI app's avatar does and rings once it lands, swinging about its top
+// with two sound waves pulsing out beside it; the label, the title and the checkbox rise in after it. While it waits a
+// halo pulses out around the island, the checkbox breathes a ring out and the bell rings again now and then. Ticked,
+// the checkbox bursts, a line strikes the title through, the label flips to "Done" and the bell hops; everything that
+// loops stops, then the content lifts out and the island closes. With reduced motion things only fade.
+
+/** A reminder waits to be ticked: what loops runs. */
+const waiting = () => isOpen() && current()?.kind === "remind" && !done() && !refused();
+
+/** From the island starting to open until the bell (or the avatar) has landed. */
+const landed = () => CONTENT_IN + FALL.ms;
+
+/** The label flips to "Done" (or "locked"): out up, in from below. */
+const LABEL_FLIP: Flip = { lift: 5, out: T.timing.flip.labelOut, rise: 5, in: T.timing.flip.labelIn };
+/** The title dims to this once ticked. */
+const TITLE_DONE = 0.55;
+
 /** The island as a reminder: the bell, the to-do and its checkbox. */
 function IslandContent(props: { event: IslandEvent }) {
   const remind = () => (props.event.kind === "remind" ? props.event : null);
@@ -359,25 +387,57 @@ function IslandContent(props: { event: IslandEvent }) {
     const r = remind();
     return r ? parseDue(r.todo.due) : null;
   };
+  const label = useRise(0);
+  const title = useRise(1);
+  const check = useRise(2);
+
+  // Ticked: a line strikes the title through and it dims.
+  const strike = createAnimatedValue(0);
+  const dim = createAnimatedValue(1);
+  effect(() => {
+    if (!done()) {
+      strike.set(0);
+      dim.set(1);
+      return;
+    }
+    const tick = T.timing.tick;
+    const struck = Animated.parallel([
+      Animated.timing(strike, { toValue: 1, duration: tick.strike, delay: tick.strikeAfter, easing: reduceMotion() ? "easeOut" : DRAW }),
+      Animated.timing(dim, { toValue: TITLE_DONE, duration: tick.strike, delay: tick.strikeAfter, easing: "easeOut" }),
+    ]);
+    struck.start();
+    return () => struck.stop();
+  });
 
   return (
     <>
-      <View class="items-center justify-center bg-primary" style={{ width: MARK, height: MARK, borderRadius: MARK / 2 }}>
-        <Icon name="bell" size={25} tint={token("on-accent")} />
-      </View>
+      <Bell />
       <View class="flex-1" style={{ minWidth: 0, gap: 2 }}>
-        <Text class="text-island-muted" style={{ numberOfLines: 1, fontSize: T.type.islandLabel }}>
-          {refused()
-            ? t("island.locked")
-            : done()
-              ? t("island.done")
-              : t("island.remind", { time: due() ? hm(due()!) : t("island.now"), note: remind()?.todo.note ?? "" })}
-        </Text>
-        <Text class="font-semibold text-island-fg" style={{ numberOfLines: 1, fontSize: T.type.island }}>
-          {remind()?.todo.text ?? ""}
-        </Text>
+        <View style={{ opacity: label.opacity, transform: [{ translateY: label.y }] }}>
+          <FlipText
+            text={
+              refused()
+                ? t("island.locked")
+                : done()
+                  ? t("island.done")
+                  : t("island.remind", { time: due() ? hm(due()!) : t("island.now"), note: remind()?.todo.note ?? "" })
+            }
+            flip={LABEL_FLIP}
+            class="text-island-muted"
+            style={{ numberOfLines: 1, fontSize: T.type.islandLabel }}
+          />
+        </View>
+        <View style={{ alignSelf: "flex-start", maxWidth: "100%", opacity: title.opacity, transform: [{ translateY: title.y }] }}>
+          <Text class="font-semibold text-island-fg" style={{ numberOfLines: 1, fontSize: T.type.island, opacity: dim }}>
+            {remind()?.todo.text ?? ""}
+          </Text>
+          <StrikeLine progress={strike} class="bg-island-fg" opacity={dim} />
+        </View>
       </View>
-      <View class="items-center justify-center" style={{ width: 35, height: 35 }}>
+      <View
+        class="items-center justify-center"
+        style={{ width: 35, height: 35, opacity: check.opacity, transform: [{ translateY: check.y }] }}
+      >
         <If when={remind() && refused()}>
           <View testID="island-locked" class="items-center justify-center">
             <Icon name="lock" size={20} tint={token("island-muted")} />
@@ -385,18 +445,268 @@ function IslandContent(props: { event: IslandEvent }) {
         </If>
         <If when={refused() ? undefined : remind()}>
           {(r) => (
-            <TodoCheck
-              testID="island-check"
-              checked={done()}
-              label={t("todo.tick", { text: r().todo.text })}
-              onCheck={() => tick(r().todo)}
-              size={26}
-              onAccent
-            />
+            <>
+              <Breath />
+              <TodoCheck
+                testID="island-check"
+                checked={done()}
+                label={t("todo.tick", { text: r().todo.text })}
+                onCheck={() => tick(r().todo)}
+                size={26}
+                onAccent
+              />
+            </>
           )}
         </If>
       </View>
     </>
+  );
+}
+
+/** The reminder's text and checkbox rise this far into place, in points. */
+const RISE_FROM = 8;
+
+/** One of the reminder's label, title and checkbox (the `order`th) rising in after the bell as the island opens. */
+function useRise(order: number) {
+  const opacity = createAnimatedValue(0);
+  const y = createAnimatedValue(0);
+  effect(() => {
+    if (!isOpen()) return;
+    const r = T.timing.remind;
+    const delay = CONTENT_IN + r.riseAfter + order * r.riseStagger;
+    opacity.set(0);
+    if (reduceMotion()) {
+      y.set(0);
+      void fadeTo(opacity, 1, r.riseFade, delay);
+      return;
+    }
+    y.set(RISE_FROM);
+    const rising = Animated.sequence([
+      Animated.delay(delay),
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 1, duration: r.riseFade, easing: "easeOut" }),
+        Animated.spring(y, { toValue: 0, ...springConfig(T.spring.remindRise) }),
+      ]),
+    ]);
+    rising.start();
+    return () => rising.stop();
+  });
+  return { opacity, y };
+}
+
+/** The bell's swing once it lands, about a point near its top: a pendulum's, `SWING_ANGLE` degrees at first, dying out. */
+const SWING_ANGLE = 16;
+const SWING = (() => {
+  const n = Math.round((T.timing.remind.swing / 1000) * 60);
+  return Array.from({ length: n + 1 }, (_, i): Keyframe => {
+    const p = i / n;
+    const angle = SWING_ANGLE * Math.exp(-4.2 * p) * Math.sin(7 * Math.PI * p);
+    return { offset: p, value: Math.round(angle * 100) / 100, easing: "linear" };
+  });
+})();
+/** The bell ringing again while it waits: a short wiggle, ±10 degrees dying out, in the cycle's first `ringShare`. */
+const WIGGLE: Keyframe[] = [0, 10, -8, 5, -2, 0].map((value, i) => ({
+  offset: (i / 5) * T.timing.remind.ringShare,
+  value,
+  easing: "easeInOut",
+}));
+WIGGLE.push({ offset: 1, value: 0 });
+
+/** A sound wave: an arc of a circle `WAVE` points across, `WAVE_ARC` of its width showing, `WAVE_OUT` past the disc. */
+const WAVE = 28;
+const WAVE_ARC = 0.3;
+const WAVE_OUT = 9;
+/** Stopped, a loop's values go to rest over this. */
+const SETTLE_MS = 180;
+
+/** The reminder's bell: the disc falls out of the notch (and hops once ticked); landed, the bell swings and rings. */
+function Bell() {
+  const drop = useDrop();
+  const swing = createAnimatedValue(0);
+  /** The sound waves' pulse, from 0 to 1 (gone at 1). */
+  const waves = createAnimatedValue(1);
+  effect(() => {
+    if (!waiting() || reduceMotion()) return;
+    const r = T.timing.remind;
+    swing.set(0);
+    waves.set(1);
+    const ringing = Animated.parallel([
+      Animated.sequence([
+        Animated.delay(landed()),
+        Animated.keyframes(swing, { keyframes: SWING, duration: r.swing, easing: "linear" }),
+        Animated.delay(Math.max(0, r.ringAfter - r.swing)),
+        Animated.keyframes(swing, { keyframes: WIGGLE, duration: r.ring, iterations: "infinite" }),
+      ]),
+      Animated.sequence([
+        Animated.delay(landed()),
+        Animated.keyframes(waves, { keyframes: [{ offset: 0, value: 0, easing: "linear" }, { offset: 1, value: 1 }], duration: r.waves }),
+      ]),
+    ]);
+    ringing.start();
+    return () => {
+      ringing.stop();
+      void swing.timing(0, { duration: SETTLE_MS, easing: "easeOut" });
+      void waves.timing(1, { duration: SETTLE_MS, easing: "easeOut" });
+    };
+  });
+  const still = () => reduceMotion();
+  return (
+    <View style={{ width: MARK, height: MARK }}>
+      <If when={!still()}>
+        <Wave side="left" pulse={waves} />
+        <Wave side="right" pulse={waves} />
+      </If>
+      <View
+        class="items-center justify-center bg-primary"
+        style={{ width: MARK, height: MARK, borderRadius: MARK / 2, ...drop.style() }}
+      >
+        <View style={{ transformOrigin: "50% 18%", transform: still() ? undefined : [{ rotate: swing }] }}>
+          <Icon name="bell" size={25} tint={token("on-accent")} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/** One of the bell's sound waves, beside the disc (behind it), growing out and fading as `pulse` goes from 0 to 1. */
+function Wave(props: { side: "left" | "right"; pulse: AnimatedValue }) {
+  const hidden = `${Math.round((1 - WAVE_ARC) * 100)}%`;
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      class="absolute border-primary"
+      style={{
+        top: (MARK - WAVE) / 2,
+        ...(props.side === "left" ? { left: -WAVE_OUT } : { left: MARK + WAVE_OUT - WAVE }),
+        width: WAVE,
+        height: WAVE,
+        borderWidth: 1.5,
+        borderRadius: WAVE / 2,
+        pointerEvents: "none",
+        clipPath: props.side === "left" ? `inset(0 ${hidden} 0 0)` : `inset(0 0 0 ${hidden})`,
+        opacity: props.pulse.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.9, 0] }),
+        transform: [{ scale: props.pulse.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1.5], easing: FLY }) }],
+      }}
+    />
+  );
+}
+
+/** The checkbox's breath while the reminder waits: a ring growing out of it as it fades, every `remind.breathe`. */
+function Breath() {
+  const at = createAnimatedValue(1);
+  effect(() => {
+    if (!waiting() || reduceMotion()) return;
+    at.set(1);
+    const breathing = Animated.sequence([
+      Animated.delay(landed()),
+      Animated.keyframes(at, {
+        keyframes: [{ offset: 0, value: 0, easing: "easeOut" }, { offset: 1, value: 1 }],
+        duration: T.timing.remind.breathe,
+        iterations: "infinite",
+      }),
+    ]);
+    breathing.start();
+    return () => {
+      breathing.stop();
+      void at.timing(1, { duration: SETTLE_MS, easing: "easeOut" });
+    };
+  });
+  return (
+    <If when={!reduceMotion()}>
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        class="absolute border-island-fg/70"
+        style={{
+          left: 4,
+          top: 4,
+          right: 4,
+          bottom: 4,
+          borderWidth: 1.5,
+          borderRadius: 999,
+          pointerEvents: "none",
+          opacity: at.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 0.8, 0] }),
+          transform: [{ scale: at.interpolate({ inputRange: [0, 1], outputRange: [1, 1.7] }) }],
+        }}
+      />
+    </If>
+  );
+}
+
+/** The halo grows this much across and down as it fades, about the island's top middle. */
+const HALO_GROW = { x: 1.12, y: 1.4 };
+const HALO_PEAK = 0.8;
+
+/**
+ * The reminder's halo: an outline of the island in the accent, behind it, pulsing out (it grows past the island's
+ * sides and bottom as it fades), twice as the island opens, then once per `remind.ring` while it waits.
+ */
+function Halo() {
+  const first = createAnimatedValue(1);
+  const second = createAnimatedValue(1);
+  effect(() => {
+    if (!waiting() || reduceMotion()) return;
+    const r = T.timing.remind;
+    first.set(1);
+    second.set(1);
+    const pulse: Keyframe[] = [
+      { offset: 0, value: 0, easing: FLY },
+      { offset: 1, value: 1 },
+    ];
+    const cycle: Keyframe[] = [
+      { offset: 0, value: 0, easing: FLY },
+      { offset: r.halo / r.ring, value: 1 },
+      { offset: 1, value: 1 },
+    ];
+    const pulsing = Animated.parallel([
+      Animated.sequence([
+        Animated.delay(r.haloAfter),
+        Animated.keyframes(first, { keyframes: pulse, duration: r.halo }),
+        Animated.delay(r.ring - r.halo),
+        Animated.keyframes(first, { keyframes: cycle, duration: r.ring, iterations: "infinite" }),
+      ]),
+      Animated.sequence([Animated.delay(r.haloAfter + r.haloGap), Animated.keyframes(second, { keyframes: pulse, duration: r.halo })]),
+    ]);
+    pulsing.start();
+    return () => {
+      pulsing.stop();
+      for (const v of [first, second]) void v.timing(1, { duration: SETTLE_MS, easing: "easeOut" });
+    };
+  });
+  return (
+    <If when={!reduceMotion()}>
+      <HaloRing at={first} />
+      <HaloRing at={second} />
+    </If>
+  );
+}
+
+function HaloRing(props: { at: AnimatedValue }) {
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      class="absolute border-primary"
+      style={{
+        top: 0,
+        left: (WINDOW.width - T.size.islandRemindWidth) / 2,
+        width: T.size.islandRemindWidth,
+        height: T.size.islandHeight,
+        borderWidth: 2,
+        borderTopWidth: 0,
+        borderBottomLeftRadius: T.size.islandRadius,
+        borderBottomRightRadius: T.size.islandRadius,
+        borderCurve: "continuous",
+        pointerEvents: "none",
+        opacity: props.at.interpolate({ inputRange: [0, 1], outputRange: [HALO_PEAK, 0] }),
+        transformOrigin: "50% 0%",
+        transform: [
+          { scaleX: props.at.interpolate({ inputRange: [0, 1], outputRange: [1, HALO_GROW.x] }) },
+          { scaleY: props.at.interpolate({ inputRange: [0, 1], outputRange: [1, HALO_GROW.y] }) },
+        ],
+      }}
+    />
   );
 }
 
@@ -418,6 +728,8 @@ const writeOf = (event: IslandEvent): WriteEvent | null => (event.kind === "writ
 
 /** CSS's `cubic-bezier(.2, .8, .2, 1)`: quick to arrive, long to settle. */
 const ARRIVE: Easing = [0.2, 0.8, 0.2, 1];
+/** CSS's `cubic-bezier(.22, 1, .36, 1)`: a reminder's waves and halo going out, fast then slow. */
+const FLY: Easing = [0.22, 1, 0.36, 1];
 
 // The glow: a box past the island's sides and bottom (and its top, off the screen), blurred. NSH blurs no view on
 // macOS (its `filter: blur()` is for images), so the blur is drawn: the light of a blurred box's edge falls off as a
@@ -737,17 +1049,19 @@ function hopFrames(ms: number): Frames {
   return framesOf(points);
 }
 
-/** The avatar falls 66 points (out of the notch, above the island's top) as the content starts to show. */
+/** The avatar (and a reminder's bell) falls 66 points (out of the notch, above the island's top) as the content starts
+ * to show. */
 const FALL = fallFrames(66, 2700, 0.45);
-/** It hops a little after the note is in, as the label starts to change. */
+/** It hops a little after the note is in (the reminder ticked), as the label starts to change. */
 const HOP = hopFrames(560);
 const HOP_AFTER = 60;
 
 /**
- * The agent's avatar: it falls out of the notch and bounces to rest, then hops once the note is in. The frames are
- * computed once and played natively. With reduced motion it fades in where it rests and stays.
+ * The island's mark falling out of the notch and bouncing to rest as it opens, then hopping once it is done (the note
+ * in, the reminder ticked): the frames are computed once and played natively. With reduced motion it fades in where it
+ * rests and stays. Spread `style()` into the mark's style.
  */
-function Avatar() {
+function useDrop() {
   const y = createAnimatedValue(0);
   const sx = createAnimatedValue(1);
   const sy = createAnimatedValue(1);
@@ -779,6 +1093,18 @@ function Avatar() {
     return () => motion.stop();
   });
 
+  return {
+    style: () => ({
+      opacity: seen,
+      transformOrigin: "50% 100%",
+      transform: reduceMotion() ? undefined : [{ translateY: y }, { scaleX: sx }, { scaleY: sy }],
+    }),
+  };
+}
+
+/** The agent's avatar: it falls out of the notch and bounces to rest, then hops once the note is in (`useDrop`). */
+function Avatar() {
+  const drop = useDrop();
   return (
     <View
       accessibilityLabel={done() ? undefined : t("island.writing_label")}
@@ -788,9 +1114,7 @@ function Avatar() {
         height: MARK,
         borderRadius: MARK / 2,
         backgroundImage: `radial-gradient(circle at 35% 30%, ${token("agent-light")}, ${token("agent")} 60%)`,
-        opacity: seen,
-        transformOrigin: "50% 100%",
-        transform: reduceMotion() ? undefined : [{ translateY: y }, { scaleX: sx }, { scaleY: sy }],
+        ...drop.style(),
       }}
     >
       <Icon name="spark" size={25} tint={token("on-accent")} />

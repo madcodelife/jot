@@ -126,6 +126,20 @@ export interface PlatformTokens {
     islandWriteClose: Spring;
     /** The island's check popping in once an AI app's note is in: bouncy, as the avatar hops beside it. */
     pop: Spring;
+    /** A to-do ticked: its checkbox pressed in and back, its fill growing from the center (bouncier), then its row
+     * sliding out to the right. */
+    tickPress: Spring;
+    tickFill: Spring;
+    tickSlide: Spring;
+    /** A group's count flipping to its new number, and a due chip's label to its new time. */
+    count: Spring;
+    chip: Spring;
+    /** The to-do view opening: each header and row rising into place. */
+    rise: Spring;
+    /** The reminder island: its label, title and checkbox rising in. */
+    remindRise: Spring;
+    /** A to-do moving to its new group once its due time changed. */
+    regroup: Spring;
   };
   /** Rhythm, in milliseconds. */
   timing: {
@@ -154,6 +168,60 @@ export interface PlatformTokens {
     /** While a note is downloading (iCloud Drive), the folder is read again this often: a file filling in place may
      * not reach the watcher. */
     downloadPoll: number;
+    /** A to-do ticked: the check drawn from the left, the line struck through its text, the ring and the sparks
+     * bursting out of the checkbox, then a pause before the row slides out while it fades. */
+    tick: {
+      checkAfter: number;
+      check: number;
+      strikeAfter: number;
+      strike: number;
+      ring: number;
+      /** Each spark flies for this long, and up to `sparkSpread` longer. */
+      spark: number;
+      sparkSpread: number;
+      /** From the line struck through to the row sliding out; its fade starts `fadeAfter` into the slide. */
+      slideAfter: number;
+      fadeAfter: number;
+      fade: number;
+    };
+    /** A number or label flipping: the old one lifts out over `out`, the new one fades in over `in`. */
+    flip: {
+      countOut: number;
+      countIn: number;
+      chipOut: number;
+      chipIn: number;
+      labelOut: number;
+      labelIn: number;
+    };
+    /** The to-do view opening: each item's fade (it rises on `spring.rise`, `stagger` after the one above). */
+    riseFade: number;
+    /** A to-do moving to its new group: its lifted look fades in over `liftIn`, and out over `liftOut` once it lands. */
+    liftIn: number;
+    liftOut: number;
+    /** The reminder island. */
+    remind: {
+      /** The label, title and checkbox rise in this long after the bell starts falling, `riseStagger` apart, fading
+       * in over `riseFade`. */
+      riseAfter: number;
+      riseStagger: number;
+      riseFade: number;
+      /** Once the bell lands: it swings over `swing` and its sound waves pulse out over `waves`. */
+      swing: number;
+      waves: number;
+      /** While it waits: the checkbox breathes a ring out every `breathe`; the bell rings again `ringAfter` after it
+       * landed, then every `ring` (its wiggle in the cycle's first `ringShare`). */
+      breathe: number;
+      ringAfter: number;
+      ring: number;
+      ringShare: number;
+      /** The halo: a pulse over `halo`, twice `haloGap` apart `haloAfter` into the opening, then once per `ring`. */
+      haloAfter: number;
+      haloGap: number;
+      halo: number;
+      /** Unticked, the island closes after `hold`; ticked, after `doneHold`. */
+      hold: number;
+      doneHold: number;
+    };
   };
   /** How keys are written (symbols on Apple platforms, words elsewhere), and the summon keys. */
   /** Keys as keycaps: one string per key, a combination as several (shown side by side, no "+"). */
@@ -251,6 +319,38 @@ const TIMING = {
   noticeFor: 5000,
   undoFor: 5000,
   downloadPoll: 2000,
+  tick: {
+    checkAfter: 90,
+    check: 260,
+    strikeAfter: 60,
+    strike: 260,
+    ring: 520,
+    spark: 560,
+    sparkSpread: 160,
+    slideAfter: 320,
+    fadeAfter: 60,
+    fade: 240,
+  },
+  flip: { countOut: 120, countIn: 140, chipOut: 140, chipIn: 140, labelOut: 130, labelIn: 260 },
+  riseFade: 220,
+  liftIn: 180,
+  liftOut: 220,
+  remind: {
+    riseAfter: 240,
+    riseStagger: 70,
+    riseFade: 240,
+    swing: 1100,
+    waves: 700,
+    breathe: 1800,
+    ringAfter: 1800,
+    ring: 2600,
+    ringShare: 0.3,
+    haloAfter: 360,
+    haloGap: 520,
+    halo: 900,
+    hold: 8000,
+    doneHold: 1100,
+  },
 };
 
 /** Fluent and libadwaita do not overshoot: the same responses at damping 1. */
@@ -267,6 +367,14 @@ const SPRINGS: PlatformTokens["spring"] = {
   islandWrite: { response: 0.46, damping: 0.7 },
   islandWriteClose: { response: 0.36, damping: 0.95 },
   pop: { response: 0.42, damping: 0.5 },
+  tickPress: { response: 0.34, damping: 0.5 },
+  tickFill: { response: 0.3, damping: 0.42 },
+  tickSlide: { response: 0.38, damping: 0.9 },
+  count: { response: 0.32, damping: 0.6 },
+  chip: { response: 0.3, damping: 0.62 },
+  rise: { response: 0.42, damping: 0.8 },
+  remindRise: { response: 0.45, damping: 0.8 },
+  regroup: { response: 0.5, damping: 0.82 },
 };
 
 const macos: PlatformTokens = {

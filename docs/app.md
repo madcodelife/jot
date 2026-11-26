@@ -145,8 +145,8 @@ When an AI app writes a note, the island opens inside a glow of flowing colors (
 thin edge of the same colors; the app's avatar falls out of the notch and bounces to rest, and the title's letters rise
 in one after another. While the note is written (`T.timing.islandSheen`, 1.3 s) a sheen sweeps the title. Then the
 colors give way to a green flash, the label says the note is saved, the avatar hops and the check pops in; after
-`T.timing.islandHold` the content lifts out and the island closes. Each step waits for the one before. Reminders and
-dictation keep their own motion.
+`T.timing.islandHold` the content lifts out and the island closes. Each step waits for the one before. A reminder
+shares the fall, the hop and the lift-out (below); dictation keeps its own motion.
 
 Everything runs natively: the avatar's fall and hop are physics frames computed once in JS and played as
 `Animated.keyframes`. NSH draws no blur on a view, so the glow is drawn as a blurred box would look: a turning conic
@@ -154,6 +154,45 @@ gradient seen through two nested `maskImage`s whose stops follow a blurred edge'
 sheen is a full-white copy of the title in a masked band that moves across while the copy in it moves back as much. The
 island's window leaves room around it for the glow; it takes no clicks unless a reminder shows. With reduced motion
 nothing falls, grows, turns, moves or loops: the glow, the title and the check only fade.
+
+## The island's reminder (app/ui/Island.tsx)
+
+A to-do comes due: the island opens and the bell's disc falls out of the notch as an AI app's avatar does (`useDrop`,
+the same frames); the label, the title and the checkbox rise in after it, `T.timing.remind.riseStagger` apart. Once the
+disc lands the bell swings about a point near its top, a pendulum dying out (16° · e^(−4.2t) · sin 7πt over
+`remind.swing`, sampled into keyframes), while two sound waves pulse out beside the disc: arcs of a circle, cut out of
+its ring with `clipPath: inset(…)` (NSH draws no partial strokes). While it waits, a halo (an outline of the island in
+the accent, behind it in the window's room) pulses out twice as it opens and then every `remind.ring`, the checkbox
+breathes a ring out every `remind.breathe`, and the bell rings again with a short wiggle. There is no countdown.
+
+Ticking it: the checkbox ticks as in the to-do view (below; white, the check in the accent), a line strikes the title
+through and it dims, the label flips to "Done" (`FlipText`), the disc hops, and every loop stops (its values settle
+rather than jump). After `remind.doneHold` the content lifts out and the island closes, as for an AI app's note. A
+locked note's to-do is not ticked: the label says so, nothing bursts, the loops stop, and the island closes as before.
+Unticked, it closes after `remind.hold`; its loops stop with it. With reduced motion nothing falls, swings, pulses,
+breathes or bursts: the content and the check only fade.
+
+## The to-do view's motion (app/ui/TodoView.tsx, app/ui/parts.tsx)
+
+Opening the to-do view (from today's row, or summoned on it), its headers and rows rise in one after another, as the
+list's rows drop in: each `T.timing.stagger` after the item above, from 10 points below on `T.spring.rise`, fading in
+over `T.timing.riseFade`. Items made later (a search, a tick, a new time) show at once.
+
+Ticking a to-do (its checkbox or ⌘↩): `TodoCheck` is pressed in and springs back, its fill grows from the center and
+the check is drawn from the left (a window sliding over it, NSH having no stroke drawing); a ring grows out of the
+checkbox and ten sparks fly out of it, past the row (`Burst`, decoration only). A line strikes the text through from
+its left as the text and its note dim; after a pause the row slides right while it fades, and only then does the store
+fold it away (`checkTodo` waits `tickFoldAfter()`): the rows below close the gap, the group's count flips
+(`FlipText`: the old number lifts out, the new one springs up from below) and a header whose group emptied folds
+with it. A locked note's to-do never shows ticked.
+
+A new due time (the picker, or ⌘K's "Remove Reminder"): the chip's label flips to the new time, and the row moves to
+its new group on `T.spring.regroup`, lifted while it moves (above the other rows, on a glass of its own with a soft
+shadow, which fade in as it leaves and out once it lands: `regrouping` in app/due.ts). Both groups' counts flip.
+
+The springs and timings are `T.spring` and `T.timing` (`tick`, `flip`, `remind`; Windows and Linux take the same
+responses without overshoot). With reduced motion nothing moves, scales or loops: the check and the fill fade in,
+the line fades in whole, the row fades out where it is, and labels only fade.
 
 ## The open note's Return and ⌘↩ (app/ui/Paper.tsx)
 

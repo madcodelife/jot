@@ -78,4 +78,5 @@ at the settings' time for a date alone; those past or repeated left out: `quickC
 ↑↓ move among the choices, Return picks, Tab reaches the calendar and the field, Escape closes (its keys are bound
 after the panel's, so they win). The open note writes through `editor.edit` (the changed part of the line only:
 undo takes it back in one step and the caret stays; `withDue` in app/tasks.ts mirrors `set_todo_due`); the to-do
-view through `Notes.setTodoDue`, its row following to its new group, still selected.
+view through `Notes.setTodoDue`, its row following to its new group, still selected (lifted over the rows it passes
+while it moves: [the to-do view's motion](app.md#the-to-do-views-motion-appuitodoviewtsx-appuipartstsx)).
