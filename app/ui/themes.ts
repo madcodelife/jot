@@ -108,7 +108,8 @@ const tints = (name: ThemeName) => !/00$/i.test((PALETTES[name].light["glass-tin
 /**
  * Theme `name` draws its own surface (`glass-fill`) on the floating layer: always without native glass, and over it
  * for a solid theme or one that tints it. The tint alone comes out all but grey on Liquid Glass, so a coloured theme
- * without its fill changed nothing but the accent. Only the default theme lets the glass be its surface.
+ * without its fill changed nothing but the accent. Only the default theme lets the glass be its surface, under a
+ * partly clear veil (`glass-veil`, `materialFill` in tokens.ts) that keeps it light (or dark) over any backdrop.
  */
 export const drawsSurface = (name: ThemeName, nativeGlass: boolean) => !nativeGlass || PALETTES[name].solid || tints(name);
 
