@@ -180,7 +180,8 @@ const TICK_DIM = 0.45;
 function TodoRow(props: { item: TodoRowItem; index: number }) {
   const todo = () => props.item.todo;
   const isSelected = () => selected() === props.item.index;
-  const onAccent = () => isSelected() && T.selection === "fill";
+  // Selected on macOS: a light accent fill, the text in the accent's ink, as the list's rows (`selected-*`).
+  const accent = () => isSelected() && T.selection === "fill";
   const ticking = () => checking().has(props.item.key);
   const entrance = useEntrance(() => props.index);
 
@@ -223,7 +224,7 @@ function TodoRow(props: { item: TodoRowItem; index: number }) {
     void fadeTo(lift, r.landed ? 0 : 1, r.landed ? T.timing.liftOut : T.timing.liftIn);
   });
 
-  const ink = () => (onAccent() ? "text-on-accent" : "text-glass-fg");
+  const ink = () => (accent() ? "text-selected-ink" : "text-glass-fg");
   return (
     <View
       style={{
@@ -256,7 +257,7 @@ function TodoRow(props: { item: TodoRowItem; index: number }) {
         onMouseEnter={() => selected.set(props.item.index)}
         class="flex-row items-center"
         classList={{
-          "bg-primary": onAccent(),
+          "bg-primary/12": accent(),
           "bg-glass-hover": isSelected() && T.selection !== "fill",
         }}
         style={{ height: T.size.todoRow, gap: 11, paddingHorizontal: 14, borderRadius: T.radius.row, borderCurve: "continuous" }}
@@ -270,23 +271,20 @@ function TodoRow(props: { item: TodoRowItem; index: number }) {
           label={t("todo.tick", { text: todo().text })}
           onCheck={() => checkTodo(todo())}
           size={18}
-          onAccent={onAccent()}
         />
         <View class="flex-1 flex-row items-baseline" style={{ minWidth: 0, gap: 9 }}>
           <View style={{ flexShrink: 1, minWidth: 0 }}>
             <Text class={ink()} style={{ numberOfLines: 1, fontSize: T.type.todo, opacity: dim }}>
               {todo().text}
             </Text>
-            <StrikeLine progress={strike} class={onAccent() ? "bg-on-accent" : "bg-glass-fg"} opacity={dim} />
+            <StrikeLine progress={strike} class={accent() ? "bg-selected-ink" : "bg-glass-fg"} opacity={dim} />
           </View>
-          <Text
-            class={onAccent() ? "text-on-accent-muted" : "text-glass-muted"}
-            style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 0, opacity: dim }}
+          <Text class={accent() ? "text-selected-muted" : "text-glass-muted"} style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 0, opacity: dim }}
           >
             {todo().note}
           </Text>
         </View>
-        <DueButton item={props.item} selected={isSelected()} onAccent={onAccent()} />
+        <DueButton item={props.item} selected={isSelected()} />
       </View>
     </View>
   );
@@ -296,7 +294,7 @@ function TodoRow(props: { item: TodoRowItem; index: number }) {
  * The row's due time as a button that opens the reminder time picker under it; without a time, an alarm that
  * adds one, shown while the row is selected (the picker opens there for ⌘K's "Add Reminder…" too).
  */
-function DueButton(props: { item: TodoRowItem; selected: boolean; onAccent: boolean }) {
+function DueButton(props: { item: TodoRowItem; selected: boolean }) {
   const todo = () => props.item.todo;
   const key = props.item.key;
   let label: ViewRef | undefined;
@@ -320,13 +318,13 @@ function DueButton(props: { item: TodoRowItem; selected: boolean; onAccent: bool
         when={todo().due}
         else={
           <If when={props.selected}>
-            <View class={props.onAccent ? "" : "hover:bg-glass-hover"} style={{ padding: 4, borderRadius: T.radius.chip }}>
-              <Icon name="alarm" size={13} tint={props.onAccent ? token("on-accent-muted") : token("glass-muted")} />
+            <View class="hover:bg-glass-hover" style={{ padding: 4, borderRadius: T.radius.chip }}>
+              <Icon name="alarm" size={13} tint={token("glass-muted")} />
             </View>
           </If>
         }
       >
-        <DueChip todo={todo()} group={props.item.group} onAccent={props.onAccent} />
+        <DueChip todo={todo()} group={props.item.group} />
       </If>
     </View>
   );
@@ -336,12 +334,12 @@ function DueButton(props: { item: TodoRowItem; selected: boolean; onAccent: bool
 const CHIP_FLIP: Flip = { lift: 8, out: T.timing.flip.chipOut, rise: 8, in: T.timing.flip.chipIn, spring: T.spring.chip };
 
 /** A to-do's due time as a small chip (red once it is past; its label flips to a new time); nothing without one. */
-export function DueChip(props: { todo: Todo; group: TodoGroup | null; onAccent: boolean; size?: number }) {
+export function DueChip(props: { todo: Todo; group: TodoGroup | null; size?: number }) {
   const due = () => parseDue(props.todo.due);
   const late = () => !props.todo.done && (due()?.getTime() ?? Infinity) < now();
-  const fill = () => (props.onAccent ? "bg-on-accent-fill" : late() ? "bg-late/13" : "bg-due/13");
-  const ink = () => (props.onAccent ? "text-on-accent" : late() ? "text-late" : "text-due");
-  const tint = () => (props.onAccent ? token("on-accent") : late() ? token("late") : token("due"));
+  const fill = () => (late() ? "bg-late/13" : "bg-due/13");
+  const ink = () => (late() ? "text-late" : "text-due");
+  const tint = () => (late() ? token("late") : token("due"));
   const size = () => props.size ?? T.type.meta;
   return (
     <If when={due()}>

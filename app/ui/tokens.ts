@@ -27,6 +27,8 @@ export interface PlatformTokens {
     panel: number;
     /** A list row: half the panel's. */
     row: number;
+    /** Today's to-dos as a card at the list's top: a little rounder than a row. */
+    card: number;
     /** The editor's paper: between the two. */
     paper: number;
     /** The time chip and the field's key hint. */
@@ -50,8 +52,11 @@ export interface PlatformTokens {
     listTop: number;
     /** A note row in the list, and in the editor's sidebar. */
     row: number;
-    /** The rows the list shows before it scrolls. */
+    /** The rows the list shows before it scrolls (today's card counts as one), while they fit the panel's tallest. */
     listRows: number;
+    /** A date group's header in the recent list ("Today", "Yesterday"), and the space under today's card. */
+    daySection: number;
+    cardGap: number;
     sidebarRow: number;
     /** The sidebar's width with a note open. */
     sidebar: number;
@@ -110,7 +115,10 @@ export interface PlatformTokens {
     blur: number;
     saturate: number;
   };
-  /** The selection's look: a filled row (macOS), a bar at the row's start (Windows), a neutral fill (GNOME). */
+  /**
+   * The selection's look: a light accent fill under accent-colored words (macOS; menus, the action panel and the
+   * reminder time picker, keep a solid accent fill), a bar at the row's start (Windows), a neutral fill (GNOME).
+   */
   selection: "fill" | "bar" | "neutral";
   /** Springs (Windows and Linux: the same responses, never overshooting). */
   spring: {
@@ -296,8 +304,10 @@ const SIZE = {
   editorHeight: 499,
   field: 65,
   listTop: 9,
-  row: 48,
+  row: 52,
   listRows: 6,
+  daySection: 26,
+  cardGap: 6,
   sidebarRow: 40,
   sidebar: 255,
   todoRow: 36,
@@ -395,7 +405,7 @@ const SPRINGS: PlatformTokens["spring"] = {
 };
 
 const macos: PlatformTokens = {
-  radius: { capsule: 33, panel: 28, row: 14, paper: 20, chip: 999, checkbox: null, actions: 18, action: 9 },
+  radius: { capsule: 33, panel: 28, row: 14, card: 16, paper: 20, chip: 999, checkbox: null, actions: 18, action: 9 },
   size: SIZE,
   type: APPLE_TYPE,
   material: { kind: "glass", blur: 28, saturate: 175 },
@@ -429,7 +439,7 @@ const macos: PlatformTokens = {
 };
 
 const windows: PlatformTokens = {
-  radius: { capsule: 8, panel: 8, row: 4, paper: 4, chip: 4, checkbox: 4, actions: 8, action: 4 },
+  radius: { capsule: 8, panel: 8, row: 4, card: 6, paper: 4, chip: 4, checkbox: 4, actions: 8, action: 4 },
   size: SIZE,
   type: APPLE_TYPE,
   material: { kind: "acrylic", blur: 30, saturate: 125 },
@@ -463,7 +473,7 @@ const windows: PlatformTokens = {
 };
 
 const linux: PlatformTokens = {
-  radius: { capsule: 12, panel: 12, row: 6, paper: 8, chip: 999, checkbox: 6, actions: 12, action: 6 },
+  radius: { capsule: 12, panel: 12, row: 6, card: 8, paper: 8, chip: 999, checkbox: 6, actions: 12, action: 6 },
   size: SIZE,
   type: APPLE_TYPE,
   material: { kind: "solid", blur: 0, saturate: 100 },

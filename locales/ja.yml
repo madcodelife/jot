@@ -49,7 +49,13 @@ list:
   all_done: 今日の分はすべて完了
   next: 次は %{time} %{text}
   see_all: Return ですべてのやることを表示
-  dots: 今日 %{total} 件中 %{done} 件完了
+  progress: 今日 %{total} 件中 %{done} 件完了
+  # The recent list's date groups, by the day a note last changed.
+  day:
+    today: 今日
+    yesterday: 昨日
+    week: 今週
+    earlier: それ以前
 
 todo:
   # 検索フィールドにこれ（または /todo）を入力すると、やることの一覧になります。最初の語はメニューと通知で使います。

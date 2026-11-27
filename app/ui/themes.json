@@ -37,11 +37,14 @@
       "agent": "#bc4c00",
       "agent-light": "#d38b59",
       "agent-ink": "#bc4c00",
+      "selected-ink": "#0862cc",
+      "selected-muted": "#5f666f",
+      "selected-agent": "#ac4500",
+      "selected-late": "#c5202c",
       "ok": "#1a7f37",
       "danger": "#cf222e",
       "on-accent": "#ffffff",
       "on-accent-muted": "#ffffffeb",
-      "on-accent-fill": "#ffffff38",
       "on-accent-mark": "#ffffffeb"
     },
     "dark": {
@@ -71,7 +74,6 @@
       "danger": "#f85149",
       "on-accent": "#ffffff",
       "on-accent-muted": "#ffffffeb",
-      "on-accent-fill": "#ffffff38",
       "on-accent-mark": "#ffffffeb"
     }
   },
@@ -104,11 +106,14 @@
       "agent": "#c18401",
       "agent-light": "#d7af5a",
       "agent-ink": "#8d6001",
+      "selected-ink": "#2356c6",
+      "selected-muted": "#5b5e67",
+      "selected-agent": "#7f5601",
+      "selected-late": "#ba113e",
       "ok": "#50a14f",
       "danger": "#ca1243",
       "on-accent": "#ffffff",
       "on-accent-muted": "#ffffffeb",
-      "on-accent-fill": "#ffffff38",
       "on-accent-mark": "#ffffffeb"
     },
     "dark": {
@@ -134,11 +139,11 @@
       "agent": "#d19a66",
       "agent-light": "#e1bd9c",
       "agent-ink": "#d19a66",
+      "selected-muted": "#9b9fa7",
       "ok": "#98c379",
       "danger": "#e06c75",
       "on-accent": "#282c34",
       "on-accent-muted": "#282c34eb",
-      "on-accent-fill": "#282c3438",
       "on-accent-mark": "#282c34eb"
     }
   },
@@ -171,11 +176,13 @@
       "agent": "#a34d14",
       "agent-light": "#c38b66",
       "agent-ink": "#a34d14",
+      "selected-muted": "#666047",
+      "selected-agent": "#9b4913",
+      "selected-late": "#b13225",
       "ok": "#14710a",
       "danger": "#c73929",
       "on-accent": "#ffffff",
       "on-accent-muted": "#ffffffeb",
-      "on-accent-fill": "#ffffff38",
       "on-accent-mark": "#ffffffeb"
     },
     "dark": {
@@ -201,11 +208,11 @@
       "agent": "#ffb86c",
       "agent-light": "#ffd19f",
       "agent-ink": "#ffb86c",
+      "selected-muted": "#909cbe",
       "ok": "#50fa7b",
       "danger": "#ff5555",
       "on-accent": "#282a36",
       "on-accent-muted": "#282a36eb",
-      "on-accent-fill": "#282a3638",
       "on-accent-mark": "#282a36eb"
     }
   },
@@ -238,11 +245,14 @@
       "agent": "#965027",
       "agent-light": "#bb8d73",
       "agent-ink": "#904d25",
+      "selected-ink": "#25519b",
+      "selected-muted": "#52525d",
+      "selected-agent": "#7e4320",
+      "selected-late": "#823e4b",
       "ok": "#33635c",
       "danger": "#8c4351",
       "on-accent": "#ffffff",
       "on-accent-muted": "#ffffffeb",
-      "on-accent-fill": "#ffffff38",
       "on-accent-mark": "#ffffffeb"
     },
     "dark": {
@@ -268,11 +278,11 @@
       "agent": "#ff9e64",
       "agent-light": "#ffc09a",
       "agent-ink": "#ff9e64",
+      "selected-muted": "#888eac",
       "ok": "#9ece6a",
       "danger": "#f7768e",
       "on-accent": "#1a1b26",
       "on-accent-muted": "#1a1b26eb",
-      "on-accent-fill": "#1a1b2638",
       "on-accent-mark": "#1a1b26eb"
     }
   },
@@ -305,11 +315,14 @@
       "agent": "#fe640b",
       "agent-light": "#fe9a60",
       "agent-ink": "#b24608",
+      "selected-ink": "#771ded",
+      "selected-muted": "#595c6e",
+      "selected-agent": "#9f3f07",
+      "selected-late": "#b90e32",
       "ok": "#40a02b",
       "danger": "#d00f38",
       "on-accent": "#ffffff",
       "on-accent-muted": "#ffffffeb",
-      "on-accent-fill": "#ffffff38",
       "on-accent-mark": "#ffffffeb"
     },
     "dark": {
@@ -339,7 +352,6 @@
       "danger": "#f38ba8",
       "on-accent": "#1e1e2e",
       "on-accent-muted": "#1e1e2eeb",
-      "on-accent-fill": "#1e1e2e38",
       "on-accent-mark": "#1e1e2eeb"
     }
   },
@@ -372,11 +384,13 @@
       "agent": "#af3a03",
       "agent-light": "#cb7f5b",
       "agent-ink": "#af3a03",
+      "selected-ink": "#376648",
+      "selected-muted": "#655a51",
+      "selected-agent": "#a53703",
       "ok": "#79740e",
       "danger": "#9d0006",
       "on-accent": "#ffffff",
       "on-accent-muted": "#ffffffeb",
-      "on-accent-fill": "#ffffff38",
       "on-accent-mark": "#ffffffeb"
     },
     "dark": {
@@ -402,11 +416,11 @@
       "agent": "#fe8019",
       "agent-light": "#feac6a",
       "agent-ink": "#fe8019",
+      "selected-muted": "#a4988b",
       "ok": "#b8bb26",
       "danger": "#fb4934",
       "on-accent": "#282828",
       "on-accent-muted": "#282828eb",
-      "on-accent-fill": "#28282838",
       "on-accent-mark": "#282828eb"
     }
   },
@@ -442,7 +456,6 @@
       "danger": "#8a0009",
       "on-accent": "#ffffff",
       "on-accent-muted": "#ffffff",
-      "on-accent-fill": "#ffffff40",
       "on-accent-mark": "#ffffff",
       "agent-ink": "#943600",
       "heading": "#0036a3"
@@ -473,7 +486,6 @@
       "danger": "#ff9090",
       "on-accent": "#000000",
       "on-accent-muted": "#000000",
-      "on-accent-fill": "#00000033",
       "on-accent-mark": "#000000",
       "agent-ink": "#ffa36b",
       "heading": "#8dbbff"

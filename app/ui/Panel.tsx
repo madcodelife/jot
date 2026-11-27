@@ -38,7 +38,7 @@ import { emojiInPanel, EmojiPane, emojiPaneHeight, EmojiPopover } from "./Emoji"
 import { duePicker } from "../due";
 import { Icon } from "./icons";
 import { fadeTo, springConfig } from "./motion";
-import { NoteList } from "./NoteList";
+import { NoteList, noteListHeight } from "./NoteList";
 import { dictateIntoNote, Paper, toggleTaskAtCaret } from "./Paper";
 import { HintDivider, KeyHint, Keycaps } from "./parts";
 import { PushButton } from "./controls";
@@ -78,8 +78,8 @@ function placement(list: readonly Display[]) {
   };
 }
 
-/** How tall the panel is in each stage (the list grows with its rows up to `T.size.listRows`, then scrolls;
- * filtering does not animate). */
+/** How tall the panel is in each stage (the list grows with its rows up to `T.size.listRows` and the date groups'
+ * headers among them, then scrolls; filtering does not animate). */
 const emptyHeight = 150;
 let shownSize = { width: T.size.panelWidth, height: T.size.field };
 const panelSize = computed(() => {
@@ -98,7 +98,7 @@ function visibleSize(s: Exclude<ReturnType<typeof stage>, "hidden">) {
     : todoMode()
       ? todoViewHeight(todoItems())
       : listRows().length
-        ? T.size.listTop + Math.min(listRows().length, T.size.listRows) * T.size.row
+        ? noteListHeight()
         : emptyHeight;
   return { width: T.size.panelWidth, height: T.size.field + body + T.size.footer };
 }

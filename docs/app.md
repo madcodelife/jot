@@ -261,29 +261,56 @@ there, so `assets/` is in the native fingerprint ([Updates](#updates-appupdatest
 
 ## The list's rows (app/ui/NoteList.tsx)
 
-A row is words alone, no icon: a note's title over its snippet, today's to-dos over what is overdue and next, "New
-“…”" over its hint. A note with an emoji shows it before its title, in the title's line ("🍕 Dinner": a space after
-it, only its own width; a note without one starts with its title); a search marks the title's words, never the emoji.
-What tells a row apart is at its end: an AI app's note has the app's name, a locked one a padlock, then the time;
-a note not downloaded says "Downloading…" for its snippet.
+A row is words alone, no icon, in two lines: a note's semibold title over its snippet, "New “…”" over its hint. A
+note with an emoji shows it before its title, in the title's line ("🍕 Dinner": a space after it, only its own width; a
+note without one starts with its title); a search marks the title's words, never the emoji. What tells a note apart
+sits at the end of the title's line, which gives way to it: an AI app's note has a dot and the app's name in the
+agents' colors (`agent`, `agent-ink`), a locked one a padlock, then the time (`T.type.meta`, muted, tabular figures).
+The snippet has the row's whole width under them; a note not downloaded says "Downloading…" for it. A row is
+`T.size.row` (52) tall; in the sidebar beside an open note, `T.size.sidebarRow`, with the title (and padlock) alone.
+
+The selected row (macOS, `T.selection` `"fill"`) has a light accent fill (`bg-primary/12`) and its title in the
+accent's ink; the snippet, the time and the AI app's name keep their colors, and a search's marks keep the
+highlighter's fill, which reads clearly on it. Its words take the theme's `selected-ink`, `selected-muted`,
+`selected-agent` (and on today's card `selected-late`): each is the palette's `accent-ink`, `glass-muted`, `agent-ink`
+or `late`, and a palette names a deeper shade (a lighter one in dark) only where its own reads below WCAG AA (4.5:1) on
+the fill over its panel (`themeVars` in app/ui/themes.ts fills in the rest; app/tests/settings.test.tsx checks every
+theme). The sidebar's rows and the to-do view's do the same, and the theme cards in the settings draw the selected row
+so. The action panel and the reminder time picker, menus, keep a solid accent fill. Windows' bar and GNOME's neutral
+fill are unchanged.
+
+Today's to-dos are a card at the top (not in the sidebar, where it is a row like the others): a faint accent wash
+(`bg-primary/6`) in a hairline (`glass-line`), `T.radius.card`, `T.size.cardGap` above the first note. Its semibold
+title says what is left today (or what is overdue), its second line what is overdue (in `selected-late`) and what is next, in `selected-muted`. A
+ring at its end fills clockwise from the top with today's done to-dos out of all of today's (a `Canvas` arc), the
+number left inside; with none due today (only overdue ones) there is no ring.
+
+The recent list (no query) falls into date groups by the day a note last changed: Today, Yesterday, This Week (from
+the week's first day, `localeSettings().firstDayOfWeek`) and Earlier (`dayGroup` in app/time.ts). A group's header
+(`T.size.daySection`, `T.type.meta`, semibold, muted) sits above its first note; today's card is in no group. Headers
+are not rows: the arrow keys and the pointer pass over them, and the selection and its index count the rows alone
+(`listItems` lays the rows and the headers out). A search's results and the sidebar have no groups.
 
 ## The list's motion (app/ui/NoteList.tsx)
 
-The list holds up to 100 notes (the latest, or a search's best), shows `T.size.listRows` (six) and scrolls to the rest;
-with a note open the sidebar holds the same rows and scrolls in its height. ↑↓ go through every row, wrapping at the
-ends, and keep the selected one in view, set at once as the to-do view's are (a held key steps faster than a scroll
-animation); a hover does not scroll. A new search, or the list summoned again, starts at the top.
+The list holds up to 100 notes (the latest, or a search's best), shows `T.size.listRows` (six; today's card counts as
+one) with the date groups' headers among them, and scrolls to the rest; fewer when the headers would make the panel
+taller than with a note open, so no row shows cut (`noteListHeight`). With a note open the sidebar holds the same rows
+and scrolls in its height. ↑↓ go through every row, wrapping at the ends, and keep the selected one in view (with its
+group's header when it is the group's first), set at once as the to-do view's are (a held key steps faster than a
+scroll animation); a hover does not scroll. A new search, or the list summoned again, starts at the top.
 
 As the list opens, its rows drop in one after another: each `T.timing.stagger` after the row above, from 9 points above
-on `T.spring.drop`, fading in over `T.timing.dropFade`; the rows below the ones it shows are there at once. A note that appears later drops in the same way on its own while
+on `T.spring.drop`, fading in over `T.timing.dropFade`, a date group's header with the row under it; the rows below the
+ones it shows are there at once. A note that appears later drops in the same way on its own while
 the rows below make room: a note new in the folder (written by another program, synced from another Mac, or an AI
 app's, which also glows) and one brought back from the trash by ⌘Z, which ends selected (`dropIn` in app/store.ts).
 Rows a search brings in show at once: typing never animates the list.
 
 A note moved to the trash goes at once (the file, the undo stack, the footer), but its row stays for
 `T.timing.trashExit` to leave: it slides 24 points left (a ticked to-do slides right), shrinks to 0.96 and fades out;
-then the store takes it out of the list (`listRows` keeps it meanwhile) and the rows below close the gap on
-`T.spring.collapse`. A row leaving takes no input: the selection and the keys are on the rows that stay (`rows`), so ⌃X
+then the store takes it out of the list (`listRows` keeps it meanwhile, and its group's header with it) and the rows
+below close the gap on `T.spring.collapse`, the header too when it was its group's last note. A row leaving takes no input: the selection and the keys are on the rows that stay (`rows`), so ⌃X
 again trashes the next note; ⌘Z while it leaves turns the same row back and drops it in. While it leaves, the note that
 would take its place at the list's end waits for it to go.
 
