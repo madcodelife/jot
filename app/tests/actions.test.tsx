@@ -125,6 +125,28 @@ test("⌘K shows the selected note's actions, which typing filters; Escape close
   app.dispose();
 });
 
+test("an action panel reaching up into the search field hides the field's microphone until it closes", async () => {
+  const dir = twoNotes("actions-mic");
+  const app = await openJot(dir);
+  await app.waitFor("id:row:护照到期");
+  await app.type("id:search", "护照");
+  await app.waitFor("id:row:create");
+  expect(app.shows("id:voice-mic")).toBe(true);
+
+  // Two rows: the panel is short, so the note's actions rise over the field, where its top edge would cut the
+  // microphone in half.
+  await app.keyboard.press("mod+k");
+  await app.waitFor("id:actions");
+  const field = app.layout("id:search")!;
+  expect(app.layout("id:actions")!.y).toBeLessThan(field.y + field.height);
+  expect(app.shows("id:voice-mic")).toBe(false);
+
+  await app.keyboard.press("escape");
+  await app.waitUntil(() => !app.shows("id:actions"));
+  expect(app.shows("id:voice-mic")).toBe(true);
+  app.dispose();
+});
+
 test("the action panel's \"Move to Trash\" trashes the note, and Undo brings it back", async () => {
   const dir = twoNotes("actions-trash");
   const app = await openJot(dir);

@@ -425,6 +425,8 @@ set / remove its emoji (no key; [above](#a-notes-emoji-appuiemojitsx-appuipapert
 create (its second line names no key: "A new, empty note"; its ⌘↩ keycap shows while another row is selected, and
 selected itself, the footer's "Create ↩" says it); today's row: show to-dos; a to-do: open its note, tick ⌘↩, its
 reminder time ⇧⌘D (and "Remove Reminder" when it has one); in the open note, the caret's to-do's reminder time ⇧⌘D.
+The action panel sits on the footer at the panel's right and grows up; over a short list it rises into the search
+field, and the field's microphone steps aside while it is open (its top edge would cut across it).
 ⌘↩ with the action panel open closes it first, then does what it does with the panel closed. Nothing but a note can be
 trashed. Moving to the trash slides the row out to the left before the rows below close the gap ([The list's
 motion](#the-lists-motion-appuinotelisttsx)) and turns the footer into "Moved to the Trash" with Undo for
