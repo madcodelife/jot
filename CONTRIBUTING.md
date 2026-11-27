@@ -13,9 +13,9 @@ the platform code are Rust. Only macOS is supported for now.
   to keep another `nsh` on your `PATH` and run this one as `$NSH_INSTALL_DIR/bin/nsh`).
 
 Jot builds against NSH's repository at a commit (`Cargo.toml`'s `nsh-core` and `nsh-extra`), not a release: the
-note's live preview needs the editor decorations' labels and font sizes and a fix to them (NSH #3272), which no release
-has yet (0.7.0 lacks them). Building that commit's CLI from source takes a while. It goes back to a crates.io version
-once a release of NSH has them.
+note's live preview needs the editor decorations' labels and font sizes and a fix to them (NSH #3272), and the panel's
+window a `pointerEvents: "box-none"` window (NSH #3478), which no release has yet (0.7.0 lacks them). Building that
+commit's CLI from source takes a while. It goes back to a crates.io version once a release of NSH has them.
 
 ## Commands
 

@@ -19,17 +19,18 @@ nsh-icon-lucide = "0.2.2"
 nsh-icon = "0.2.2"
 # NSH's repository at a commit, not a release: the open note's live preview needs `EditorDecoration`'s `label` /
 # `labelClass` / `labelStyle` (NSH #3178) and `fontSize` / `fontFamily` (NSH #3177), new after 0.7.0, and the fix
-# that keeps label boxes from laying the rows out again without end (NSH #3272, on main before the commit).
+# that keeps label boxes from laying the rows out again without end (NSH #3272), and the panel's window passing
+# presses through around the panel (`pointerEvents: "box-none"` on a window, NSH #3478).
 # The `nsh` CLI must be the same commit (CONTRIBUTING, Setting up; `scripts/install-nsh.sh` builds it). Back to
 # crates.io (`nsh-core = "<version>"`) once a release of NSH has them.
-nsh-core = { git = "https://github.com/longbridge/nsh", rev = "dccbe7edf99790add1e95b3be26eac72116ae594" }
+nsh-core = { git = "https://github.com/longbridge/nsh", rev = "26c2d437124ebfc29efe4a19752a31d5e1511c88" }
 # Dictation's `Speech` (TSX: `import { Speech } from "nsh-extra"`), out of NSH's runtime since 0.6. NSH links a Rust
 # nshm the app's crate depends on. The same commit as nsh-core, and the same move back to crates.io.
-nsh-extra = { git = "https://github.com/longbridge/nsh", rev = "dccbe7edf99790add1e95b3be26eac72116ae594", features = ["speech"] }
+nsh-extra = { git = "https://github.com/longbridge/nsh", rev = "26c2d437124ebfc29efe4a19752a31d5e1511c88", features = ["speech"] }
 # The emoji picker of a note (TSX: `import { EmojiPicker } from "nsh/base"`): its feature is off in the headless runner
 # `nsh test` builds, and on here it is in every runner of the app, the fingerprint (docs/app.md, Updates) with it. The
 # same commit as nsh-core.
-nsh-base = { git = "https://github.com/longbridge/nsh", rev = "dccbe7edf99790add1e95b3be26eac72116ae594", default-features = false, features = ["emoji-picker"] }
+nsh-base = { git = "https://github.com/longbridge/nsh", rev = "26c2d437124ebfc29efe4a19752a31d5e1511c88", default-features = false, features = ["emoji-picker"] }
 jot-store = { path = "store" }
 jiff = "1.0.0"
 # Channels from other threads (the folder watcher, the reminders' thread,
@@ -69,4 +70,4 @@ objc2-app-kit = { version = "0.3.2", default-features = false, features = [
 
 # nsh-icon and nsh-icon-lucide ask for nsh-core 0.7.0 from crates.io: they build with the same commit as the app's.
 [patch.crates-io]
-nsh-core = { git = "https://github.com/longbridge/nsh", rev = "dccbe7edf99790add1e95b3be26eac72116ae594" }
+nsh-core = { git = "https://github.com/longbridge/nsh", rev = "26c2d437124ebfc29efe4a19752a31d5e1511c88" }

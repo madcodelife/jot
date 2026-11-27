@@ -274,6 +274,16 @@ needed the colored words a shade deeper in light (lighter in dark): `agent-ink`,
 glass (`GLASS_WORST`, the dark one as measured under the veil, since the glass lightens what is drawn in it a little)
 as well as the cards' colors. Without native glass (earlier macOS), the blur and `glass-fill` stay as they were.
 
+## The panel's window (app/ui/Panel.tsx)
+
+The panel lives in one transparent popup window, as large as the panel grows (a note open) plus room for its shadow,
+so the panel changes shape inside it and the window never resizes. Around the panel the window is empty: it is
+`pointerEvents: "box-none"`, and so is the view that fills it, so a press there goes to the window below, as a press
+anywhere else outside the panel does, and the panel loses the focus and hides. Only the panel's views and what opens
+over them (the action panel and its backdrop, the reminder time and emoji pickers) take the pointer. NSH lets a
+`box-none` window's presses through on every desktop; it needs the `windows` capability's `overlay`, which `nsh.json`
+grants for the island.
+
 ## The list's rows (app/ui/NoteList.tsx)
 
 A row is words alone, no icon, in two lines: a note's semibold title over its snippet, "New “…”" over its hint. A
