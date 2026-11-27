@@ -224,13 +224,14 @@ every wait of the island is 600 ms at most).
 
 ## The island's reminder (app/ui/Island.tsx)
 
-A to-do comes due: the island opens and the bell's disc falls out of the notch as an AI app's avatar does (`useDrop`,
-the same frames); the label, the title and the checkbox rise in after it, `T.timing.remind.riseStagger` apart. Once the
-disc lands the bell swings about a point near its top, a pendulum dying out (16° · e^(−4.2t) · sin 7πt over
-`remind.swing`, sampled into keyframes), while two sound waves pulse out beside the disc: arcs of a circle, cut out of
-its ring with `clipPath: inset(…)` (NSH draws no partial strokes). While it waits, a halo (an outline of the island in
-the accent, behind it in the window's room) pulses out twice as it opens and then every `remind.ring`, the checkbox
-breathes a ring out every `remind.breathe`, and the bell rings again with a short wiggle. There is no countdown.
+A to-do comes due: the island opens, as wide as for an AI app's write or a quick note (`T.size.islandWidth`), and the
+bell's disc falls out of the notch as an AI app's avatar does (`useDrop`, the same frames); the label, the title and the
+checkbox rise in after it, `T.timing.remind.riseStagger` apart. Once the disc lands the bell swings about a point near
+its top, a pendulum dying out (16° · e^(−4.2t) · sin 7πt over `remind.swing`, sampled into keyframes), while two sound
+waves pulse out beside the disc: arcs of a circle, cut out of its ring with `clipPath: inset(…)` (NSH draws no partial
+strokes). While it waits, a halo (an outline of the island in the accent, behind it in the window's room) pulses out
+twice as it opens and then every `remind.ring`, the checkbox breathes a ring out every `remind.breathe`, and the bell
+rings again with a short wiggle. There is no countdown.
 
 Ticking it: the checkbox ticks as in the to-do view (below; white, the check in the accent), a line strikes the title
 through and it dims, the label flips to "Done" (`FlipText`), the disc hops, and every loop stops (its values settle
