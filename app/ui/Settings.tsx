@@ -820,8 +820,12 @@ function ThemeCard(props: { name: ThemeName }) {
           }}
         >
           <View style={{ width: "40%", gap: 6 }}>
-            <View style={{ height: 13, borderRadius: 3, justifyContent: "center", paddingHorizontal: 4, backgroundColor: c().accent }}>
-              {bar(c().onAccent, "75%")}
+            {/* The selected row, as the list draws it: a light accent fill under a title in the accent's ink. */}
+            <View
+              testID={`theme-card-selected:${props.name}`}
+              style={{ height: 13, borderRadius: 3, justifyContent: "center", paddingHorizontal: 4, backgroundColor: c().selected }}
+            >
+              {bar(c().selectedInk, "75%")}
             </View>
             <View style={{ gap: 3, paddingHorizontal: 4 }}>
               {bar(c().ink, "80%")}

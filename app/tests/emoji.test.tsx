@@ -83,9 +83,9 @@ test("a row shows a note's emoji before its title, and rows without one show the
   await app.type("id:search", "聚餐");
   await app.waitFor("id:row:create");
   expect(app.texts()).toContain("🍕 周末聚餐");
-  // The row is selected: its marked words are underlined (a fill elsewhere); the emoji is not marked.
-  expect(app.spanStyle("id:row:周末聚餐 >> text:聚餐 >> nth=0")?.underline).toBe(true);
-  expect(app.spanStyle("id:row:周末聚餐 >> text:🍕 >> nth=0")?.underline ?? false).toBe(false);
+  // The row is selected: its marked words are in the highlighter's fill, as on any row; the emoji is not marked.
+  expect(app.spanStyle("id:row:周末聚餐 >> text:聚餐 >> nth=0")?.backgroundColor ?? "#00000000").not.toMatch(/00$/);
+  expect(app.spanStyle("id:row:周末聚餐 >> text:🍕 >> nth=0")?.backgroundColor ?? "#00000000").toMatch(/00$/);
   const create = app.layout("id:row:create >> text:新建「聚餐」")!.x - app.layout("id:row:create")!.x;
   expect(create).toBeLessThan(20);
   app.dispose();

@@ -50,7 +50,13 @@ list:
   all_done: 今天的都做完了
   next: 下一件 %{time} %{text}
   see_all: 回车查看全部待办
-  dots: 今天 %{total} 件，做完 %{done} 件
+  progress: 今天 %{total} 件，做完 %{done} 件
+  # The recent list's date groups, by the day a note last changed.
+  day:
+    today: 今天
+    yesterday: 昨天
+    week: 本周
+    earlier: 更早
 
 todo:
   # 搜索框里输入这些词（或 /todo）进入待办视图；第一个是托盘和通知用的。

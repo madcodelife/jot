@@ -116,18 +116,40 @@ export function relativeDay(d: Date, now: Date): string {
   return monthDay(d);
 }
 
-/** A note's age in the list: just now, 10 minutes ago, today at 09:40, yesterday, the month and day, the date with its year. */
-export function age(modified: number, now: number): string {
+/**
+ * A note's age in the list: just now, 10 minutes ago, today at 09:40, yesterday, the month and day, the date with its
+ * year. Under a date group's header (`sectioned`), today's and yesterday's are the time alone: the header says the day.
+ */
+export function age(modified: number, now: number, sectioned = false): string {
   const diff = now - modified;
   if (diff < 60_000) return t("time.just_now");
   if (diff < 3_600_000) return tn("time.minutes_ago", Math.floor(diff / 60_000));
   const d = new Date(modified);
   const today = new Date(now);
   const n = daysFrom(d, today);
-  if (n === 0) return t("time.today_at", { time: hm(d) });
-  if (n === -1) return t("time.yesterday");
+  if (n === 0) return sectioned ? hm(d) : t("time.today_at", { time: hm(d) });
+  if (n === -1) return sectioned ? hm(d) : t("time.yesterday");
   if (d.getFullYear() === today.getFullYear()) return monthDay(d);
   return fullDate(d);
+}
+
+/** The recent list's date groups, in order: a note by the day it last changed. */
+export type DayGroup = "today" | "yesterday" | "week" | "earlier";
+
+/** A date group's header. */
+export const dayLabel = (group: DayGroup) => t(`list.day.${group}`);
+
+/**
+ * Which date group a note changed at `modified` goes in: today (a time ahead of the clock too), yesterday, earlier
+ * this week (weeks starting on `firstDay`, 1 for Monday to 7 for Sunday, as `localeSettings` gives it), or before.
+ */
+export function dayGroup(modified: number, now: number, firstDay = 1): DayGroup {
+  const today = new Date(now);
+  const n = daysFrom(new Date(modified), today);
+  if (n >= 0) return "today";
+  if (n === -1) return "yesterday";
+  const intoWeek = (today.getDay() - (firstDay % 7) + 7) % 7;
+  return -n <= intoWeek ? "week" : "earlier";
 }
 
 /** The to-do view's groups, in order. */
@@ -159,8 +181,6 @@ export interface TodaySummary {
   late: number;
   /** The next open one due today. */
   next: { text: string; due: Date } | null;
-  /** One dot per to-do due today, done ones first. */
-  dots: boolean[];
 }
 
 /** Today's to-dos at a glance. */
@@ -178,6 +198,5 @@ export function todaySummary(todos: readonly Todo[], now: Date): TodaySummary {
     .map((t) => ({ text: t.text, due: parseDue(t.due)! }))
     .filter((t) => t.due.getTime() >= now.getTime())
     .sort((a, b) => a.due.getTime() - b.due.getTime())[0] ?? null;
-  const dots = today.map((t) => t.done).sort((a, b) => Number(b) - Number(a));
-  return { total: today.length, left: open.length, late, next, dots };
+  return { total: today.length, left: open.length, late, next };
 }

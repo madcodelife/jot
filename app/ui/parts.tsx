@@ -40,11 +40,10 @@ function segments(text: string, terms: readonly string[]): Segment[] {
   return out;
 }
 
-/** One line of text with the query's terms marked in highlighter yellow (on a selected row, underlined and bold in its ink). */
+/** One line of text with the query's terms marked in highlighter yellow (on a selected row too: its light fill keeps the mark clear). */
 export function Highlight(props: {
   text: string;
   terms: readonly string[];
-  selected: boolean;
   class?: string;
   size: number;
   testID?: string;
@@ -55,10 +54,7 @@ export function Highlight(props: {
   return (
     <Text testID={props.testID} class={props.class} style={{ numberOfLines: 1, fontSize: props.size }}>
       {props.prefix ? `${props.prefix} ` : ""}
-      {parts().map((p) =>
-        // On the selected row's accent a filled block would read as selected text: the words are underlined and bold instead.
-        p.hit ? <Text class={props.selected ? "text-on-accent font-semibold underline" : "bg-mark text-mark-fg"}>{p.text}</Text> : p.text,
-      )}
+      {parts().map((p) => (p.hit ? <Text class="bg-mark text-mark-fg">{p.text}</Text> : p.text))}
     </Text>
   );
 }

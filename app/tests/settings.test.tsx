@@ -206,7 +206,7 @@ test("a retired theme stored by an earlier version shows as its successor, and i
   app.dispose();
 });
 
-test("every theme reads at WCAG AA in both appearances: text, the selected row, to-dos, reminders, headings, AI apps' names, matches, selected text", () => {
+test("every theme reads at WCAG AA in both appearances: text, the selected row, today's card, menus, to-dos, reminders, headings, AI apps' names, matches, selected text", () => {
   for (const name of THEMES) {
     for (const dark of [false, true]) {
       const v = themeVars(name).cssVars[dark ? "dark" : "light"] as Record<string, string>;
@@ -215,14 +215,24 @@ test("every theme reads at WCAG AA in both appearances: text, the selected row, 
       const paper = v.paper;
       const on = (fg: string, bg: string) => flatten(fg, bg);
       const chip = (c: string) => flatten(`${c.slice(0, 7)}21`, paper);
+      // The list's selected row: the accent at 12% (`bg-primary/12`) on the panel; today's card: at 6%, or 12% selected.
+      const selected = flatten(`${v.primary.slice(0, 7)}1f`, surface);
+      const card = flatten(`${v.primary.slice(0, 7)}0f`, surface);
       const pairs: [string, string, string][] = [
         ["text on the panel", on(v["glass-fg"], surface), surface],
         ["secondary text on the panel", on(v["glass-muted"], surface), surface],
         ["text on the paper", v["paper-fg"], paper],
         ["secondary text on the paper", v["paper-muted"], paper],
         ["heading", v.heading, paper],
-        ["selected row", v["on-accent"], v.primary],
-        ["selected row's second line", on(v["on-accent-muted"], v.primary), v.primary],
+        ["selected row's title", on(v["selected-ink"], selected), selected],
+        ["selected row's snippet and time", on(v["selected-muted"], selected), selected],
+        ["selected row's AI app's name", on(v["selected-agent"], selected), selected],
+        ["today's card's second line", on(v["selected-muted"], card), card],
+        ["today's card's overdue to-dos", on(v["selected-late"], card), card],
+        ["selected card's overdue to-dos", on(v["selected-late"], selected), selected],
+        // The action panel and the reminder time picker, menus, keep a solid accent fill.
+        ["selected menu item", v["on-accent"], v.primary],
+        ["selected menu item's second line", on(v["on-accent-muted"], v.primary), v.primary],
         ["to-do box", v["accent-ink"], paper],
         ["reminder chip", v.due, chip(v.due)],
         ["overdue chip", v.late, chip(v.late)],
@@ -239,14 +249,36 @@ test("every theme reads at WCAG AA in both appearances: text, the selected row, 
   }
 });
 
+test("the selected row's words are the palette's own colours, a deeper shade only where those read below AA on the fill", () => {
+  const SOURCE = { "selected-ink": "accent-ink", "selected-muted": "glass-muted", "selected-agent": "agent-ink", "selected-late": "late" };
+  let deeper = 0;
+  for (const name of THEMES) {
+    for (const dark of [false, true]) {
+      const v = themeVars(name).cssVars[dark ? "dark" : "light"] as Record<string, string>;
+      const selected = flatten(`${v.primary.slice(0, 7)}1f`, swatch(name, dark).surface);
+      for (const [token, from] of Object.entries(SOURCE)) {
+        if (v[token] === v[from]) continue;
+        deeper++;
+        // Named only for a reason: the palette's own colour misses AA there.
+        if (contrast(flatten(v[from], selected), selected) >= 4.5) throw new Error(`${name} ${dark ? "dark" : "light"}: ${token} need not differ from ${from}`);
+      }
+    }
+  }
+  expect(deeper).toBeGreaterThan(0);
+  // A palette that names none of them (Dracula's dark ink) takes its own accent, never the base's.
+  const dracula = themeVars("dracula").cssVars.dark as Record<string, string>;
+  expect(dracula["selected-ink"]).toBe(dracula["accent-ink"]);
+});
+
 test("each theme's card in the settings shows its colours in the appearance shown, and the panel takes its surface", async () => {
   const app = await openJot(folder("theme-card"));
   await app.waitFor("id:empty");
   await openSettings(app, "appearance");
   const surface = (name: string) => app.viewStyle(`id:theme-card:${name}`)?.backgroundColor;
 
-  // Each card in its theme's light surface, every one its own.
+  // Each card in its theme's light surface, every one its own; its selected row a light accent fill, as the list's.
   for (const name of THEMES) expect(surface(name)).toBe(`${swatch(name, false).surface}ff`);
+  for (const name of THEMES) expect(app.viewStyle(`id:theme-card-selected:${name}`)?.backgroundColor).toBe(swatch(name, false).selected);
   expect(new Set(THEMES.map(surface)).size).toBe(THEMES.length);
 
   // Dark: the cards follow.

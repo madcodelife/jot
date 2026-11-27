@@ -50,7 +50,13 @@ list:
   all_done: All done for today
   next: "Next: %{time} %{text}"
   see_all: Press Return to see all to-dos
-  dots: "%{done} of %{total} done today"
+  progress: "%{done} of %{total} done today"
+  # The recent list's date groups, by the day a note last changed.
+  day:
+    today: Today
+    yesterday: Yesterday
+    week: This Week
+    earlier: Earlier
 
 todo:
   # Typed in the search field (or /todo), these open the to-do view; the first is the one the menu and notifications use.
