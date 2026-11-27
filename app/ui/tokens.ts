@@ -78,9 +78,8 @@ export interface PlatformTokens {
     windowMargin: number;
     /** Where the panel's top sits: this share of the display's height from its top. */
     panelTop: number;
-    /** The island open: Claude writing, and a reminder. */
+    /** The island open, the same for all it shows: an AI app's write, a quick note and a reminder. */
     islandWidth: number;
-    islandRemindWidth: number;
     islandHeight: number;
     /** The island's bottom corners open, and its idle notch's. */
     islandRadius: number;
@@ -322,7 +321,6 @@ const SIZE = {
   windowMargin: 24,
   panelTop: 0.17,
   islandWidth: 441,
-  islandRemindWidth: 371,
   islandHeight: 93,
   islandRadius: 39,
   islandIdleRadius: 14,

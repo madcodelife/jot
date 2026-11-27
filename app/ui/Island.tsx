@@ -386,7 +386,7 @@ export function IslandWindow() {
   };
   const size = () =>
     isOpen()
-      ? { width: current()?.kind === "remind" ? T.size.islandRemindWidth : T.size.islandWidth, height: T.size.islandHeight }
+      ? { width: T.size.islandWidth, height: T.size.islandHeight }
       : idle();
   const radius = () => (isOpen() ? T.size.islandRadius : T.size.islandIdleRadius);
 
@@ -789,8 +789,8 @@ function HaloRing(props: { at: AnimatedValue }) {
       class="absolute border-primary"
       style={{
         top: 0,
-        left: (WINDOW.width - T.size.islandRemindWidth) / 2,
-        width: T.size.islandRemindWidth,
+        left: (WINDOW.width - T.size.islandWidth) / 2,
+        width: T.size.islandWidth,
         height: T.size.islandHeight,
         borderWidth: 2,
         borderTopWidth: 0,
