@@ -4,7 +4,8 @@
 // item, one undo taking it back; ⇧↩ is a plain break; ⌘↩ ticks the caret's
 // to-do; brackets and quotes typed are one character. The live preview hides
 // the Markdown off the caret (all of it without the focus), sizes headings,
-// sets code in the code font, and draws a to-do's box, which a press ticks.
+// sets code in the code font, draws a to-do's box, which a press ticks, and a
+// table's cells in columns, all of it as written while the caret is in it.
 import { expect, open, test } from "nsh/test";
 import { Notes } from "jot/native";
 import { STAND_INS } from "./native";
@@ -166,4 +167,42 @@ test("while the text has no focus, everything shows rendered, the caret's line t
   await app.wait(300);
   expect(rows(app)).toContain("￼标题");
   expect(rows(app)).toContain("￼ 交房租");
+});
+
+test("a table is drawn as cells in columns off the caret, and shows as written, all of it, with the caret in it", async () => {
+  const body = "| 周一 | **有氧** |\n| --- | ---: |\n| 周二 | 力量训练 |\n\n后记";
+  const { app, notes } = await openNote("表格", body);
+  // The caret on the last line: each cell is a label of its words, the pipes and the delimiter row hidden.
+  let shown = rows(app);
+  for (const words of ["周一", "有氧", "周二", "力量训练"]) expect(shown).toContain(words);
+  expect(shown).not.toContain("| 周一 | **有氧** |");
+  expect(shown).not.toContain("| --- | ---: |");
+  // A cell's box is its column's width: the first column's the same in every row, the bold header's words setting it.
+  const box = (source: string) => app.layout(`id:editor >> label:${source}`);
+  expect(box("| 周一 ")?.width).toBe(55);
+  expect(box("| 周二 ")?.width).toBe(55);
+  expect(box("| 力量训练 ")?.width).toBe(65);
+  // (Where the boxes sit in the row is the platform's text layout's: the headless one gives an inline box a
+  // character's room, so only the boxes' widths are checked here.)
+  // The caret in the table (on its last row): every row shows as written, the header's and the delimiter's too.
+  await keys(app, "up", "up");
+  shown = rows(app);
+  for (const row of ["| 周一 | **有氧** |", "| --- | ---: |", "| 周二 | 力量训练 |"]) expect(shown).toContain(row);
+  await keys(app, "down", "down");
+  expect(rows(app)).not.toContain("| --- | ---: |");
+  expect(notes.read("表格")?.body).toBe(body);
+});
+
+test("a table in fenced code stays code; without the focus, a table is drawn with the caret in it", async () => {
+  const { app } = await openNote("表格代码", "```\n| a | b |\n| - | - |\n```\n| 甲 | 乙 |\n| - | - |");
+  // The caret at the end, in the table: it shows as written; the fenced one too, as code.
+  expect(rows(app)).toContain("| 甲 | 乙 |");
+  expect(rows(app)).toContain("| a | b |");
+  // The action panel takes the keys from the text: the table is drawn.
+  await app.keyboard.press("mod+k");
+  await app.waitFor("id:actions");
+  await app.wait(300);
+  expect(rows(app)).not.toContain("| 甲 | 乙 |");
+  expect(rows(app)).toContain("甲");
+  expect(rows(app)).toContain("| a | b |");
 });

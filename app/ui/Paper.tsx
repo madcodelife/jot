@@ -24,7 +24,7 @@ import { Button, Editor, type EditorDecoration, type EditorPosition, type Editor
 import { t } from "nsh/i18n";
 import { When, type Conflict } from "jot/native";
 import { caretOnTodo, openDuePicker, setEditorDue } from "../due";
-import { codeBlocks, continuation, fenceMark, fencedLines, isQuote, lineMarks, type Mark, type MarkKind } from "../markdown";
+import { codeBlocks, continuation, fenceMark, fencedLines, isQuote, lineMarks, tableBlocks, tableMarks, tableSyntax, type Mark, type MarkKind } from "../markdown";
 import { whenOptions } from "../settings";
 import { allNotes, emojiPicking, errorMessage, lastWritten, notes, now, opened, refresh, removeEmoji, revision, save, setEditorFlush, setLocked, showFlash, startEmoji } from "../store";
 import { taskLine, toggledLine, withDue } from "../tasks";
@@ -86,7 +86,19 @@ const MARK_CLASS: Record<MarkKind, string> = {
   strike: "line-through",
   // A to-do's box is drawn by its label; its `[ ]`, shown, is styled with the to-do (`task.box` below).
   box: "",
+  // A table's cells and rule are drawn by their labels.
+  cell: "",
+  head: "",
+  rule: "",
 };
+
+/**
+ * The room a table's row has across the paper: the panel with a note open, less the sidebar, the paper's inset and its
+ * margins, and a little to spare (a row wider than this would wrap).
+ */
+const TABLE_ROOM = T.size.editorWidth - T.size.sidebar - T.size.inset * 3 - PAPER_X * 2 - 12;
+/** How a table's cell sets its words in its box, by its column's alignment. */
+const CELL_ALIGN = { left: "flex-start", center: "center", right: "flex-end" } as const;
 
 /** The monospaced font of a note's code (NSH reads `ui-monospace` as the system's). */
 const CODE_FONT = "ui-monospace";
@@ -101,6 +113,15 @@ function labelLook(m: Mark): Pick<EditorDecoration, "labelClass" | "labelStyle">
       ? { labelClass: "bg-paper-muted text-paper text-[11px] font-bold", labelStyle: box }
       : { labelClass: "border-accent-ink", labelStyle: { ...box, borderWidth: 1.5 } };
   }
+  // A table's cell: a box of its column's width, the gap to the next column on its right, its words cut with an
+  // ellipsis if they do not fit; the header's bold. The delimiter row: a faint rule as wide as the table.
+  if (m.kind === "cell" || m.kind === "head") {
+    return {
+      ...(m.kind === "head" ? { labelClass: "font-bold" } : {}),
+      labelStyle: { width: m.width, paddingRight: m.gap, alignItems: CELL_ALIGN[m.align ?? "left"], overflow: "hidden" },
+    };
+  }
+  if (m.kind === "rule") return { labelClass: "bg-paper-fg/15", labelStyle: { width: m.width, height: 1 } };
   // A fence's language, small; a bullet's `•`, muted.
   if (m.kind === "syntax" && m.label) return m.label === "•" ? { labelClass: "text-paper-muted" } : { labelClass: `text-paper-muted text-[${T.type.meta}px]` };
   return {};
@@ -567,10 +588,26 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
         out.push({ range, class: MARK_CLASS.syntax, ...(m.label !== undefined ? { label: m.label, ...labelLook(m) } : {}) });
       }
     }
+    // Tables: drawn as cells while no caret or selection is in them; touched anywhere, all of each shows as written
+    // (its syntax, every row's, muted), so its columns stay put while it is edited. One too wide to fit shows as
+    // written too, its pipes muted.
+    /** The marks of each table's line, by line: drawn cells, or its syntax as written. */
+    const tabled = new Map<number, Mark[]>();
+    for (const block of tableBlocks(lines)) {
+      const shown = carets.some((r) => r.start.line <= block.end && r.end.line >= block.start);
+      const drawn = shown ? null : tableMarks(lines, block, { room: TABLE_ROOM, size: T.type.body });
+      for (let line = block.start; line <= block.end; line++) {
+        const content = lines[line];
+        const marks = drawn
+          ? drawn[line - block.start]
+          : [...tableSyntax(content, line === block.start + 1), ...lineMarks(content, shown ? [{ start: 0, end: content.length }] : touchedOn(line, content.length))];
+        tabled.set(line, marks);
+      }
+    }
     lines.forEach((content, line) => {
       const span = (start: number, end: number) => ({ start: { line, column: start }, end: { line, column: end } });
       if (!fenced[line]) {
-        const marks = lineMarks(content, touchedOn(line, content.length));
+        const marks = tabled.get(line) ?? lineMarks(content, touchedOn(line, content.length));
         const heading = marks.some((m) => m.level !== undefined);
         for (const m of marks) {
           const d: EditorDecoration = { range: span(m.start, m.end) };

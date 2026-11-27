@@ -379,6 +379,20 @@ has no focus, no caret counts: everything shows rendered.
   or a selection is in the block; otherwise the opening fence is its language's name (small, muted) or nothing, and
   the closing one nothing.
 - **Quotes**: the row tinted (`lineClass`). A rule (`---`) stays as written, muted: the editor draws no line across.
+- **Tables** (GFM's: a header row, a delimiter row of as many cells, `| --- | :---: | ---: |`, then rows up to a
+  blank line or a line with no pipe, in the same quote; the pipes at either end may be left out; none in fenced code:
+  `tableBlocks`): while no caret or selection touches any of its rows, each cell (its words with the pipe before it,
+  the first from the line's start) is a label of its words in a box of its column's width (`labelStyle`'s `width`),
+  the pipe ending a row hidden and the delimiter row a faint rule as wide as the table (`tableMarks`). A cell's words
+  are plain text: its inline Markdown's marks dropped, `\|` a pipe, `<br>` a space (`cellText`); the header's bold;
+  each column set left, centered or right as its delimiter cell says (`:---`, `:---:`, `---:`). A column is as wide
+  as its widest words, 20 points (1.25 em) apart: the editor cannot measure text, so `textWidth` reckons it, a CJK
+  character an em, Latin by its letters in San Francisco's widths, bold 6% wider, an emoji 1.25 em. A table wider
+  than the paper's text (`TABLE_ROOM`: the panel with a note open, less the sidebar, the insets and margins) keeps its
+  narrow columns and shares the rest among the wide ones, whose words end in an ellipsis; one whose columns would be
+  narrower than three ems shows as written, its pipes muted. A row with fewer cells leaves the rest empty, one with
+  more has columns of its own. Touched anywhere, the whole table shows as written, every row's syntax muted, as a
+  fenced block's fences do, so its columns do not move while it is edited.
 
 Selected text is inked by more decorations over the selection (`SELECTED`); they carry a class alone, so labels and
 sizes stay as they are, and a line a selection covers shows its syntax anyway. Labelled ranges never overlap (NSH
