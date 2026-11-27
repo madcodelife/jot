@@ -196,6 +196,9 @@ export function PanelWindow() {
         defaultPosition={placement(untracked(displays)) ?? "center"}
         transparent
         shadow={false}
+        // The window is as large as the panel grows; around the panel it is empty, and a press there goes to the
+        // window below (the panel then loses the focus and hides), as a press anywhere else outside it does.
+        pointerEvents="box-none"
         // Escape steps back (note → list → hidden) and losing the focus hides the panel,
         // keeping its window: both are the app's, below.
         closeOnEscape={false}
@@ -207,7 +210,7 @@ export function PanelWindow() {
           if (!untracked(listening)) dismiss();
         }}
       >
-        <View class="flex-1 items-center" style={{ paddingTop: T.size.windowMargin, backgroundColor: "transparent" }}>
+        <View class="flex-1 items-center" style={{ paddingTop: T.size.windowMargin, backgroundColor: "transparent", pointerEvents: "box-none" }}>
           <Panel opacity={opacity} lift={lift} scale={scale} />
           <If when={actionsTarget()}>
             {(target) => <ActionPanel {...actionsPlace(filteredActions(target(), ""))} returnFocus={actionsReturn()} />}
