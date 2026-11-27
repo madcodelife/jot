@@ -1,7 +1,8 @@
 //! Jot's notes folder.
 //!
 //! A note is one `.md` file directly in the folder; its title is the file stem. A note may start with YAML
-//! frontmatter between `---` lines: Jot reads `source` (who created the note) from it and keeps everything else untouched.
+//! frontmatter between `---` lines: Jot reads `source` (who created the note), `locked` and `icon` (its emoji) from it
+//! and keeps everything else untouched.
 //! Every write goes to a temporary file in the same folder that is then renamed over the note, so readers
 //! (the app, the MCP server, sync clients) never see half a file.
 //!
@@ -22,6 +23,8 @@ use notify_debouncer_mini::{DebounceEventResult, DebouncedEventBatch, Debouncer,
 mod activity;
 mod cloud;
 mod conflict;
+mod frontmatter;
+mod icon;
 mod import;
 mod lock;
 mod moving;
@@ -33,6 +36,7 @@ pub mod when;
 
 pub use activity::{Action, Activity, ActivityTail, ROTATE_AT, watch_activity};
 pub use conflict::{Conflict, Resolution, Resolved};
+pub use icon::Icon;
 pub use import::{APPLE_NOTES_ID, ImportNote, Imported};
 pub use jiff::civil::DateTime;
 pub use moving::Moved;
@@ -85,6 +89,8 @@ pub struct NoteMeta {
     /// The note is locked (the file's locked flag, or `locked: true` in its frontmatter): nothing changes it until
     /// it is unlocked (`StoreError::Locked`). See `lock`.
     pub locked: bool,
+    /// The emoji shown before its title: its frontmatter's `icon`, when that is one emoji. See `icon`.
+    pub icon: Option<String>,
 }
 
 /// A note with its body.
@@ -538,6 +544,7 @@ impl Store {
                 preview: String::new(),
                 downloading: true,
                 locked: lock::is_locked(&metadata, None),
+                icon: None,
             };
             return Ok((meta, String::new()));
         };
@@ -553,6 +560,7 @@ impl Store {
             preview: one_line(parts.body, PREVIEW_CHARS),
             downloading: false,
             locked: lock::is_locked(&metadata, Some(&content)),
+            icon: icon::icon_of(&content),
         };
         Ok((meta, parts.body.to_owned()))
     }
@@ -793,6 +801,8 @@ impl Lowered {
 
 #[cfg(test)]
 mod cloud_tests;
+#[cfg(test)]
+mod icon_tests;
 #[cfg(test)]
 mod import_tests;
 #[cfg(test)]

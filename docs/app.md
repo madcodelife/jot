@@ -1,7 +1,8 @@
 # The app
 
-The app's Rust face (`jot/native`), the island, the to-do view's motion and Jot's sounds, the open note's keys and live
-preview, row actions, importing from Apple Notes, updates and packaging. Part of [the architecture](architecture.md).
+The app's Rust face (`jot/native`), the island, the list's rows and their motion, the to-do view's motion and Jot's
+sounds, the open note's keys and live preview, a note's emoji, row actions, importing from Apple Notes, updates and
+packaging. Part of [the architecture](architecture.md).
 
 ## The app's Rust face (`jot/native`, src/)
 
@@ -30,12 +31,14 @@ class Notes {                                   // wraps jot_store::Store
   lock(title: string): NoteMeta;                // locked: true + the file's flag, mtime kept
   unlock(title: string): NoteMeta;
   settleLocks(): string[];                      // the missing half of each lock put back (folder opened / changed)
+  setIcon(title: string, icon: string): NoteMeta;  // its emoji (`icon: "🍕"`), mtime kept; TypeError unless one emoji
+  clearIcon(title: string): NoteMeta;           // its emoji taken away, mtime kept
   todos(): Todo[];
   setTodoDone(note: string, line: number, text: string, done: boolean): NoteMeta;
   setTodoDue(note: string, line: number, text: string, due: string | null /* "YYYY-MM-DDTHH:mm", else TypeError; null removes */): NoteMeta;  // ERR_JOT_CHANGED
   addTodo(text: string, due?: string | null /* "YYYY-MM-DDTHH:mm", else TypeError */, note?: string | null /* "待办" */): Todo;
 }
-interface NoteMeta { title: string; modified: number /* ms since epoch */; source: string | null /* null: the user; else the AI app's name, "Cursor" */; preview: string; downloading: boolean /* not on this Mac yet: read-only, empty */; locked: boolean /* read-only till unlocked */ }
+interface NoteMeta { title: string; modified: number /* ms since epoch */; source: string | null /* null: the user; else the AI app's name, "Cursor" */; preview: string; downloading: boolean /* not on this Mac yet: read-only, empty */; locked: boolean /* read-only till unlocked */; icon?: string | null /* its emoji, "🍕" */ }
 interface Conflict { id: string; device: string | null; modified: number; body: string }
 interface ResolvedConflict { note: NoteMeta; copy: NoteMeta | null }
 // Errors also: ERR_JOT_NOT_DOWNLOADED (the note is not on this Mac yet; nothing was changed), ERR_JOT_LOCKED (the note
@@ -256,6 +259,14 @@ it, and the sounds of AI apps' writes, with Python's standard library alone. `ns
 bundle's `Contents/Resources`, where macOS finds a notification's sound by its file name; an OTA package cannot put it
 there, so `assets/` is in the native fingerprint ([Updates](#updates-appupdatests)).
 
+## The list's rows (app/ui/NoteList.tsx)
+
+A row is words alone, no icon: a note's title over its snippet, today's to-dos over what is overdue and next, "New
+“…”" over its hint. A note with an emoji shows it before its title, in the title's line ("🍕 Dinner": a space after
+it, only its own width; a note without one starts with its title); a search marks the title's words, never the emoji.
+What tells a row apart is at its end: an AI app's note has the app's name, a locked one a padlock, then the time;
+a note not downloaded says "Downloading…" for its snippet.
+
 ## The list's motion (app/ui/NoteList.tsx)
 
 The list holds up to 100 notes (the latest, or a search's best), shows `T.size.listRows` (six) and scrolls to the rest;
@@ -374,14 +385,43 @@ sizes stay as they are, and a line a selection covers shows its syntax anyway. L
 shows the first of two that do), which `lineMarks` keeps. Dictation's interim words and the time phrase chip are
 drawn as before.
 
+## A note's emoji (app/ui/Emoji.tsx, app/ui/Paper.tsx)
+
+The emoji is the note's frontmatter's `icon` ([storage.md](storage.md#a-notes-emoji-storesrciconrs)), so it travels with
+the note and never moves it in the list. It is chosen in NSH's `EmojiPicker` (`nsh/base`), inside Jot's window and in
+the theme's colors. From the list it takes the list's place in the panel, as the action panel does (`EmojiPane`, the
+note's title at its head; the panel takes its height); beside an open note it is a glass card like the action panel's
+(`EmojiPopover`, an `Overlay` placed by the panel as the reminder time picker is) under the note's row in the sidebar,
+or under the open note's title and date, at the title's left edge. Its search field has the keys: typing searches (the
+emoji's English names: NSH's data has no others unless the app gives them), the arrows move the highlight, Return or a
+press makes the emoji the note's (`pickEmoji` in app/store.ts, then `Notes.setIcon`) and closes it. Escape clears the
+search, then closes it, as a press outside it does; the focus goes back to the search field, or to the open note's text.
+The emoji the folder's notes have come first ("Used in Your Notes", `usedIcons`: no list of its own to keep); a note
+with one has "Remove Emoji", at the pane's head beside the title, at the card's foot. Emoji newer than 15.1 are left out
+(`emojiVersion`): macOS 14.4's font draws no later ones. While it shows, the list's keys and the actions wait
+(`editingInPlace`); hiding the panel, summoning it again, or opening or closing a note closes it, so nothing is left
+waiting.
+
+The picker is a feature of NSH's runtime (`emoji-picker`), which `nsh package` keeps for an app whose TSX imports it.
+The app's crate turns it on too (`nsh-base` in `Cargo.toml`): the headless runner `nsh test` builds has it off, and
+in the native fingerprint ([Updates](#updates-appupdatests)) it keeps a package that uses the picker from an app built
+without it.
+
+- **The open note's header**: the emoji before the title, at the title's size; a press on it opens the picker. In the
+  paper's top margin, above the title, a faint button ("Add Emoji", or "Remove Emoji" when it has one), clear under
+  the pointer. A locked note or one not downloaded shows its emoji and no button.
+- **The actions** (⌘K, a right click): "Set Emoji…" opens the picker in the list's place (under the title for the
+  open note, under its row in the sidebar for another), "Remove Emoji" shows for a note with one. A locked note has
+  neither.
+
 ## Row actions (app/actions.ts)
 
 One list of actions per row kind drives the action panel (⌘K / Ctrl+K, and a right click on a row:
 `app/ui/ActionPanel.tsx`), the footer's primary action (what Return does) and the actions' own keys, which work with the
 panel closed. A note: open ↩, create the query ⌘↩ (in a search that has a "New" row: what that row does, run by the
 panel's own ⌘↩, `createFromQuery`), show in Finder ⇧⌘F, rename ⌘R (in place, in its row), copy title ⇧⌘C, copy text ⇧⌘A,
-lock / unlock (no key), move to trash ⌃X (Windows / Linux Ctrl+D; keys in `app/ui/tokens.ts`). A locked note has
-"Unlock" for "Lock" and no rename or reminder time; ⌃X on it says to unlock it first (`ERR_JOT_LOCKED`). "New" row:
+set / remove its emoji (no key; [above](#a-notes-emoji-appuiemojitsx-appuipapertsx)), lock / unlock (no key), move to trash ⌃X (Windows / Linux Ctrl+D; keys in `app/ui/tokens.ts`). A locked note has
+"Unlock" for "Lock" and no rename, emoji or reminder time; ⌃X on it says to unlock it first (`ERR_JOT_LOCKED`). "New" row:
 create (its second line names no key: "A new, empty note"; its ⌘↩ keycap shows while another row is selected, and
 selected itself, the footer's "Create ↩" says it); today's row: show to-dos; a to-do: open its note, tick ⌘↩, its
 reminder time ⇧⌘D (and "Remove Reminder" when it has one); in the open note, the caret's to-do's reminder time ⇧⌘D.

@@ -16,7 +16,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-use crate::{Entry, NoteMeta, Store, StoreError, clean_title, retry, split};
+use crate::{Entry, NoteMeta, Store, StoreError, clean_title, frontmatter, retry};
 
 /// The frontmatter key.
 const KEY: &str = "locked";
@@ -128,7 +128,7 @@ impl Store {
         Ok(())
     }
 
-    fn entry(&self, title: &str) -> Result<Entry, StoreError> {
+    pub(crate) fn entry(&self, title: &str) -> Result<Entry, StoreError> {
         self.find(&clean_title(title)?)?.ok_or(StoreError::NotFound)
     }
 
@@ -157,7 +157,7 @@ impl Store {
     }
 
     /// Writes `content` over the file at `path`, its permissions and modification time kept.
-    fn write_keeping_time(&self, path: &Path, content: &str) -> Result<(), StoreError> {
+    pub(crate) fn write_keeping_time(&self, path: &Path, content: &str) -> Result<(), StoreError> {
         let metadata = retry(|| fs::metadata(path))?;
         self.write_file_at(path, content, metadata.permissions(), metadata.modified()?)
     }
@@ -168,79 +168,15 @@ pub(crate) fn has_flag(path: &Path) -> io::Result<bool> {
     Ok(flag_of(&retry(|| fs::metadata(path))?))
 }
 
-/// Whether a note's frontmatter says `locked: true`.
+/// Whether a note's frontmatter says `locked: true` (a top-level line, `true` in any case, quoted or not).
 pub(crate) fn frontmatter_locked(content: &str) -> bool {
-    split(content).frontmatter.is_some_and(|frontmatter| {
-        frontmatter
-            .lines()
-            .filter_map(top_level_value)
-            .any(|value| value.eq_ignore_ascii_case("true"))
-    })
-}
-
-/// The value of a top-level `locked:` line, unquoted and without a trailing comment.
-fn top_level_value(line: &str) -> Option<&str> {
-    let rest = line.strip_prefix(KEY)?.trim_start();
-    let value = rest.strip_prefix(':')?;
-    let value = match value.find(" #") {
-        Some(at) => &value[..at],
-        None => value,
-    };
-    let value = value.trim();
-    Some(
-        value
-            .strip_prefix('"')
-            .and_then(|v| v.strip_suffix('"'))
-            .or_else(|| value.strip_prefix('\'').and_then(|v| v.strip_suffix('\'')))
-            .unwrap_or(value),
-    )
+    frontmatter::values(content, KEY).any(|value| value.eq_ignore_ascii_case("true"))
 }
 
 /// `content` with `locked: true` in its frontmatter (`on`), or without a `locked` line (a frontmatter left empty
 /// goes). The rest of the frontmatter and the body stay as they are.
 pub(crate) fn with_locked(content: &str, on: bool) -> String {
-    let parts = split(content);
-    let newline = if content.contains("\r\n") {
-        "\r\n"
-    } else {
-        "\n"
-    };
-    let Some(frontmatter) = parts.frontmatter else {
-        return if on {
-            format!("---{newline}{KEY}: true{newline}---{newline}{content}")
-        } else {
-            content.to_owned()
-        };
-    };
-    let mut lines: Vec<&str> = frontmatter
-        .split_inclusive('\n')
-        .filter(|line| top_level_value(line.trim_end_matches(['\n', '\r'])).is_none())
-        .collect();
-    let added = format!("{KEY}: true{newline}");
-    if on {
-        lines.push(&added);
-    }
-    let kept: String = lines.concat();
-    // What follows the closing `---` line.
-    let closing = &parts.header[parts.header.len() - closing_len(parts.header)..];
-    if kept.trim().is_empty() {
-        return parts.body.to_owned();
-    }
-    let mut out = String::with_capacity(content.len() + added.len());
-    out.push_str(&parts.header[..parts.header.len() - frontmatter.len() - closing.len()]);
-    out.push_str(&kept);
-    if !kept.ends_with('\n') {
-        out.push_str(newline);
-    }
-    out.push_str(closing);
-    out.push_str(parts.body);
-    out
-}
-
-/// The length of the header's closing `---` line, its line break included.
-fn closing_len(header: &str) -> usize {
-    let without_break = header.trim_end_matches(['\n', '\r']);
-    header.len() - without_break.len() + 3
+    frontmatter::with_value(content, KEY, on.then_some("true"))
 }
 
 #[cfg(target_os = "macos")]

@@ -16,6 +16,9 @@
 // both (the other as a note of its own).
 // A locked note is read-only: the header says "Locked" with a padlock, and a
 // click there unlocks it; nothing edits it (typing, ticks, times, dictation).
+// The note's emoji leads its title; a press on it changes it. Above the title,
+// a faint button, clear under the pointer, adds one (or removes it); the
+// emoji picker opens under the title.
 import { cleanup, computed, createAnimatedValue, effect, keymap, Notifications, signal, Text, token, untracked, View } from "nsh";
 import { Button, Editor, type EditorDecoration, type EditorPosition, type EditorRef, type EditorSelection } from "nsh/base";
 import { t } from "nsh/i18n";
@@ -23,10 +26,11 @@ import { When, type Conflict } from "jot/native";
 import { caretOnTodo, openDuePicker, setEditorDue } from "../due";
 import { codeBlocks, continuation, fenceMark, fencedLines, isQuote, lineMarks, type Mark, type MarkKind } from "../markdown";
 import { whenOptions } from "../settings";
-import { allNotes, errorMessage, lastWritten, notes, now, opened, refresh, revision, save, setEditorFlush, setLocked, showFlash } from "../store";
+import { allNotes, emojiPicking, errorMessage, lastWritten, notes, now, opened, refresh, removeEmoji, revision, save, setEditorFlush, setLocked, showFlash, startEmoji } from "../store";
 import { taskLine, toggledLine, withDue } from "../tasks";
 import { age, parseDue } from "../time";
 import { cancelVoice, joinSpoken, listening, listeningLang, speechAvailable, startVoice, stopVoice, voiceError } from "../voice";
+import { emojiAnchor } from "./Emoji";
 import { Icon } from "./icons";
 import { fadeTo } from "./motion";
 import { fade } from "./themes";
@@ -193,6 +197,16 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   const locked = () => meta()?.locked ?? false;
   /** Nothing may change the text: not downloaded yet, or locked. */
   const readOnly = () => downloading() || locked();
+  /** The note's emoji, before its title. */
+  const icon = () => meta()?.icon ?? null;
+  // The emoji picker under the title closed: the text has the keys again.
+  let picking = false;
+  effect(() => {
+    const p = emojiPicking();
+    const mine = p?.place === "paper" && p.title === title;
+    if (picking && !mine) untracked(() => editor?.focus());
+    picking = mine;
+  });
 
   function saveNow() {
     clearTimeout(saveTimer);
@@ -616,60 +630,98 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   return (
     <View testID="paper" class={`flex-1 bg-paper ${fade()}`} style={{ borderRadius: T.radius.paper, borderCurve: "continuous", overflow: "hidden" }}>
       <View style={{ paddingTop: 30, paddingLeft: PAPER_X, paddingRight: PAPER_X }}>
-        <Text
-          testID="paper-title"
-          role="header"
-          class="font-bold text-paper-fg"
-          // Clear of the microphone and "Saved" (or "Listening…") at the top right, which a long title would run under.
-          style={{
-            numberOfLines: 2,
-            fontSize: T.type.title,
-            letterSpacing: -0.6,
-            lineHeight: 33,
-            marginRight: (listening() === "editor" ? STATUS_ROOM.listening : speechAvailable() ? STATUS_ROOM.savedMic : STATUS_ROOM.saved) - PAPER_X,
-          }}
-        >
-          {title}
-        </Text>
-        <View testID="paper-meta" class="flex-row items-center" style={{ gap: 5, marginTop: 9, marginBottom: 14 }}>
-          <If when={locked()}>
-            <Button
-              testID="paper-locked"
-              accessibilityLabel={t("lock.unlock_label", { title })}
-              class="flex-row items-center bg-paper-fg/7 hover:bg-paper-fg/12 active:opacity-70"
-              style={{ gap: 4, paddingHorizontal: 7, paddingVertical: 2, marginLeft: -7, borderRadius: T.radius.chip, borderCurve: "continuous" }}
-              onPress={() => setLocked(title, false)}
+        {/* Above the title, in the paper's top margin: faint until the pointer is on it. */}
+        <If when={!readOnly()}>
+          <Button
+            testID={icon() ? "paper-emoji-remove" : "paper-emoji-add"}
+            accessibilityLabel={icon() ? t("emoji.remove_label", { title }) : t("emoji.add_label", { title })}
+            class="absolute flex-row items-center opacity-40 hover:opacity-100 hover:bg-paper-fg/7 active:opacity-70"
+            style={{ left: PAPER_X - 7, top: 6, gap: 4, paddingHorizontal: 7, paddingVertical: 2, borderRadius: T.radius.chip, borderCurve: "continuous" }}
+            onPress={() => (untracked(icon) ? removeEmoji(title) : startEmoji(title))}
+          >
+            <If when={!icon()}>
+              <Icon name="smile" size={12} tint={token("paper-muted")} />
+            </If>
+            <Text class="text-paper-muted" style={{ fontSize: T.type.meta }}>
+              {icon() ? t("emoji.remove") : t("emoji.add")}
+            </Text>
+          </Button>
+        </If>
+        {/* The emoji picker opens under the title and its date, the title's left edge its own. */}
+        <View ref={emojiAnchor("paper", title)} style={{ marginBottom: 14 }}>
+          <View class="flex-row items-start">
+            <If when={icon()}>
+              {(emoji) => (
+                // A press changes it (not on a locked note, or one still downloading).
+                <Button
+                  testID="paper-emoji"
+                  accessibilityLabel={t("emoji.change_label", { title, emoji: emoji() })}
+                  disabled={readOnly()}
+                  class="hover:bg-paper-fg/7 active:opacity-70"
+                  style={{ marginLeft: -4, marginRight: 6, paddingHorizontal: 4, borderRadius: T.radius.row, borderCurve: "continuous" }}
+                  onPress={() => startEmoji(title)}
+                >
+                  <Text style={{ fontSize: T.type.title, lineHeight: 33 }}>{emoji()}</Text>
+                </Button>
+              )}
+            </If>
+            <Text
+              testID="paper-title"
+              role="header"
+              class="font-bold text-paper-fg"
+              // Clear of the microphone and "Saved" (or "Listening…") at the top right, which a long title would run under.
+              style={{
+                flexShrink: 1,
+                numberOfLines: 2,
+                fontSize: T.type.title,
+                letterSpacing: -0.6,
+                lineHeight: 33,
+                marginRight: (listening() === "editor" ? STATUS_ROOM.listening : speechAvailable() ? STATUS_ROOM.savedMic : STATUS_ROOM.saved) - PAPER_X,
+              }}
             >
-              <Icon name="lock" size={12} tint={token("paper-fg")} />
-              <Text class="font-semibold text-paper-fg" style={{ fontSize: T.type.meta }}>
-                {t("lock.locked")}
+              {title}
+            </Text>
+          </View>
+          <View testID="paper-meta" class="flex-row items-center" style={{ gap: 5, marginTop: 9 }}>
+            <If when={locked()}>
+              <Button
+                testID="paper-locked"
+                accessibilityLabel={t("lock.unlock_label", { title })}
+                class="flex-row items-center bg-paper-fg/7 hover:bg-paper-fg/12 active:opacity-70"
+                style={{ gap: 4, paddingHorizontal: 7, paddingVertical: 2, marginLeft: -7, borderRadius: T.radius.chip, borderCurve: "continuous" }}
+                onPress={() => setLocked(title, false)}
+              >
+                <Icon name="lock" size={12} tint={token("paper-fg")} />
+                <Text class="font-semibold text-paper-fg" style={{ fontSize: T.type.meta }}>
+                  {t("lock.locked")}
+                </Text>
+              </Button>
+              <Text class="text-paper-muted" style={{ fontSize: T.type.meta }}>
+                ·
               </Text>
-            </Button>
+            </If>
+            <If when={meta()?.source}>
+              <View class="flex-row items-center" style={{ gap: 4 }}>
+                <Icon name="spark" size={12} tint={token("agent")} />
+                <Text testID="paper-agent" class="font-semibold text-agent-ink" style={{ fontSize: T.type.meta }}>
+                  {t("paper.by_agent", { agent: meta()?.source ?? "" })}
+                </Text>
+              </View>
+              <Text class="text-paper-muted" style={{ fontSize: T.type.meta }}>
+                ·
+              </Text>
+            </If>
+            {/* When, then the file: each "·" with the same room around it. */}
+            <Text class="text-paper-muted" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 0 }}>
+              {meta() ? age(meta()!.modified, now()) : t("time.just_now")}
+            </Text>
             <Text class="text-paper-muted" style={{ fontSize: T.type.meta }}>
               ·
             </Text>
-          </If>
-          <If when={meta()?.source}>
-            <View class="flex-row items-center" style={{ gap: 4 }}>
-              <Icon name="spark" size={12} tint={token("agent")} />
-              <Text testID="paper-agent" class="font-semibold text-agent-ink" style={{ fontSize: T.type.meta }}>
-                {t("paper.by_agent", { agent: meta()?.source ?? "" })}
-              </Text>
-            </View>
-            <Text class="text-paper-muted" style={{ fontSize: T.type.meta }}>
-              ·
+            <Text class="text-paper-muted" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
+              {`${title}.md`}
             </Text>
-          </If>
-          {/* When, then the file: each "·" with the same room around it. */}
-          <Text class="text-paper-muted" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 0 }}>
-            {meta() ? age(meta()!.modified, now()) : t("time.just_now")}
-          </Text>
-          <Text class="text-paper-muted" style={{ fontSize: T.type.meta }}>
-            ·
-          </Text>
-          <Text class="text-paper-muted" style={{ numberOfLines: 1, fontSize: T.type.meta, flexShrink: 1 }}>
-            {`${title}.md`}
-          </Text>
+          </View>
         </View>
         <If when={downloading()}>
           <View testID="paper-downloading" class="flex-row items-center" style={{ gap: 6, marginBottom: 10 }}>

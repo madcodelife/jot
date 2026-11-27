@@ -27,13 +27,14 @@ import {
   trashCountdown,
   trashed,
   flash,
-  renaming,
+  editingInPlace,
   undoTrash,
   binName,
 } from "../store";
 import { actionShortcuts, actionsReturn, actionsTarget, closeActions, filteredActions, primaryAction, runShortcut, toggleActions, type Action } from "../actions";
 import { ActionPanel, actionsHeight } from "./ActionPanel";
 import { DuePicker } from "./DuePicker";
+import { emojiInPanel, EmojiPane, emojiPaneHeight, EmojiPopover } from "./Emoji";
 import { duePicker } from "../due";
 import { Icon } from "./icons";
 import { fadeTo, springConfig } from "./motion";
@@ -91,11 +92,14 @@ const panelSize = computed(() => {
 function visibleSize(s: Exclude<ReturnType<typeof stage>, "hidden">) {
   if (s === "editor") return { width: T.size.editorWidth, height: T.size.editorHeight };
   if (s === "capsule") return { width: T.size.panelWidth, height: T.size.field };
-  const body = todoMode()
-    ? todoViewHeight(todoItems())
-    : listRows().length
-      ? T.size.listTop + Math.min(listRows().length, T.size.listRows) * T.size.row
-      : emptyHeight;
+  // "Set Emoji…" from the list: the emoji picker in the list's place, its own height.
+  const body = emojiInPanel()
+    ? emojiPaneHeight
+    : todoMode()
+      ? todoViewHeight(todoItems())
+      : listRows().length
+        ? T.size.listTop + Math.min(listRows().length, T.size.listRows) * T.size.row
+        : emptyHeight;
   return { width: T.size.panelWidth, height: T.size.field + body + T.size.footer };
 }
 
@@ -200,6 +204,7 @@ export function PanelWindow() {
             {(target) => <ActionPanel {...actionsPlace(filteredActions(target(), ""))} returnFocus={actionsReturn()} />}
           </If>
           <DuePicker />
+          <EmojiPopover />
         </View>
       </Window>
     </If>
@@ -224,7 +229,7 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
       "mod+,": () => openSettings(),
       // ⌘K: the row's actions (Raycast's action panel); again, it closes.
       [T.keys.actions]: () => {
-        if (untracked(renaming) !== null || untracked(duePicker)) return;
+        if (untracked(editingInPlace) || untracked(duePicker)) return;
         toggleActions(untracked(stage) === "editor" && !untracked(fieldFocused) ? "editor" : "field");
       },
       // The action panel, open, closes first: what ⌘↩ does is one of its items.
@@ -246,7 +251,7 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
   // The actions' own keys, with the action panel closed too. Ctrl+D (Windows, Linux) stays the note text's
   // "select the next occurrence" while the text has the focus; macOS's ⌃X is no text key.
   effect(() => {
-    if (renaming() !== null || duePicker()) return;
+    if (editingInPlace() || duePicker()) return;
     const inText = editing() && !fieldFocused();
     const keys = actionShortcuts().filter((k) => !(inText && k === T.keys.trashShortcut && !T.keys.trashInText));
     const stop = keymap.bind(Object.fromEntries(keys.map((k) => [k, () => runShortcut(k)])), { when: "always" });
@@ -254,14 +259,14 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
   });
   // ⌘Z takes the last trashed note back while "Moved to the trash" shows; then it is the field's undo again.
   effect(() => {
-    if (!trashed().length || editing() || renaming() !== null) return;
+    if (!trashed().length || editing() || editingInPlace()) return;
     const stop = keymap.bind(T.keys.undoShortcut, () => undoTrash(), { when: "always" });
     return stop;
   });
   // The arrow keys move the selection, except in the note's text, where they move the caret, a title being
   // renamed, and the action panel's and the reminder time picker's own lists.
   effect(() => {
-    if (renaming() !== null || actionsTarget() || duePicker()) return;
+    if (editingInPlace() || actionsTarget() || duePicker()) return;
     if (editing() && !fieldFocused()) return;
     const stop = keymap.bind({ up: () => move(-1), down: () => move(1) }, { when: "always", repeat: true });
     return stop;
@@ -294,25 +299,32 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
       <Field onFocusChange={(focused) => fieldFocused.set(focused)} />
       <If when={expanded()}>
         <If
-          when={todoMode()}
+          when={emojiInPanel()}
           else={
-            <View class="flex-1 flex-row">
-              <View style={{ width: editing() ? T.size.sidebar : T.size.panelWidth - 2 }}>
-                <If when={listRows().length > 0 || query().trim()} else={<EmptyNotes />}>
-                  <NoteList compact={editing()} />
-                </If>
-              </View>
-              <If when={editing()}>
-                <View class="flex-1" style={{ paddingLeft: T.size.inset * 2, paddingRight: T.size.inset, paddingBottom: T.size.inset }}>
-                  <Paper />
+            <If
+              when={todoMode()}
+              else={
+                <View class="flex-1 flex-row">
+                  <View style={{ width: editing() ? T.size.sidebar : T.size.panelWidth - 2 }}>
+                    <If when={listRows().length > 0 || query().trim()} else={<EmptyNotes />}>
+                      <NoteList compact={editing()} />
+                    </If>
+                  </View>
+                  <If when={editing()}>
+                    <View class="flex-1" style={{ paddingLeft: T.size.inset * 2, paddingRight: T.size.inset, paddingBottom: T.size.inset }}>
+                      <Paper />
+                    </View>
+                  </If>
                 </View>
-              </If>
-            </View>
+              }
+            >
+              <View class="flex-1">
+                <TodoView />
+              </View>
+            </If>
           }
         >
-          <View class="flex-1">
-            <TodoView />
-          </View>
+          <EmojiPane />
         </If>
         <If when={!editing()}>
           <Footer />

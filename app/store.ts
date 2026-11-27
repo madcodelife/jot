@@ -98,6 +98,13 @@ export const trashCountdown = signal(0);
 export const flash = signal<string | null>(null);
 /** The note whose title is being edited in its row (the action panel's "Rename"). */
 export const renaming = signal<string | null>(null);
+/** Where a note's emoji picker shows: in the list's place in the panel (from the list), under its row in the sidebar
+ * beside an open note, or under the open note's title and date. */
+export type EmojiPlace = "list" | "row" | "paper";
+/** The note whose emoji is being chosen, and where ("Set Emoji…", the header's emoji or its button). */
+export const emojiPicking = signal<{ title: string; place: EmojiPlace } | null>(null);
+/** A row's title or emoji, or the header's emoji, is being edited in place: the list's keys and the actions wait. Tracked. */
+export const editingInPlace = () => renaming() !== null || emojiPicking() !== null;
 
 /**
  * Rows of notes just moved to the trash, kept in the list for `T.timing.trashExit` while they play their exit (the
@@ -155,6 +162,9 @@ export const todoMode = computed(() => isTodoQuery(query()));
 /** Whether the note titled `title` is locked (in Jot, in Finder or on another Mac): read-only until it is unlocked. Tracked. */
 export const isLocked = (title: string) => allNotes().some((m) => m.title === title && m.locked);
 
+/** The emoji the note titled `title` shows before its title, or null. Tracked. */
+export const iconOf = (title: string) => allNotes().find((m) => m.title === title)?.icon ?? null;
+
 /** Every note, newest first. */
 export const allNotes = computed<NoteMeta[]>(() => {
   revision();
@@ -162,6 +172,9 @@ export const allNotes = computed<NoteMeta[]>(() => {
   if (list.some((m) => m.downloading)) checkDownloads();
   return list;
 });
+
+/** The emoji the folder's notes have, those of the latest notes first, each once: the emoji picker's "recent" group. */
+export const usedIcons = computed<string[]>(() => [...new Set(allNotes().flatMap((m) => (m.icon ? [m.icon] : [])))].slice(0, 24));
 
 let downloadTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -302,6 +315,7 @@ function useFolder(n: Notes): Notes {
     trashed.set([]);
     leaving.set([]);
     renaming.set(null);
+    emojiPicking.set(null);
   });
   if (before && before !== n) before.dispose();
   restartReminders();
@@ -442,16 +456,22 @@ export function summon(start: { query?: string } = {}) {
     selected.set(0);
     opened.set(null);
     notice.set(null);
+    // Nothing is being edited in place in a new panel: the list's keys and ⌘K are its own (`editingInPlace`).
+    renaming.set(null);
+    emojiPicking.set(null);
     startEntrance();
     stage.set("list");
   });
   focusRequest.set({ target: "field" });
 }
 
-/** Hides the panel. */
+/** Hides the panel, and the emoji picker with it (the picker's own views may go before they could close it). */
 export function dismiss() {
   if (untracked(stage) === "hidden") return;
-  stage.set("hidden");
+  batch(() => {
+    emojiPicking.set(null);
+    stage.set("hidden");
+  });
 }
 
 /** The summon keys: shows the panel, or hides it when it shows. */
@@ -851,4 +871,50 @@ export function setLocked(title: string, lock: boolean) {
   notice.set(null);
   refresh();
   showFlash(t(lock ? "lock.done" : "lock.undone", { title: meta.title }));
+}
+
+/** "Set Emoji…": the emoji picker opens under the open note's title when it is the open one, under its row in the
+ * sidebar beside another open note, else in the list's place. */
+export function startEmoji(title: string) {
+  notice.set(null);
+  renaming.set(null);
+  const editor = untracked(stage) === "editor";
+  emojiPicking.set({ title, place: !editor ? "list" : untracked(opened)?.title === title ? "paper" : "row" });
+}
+
+/** Closes the emoji picker with nothing chosen (Escape, a press outside it). */
+export function cancelEmoji() {
+  emojiPicking.set(null);
+}
+
+/** The emoji chosen in the picker becomes the note's, and the picker closes. */
+export function pickEmoji(emoji: string) {
+  const title = untracked(emojiPicking)?.title;
+  if (title === undefined) return;
+  emojiPicking.set(null);
+  writeIcon(title, emoji);
+}
+
+/** "Remove Emoji": the note's title goes back to its words alone. */
+export function removeEmoji(title: string) {
+  emojiPicking.set(null);
+  writeIcon(title, null);
+}
+
+/** Sets or clears the note's emoji (its frontmatter's `icon`; no change of the note: it keeps its place in the list). */
+function writeIcon(title: string, icon: string | null) {
+  const n = untracked(notes);
+  if (!n) return;
+  let meta: NoteMeta;
+  try {
+    meta = icon === null ? n.clearIcon(title) : n.setIcon(title, icon);
+  } catch (error) {
+    notice.set(errorCode(error) === "ERR_JOT_LOCKED" ? t("emoji.locked", { title }) : t("emoji.failed", { title, error: errorMessage(error) }));
+    return;
+  }
+  // The frontmatter Jot wrote is no outside change of the open note.
+  const body = n.read(meta.title)?.body;
+  if (body !== undefined) lastWritten.set(meta.title, body);
+  notice.set(null);
+  refresh();
 }

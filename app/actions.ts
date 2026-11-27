@@ -12,7 +12,9 @@ import {
   desktopOs,
   checkTodo,
   createFromQuery,
+  editingInPlace,
   errorMessage,
+  iconOf,
   isLocked,
   notes,
   notice,
@@ -25,8 +27,9 @@ import {
   startRename,
   todoItems,
   todoMode,
-  renaming,
+  removeEmoji,
   setLocked,
+  startEmoji,
   trashNote,
 } from "./store";
 
@@ -51,7 +54,7 @@ export interface Action {
 
 /** The row the actions are about: the open note, else the selected row (a to-do in the to-do view). Tracked. */
 export function targetInFocus(): ActionTarget | null {
-  if (renaming() !== null) return null;
+  if (editingInPlace()) return null;
   const s = stage();
   if (s === "editor") {
     const title = opened()?.title;
@@ -82,7 +85,7 @@ const action = (id: string, label: string, shortcut: string, run: () => void, de
 /**
  * The actions of `target`, in the panel's order; the one on Return first (none in the open note). No to-do, "today"
  * or "new" row can be trashed. A locked note has "Unlock" instead of "Lock", and nothing that changes it but its
- * trash key, which says to unlock it first.
+ * trash key, which says to unlock it first. "Remove Emoji" shows only for a note with one.
  */
 export function actionsFor(target: ActionTarget): Action[] {
   switch (target.kind) {
@@ -98,6 +101,8 @@ export function actionsFor(target: ActionTarget): Action[] {
         ...(target.index === null && caretOnTodo() && !locked ? [action("due", t("actions.due"), T.keys.due, () => void openDueAtCaret())] : []),
         action("reveal", t(`actions.reveal.${desktopOs}`), T.keys.reveal, () => revealNote(title)),
         ...(locked ? [] : [action("rename", t("actions.rename"), T.keys.rename, () => startRename(title))]),
+        ...(locked ? [] : [action("emoji", t("actions.emoji"), "", () => startEmoji(title))]),
+        ...(locked || iconOf(title) === null ? [] : [action("emoji-remove", t("actions.emoji_remove"), "", () => removeEmoji(title))]),
         action("copy-title", t("actions.copy_title"), T.keys.copyTitle, () => copy(title)),
         action("copy-body", t("actions.copy_body"), T.keys.copyBody, () => copy(untracked(notes)?.read(title)?.body ?? "")),
         locked

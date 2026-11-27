@@ -69,8 +69,6 @@ export interface PlatformTokens {
     actionSeparator: number;
     /** The paper's inset from the panel's edges. */
     inset: number;
-    /** A row's icon tile. */
-    rowIcon: number;
     /** The transparent margin around the panel inside its window (room for the spring's overshoot). */
     windowMargin: number;
     /** Where the panel's top sits: this share of the display's height from its top. */
@@ -311,7 +309,6 @@ const SIZE = {
   actionRow: 32,
   actionSeparator: 9,
   inset: 8,
-  rowIcon: 28,
   windowMargin: 24,
   panelTop: 0.17,
   islandWidth: 441,
