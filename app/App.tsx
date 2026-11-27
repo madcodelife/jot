@@ -40,7 +40,7 @@ import { PanelWindow } from "./ui/Panel";
 import { openSettings, SettingsWindow } from "./ui/Settings";
 import { T } from "./ui/tokens";
 import { trayInk, writeTrayIcon } from "./trayink";
-import { readyUpdate, restartToUpdate, startUpdates } from "./updates";
+import { checkOnShow, readyUpdate, restartToUpdate, startUpdates } from "./updates";
 import { loadSounds } from "./sounds";
 import chime from "../assets/reminder.wav";
 
@@ -141,7 +141,8 @@ function App() {
     }
     startReminders(remind);
     if (await firstRun()) summon();
-    // Updates download in the background once Jot is up, and again every few hours (app/updates.ts).
+    // Updates download in the background once Jot is up, then whenever a check is due, an hour after the last
+    // (app/updates.ts).
     startUpdates();
   })();
 
@@ -168,6 +169,13 @@ function App() {
       if (untracked(islandOn)) showAgentActivity(activity);
     });
   }
+
+  // Showing the panel, however it was summoned, looks for an update when the last look is a while old, so a release
+  // is usually downloaded by the next show (app/updates.ts).
+  const showing = computed(() => stage() !== "hidden");
+  effect(() => {
+    if (showing()) untracked(checkOnShow);
+  });
 
   // Relative times and due groups follow the clock.
   setInterval(() => now.set(Date.now()), 30_000);

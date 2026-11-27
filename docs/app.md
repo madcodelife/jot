@@ -521,8 +521,13 @@ for each color, size and pace, and played at one per display frame. `inkFrame` c
 ## Updates (app/updates.ts)
 
 A packaged Jot updates itself from the GitHub releases (`nsh/updater`, `nsh.json`'s `"updater"`: `github`, the key
-that signs the manifest, the roots that certify the packages' release keys). Once it has started, and every 6 hours
-while it runs (`CHECK_EVERY`), it checks in this order:
+that signs the manifest, the roots that certify the packages' release keys). It checks once it has started, then
+whenever a check is due while it runs: an hour after the last one started (`CHECK_EVERY`), or 15 minutes after a
+failed one (`RETRY_AFTER`). It looks whether one is due every 5 minutes (`TICK`) rather than waiting out the hour on a
+timer, as timers do not run while the Mac sleeps: after a night asleep the check comes within minutes of waking.
+Showing the panel, however it was summoned, also checks when the last check is older than 15 minutes
+(`CHECK_ON_SHOW`), so a release is usually downloaded by the next time the user opens Jot. "Check for Updates" in
+About checks at once, whenever the last one was. Each check goes in this order:
 
 1. **A package of the code** (`checkForPackage`, an OTA update of the TSX, the theme and the translations): taken only
    when it was published for this app's native code, its version's build metadata `+native.<fingerprint>` naming the

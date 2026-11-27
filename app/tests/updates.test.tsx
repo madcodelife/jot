@@ -1,9 +1,11 @@
 // Updates, headless: `nsh/updater` and the app's native fingerprint stood in for, so each test plays a release.
 // A package published for this app's native code downloads and offers a restart into it; one for other native code
 // is left for the whole app, which downloads, waits to install on quit and offers a restart too. A copy that does
-// not update itself (`nsh run`) checks nothing, and a failed check only says so on the About page.
+// not update itself (`nsh run`) checks nothing, and a failed check only says so on the About page. On a manual clock,
+// showing the panel checks again once the last check is old enough, and so does waking from sleep.
 import { expect, open, test } from "nsh/test";
-import { packageFingerprint, packageFits, plainVersion, sameAsReady } from "../updates";
+import { CHECK_EVERY, CHECK_ON_SHOW, checkDue, packageFingerprint, packageFits, plainVersion, RETRY_AFTER, sameAsReady, TICK } from "../updates";
+import { ActivityLog, Notes } from "jot/native";
 import { STAND_INS } from "./native";
 
 const NATIVE = "0123456789abcdef";
@@ -40,23 +42,33 @@ function updater(calls: Calls, release: { pkg?: object | null; app?: object | nu
   };
 }
 
-/** Opens Jot on a new folder (its first run shows the panel) with the updater `fake` and this app's fingerprint `native`. */
-const openJot = (name: string, fake: ReturnType<typeof updater>, native = NATIVE) =>
+/**
+ * Opens Jot on a new folder (its first run shows the panel) with the updater `fake` and this app's fingerprint `native`;
+ * `more`: the folder (`dir`), a manual clock, and stand-ins of `jot/native` of the test's own.
+ */
+const openJot = (
+  name: string,
+  fake: ReturnType<typeof updater>,
+  native = NATIVE,
+  more: { dir?: string; clock?: { time: Date }; native?: object } = {},
+) =>
   open("../App.tsx", {
     platform: "macos",
     width: 1200,
     height: 800,
     reducedMotion: true,
     locale: "zh-CN",
-    storage: { "jot.dir": folder(name) },
+    storage: { "jot.dir": more.dir ?? folder(name) },
     modules: {
       "nsh/updater": fake,
       "jot/native": {
         ...STAND_INS,
         "Folder.icloud": { path: "/tmp/jot-updates-no-icloud/Jot", available: false },
         "NativeBuild.fingerprint": native,
+        ...more.native,
       },
     },
+    ...(more.clock && { clock: more.clock }),
   });
 
 type App = Awaited<ReturnType<typeof openJot>>;
@@ -96,6 +108,21 @@ test("what already waits is not downloaded again; a newer build or version is", 
   expect(sameAsReady(app, { ...app })).toBe(true);
   expect(sameAsReady(app, { kind: "app", version: "0.3.0" })).toBe(false);
   expect(sameAsReady(pkg, app)).toBe(false);
+});
+
+test("a check is due before the first, and once the last is old enough", () => {
+  const at = Date.parse("2026-11-27T09:00:00Z");
+  expect(checkDue(null, at, CHECK_EVERY)).toBe(true);
+  expect(checkDue(at, at, CHECK_EVERY)).toBe(false);
+  expect(checkDue(at, at + CHECK_EVERY - 1, CHECK_EVERY)).toBe(false);
+  expect(checkDue(at, at + CHECK_EVERY, CHECK_EVERY)).toBe(true);
+  // A night asleep: due at the first look after waking.
+  expect(checkDue(at, at + 8 * CHECK_EVERY, CHECK_EVERY)).toBe(true);
+  // The shorter spans: a failed check, and showing the panel.
+  expect(checkDue(at, at + RETRY_AFTER, RETRY_AFTER)).toBe(true);
+  expect(checkDue(at, at + CHECK_ON_SHOW - 1, CHECK_ON_SHOW)).toBe(false);
+  // The clock set back past the last check.
+  expect(checkDue(at, at - 60_000, CHECK_EVERY)).toBe(true);
 });
 
 test("a package for this app's native code downloads, and the footer offers the restart into it", async () => {
@@ -168,6 +195,75 @@ test("a failed check is only told on the About page, and checking again there tr
 
   await app.press("id:settings-update-check");
   await app.waitUntil(() => calls.filter((c) => c === "checkForPackage").length === 2);
+  app.dispose();
+});
+
+test("showing the panel checks again once the last check is older than the span, not within it", async () => {
+  const calls: Calls = [];
+  const start = new Date("2026-11-27T09:00:00Z");
+  // The panel is shown here as a press on the island does (an AI app's write), the summon a test can reach.
+  const dir = folder("show");
+  const log = `${dir}-activity.jsonl`;
+  new Notes(dir).create("周报", "本周进展");
+  const app = await openJot("show", updater(calls, {}), NATIVE, { dir, clock: { time: start }, native: { "ActivityLog.path": log } });
+  const checks = () => calls.filter((c) => c === "checkForPackage").length;
+  // The first run shows the panel as Jot starts: one check, not one for the start and another for the show.
+  await app.waitFor("id:search");
+  await app.waitUntil(() => calls.includes("checkForUpdate"));
+  expect(checks()).toBe(1);
+  await app.keyboard.press("escape");
+  await app.waitUntil(() => !app.shows("id:search"));
+
+  /** Moves the wall time (no timer runs) to `later` after the start, shows the panel, then hides it again. */
+  const showAt = async (later: number) => {
+    app.clock!.setSystemTime(new Date(start.getTime() + later));
+    ActivityLog.append(log, { at: "2026-11-27T17:00:00", dir, agent: "Claude Code", action: "append", title: "周报", previous: null, inTrash: null });
+    await app.waitFor("id:island-write");
+    await app.press("id:island-write");
+    await app.waitFor("id:paper-title");
+    // Out of the note, then the panel hides.
+    await app.keyboard.press("escape");
+    await app.waitFor("id:search");
+    await app.keyboard.press("escape");
+    await app.waitUntil(() => !app.shows("id:search"));
+  };
+
+  await showAt(CHECK_ON_SHOW - 60_000);
+  expect(checks()).toBe(1);
+  await showAt(CHECK_ON_SHOW + 60_000);
+  await app.waitUntil(() => checks() === 2);
+  app.dispose();
+});
+
+test("waking from a night asleep checks within minutes, not a whole span later", async () => {
+  const calls: Calls = [];
+  const app = await openJot("sleep", updater(calls, {}), NATIVE, { clock: { time: new Date("2026-11-27T01:00:00Z") } });
+  const checks = () => calls.filter((c) => c === "checkForPackage").length;
+  await app.waitUntil(() => calls.includes("checkForUpdate"));
+  expect(checks()).toBe(1);
+  await app.keyboard.press("escape");
+  await app.waitUntil(() => !app.shows("id:search"));
+
+  // Eight hours asleep: the timers due meanwhile run once each, as the Mac wakes.
+  await app.clock!.fastForward(8 * CHECK_EVERY);
+  await app.waitUntil(() => checks() === 2);
+  // Then nothing until an hour after it.
+  await app.clock!.fastForward(CHECK_EVERY - 10 * 60_000);
+  expect(checks()).toBe(2);
+  await app.clock!.fastForward(10 * 60_000);
+  await app.waitUntil(() => checks() === 3);
+  app.dispose();
+});
+
+test("a failed check is tried again after a while, not at every look", async () => {
+  const calls: Calls = [];
+  const app = await openJot("retry", updater(calls, { fail: true }), NATIVE, { clock: { time: new Date("2026-11-27T09:00:00Z") } });
+  const checks = () => calls.filter((c) => c === "checkForPackage").length;
+  await app.waitUntil(() => checks() === 1);
+  await app.clock!.fastForward(TICK);
+  expect(checks()).toBe(1);
+  await app.clock!.fastForward(RETRY_AFTER);
+  await app.waitUntil(() => checks() === 2);
   app.dispose();
 });
 

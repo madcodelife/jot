@@ -20,8 +20,20 @@ import {
 } from "nsh/updater";
 import { NativeBuild } from "jot/native";
 
-/** How often a running Jot looks again. */
-export const CHECK_EVERY = 6 * 60 * 60 * 1000;
+/** How long after a check a running Jot looks again: Jot is never quit, so this is how late a release reaches it. */
+export const CHECK_EVERY = 60 * 60 * 1000;
+
+/** How soon a failed check is tried again: sooner than `CHECK_EVERY`, as it is often only a moment offline. */
+export const RETRY_AFTER = 15 * 60 * 1000;
+
+/** Showing the panel checks when the last check is older than this, so a release is usually ready by the next show. */
+export const CHECK_ON_SHOW = 15 * 60 * 1000;
+
+/**
+ * How often the background looks at the clock. Timers do not run while the Mac sleeps, so a check due during the
+ * night comes within this of waking, not a whole `CHECK_EVERY` later.
+ */
+export const TICK = 5 * 60 * 1000;
 
 /** The fingerprint of a build that has none (`nsh run`): it fits no package. */
 export const DEV_FINGERPRINT = "dev";
@@ -77,6 +89,14 @@ export function runningVersion(): { version: string; build: number } {
   return { version: plainVersion(shell.version ?? info.version ?? "0.1.0"), build: shell.build ?? info.build ?? 1 };
 }
 
+/**
+ * Whether another check is due: none yet (`last` null), or the last one started `after` ago or more. A clock set back
+ * past the last check makes one due too, rather than none until the clock catches up.
+ */
+export function checkDue(last: number | null, now: number, after: number): boolean {
+  return last === null || now - last >= after || now < last;
+}
+
 /** Whether this copy updates itself: a packaged Jot with an update source (not `nsh run`). */
 export const updatesAvailable = () => shellInfo().version != null;
 
@@ -92,6 +112,8 @@ function nativeFingerprint(): string {
 }
 
 let busy = false;
+/** When the last check started (`Date.now()`), or null before the first. */
+let lastCheck: number | null = null;
 
 /**
  * Looks for a newer Jot and downloads it: a package when one fits this app's native code, else the whole app, which
@@ -105,6 +127,7 @@ export async function checkForUpdates(): Promise<void> {
     return;
   }
   busy = true;
+  lastCheck = Date.now();
   updatePhase.set("checking");
   try {
     const native = nativeFingerprint();
@@ -170,7 +193,16 @@ export async function restartToUpdate(): Promise<void> {
 
 let timer: ReturnType<typeof setInterval> | undefined;
 
-/** Checks now, then every `CHECK_EVERY` while Jot runs. A copy that does not update itself never checks. */
+/** Checks when one is due: `CHECK_EVERY` after the last, or `RETRY_AFTER` when it failed. */
+function checkWhenDue() {
+  const after = untracked(updatePhase) === "failed" ? RETRY_AFTER : CHECK_EVERY;
+  if (checkDue(lastCheck, Date.now(), after)) void checkForUpdates();
+}
+
+/**
+ * Checks now, then whenever one is due while Jot runs, looking every `TICK`. A copy that does not update itself never
+ * checks.
+ */
 export function startUpdates() {
   if (!updatesAvailable()) {
     updatePhase.set("unavailable");
@@ -178,5 +210,15 @@ export function startUpdates() {
   }
   void checkForUpdates();
   clearInterval(timer);
-  timer = setInterval(() => void checkForUpdates(), CHECK_EVERY);
+  timer = setInterval(checkWhenDue, TICK);
+}
+
+/**
+ * The panel shows: checks when the last check is older than `CHECK_ON_SHOW`, so what the user opens Jot for next time
+ * is usually downloaded by then. Nothing before `startUpdates` (Jot still starting) or in a copy that does not update
+ * itself.
+ */
+export function checkOnShow() {
+  if (timer === undefined) return;
+  if (checkDue(lastCheck, Date.now(), CHECK_ON_SHOW)) void checkForUpdates();
 }
