@@ -411,12 +411,13 @@ function ListRow(props: { row: Row; index: number; leaving: boolean; compact: bo
                   <If when={row().meta.locked}>
                     <LockMark filled={accent()} />
                   </If>
+                  {/* Under a date group's header the time leaves out the day it names: "13:41", not "Today 13:41". */}
                   <Text
                     testID="note-time"
                     class={sub()}
                     style={{ numberOfLines: 1, fontSize: T.type.meta, fontVariant: ["tabular-nums"], flexShrink: 0 }}
                   >
-                    {age(row().meta.modified, now())}
+                    {age(row().meta.modified, now(), !query().trim())}
                   </Text>
                 </If>
               </View>

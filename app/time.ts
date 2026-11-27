@@ -116,16 +116,19 @@ export function relativeDay(d: Date, now: Date): string {
   return monthDay(d);
 }
 
-/** A note's age in the list: just now, 10 minutes ago, today at 09:40, yesterday, the month and day, the date with its year. */
-export function age(modified: number, now: number): string {
+/**
+ * A note's age in the list: just now, 10 minutes ago, today at 09:40, yesterday, the month and day, the date with its
+ * year. Under a date group's header (`sectioned`), today's and yesterday's are the time alone: the header says the day.
+ */
+export function age(modified: number, now: number, sectioned = false): string {
   const diff = now - modified;
   if (diff < 60_000) return t("time.just_now");
   if (diff < 3_600_000) return tn("time.minutes_ago", Math.floor(diff / 60_000));
   const d = new Date(modified);
   const today = new Date(now);
   const n = daysFrom(d, today);
-  if (n === 0) return t("time.today_at", { time: hm(d) });
-  if (n === -1) return t("time.yesterday");
+  if (n === 0) return sectioned ? hm(d) : t("time.today_at", { time: hm(d) });
+  if (n === -1) return sectioned ? hm(d) : t("time.yesterday");
   if (d.getFullYear() === today.getFullYear()) return monthDay(d);
   return fullDate(d);
 }

@@ -163,6 +163,41 @@ test("the recent list falls into date groups; a search, and the sidebar, do not"
   app.dispose();
 });
 
+test("under a date group's header a time leaves out the day the header names; a search's rows keep it", async () => {
+  const dir = folder("times");
+  new Notes(dir).create("购物清单", "牛奶");
+  const time = (app: App) => app.texts().find((s) => /\d{1,2}:\d{2}/.test(s)) ?? "";
+  const clock = /^\d{1,2}:\d{2}$/;
+
+  // Two hours on: today's (or past midnight, yesterday's) note shows the time alone under its header.
+  let app = await openJot(dir, 2 * 3_600_000);
+  await app.waitFor("id:row:购物清单");
+  expect(app.shows("id:day:today") || app.shows("id:day:yesterday")).toBe(true);
+  expect(time(app)).toMatch(clock);
+  // A search has no headers: the time says its day again.
+  await app.type("id:search", "清单");
+  await app.waitFor("id:row:create");
+  expect(app.texts().some((s) => s.startsWith("今天 ") || s === "昨天")).toBe(true);
+  app.dispose();
+
+  // A day on: under "Yesterday", the time alone, not "Yesterday".
+  app = await openJot(dir, DAY);
+  await app.waitFor("id:day:yesterday");
+  expect(time(app)).toMatch(clock);
+  expect(app.texts().filter((s) => s === "昨天").length).toBe(1);
+  app.dispose();
+
+  // Minutes ago stay as they are, and so do the dates of earlier notes.
+  app = await openJot(dir, 10 * 60_000);
+  await app.waitFor("id:row:购物清单");
+  expect(app.texts()).toContain("10 分钟前");
+  app.dispose();
+  app = await openJot(dir, 30 * DAY);
+  await app.waitFor("id:day:earlier");
+  expect(time(app)).toBe("");
+  app.dispose();
+});
+
 test("the arrow keys and the pointer pass over a date group's header", async () => {
   const dir = folder("keys");
   const n = new Notes(dir);

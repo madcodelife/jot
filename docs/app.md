@@ -265,7 +265,9 @@ A row is words alone, no icon, in two lines: a note's semibold title over its sn
 note with an emoji shows it before its title, in the title's line ("🍕 Dinner": a space after it, only its own width; a
 note without one starts with its title); a search marks the title's words, never the emoji. What tells a note apart
 sits at the end of the title's line, which gives way to it: an AI app's note has a dot and the app's name in the
-agents' colors (`agent`, `agent-ink`), a locked one a padlock, then the time (`T.type.meta`, muted, tabular figures).
+agents' colors (`agent`, `agent-ink`), a locked one a padlock, then the time (`T.type.meta`, muted, tabular figures;
+under a date group's header today's and yesterday's are the clock time alone, the header naming the day, while "2 min
+ago" and the dates of earlier notes stay as they are, as do a search's rows).
 The snippet has the row's whole width under them; a note not downloaded says "Downloading…" for it. A row is
 `T.size.row` (52) tall; in the sidebar beside an open note, `T.size.sidebarRow`, with the title (and padlock) alone.
 
