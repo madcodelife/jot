@@ -77,7 +77,8 @@ function placement(list: readonly Display[]) {
   };
 }
 
-/** How tall the panel is in each stage (the list grows with its rows; filtering does not animate). */
+/** How tall the panel is in each stage (the list grows with its rows up to `T.size.listRows`, then scrolls;
+ * filtering does not animate). */
 const emptyHeight = 150;
 let shownSize = { width: T.size.panelWidth, height: T.size.field };
 const panelSize = computed(() => {
@@ -93,7 +94,7 @@ function visibleSize(s: Exclude<ReturnType<typeof stage>, "hidden">) {
   const body = todoMode()
     ? todoViewHeight(todoItems())
     : listRows().length
-      ? T.size.listTop + listRows().length * T.size.row
+      ? T.size.listTop + Math.min(listRows().length, T.size.listRows) * T.size.row
       : emptyHeight;
   return { width: T.size.panelWidth, height: T.size.field + body + T.size.footer };
 }

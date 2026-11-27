@@ -50,6 +50,8 @@ export interface PlatformTokens {
     listTop: number;
     /** A note row in the list, and in the editor's sidebar. */
     row: number;
+    /** The rows the list shows before it scrolls. */
+    listRows: number;
     sidebarRow: number;
     /** The sidebar's width with a note open. */
     sidebar: number;
@@ -297,6 +299,7 @@ const SIZE = {
   field: 65,
   listTop: 9,
   row: 48,
+  listRows: 6,
   sidebarRow: 40,
   sidebar: 255,
   todoRow: 36,
