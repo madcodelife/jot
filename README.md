@@ -14,7 +14,7 @@ a folder you choose, and your AI apps (Claude, Cursor, Codex, …) search, read 
 they keep one notebook between you.
 
 <p align="center">
-  <img src="design/screenshots/light.png" alt="Jot's panel in light mode: recent notes, some written by Claude, Claude Code and Cursor" width="49%" align="top">
+  <img src="design/screenshots/light.png" alt="Jot's panel in light mode: a card of today's to-dos above the notes changed today, some written by Claude and Claude Code" width="49%" align="top">
   <img src="design/screenshots/dark.png" alt="Jot's to-do view in dark mode with the Tokyo Night theme: open to-dos grouped as overdue, today, tomorrow and upcoming, each with its note and reminder time" width="49%" align="top">
 </p>
 
@@ -49,9 +49,10 @@ notarized by Apple, so run `xattr -dr com.apple.quarantine /Applications/Jot.app
 
 - **Open the panel**: double-press ⌥. The first time, macOS asks for Accessibility access, which the double-press
   needs; without it, ⌃⌥J opens the panel.
-- **Find or create**: type to filter notes by title and body; when nothing matches, Return creates a note with that
-  title.
-- **Act on a note**: ⌘K on a row to open, rename, copy, show in Finder, lock or move it to the Trash (with undo).
+- **Find or create**: with nothing typed, today's to-dos sit above your recent notes, grouped by day. Type to filter
+  notes by title and body; when nothing matches, Return creates a note with that title.
+- **Act on a note**: ⌘K on a row to open, rename, give it an emoji, copy, show in Finder, lock or move it to the Trash
+  (with undo).
 - **To-dos**: type `todo` (or `/todo`) for every open to-do, grouped by when it is due; ⇧⌘D changes a reminder's time.
 - **Dictation**: hold ⌥ to talk into the search field or a note; double-press and hold ⌥ in any app for a quick note.
 - **Lock a note**: ⌘K → Lock makes it read-only for Jot, your AI apps and every other program (Finder's "Locked").
