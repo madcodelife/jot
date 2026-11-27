@@ -34,11 +34,13 @@ function contrast(a: string, b: string): number {
 }
 
 /**
- * What macOS 26's regular glass comes to with nothing over it, measured on a Mac: light on a black backdrop, dark on a
- * white one, the darkest and the lightest each gets. The default theme veils it (`glass-veil`, `materialFill`) so its
- * words still read there.
+ * What macOS 26's regular glass comes to under the default theme's veil (`glass-veil`, `materialFill`), as the colour
+ * the veil is laid over: light on a black backdrop, dark on a white one, the darkest and the lightest each gets.
+ * Measured on a Mac: the light glass is #8a8a8a bare, and veiled comes out as the veil over that. The dark glass is
+ * #7b7b7b bare, but the glass lightens what is drawn in it a little: veiled (65%) it came out #494a4f, the veil over
+ * #828282, so that stands in.
  */
-const GLASS_WORST = { light: "#8a8a8a", dark: "#7b7b7b" };
+const GLASS_WORST = { light: "#8a8a8a", dark: "#828282" };
 
 /** The surfaces a theme's panel shows its words on: its card's colour, and for the default (bare glass under its veil) the veil over the worst glass. */
 function panels(name: ThemeName, dark: boolean): string[] {

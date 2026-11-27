@@ -552,7 +552,7 @@ export function materialStyle() {
  * The fill drawn with the material: the theme's own surface where it draws one (`drawsSurface`), else a veil over the
  * native glass (`glass-veil`: white in light, the dark swatch in dark, partly clear). The glass alone takes on what is
  * behind it: on a black backdrop the light glass is a mid grey (`#8a8a8a`), on a white one the dark glass too
- * (`#7b7b7b`), while the theme's words were set for a light and a dark panel. The veil keeps the panel near those
+ * (`#7b7b7b`, and it lightens the veil a little), while the theme's words were set for a light and a dark panel. The veil keeps the panel near those
  * (`GLASS_WORST` in app/tests/settings.test.tsx checks it) and all but vanishes where the glass is light (or dark)
  * already. Reactive.
  */
