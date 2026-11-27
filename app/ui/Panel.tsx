@@ -117,6 +117,15 @@ function actionsPlace(all: readonly Action[]) {
   };
 }
 
+/**
+ * The action panel reaches up into the search field (a row's many actions over a short list): the field's microphone,
+ * which its top edge would cut across, steps aside while it is open.
+ */
+const actionsOverField = computed(() => {
+  const target = actionsTarget();
+  return target !== null && actionsPlace(filteredActions(target, "")).top < T.size.windowMargin + T.size.field;
+});
+
 /** The panel's window. It stays open once summoned and shows or hides, so the next summon is instant. */
 export function PanelWindow() {
   let win: WindowRef | undefined;
@@ -374,7 +383,7 @@ function Field(props: { onFocusChange: (focused: boolean) => void }) {
           <KeyHint label={t("voice.cancel")} keys={T.keys.esc} />
         </View>
       </If>
-      <If when={speechAvailable()}>
+      <If when={speechAvailable() && !actionsOverField()}>
         <MicButton
           testID="voice-mic"
           active={hearing()}
