@@ -1,9 +1,9 @@
 // The editor's Markdown (app/markdown.ts): which parts of a line are syntax
 // and which are a heading's, a link's, code's or emphasis's words; what the
 // live preview shows in place of the syntax, by where the caret is; fenced
-// code; what Return does on a list. Pure functions, no app.
+// code; tables, drawn as cells; what Return does on a list. Pure functions, no app.
 import { expect, test } from "nsh/test";
-import { codeBlocks, continuation, fenceMark, fencedLines, isQuote, lineMarks, type Mark } from "../markdown";
+import { cellText, codeBlocks, continuation, fenceMark, fencedLines, isQuote, lineMarks, tableBlocks, tableMarks, tableSyntax, textWidth, type Mark } from "../markdown";
 
 /**
  * The marks as `kind:text`, in order, with `→label` where the preview shows a label in place of the text (`→` alone:
@@ -213,4 +213,128 @@ test("Return is a plain line break elsewhere: prose, headings, rules, fences, a 
   expect(enter("1. item", 1)).toBeNull();
   // A caret after the marker, before the words: they move on.
   expect(enter("- item", 2)).toBe("- \n- |item");
+});
+
+/** A table's lines as the preview draws them, each mark as `kind:text→label`, a cell's `@width` and its alignment if not left. */
+function drawn(text: string, room = 460) {
+  const lines = text.split("\n");
+  const [block] = tableBlocks(lines);
+  const marks = tableMarks(lines, block, { room, size: 16 });
+  if (!marks) return null;
+  return marks.map((row, k) =>
+    row.map((m) => {
+      const line = lines[block.start + k];
+      const look = m.width !== undefined ? `@${m.width}` : "";
+      return `${m.kind}:${line.slice(m.start, m.end)}→${m.label}${look}${m.align && m.align !== "left" ? `:${m.align}` : ""}`;
+    }),
+  );
+}
+
+test("a table is a header, a delimiter row of as many cells and its rows, up to a line with no pipe", () => {
+  const lines = ["前言", "| 周一 | 有氧 |", "| --- | --- |", "| 周二 | 力量 |", "|周三|休息|", "后记 没有竖线", "| a | b |"];
+  expect(tableBlocks(lines)).toEqual([{ start: 1, end: 4, align: ["left", "left"] }]);
+  // The pipes at either end may be left out.
+  expect(tableBlocks(["a | b", "--- | ---", "1 | 2"])).toEqual([{ start: 0, end: 2, align: ["left", "left"] }]);
+  // One column; no rows after the delimiter.
+  expect(tableBlocks(["| a |", "| --- |"])).toEqual([{ start: 0, end: 1, align: ["left"] }]);
+  // A blank line ends it.
+  expect(tableBlocks(["| a |", "|---|", "| 1 |", "", "| 2 |"])).toEqual([{ start: 0, end: 2, align: ["left"] }]);
+  // Two tables, one after the other.
+  expect(tableBlocks(["|a|", "|-|", "", "|b|", "|-|"]).map((b) => b.start)).toEqual([0, 3]);
+});
+
+test("not a table: a delimiter row of another count, no delimiter row, no pipe, a rule, fenced code", () => {
+  expect(tableBlocks(["| a | b |", "| --- |"])).toEqual([]);
+  expect(tableBlocks(["| a | b |", "| 1 | 2 |"])).toEqual([]);
+  expect(tableBlocks(["a", "---"])).toEqual([]);
+  expect(tableBlocks(["| a | b |", "| -- | x |"])).toEqual([]);
+  expect(tableBlocks(["| a |", "| :: |"])).toEqual([]);
+  expect(tableBlocks(["# 标题 | b", "--- | ---"])).toEqual([]);
+  expect(tableBlocks(["```", "| a | b |", "| --- | --- |", "```"])).toEqual([]);
+  // A fence right after the header: the fenced lines are no rows.
+  expect(tableBlocks(["| a |", "| - |", "| 1 |", "```", "| 2 |", "```"])).toEqual([{ start: 0, end: 2, align: ["left"] }]);
+  // Only the last line: no delimiter row.
+  expect(tableBlocks(["| a |"])).toEqual([]);
+});
+
+test("a table in a quote stays in it: its rows are the lines in as many quotes", () => {
+  expect(tableBlocks(["> | a |", "> | - |", "> | 1 |", "| 2 |"])).toEqual([{ start: 0, end: 2, align: ["left"] }]);
+  expect(tableBlocks(["> | a |", "| - |"])).toEqual([]);
+});
+
+test("the delimiter row sets each column: `:-:` centered, `-:` on the right, `:-` and `-` on the left", () => {
+  expect(tableBlocks(["| a | b | c | d |", "| :---: | ---: | :--- | - |"])[0].align).toEqual(["center", "right", "left", "left"]);
+});
+
+test("a cell's words read without their inline Markdown, escapes undone", () => {
+  expect(cellText("**粗体**")).toBe("粗体");
+  expect(cellText("`code` and [链接](https://example.com)")).toBe("code and 链接");
+  expect(cellText("~~删~~ *斜*")).toBe("删 斜");
+  expect(cellText("2 \\| 3")).toBe("2 | 3");
+  expect(cellText("一<br>二")).toBe("一 二");
+  expect(cellText("snake_case")).toBe("snake_case");
+});
+
+test("text widths: CJK an em, Latin narrower by letter, bold a little wider, emoji one each", () => {
+  expect(textWidth("周一", 16)).toBe(32);
+  expect(textWidth("ＡＢ", 10)).toBe(20);
+  expect(textWidth("ii", 16)).toBeLessThan(textWidth("mm", 16));
+  expect(textWidth("abc", 16)).toBeGreaterThan(16 * 1.5);
+  expect(textWidth("abc", 16)).toBeLessThan(16 * 2);
+  expect(textWidth("周一", 16, true)).toBeGreaterThan(32);
+  expect(textWidth("👨‍👩‍👧", 16)).toBe(textWidth("👍", 16));
+  expect(textWidth("", 16)).toBe(0);
+});
+
+test("a table's cells: each stands for its words in a box its column's width, the pipe ending a row hidden", () => {
+  expect(drawn("| 周一 | 有氧 |\n| --- | --- |\n| 周二 | 力量训练 |")).toEqual([
+    ["head:| 周一 →周一@55", "head:| 有氧 →有氧@65", "syntax:|→"],
+    ["rule:| --- | --- |→@120"],
+    ["cell:| 周二 →周二@55", "cell:| 力量训练 →力量训练@65", "syntax:|→"],
+  ]);
+  // Columns: as wide as the widest words (the header's bold), 20 points between them (on the left one's box).
+  const w = (text: string, bold = false) => Math.ceil(textWidth(text, 16, bold)) + 1;
+  expect(55).toBe(w("周一", true) + 20);
+  expect(65).toBe(w("力量训练"));
+});
+
+test("a table's cells without the pipes at either end, and with inline Markdown", () => {
+  expect(drawn("**名** | 值\n--- | ---:\n`x` | [1](u)")).toEqual([
+    ["head:**名** →名@38", "head:| 值→值@18:right"],
+    ["rule:--- | ---:→@56"],
+    ["cell:`x` →x@38", "cell:| [1](u)→1@18:right"],
+  ]);
+});
+
+test("a row with fewer cells leaves the rest empty; one with more has columns of its own", () => {
+  const marks = drawn("| a | b |\n|---|---|\n| 1 |\n| 1 | 2 | 3 |")!;
+  expect(marks[2]).toEqual(["cell:| 1 →1@31", "syntax:|→"]);
+  expect(marks[3].length).toBe(4);
+  expect(marks[3][2]).toBe("cell:| 3 →3@11");
+  // Empty cells are empty boxes.
+  expect(drawn("| a |  |\n|---|---|")![0][1]).toBe("head:|  →@1");
+});
+
+test("a table too wide for the paper: the wide columns share what is left, the narrow ones keep their width", () => {
+  const long = "很长很长很长很长很长很长很长很长很长很长很长很长很长";
+  const marks = drawn(`| 短 | ${long} | ${long} |\n| - | - | - |`, 300)!;
+  const widths = marks[0].slice(0, 3).map((m) => Number(m.split("@")[1]));
+  // 短's column (17 points of bold, 20 to the next), and the two long ones splitting the rest.
+  expect(widths[0]).toBe(Math.ceil(textWidth("短", 16, true)) + 1 + 20);
+  expect(widths[1] - 20).toBe(widths[2]);
+  expect(widths.reduce((a, b) => a + b, 0)).toBeLessThanOrEqual(300);
+  // The rule is as wide as the cells.
+  expect(Number(marks[1][0].split("@")[1])).toBe(widths.reduce((a, b) => a + b, 0));
+  // Too many columns for three ems each: it shows as written.
+  const many = Array.from({ length: 12 }, (_, i) => `c${i}`);
+  expect(drawn(`| ${many.join(" | ")} |\n|${" - |".repeat(12)}`)).toBeNull();
+});
+
+test("a table's syntax as written: its pipes, and all of its delimiter row", () => {
+  const syntax = (line: string, delimiter = false) => tableSyntax(line, delimiter).map((m) => `${m.start}-${m.end}`);
+  expect(syntax("| a | b |")).toEqual(["0-1", "4-5", "8-9"]);
+  expect(syntax("a | b")).toEqual(["2-3"]);
+  expect(syntax("| a \\| b |")).toEqual(["0-1", "9-10"]);
+  expect(syntax("> | a |")).toEqual(["2-3", "6-7"]);
+  expect(syntax("| --- |", true)).toEqual(["0-7"]);
 });

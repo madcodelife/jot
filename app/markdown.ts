@@ -11,10 +11,19 @@
 // in place of a range (app/ui/Paper.tsx). Fenced code is left to the built-in
 // highlighter (a `# comment` in a shell snippet is no heading); its fences
 // hide, but for the language's name, while the caret is outside the block.
+// A table (GFM's) is drawn as cells of fixed widths, its pipes and its
+// delimiter row hidden, while no caret or selection is in it; touched
+// anywhere, all of it shows as written (`tableBlocks`, `tableMarks`).
 import { taskLine, type Span } from "./tasks";
 
-/** What a part of a line is: syntax, or words drawn as a heading's, a link's, code, bold, italic or struck through; a to-do's box. */
-export type MarkKind = "syntax" | "heading" | "link" | "code" | "strong" | "em" | "strike" | "box";
+/**
+ * What a part of a line is: syntax, or words drawn as a heading's, a link's, code, bold, italic or struck through; a
+ * to-do's box; a table's cell (its header's: `head`) and the rule its delimiter row stands for.
+ */
+export type MarkKind = "syntax" | "heading" | "link" | "code" | "strong" | "em" | "strike" | "box" | "cell" | "head" | "rule";
+
+/** How a table's column sets its words in its cells. */
+export type Align = "left" | "center" | "right";
 
 /** A part of one line, UTF-16 columns. */
 export interface Mark extends Span {
@@ -28,6 +37,12 @@ export interface Mark extends Span {
   level?: number;
   /** A to-do's box is ticked. */
   done?: boolean;
+  /** A table's cell or rule: the width of its box, in points (the room after its words included). */
+  width?: number;
+  /** A table's cell: the room after its words, inside `width` (the gap before the next column). */
+  gap?: number;
+  /** A table's cell: how its words sit in it. */
+  align?: Align;
 }
 
 /** A fence's opening or closing line: three or more backticks or tildes, indented up to three spaces. */
@@ -223,6 +238,230 @@ function inlineMarks(line: string, from: number, touched: readonly Span[]): Mark
     );
   }
   return out.sort((a, b) => a.start - b.start);
+}
+
+// Tables, as GFM has them: a header row, a delimiter row of as many cells (`| --- | :---: | ---: |`), then rows up to
+// a blank line, a line with no pipe, a heading or fenced code, all in the same quote. The pipes at either end of a row
+// may be left out; `\|` is a pipe in a cell's words.
+
+/** A table, by lines: its header's (its delimiter row is the next line), its last row's; how each column's words sit. */
+export interface TableBlock {
+  start: number;
+  end: number;
+  align: Align[];
+}
+
+/** A table's row: its pipes between cells, the one at its end (if any), and each cell's words, trimmed, by column. */
+interface Row {
+  between: number[];
+  trail: number | null;
+  cells: Span[];
+}
+
+/** How many quotes `line` is in (`> >`: 2), and where its quote markers end. */
+function quoteOf(line: string) {
+  const markers = QUOTE.exec(line)?.[0] ?? "";
+  return { depth: (markers.match(/>/g) ?? []).length, end: markers.length };
+}
+
+/** `line` read as a table's row (after its quote markers), or `null` when it has no pipe. */
+function tableRow(line: string): Row | null {
+  const from = quoteOf(line).end;
+  const pipes: number[] = [];
+  for (let i = from; i < line.length; i++) {
+    if (line[i] === "\\") i++;
+    else if (line[i] === "|") pipes.push(i);
+  }
+  if (pipes.length === 0) return null;
+  const first = line.length - line.slice(from).trimStart().length;
+  const last = line.trimEnd().length - 1;
+  const lead = pipes[0] === first;
+  const trail = pipes[pipes.length - 1] === last && !(lead && pipes.length === 1) ? last : null;
+  const between = pipes.slice(lead ? 1 : 0, trail === null ? pipes.length : -1);
+  const starts = [lead ? first + 1 : from, ...between.map((p) => p + 1)];
+  const ends = [...between, trail ?? line.length];
+  const cells = starts.map((start, k) => {
+    const raw = line.slice(start, ends[k]);
+    const words = start + raw.length - raw.trimStart().length;
+    return { start: words, end: Math.max(words, start + raw.trimEnd().length) };
+  });
+  return { between, trail, cells };
+}
+
+const DELIMITER = /^:?-+:?$/;
+
+/** How the columns of the delimiter row `line` set their words, or `null` when it is not one. */
+function delimiterRow(line: string): Align[] | null {
+  const row = tableRow(line);
+  if (!row) return null;
+  const cells = row.cells.map((c) => line.slice(c.start, c.end));
+  if (!cells.every((c) => DELIMITER.test(c))) return null;
+  return cells.map((c) => (c.endsWith(":") ? (c.startsWith(":") ? "center" : "right") : "left"));
+}
+
+/** The tables of `lines`, in order (none in fenced code). */
+export function tableBlocks(lines: readonly string[]): TableBlock[] {
+  const fenced = fencedLines(lines);
+  const out: TableBlock[] = [];
+  /** `line` goes on a table in `depth` quotes. */
+  const rowOf = (line: number, depth: number) => {
+    const text = lines[line];
+    const quote = quoteOf(text);
+    if (fenced[line] || quote.depth !== depth || !text.slice(quote.end).trim() || HEADING.test(text.slice(quote.end))) return null;
+    return tableRow(text);
+  };
+  for (let i = 0; i + 1 < lines.length; i++) {
+    const depth = quoteOf(lines[i]).depth;
+    const head = rowOf(i, depth);
+    const align = head && rowOf(i + 1, depth) ? delimiterRow(lines[i + 1]) : null;
+    if (!head || !align || align.length !== head.cells.length) continue;
+    let end = i + 1;
+    while (end + 1 < lines.length && rowOf(end + 1, depth)) end++;
+    out.push({ start: i, end, align });
+    i = end;
+  }
+  return out;
+}
+
+/** A cell's words as they read: the marks of its inline Markdown dropped, escapes undone, a `<br>` a space. */
+export function cellText(words: string): string {
+  const dropped = new Set<number>();
+  for (const m of inlineMarks(words, 0, [])) if (m.label === "") for (let i = m.start; i < m.end; i++) dropped.add(i);
+  let out = "";
+  for (let i = 0; i < words.length; i++) if (!dropped.has(i)) out += words[i];
+  return out.replace(/<br\s*\/?>/gi, " ").replace(/\\([!-/:-@[-`{-~])/g, "$1");
+}
+
+/** Wide characters: CJK, Hangul, kana and the full-width forms, an em each. */
+const WIDE = [
+  [0x1100, 0x115f],
+  [0x2e80, 0x303e],
+  [0x3041, 0x33ff],
+  [0x3400, 0x4dbf],
+  [0x4e00, 0x9fff],
+  [0xa000, 0xa4cf],
+  [0xac00, 0xd7a3],
+  [0xf900, 0xfaff],
+  [0xfe30, 0xfe4f],
+  [0xff00, 0xff60],
+  [0xffe0, 0xffe6],
+  [0x20000, 0x3fffd],
+];
+/** Latin's narrow and wide letters, by ems of the system's font (San Francisco). */
+const EMS: [string, number][] = [
+  [" ", 0.27],
+  ["il.,:;'!|`I", 0.27],
+  ['jfrt()[]{}"/\\', 0.37],
+  ["mwMW", 0.88],
+  ["ABCDEFGHJKLNOPQRSTUVXYZ", 0.68],
+  ["0123456789", 0.6],
+  ["abcdeghknopqsuvxyz", 0.57],
+];
+
+/** About how many ems `ch` takes: none for a joiner or a mark on the letter before. */
+function charEms(ch: string): number {
+  const code = ch.codePointAt(0) ?? 0;
+  if ((code >= 0x300 && code <= 0x36f) || code === 0x200d || (code >= 0xfe00 && code <= 0xfe0f)) return 0;
+  if (WIDE.some(([a, b]) => code >= a && code <= b)) return 1;
+  // Emoji, a little wider than an em.
+  if (code >= 0x1f000 || (code >= 0x2600 && code <= 0x27bf)) return 1.25;
+  return EMS.find(([chars]) => chars.includes(ch))?.[1] ?? 0.6;
+}
+
+/**
+ * About how wide `text` is, in points, set in the system's font at `size` (bold a little wider): an em for a CJK
+ * character, Latin by its letters' widths. The editor cannot measure text, so a table's columns are set by this.
+ */
+export function textWidth(text: string, size: number, bold = false): number {
+  let ems = 0;
+  let joined = false;
+  for (const ch of text) {
+    // The emoji after a joiner is drawn with the one before it.
+    ems += joined ? 0 : charEms(ch);
+    joined = ch === "‍";
+  }
+  return ems * size * (bold ? 1.06 : 1);
+}
+
+/** What a table is set in: the room across the text, in points, and the words' size. */
+export interface TableLook {
+  room: number;
+  size: number;
+}
+
+/**
+ * The columns' widths for words `natural` wide in `room` with `gap` between columns: as they are when they fit; else
+ * the narrow ones as they are and the wide ones sharing what is left (their words cut, with an ellipsis); `null` when
+ * the columns would be narrower than three ems of `size` (the table then shows as written).
+ */
+function fitColumns(natural: number[], room: number, gap: number, size: number): number[] | null {
+  const budget = room - gap * (natural.length - 1);
+  if (natural.reduce((a, b) => a + b, 0) <= budget) return natural;
+  if (natural.length * size * 3 > budget) return null;
+  const widths = [...natural];
+  let left = budget;
+  const order = natural.map((_, i) => i).sort((a, b) => natural[a] - natural[b]);
+  order.forEach((column, k) => {
+    widths[column] = Math.min(natural[column], Math.floor(left / (order.length - k)));
+    left -= widths[column];
+  });
+  return widths;
+}
+
+/**
+ * What the live preview shows of `block`'s lines while no caret or selection is in it, a line's marks each (by the
+ * block's lines, from its header), or `null` when its columns do not fit `look.room` (it shows as written). A cell
+ * (its words with the pipe before it; the first one from the line's start) stands for its words, their inline Markdown
+ * dropped, in a box of its column's width (`width`, the gap after it included), the columns as wide as their widest
+ * words and set as the delimiter row says (`align`); a pipe ending the row hides; the delimiter row is a rule as wide
+ * as the table.
+ */
+export function tableMarks(lines: readonly string[], block: TableBlock, look: TableLook): Mark[][] | null {
+  const gap = Math.round(look.size * 1.25);
+  const rows: { line: string; row: Row; words: string[] }[] = [];
+  for (let i = block.start; i <= block.end; i++) {
+    const line = lines[i];
+    const row = tableRow(line);
+    if (!row) return null;
+    rows.push({ line, row, words: row.cells.map((c) => cellText(line.slice(c.start, c.end))) });
+  }
+  const columns = Math.max(...rows.map((r) => r.words.length));
+  const natural: number[] = new Array(columns).fill(0);
+  rows.forEach((r, k) => {
+    if (k === 1) return;
+    r.words.forEach((w, c) => (natural[c] = Math.max(natural[c], Math.ceil(textWidth(w, look.size, k === 0)) + 1)));
+  });
+  const widths = fitColumns(natural, look.room, gap, look.size);
+  if (!widths) return null;
+  const total = widths.reduce((a, b) => a + b, 0) + gap * (columns - 1);
+  return rows.map(({ line, row, words }, k) => {
+    if (k === 1) return [{ start: 0, end: line.length, kind: "rule", label: "", width: total }];
+    const marks: Mark[] = words.map((label, c) => {
+      const after = c < columns - 1 ? gap : 0;
+      return {
+        start: c === 0 ? 0 : row.between[c - 1],
+        end: c < row.between.length ? row.between[c] : (row.trail ?? line.length),
+        kind: k === 0 ? "head" : "cell",
+        label,
+        width: widths[c] + after,
+        gap: after,
+        align: block.align[c] ?? "left",
+      };
+    });
+    if (row.trail !== null) marks.push({ start: row.trail, end: line.length, kind: "syntax", label: "" });
+    return marks;
+  });
+}
+
+/** A table's line as written: its pipes (the delimiter row, all of it) syntax, muted. */
+export function tableSyntax(line: string, delimiter: boolean): Mark[] {
+  if (delimiter) return [{ start: 0, end: line.length, kind: "syntax" }];
+  const row = tableRow(line);
+  if (!row) return [];
+  const pipes = [...row.between, ...(row.trail !== null ? [row.trail] : [])];
+  const first = row.cells[0] ? line.slice(0, row.cells[0].start).lastIndexOf("|") : -1;
+  if (first >= quoteOf(line).end && !pipes.includes(first)) pipes.unshift(first);
+  return pipes.map((p) => ({ start: p, end: p + 1, kind: "syntax" }));
 }
 
 /** What Return does on a list item, a to-do or a quote line: the line's new text (with the line break) and where the caret goes. */
