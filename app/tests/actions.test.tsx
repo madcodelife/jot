@@ -1,6 +1,7 @@
 // The row actions, headless: ⌃X moves the selected note to the system trash
 // and ⌘Z takes it back while "Moved to the Trash" shows; ⌘K and a right
-// click show the action panel; a note is renamed in its row. The notes that
+// click show the action panel; a note is renamed in its row, or in the open
+// note's title. The notes that
 // go to the trash are taken back before each test ends, so running them
 // leaves the user's trash as it was.
 import { expect, open, test } from "nsh/test";
@@ -225,6 +226,49 @@ test("Escape leaves a rename without changing the title", async () => {
   await app.waitUntil(() => !app.shows("id:rename"));
   expect(app.shows("id:row:护照到期")).toBe(true);
   expect(app.shows("id:search")).toBe(true);
+  expect(new Notes(dir).read("护照到期")).not.toBeNull();
+  app.dispose();
+});
+
+test("a press on the open note's title edits it in place; Return renames the note and its text keeps the keys", async () => {
+  const dir = twoNotes("rename-paper");
+  const app = await openJot(dir);
+  await app.waitFor("id:row:护照到期");
+  await app.press("id:row:护照到期");
+  await app.waitFor("id:paper-title");
+
+  await app.press("id:paper-title-edit");
+  await app.waitFor("id:rename");
+  // In the open note's head, not in the sidebar's row.
+  expect(app.layout("id:rename")!.x).toBeGreaterThan(app.layout("id:paper")!.x);
+  await app.clear("id:rename");
+  await app.type("id:rename", "护照续签");
+  await app.submit("id:rename");
+
+  await app.waitUntil(() => app.texts().includes("护照续签.md"));
+  const n = new Notes(dir);
+  expect(n.read("护照到期")).toBeNull();
+  expect(n.read("护照续签")?.body).toBe("明年五月");
+  // The note's text has the keys again: what is typed goes into it.
+  await app.wait(300);
+  await app.keyboard.press("mod+down");
+  await app.keyboard.press("x");
+  await app.waitUntil(() => n.read("护照续签")?.body === "明年五月x", { timeout: 3000 });
+  app.dispose();
+});
+
+test("Escape leaves the open note's title as it was", async () => {
+  const dir = twoNotes("rename-paper-cancel");
+  const app = await openJot(dir);
+  await app.waitFor("id:row:护照到期");
+  await app.press("id:row:护照到期");
+  await app.waitFor("id:paper-title");
+  await app.press("id:paper-title-edit");
+  await app.waitFor("id:rename");
+  await app.type("id:rename", "不要");
+  await app.keyboard.press("escape");
+  await app.waitUntil(() => !app.shows("id:rename"));
+  expect(app.shows("id:paper")).toBe(true);
   expect(new Notes(dir).read("护照到期")).not.toBeNull();
   app.dispose();
 });

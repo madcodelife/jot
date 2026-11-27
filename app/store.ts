@@ -96,8 +96,10 @@ export const trashed = signal<readonly TrashedNote[]>([]);
 export const trashCountdown = signal(0);
 /** A short confirmation in the footer ("Copied"), gone after a moment. */
 export const flash = signal<string | null>(null);
-/** The note whose title is being edited in its row (the action panel's "Rename"). */
-export const renaming = signal<string | null>(null);
+/** Where a note's title is edited in place: in its row of the list or the sidebar, or the open note's own title. */
+export type RenamePlace = "row" | "paper";
+/** The note whose title is being edited in place, and where (the action panel's "Rename", a press on the open note's title). */
+export const renaming = signal<{ title: string; place: RenamePlace } | null>(null);
 /** Where a note's emoji picker shows: in the list's place in the panel (from the list), under its row in the sidebar
  * beside an open note, or under the open note's title and date. */
 export type EmojiPlace = "list" | "row" | "paper";
@@ -794,16 +796,20 @@ function restartTrashCountdown() {
   }, T.timing.undoFor);
 }
 
-/** The action panel's "Rename": the row's title becomes a field. */
+/** "Rename", or a press on the open note's title: its title becomes a field, at the head of the open note when it is
+ * the open one, else in its row. */
 export function startRename(title: string) {
   notice.set(null);
-  renaming.set(title);
+  emojiPicking.set(null);
+  const paper = untracked(stage) === "editor" && untracked(opened)?.title === title;
+  renaming.set({ title, place: paper ? "paper" : "row" });
 }
 
 /** Leaves the title field: Return or leaving it renames the note (`to` trimmed), Escape keeps the old title. */
 export function finishRename(to: string | null) {
-  const from = untracked(renaming);
-  if (from === null) return;
+  const editing = untracked(renaming);
+  if (editing === null) return;
+  const from = editing.title;
   renaming.set(null);
   const title = to?.trim();
   const n = untracked(notes);
@@ -837,8 +843,8 @@ export function finishRename(to: string | null) {
   batch(() => {
     refresh();
     if (untracked(query).trim()) query.set(meta.title);
-    // The open note follows its new name (a new editor on the same text).
-    if (wasOpen) opened.set({ title: meta.title, line: null, focus: false, token: ++openings });
+    // The open note follows its new name (a new editor on the same text), which has the keys when its title was edited.
+    if (wasOpen) opened.set({ title: meta.title, line: null, focus: editing.place === "paper", token: ++openings });
   });
   selectNote(meta.title);
 }

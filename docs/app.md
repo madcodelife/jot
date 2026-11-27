@@ -487,7 +487,7 @@ without it.
 One list of actions per row kind drives the action panel (⌘K / Ctrl+K, and a right click on a row:
 `app/ui/ActionPanel.tsx`), the footer's primary action (what Return does) and the actions' own keys, which work with the
 panel closed. A note: open ↩, create the query ⌘↩ (in a search that has a "New" row: what that row does, run by the
-panel's own ⌘↩, `createFromQuery`), show in Finder ⇧⌘F, rename ⌘R (in place, in its row), copy title ⇧⌘C, copy text ⇧⌘A,
+panel's own ⌘↩, `createFromQuery`), show in Finder ⇧⌘F, rename ⌘R (in place: in its row, or in the open note's title for the open note, which a press on the title edits too; Return or leaving the field renames, Escape keeps the old title, and the note's text has the keys again), copy title ⇧⌘C, copy text ⇧⌘A,
 set / remove its emoji (no key; [above](#a-notes-emoji-appuiemojitsx-appuipapertsx)), lock / unlock (no key), move to trash ⌃X (Windows / Linux Ctrl+D; keys in `app/ui/tokens.ts`). A locked note has
 "Unlock" for "Lock" and no rename, emoji or reminder time; ⌃X on it says to unlock it first (`ERR_JOT_LOCKED`). "New" row:
 create (its second line names no key: "A new, empty note"; its ⌘↩ keycap shows while another row is selected, and
