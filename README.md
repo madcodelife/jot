@@ -56,6 +56,9 @@ notarized by Apple, so run `xattr -dr com.apple.quarantine /Applications/Jot.app
 - **To-dos**: type `todo` (or `/todo`) for every open to-do, grouped by when it is due; ⇧⌘D changes a reminder's time.
 - **Dictation**: hold ⌥ to talk into the search field or a note; double-press and hold ⌥ in any app for a quick note.
 - **Lock a note**: ⌘K → Lock makes it read-only for Jot, your AI apps and every other program (Finder's "Locked").
+- **Bring your Apple Notes**: Settings → General → Import copies every note in Notes (all accounts and folders) into
+  Jot as Markdown, with its date. Importing again adds only the new ones. Locked notes, images and attachments stay
+  in Notes.
 - **Connect your AI apps**: Settings → AI Apps, one click each. Then ask them things like "jot this command down",
   "remind me to send the weekly report on Friday" or "what's on my list today?".
 
@@ -68,7 +71,8 @@ High Contrast themes. In English, Simplified and Traditional Chinese and Japanes
   Drive is on, else `~/Documents/Jot`; Settings changes it.
 - A reminder is written into the note as a plain time, `- [ ] pay rent ⏰ 2026-11-14 09:00`, and a checked to-do gets
   its date, `- [x] pay rent ✅ 2026-11-14`.
-- A note an AI app creates starts with frontmatter naming it (`source: claude`); your own notes have none.
+- A note an AI app creates starts with frontmatter naming it (`source: claude`); your own notes have none. A note's
+  emoji is in its frontmatter too (`icon: "🍜"`).
 - Jot does no syncing itself: keep the folder in iCloud Drive, Dropbox or Syncthing.
 
 More in [docs/storage.md](docs/storage.md).
@@ -78,6 +82,7 @@ More in [docs/storage.md](docs/storage.md).
 - Your notes are plain files in a folder you pick. Jot has no account, no server and no analytics, and sends your notes
   nowhere.
 - It goes online for one thing: every 6 hours it asks GitHub whether a new release is out. No notes go with it.
+- Importing from Apple Notes reads Notes on this Mac, only when you press Import (macOS asks you first).
 - Dictation uses Apple's speech recognition, which may process your voice on Apple's servers, depending on your Mac and
   the language.
 - The AI apps you connect read your notes through `jot-mcp`, and send what they read to their own model providers, on
