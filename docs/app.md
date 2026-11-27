@@ -259,6 +259,20 @@ it, and the sounds of AI apps' writes, with Python's standard library alone. `ns
 bundle's `Contents/Resources`, where macOS finds a notification's sound by its file name; an OTA package cannot put it
 there, so `assets/` is in the native fingerprint ([Updates](#updates-appupdatests)).
 
+## The panel's glass (app/ui/tokens.ts, app/ui/themes.ts)
+
+On macOS 26 and later the floating layers (the panel, the action panel, the time picker, the emoji picker) are Liquid
+Glass. A theme of its own draws its surface over it (`glass-fill`, `drawsSurface`); the default theme lets the glass be
+its surface. Bare, the glass takes on what is behind it: on a black backdrop the light glass comes to a mid grey
+(`#8a8a8a`), and on a white one so does the dark glass (`#7b7b7b`), measured on a Mac, where the theme's words, set for
+a light and a dark panel, read poorly. So the default theme lays a partly clear veil over the glass (`glass-veil`,
+`materialFill`): white at 62% in light, the dark card's color at 65% in dark. Where the glass is light (or dark)
+already the veil all but vanishes; on the worst backdrop every word on the panel still reads at WCAG AA (4.5:1),
+which needed its colored words a shade deeper in light (lighter in dark): `agent-ink`, `selected-ink`,
+`selected-agent`, `selected-late`, and in dark `late`. app/tests/settings.test.tsx checks the worst glass
+(`GLASS_WORST`) with the cards' colors. Without native glass (earlier macOS), the blur and `glass-fill` stay as they
+were.
+
 ## The list's rows (app/ui/NoteList.tsx)
 
 A row is words alone, no icon, in two lines: a note's semibold title over its snippet, "New “…”" over its hint. A

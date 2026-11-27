@@ -33,6 +33,20 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+/**
+ * What macOS 26's regular glass comes to with nothing over it, measured on a Mac: light on a black backdrop, dark on a
+ * white one, the darkest and the lightest each gets. The default theme veils it (`glass-veil`, `materialFill`) so its
+ * words still read there.
+ */
+const GLASS_WORST = { light: "#8a8a8a", dark: "#7b7b7b" };
+
+/** The surfaces a theme's panel shows its words on: its card's colour, and for the default (bare glass under its veil) the veil over the worst glass. */
+function panels(name: ThemeName, dark: boolean): string[] {
+  const v = themeVars(name).cssVars[dark ? "dark" : "light"] as Record<string, string>;
+  const card = swatch(name, dark).surface;
+  return drawsSurface(name, true) ? [card] : [card, flatten(v["glass-veil"], GLASS_WORST[dark ? "dark" : "light"])];
+}
+
 /** The AI apps' stand-ins: no test reads or writes the machine's own configuration files. */
 const CONNECTIONS = {
   "Connections.server": "/Applications/Jot.app/Contents/MacOS/jot-mcp",
@@ -210,8 +224,8 @@ test("every theme reads at WCAG AA in both appearances: text, the selected row, 
   for (const name of THEMES) {
     for (const dark of [false, true]) {
       const v = themeVars(name).cssVars[dark ? "dark" : "light"] as Record<string, string>;
-      // The panel's surface as the card shows it (the default's glass is drawn, not a colour: its card's stands in).
-      const surface = swatch(name, dark).surface;
+      // The panel's surface as the card shows it, and for the default's glass also the darkest (lightest) it gets.
+      for (const surface of panels(name, dark)) {
       const paper = v.paper;
       const on = (fg: string, bg: string) => flatten(fg, bg);
       const chip = (c: string) => flatten(`${c.slice(0, 7)}21`, paper);
@@ -237,6 +251,7 @@ test("every theme reads at WCAG AA in both appearances: text, the selected row, 
         ["reminder chip", v.due, chip(v.due)],
         ["overdue chip", v.late, chip(v.late)],
         ["AI app's name", v["agent-ink"], surface],
+        ["to-do view's overdue header", v.late, surface],
         ["search match", v["mark-fg"], v.mark],
         // Selected text in a note is ink (headings, links, to-dos and chips too) on the selection's fill.
         ["selected text in a note", v["paper-fg"], on(`${v["paper-fg"].slice(0, 7)}24`, paper)],
@@ -245,7 +260,20 @@ test("every theme reads at WCAG AA in both appearances: text, the selected row, 
         const ratio = contrast(fg, bg);
         if (ratio < 4.5) throw new Error(`${name} ${dark ? "dark" : "light"}: ${what} ${fg} on ${bg} is ${ratio.toFixed(2)}`);
       }
+      }
     }
+  }
+});
+
+test("the default theme's veil keeps its glass showing, and all but vanishes where the glass is light (or dark) already", () => {
+  const BEST = { light: "#fefefe", dark: "#232323" };
+  for (const dark of [false, true]) {
+    const veil = (themeVars("default").cssVars[dark ? "dark" : "light"] as Record<string, string>)["glass-veil"];
+    expect(veil).toHaveLength(9);
+    // Clearer than the fill a theme of its own draws (70%), so the glass is still glass.
+    expect(Number.parseInt(veil.slice(7), 16)).toBeLessThan(0xb3);
+    const best = BEST[dark ? "dark" : "light"];
+    expect(contrast(flatten(veil, best), best)).toBeLessThan(1.1);
   }
 });
 
@@ -255,12 +283,12 @@ test("the selected row's words are the palette's own colours, a deeper shade onl
   for (const name of THEMES) {
     for (const dark of [false, true]) {
       const v = themeVars(name).cssVars[dark ? "dark" : "light"] as Record<string, string>;
-      const selected = flatten(`${v.primary.slice(0, 7)}1f`, swatch(name, dark).surface);
+      const fills = panels(name, dark).map((surface) => flatten(`${v.primary.slice(0, 7)}1f`, surface));
       for (const [token, from] of Object.entries(SOURCE)) {
         if (v[token] === v[from]) continue;
         deeper++;
-        // Named only for a reason: the palette's own colour misses AA there.
-        if (contrast(flatten(v[from], selected), selected) >= 4.5) throw new Error(`${name} ${dark ? "dark" : "light"}: ${token} need not differ from ${from}`);
+        // Named only for a reason: the palette's own colour misses AA there, on its card's colour or its worst glass.
+        if (fills.every((fill) => contrast(flatten(v[from], fill), fill) >= 4.5)) throw new Error(`${name} ${dark ? "dark" : "light"}: ${token} need not differ from ${from}`);
       }
     }
   }
