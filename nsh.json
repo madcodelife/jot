@@ -21,7 +21,11 @@
     "activationPolicy": "accessory",
     "infoPlist": {
       "NSMicrophoneUsageDescription": "Jot listens while you hold ⌥ and writes what you say into your notes. 按住 ⌥ 说话时，Jot 用麦克风把你说的话记进笔记。",
-      "NSSpeechRecognitionUsageDescription": "Jot turns what you say into text for your notes. Jot 把你说的话转成笔记里的文字。"
+      "NSSpeechRecognitionUsageDescription": "Jot turns what you say into text for your notes. Jot 把你说的话转成笔记里的文字。",
+      "NSAppleEventsUsageDescription": "Jot reads your notes in Notes to import them, only when you choose Import in Settings. 只在你从设置里导入时，Jot 才读取「备忘录」里的笔记。"
+    },
+    "entitlements": {
+      "com.apple.security.automation.apple-events": true
     }
   },
   "capabilities": {

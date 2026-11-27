@@ -30,7 +30,7 @@ import {
 import { AlertDialog, Radio, RadioGroup, Tab, Tabs } from "nsh/base";
 import { Application, displays, Window, type Display, type WindowRef } from "nsh/desktop";
 import { t } from "nsh/i18n";
-import { Connections, Folder, Summon, type AiClient, type MovedNotes } from "jot/native";
+import { AppleNotes, Connections, Folder, Summon, type AiClient, type MovedNotes } from "jot/native";
 import { aiBusy, aiClients, aiErrors, refreshClients, toggleClient } from "../connections";
 import { LANGUAGES, tn } from "../i18n";
 import {
@@ -60,6 +60,7 @@ import {
 } from "../settings";
 import { PRIVACY_URL, speechAvailable, speechDenied } from "../voice";
 import { changeFolder, errorMessage, folderPath, folderShown, moveNotesTo, trusted } from "../store";
+import { AUTOMATION_URL, importAppleNotes, importing, importProgress, importReport, progressText } from "../importing";
 import { checkForUpdates, downloading, manualUpdate, readyUpdate, restartToUpdate, runningVersion, updatePhase } from "../updates";
 import appIcon from "./app-icon.svg";
 import { FORM, Hint, MacSwitch, PopupButton, PushButton, TimeInput } from "./controls";
@@ -355,10 +356,12 @@ const FOLDER_ICON = `data:image/svg+xml,${encodeURIComponent(
 
 const folderFailed = signal<string | null>(null);
 
+/** "Change…": picks another notes folder. Not while an import writes into this one (the button is off then). */
 async function chooseFolder() {
+  if (untracked(importing)) return;
   try {
     const picked = await Folder.choose(untracked(folderPath) ?? `~/${T.folder.path}`, t("settings.folder.choose"));
-    if (!picked) return;
+    if (!picked || untracked(importing)) return;
     changeFolder(picked);
     folderFailed.set(null);
   } catch (error) {
@@ -382,8 +385,12 @@ function movedText(moved: MovedNotes, from: string): string {
   return parts.join(" ");
 }
 
-/** "Move to iCloud Drive": asks first, then moves the notes there and makes it the notes folder. */
+/**
+ * "Move to iCloud Drive": asks first, then moves the notes there and makes it the notes folder. Not while an import
+ * writes into the folder (the button is off then), nor an import while it moves.
+ */
 async function moveToDrive(to: string) {
+  if (untracked(importing)) return;
   const from = untracked(folderShown);
   const { action } = await AlertDialog.show({
     title: t("settings.icloud.confirm_title"),
@@ -394,7 +401,7 @@ async function moveToDrive(to: string) {
     ],
     closeOnEscape: true,
   });
-  if (action !== "move") return;
+  if (action !== "move" || untracked(importing)) return;
   moving.set(true);
   moveReport.set(null);
   try {
@@ -424,7 +431,7 @@ function DriveRow() {
           <PushButton
             testID="settings-icloud-move"
             label={moving() ? t("settings.icloud.moving") : t("settings.icloud.move")}
-            disabled={!drive.available || moving()}
+            disabled={!drive.available || moving() || importing()}
             onPress={() => void moveToDrive(path)}
           />
         }
@@ -432,6 +439,47 @@ function DriveRow() {
         <Status testID="settings-icloud-on" label={t("settings.icloud.synced")} />
       </If>
     </Row>
+  );
+}
+
+/** Settings › General › Import: Apple Notes, where the platform has it (macOS). */
+function ImportGroup() {
+  if (!AppleNotes.available()) return null;
+  return (
+    <>
+      <SectionTitle>{t("settings.import.label")}</SectionTitle>
+      <Group testID="settings-import">
+        <Row label={t("settings.import.apple_notes")} hint={t("settings.import.hint")}>
+          <If when={importReport()?.denied}>
+            <PushButton
+              testID="settings-import-allow"
+              label={t("settings.import.open_settings")}
+              onPress={() => void openUrl(AUTOMATION_URL).catch(() => {})}
+            />
+          </If>
+          <PushButton
+            testID="settings-import-apple-notes"
+            label={importing() ? t("settings.import.importing") : t("settings.import.button")}
+            disabled={importing() || moving() || !folderPath()}
+            onPress={() => void importAppleNotes()}
+          />
+        </Row>
+      </Group>
+      <If
+        when={importing()}
+        else={
+          <If when={importReport()} else={<Footnote>{t("settings.import.footnote")}</Footnote>}>
+            {(report) => (
+              <Footnote testID="settings-import-report" tone={report().failed ? "late" : "muted"}>
+                {report().text}
+              </Footnote>
+            )}
+          </If>
+        }
+      >
+        <Footnote testID="settings-import-progress">{progressText(importProgress())}</Footnote>
+      </If>
+    </>
   );
 }
 
@@ -467,7 +515,12 @@ function GeneralPane() {
             </Text>
           </View>
           <PushButton testID="settings-reveal" label={t("settings.folder.reveal")} onPress={() => void Folder.reveal(untracked(folderPath) ?? "").catch(() => {})} />
-          <PushButton testID="settings-change-folder" label={t("settings.folder.change")} onPress={() => void chooseFolder()} />
+          <PushButton
+            testID="settings-change-folder"
+            label={t("settings.folder.change")}
+            disabled={importing()}
+            onPress={() => void chooseFolder()}
+          />
         </View>
         <DriveRow />
       </Group>
@@ -508,6 +561,8 @@ function GeneralPane() {
           />
         </Row>
       </Group>
+
+      <ImportGroup />
     </>
   );
 }

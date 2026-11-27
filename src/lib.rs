@@ -17,6 +17,8 @@
 //!   them, in a file `jot-mcp` reads too.
 //! - [`ActivityLog`]: the log where `jot-mcp` records what AI apps wrote,
 //!   which `Notes::watch_activity` follows for the island.
+//! - [`AppleNotes`]: importing the user's Apple Notes into the notes
+//!   folder (the settings' "Import from Apple Notes").
 //! - [`NativeBuild`]: the fingerprint of the app's native code, which an
 //!   OTA package must have been published for.
 //! - [`SoundEffects`]: whether the system lets apps play interface sound
@@ -27,6 +29,7 @@
 
 mod activity;
 mod ai_access;
+mod apple_notes;
 mod connect;
 mod connections;
 mod folder;
@@ -51,6 +54,7 @@ use nsh_extra as _;
 
 pub use activity::{ActivityLog, AgentAction, AgentActivity};
 pub use ai_access::AiAccess;
+pub use apple_notes::{AppleNotes, AppleNotesImport};
 pub use connections::{AiClient, Connections, GenericSetup, ManualReason};
 pub use folder::{FailedNote, Folder, ICloudDrive, MovedNotes, RenamedNote};
 pub use input_source::InputSource;
@@ -76,6 +80,7 @@ fn native(registry: &mut Registry) {
         .module::<Connections>()
         .module::<ActivityLog>()
         .module::<AiAccess>()
+        .module::<AppleNotes>()
         .module::<NativeBuild>()
         .module::<SoundEffects>();
 }

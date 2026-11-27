@@ -1,7 +1,8 @@
 //! macOS: the Accessibility permission, AppKit's event monitors, the
 //! main dispatch queue for the hold's timer, and the keyboard input source
-//! (Carbon's Text Input Sources), whether iCloud Drive is on, and whether
-//! interface sound effects are.
+//! (Carbon's Text Input Sources), whether iCloud Drive is on, whether
+//! interface sound effects are, and Apple Notes' notes (its scripting,
+//! through `osascript`).
 
 use std::cell::{Cell, RefCell};
 use std::ffi::c_void;
@@ -310,4 +311,34 @@ pub(crate) fn ui_sounds_on() -> bool {
         )
     };
     valid == 0 || on != 0
+}
+
+/// Apple Notes is here.
+pub(crate) const APPLE_NOTES: bool = true;
+
+/// Notes' scripting, run by `osascript` (src/platform/apple-notes.js).
+const APPLE_NOTES_SCRIPT: &str = include_str!("apple-notes.js");
+
+/// Every note of Apple Notes as JSON (`apple_notes::parse` reads it), through Notes' scripting run by `osascript`
+/// (JavaScript for Automation). The first time, the system asks the user to let Jot control Notes, and this waits
+/// for the answer; a refusal is `NotAuthorized` (Apple Events' -1743). Blocks while Notes answers, for
+/// `apple_notes::READ_LIMIT` at most (then `TimedOut`, `osascript` killed): off the engine thread only. Calls
+/// `on_progress` with the folders whose text is read, and of how many, as the script says it on stderr.
+pub(crate) fn read_apple_notes(
+    on_progress: impl FnMut(u32, u32) + Send + 'static,
+) -> Result<String, crate::apple_notes::ReadError> {
+    use crate::apple_notes::{READ_LIMIT, ReadError, output_within};
+
+    let mut command = std::process::Command::new("/usr/bin/osascript");
+    command.args(["-l", "JavaScript", "-e", APPLE_NOTES_SCRIPT]);
+    let output = output_within(command, READ_LIMIT, on_progress)
+        .map_err(|error| ReadError::Failed(format!("cannot run osascript: {error}")))?
+        .ok_or(ReadError::TimedOut)?;
+    if output.status.success() {
+        return String::from_utf8(output.stdout)
+            .map_err(|_| ReadError::Failed("Notes gave text that is not UTF-8".to_owned()));
+    }
+    Err(ReadError::of_osascript(&String::from_utf8_lossy(
+        &output.stderr,
+    )))
 }

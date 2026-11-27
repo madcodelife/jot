@@ -6,6 +6,7 @@ import { expect, open, test } from "nsh/test";
 import { drawsSurface, swatch, themeFromStored, themeVars, THEMES, type ThemeName } from "../ui/themes";
 import { Notes } from "jot/native";
 import { defaultFolder } from "../store";
+import { AUTOMATION_URL, importFailure, progressText } from "../importing";
 import { STAND_INS } from "./native";
 
 /** A fresh, empty notes folder. */
@@ -655,4 +656,152 @@ test("without a folder chosen, iCloud Drive's is the default only on a first run
   expect(defaultFolder(false, { path: null, available: false })).toBe("~/Documents/Jot");
   // Jot ran here before: its notes are in the Documents folder, and stay there.
   expect(defaultFolder(true, { path: icloud, available: true })).toBe("~/Documents/Jot");
+});
+
+test("importing from Apple Notes says what it did, and only when asked", async () => {
+  const dir = folder("import");
+  const imports: string[] = [];
+  const app = await openJot(dir, {}, {
+    "AppleNotes.import": async (to: string) => {
+      imports.push(to);
+      return { imported: 132, renamed: [], already: 5, locked: 3, deleted: 0, waiting: 0, failed: [] };
+    },
+  });
+  await openSettings(app);
+  await app.waitFor("id:settings-import-apple-notes");
+  // Nothing reads Notes until the button is pressed.
+  expect(imports).toEqual([]);
+  expect(app.texts()).toContain("备忘录");
+  expect(app.texts().some((text) => text.startsWith("第一次导入时，macOS 会请你允许 Jot 控制「备忘录」"))).toBe(true);
+
+  await app.press("id:settings-import-apple-notes");
+  await app.waitFor("id:settings-import-report");
+  expect(imports).toEqual([dir]);
+  expect(app.texts()).toContain("导入了 132 条笔记 · 5 条之前已导入 · 跳过了 3 条上锁的备忘录");
+  expect(app.enabled("id:settings-import-apple-notes")).toBe(true);
+  app.dispose();
+});
+
+test("while an import runs, the notes folder cannot change, nor an import start while it moves", async () => {
+  const { jot } = drive("import-busy");
+  const dir = folder("import-busy-notes");
+  // The import runs until the test lets it finish; the move looks at the import's button meanwhile.
+  const started = { import: false };
+  const done = { import: false };
+  let importOffWhileMoving: boolean | null = null;
+  const later = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const app = await openJot(dir, {}, {
+    "Folder.icloud": { path: jot, available: true },
+    "AppleNotes.import": async () => {
+      started.import = true;
+      while (!done.import) await later(10);
+      return { imported: 1, renamed: [], already: 0, locked: 0, deleted: 0, waiting: 0, failed: [] };
+    },
+    "Folder.moveNotes": async () => {
+      await later(50);
+      importOffWhileMoving = !app.enabled("id:settings-import-apple-notes");
+      return { moved: [], renamed: [], same: [], failed: [] };
+    },
+    "Connections.sync": async () => [],
+  });
+  await openSettings(app);
+  await app.waitFor("id:settings-import-apple-notes");
+  expect(app.enabled("id:settings-change-folder")).toBe(true);
+  expect(app.enabled("id:settings-icloud-move")).toBe(true);
+
+  // A press waits for the app to settle, which it does not while the import runs.
+  const importing = app.press("id:settings-import-apple-notes");
+  await app.waitUntil(() => started.import);
+  expect(app.enabled("id:settings-import-apple-notes")).toBe(false);
+  expect(app.enabled("id:settings-change-folder")).toBe(false);
+  expect(app.enabled("id:settings-icloud-move")).toBe(false);
+
+  done.import = true;
+  await importing;
+  await app.waitFor("id:settings-import-report");
+  expect(app.enabled("id:settings-change-folder")).toBe(true);
+  expect(app.enabled("id:settings-icloud-move")).toBe(true);
+  expect(app.storage()["jot.dir"]).toBe(dir);
+
+  // Moving: no import meanwhile.
+  app.onDialog(() => "移到 iCloud 云盘");
+  await app.press("id:settings-icloud-move");
+  await app.waitFor("id:settings-icloud-report");
+  expect(importOffWhileMoving).toBe(true);
+  expect(app.enabled("id:settings-import-apple-notes")).toBe(true);
+  app.dispose();
+});
+
+test("while an import runs, it says how far it is: reading Notes' folders, then writing the notes", async () => {
+  const dir = folder("import-progress");
+  const started = { import: false };
+  const done = { import: false };
+  const later = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const app = await openJot(dir, {}, {
+    "AppleNotes.import": async () => {
+      started.import = true;
+      while (!done.import) await later(10);
+      return { imported: 53, renamed: [], already: 0, locked: 0, deleted: 0, waiting: 0, failed: [] };
+    },
+  });
+  await openSettings(app);
+  await app.waitFor("id:settings-import-apple-notes");
+
+  const importing = app.press("id:settings-import-apple-notes");
+  await app.waitUntil(() => started.import);
+  // Before Notes says how many folders: reading, no counts, in place of the footnote.
+  await app.waitUntil(() => app.texts().includes("正在读取「备忘录」…"));
+  expect(app.shows("id:settings-import-progress")).toBe(true);
+  expect(app.texts().some((text) => text.startsWith("第一次导入时"))).toBe(false);
+
+  done.import = true;
+  await importing;
+  await app.waitFor("id:settings-import-report");
+  expect(app.shows("id:settings-import-progress")).toBe(false);
+  expect(app.texts()).toContain("导入了 53 条笔记");
+  app.dispose();
+});
+
+test("how far an import is, in a line", () => {
+  // A stand-in's arguments reach the test as JSON, without the progress callback, so its lines are checked here (in
+  // English, the test's own language).
+  expect(progressText(null)).toBe("Reading Notes…");
+  expect(progressText({ phase: "reading", done: 5, total: 15 })).toBe("Reading Notes… 5/15");
+  expect(progressText({ phase: "writing", done: 12, total: 53 })).toBe("Writing… 12/53");
+});
+
+test("an import Jot may not make says where to allow it", () => {
+  // A stand-in's error reaches the app without its `code`, so the denied report is checked here, not on screen.
+  const denied = importFailure({ name: "Error", message: "Jot is not allowed to control Notes", code: "ERR_JOT_NOT_AUTHORIZED" });
+  expect(denied.denied).toBe(true);
+  expect(denied.failed).toBe(true);
+  expect(importFailure(new Error("disk full")).denied).toBe(false);
+  // Notes too slow to answer: said in words of its own.
+  const late = importFailure({ name: "Error", message: "Apple Notes did not give its notes within 10 minutes", code: "ERR_JOT_TIMED_OUT" });
+  expect(late).toEqual({
+    text: "Notes took longer than 10 minutes to answer, so the import stopped and nothing was imported. Open Notes, check it isn’t waiting on you, then import again.",
+    failed: true,
+    denied: false,
+  });
+  expect(AUTOMATION_URL).toBe("x-apple.systempreferences:com.apple.preference.security?Privacy_Automation");
+});
+
+test("an import that fails says why; without Apple Notes there is none", async () => {
+  const app = await openJot(folder("import-failed"), {}, {
+    "AppleNotes.import": async () => {
+      throw new Error("cannot read Apple Notes: Notes got an error");
+    },
+  });
+  await openSettings(app);
+  await app.press("id:settings-import-apple-notes");
+  await app.waitFor("id:settings-import-report");
+  expect(app.texts()).toContain("没能从「备忘录」导入：cannot read Apple Notes: Notes got an error");
+  expect(app.shows("id:settings-import-allow")).toBe(false);
+  app.dispose();
+
+  const other = await openJot(folder("import-none"), {}, { "AppleNotes.available": false });
+  await openSettings(other);
+  expect(other.shows("id:settings-import")).toBe(false);
+  expect(other.texts()).not.toContain("导入");
+  other.dispose();
 });

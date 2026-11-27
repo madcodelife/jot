@@ -75,6 +75,12 @@ Not doing: projects, priorities, tag-style contexts, complex recurrence rules, a
   one iCloud moved off the Mac is still listed and searchable by title, downloads when needed and is read-only till
   then; nothing waits on a download. A note changed on two devices at once shows both versions' choice: keep this
   Mac's, use the other, or keep both.
+- Notes from Apple Notes come in from Settings in one step (macOS): every account and folder, each note a Markdown
+  file with its date, and importing again adds only the new ones (and brings back one deleted in Jot), changing
+  nothing already in Jot. Nothing touches Notes until the user asks. Not imported: locked notes (their text is
+  encrypted), images and attachments (a line says one was there), whether a checklist item was ticked (Notes' HTML
+  does not say; they come as plain list items), and the folders themselves (Jot's folder is flat; a note keeps its
+  Notes folder in its frontmatter).
 
 ## MCP for AI apps
 
@@ -156,8 +162,8 @@ is the notifications' and stays the system's to govern.
 
 Does: the macOS desktop (NSH's AppKit backend), resident in the tray, the floating panel summoned by double-pressing ⌥,
 search-to-create, editing with autosave, watching the folder for changes, to-dos and desktop reminders, `jot-mcp`
-and one-click connection to the AI apps on the Mac, light and dark themes, locked notes, and (allowed in Settings)
-AI apps moving notes to the Trash and rewriting them.
+and one-click connection to the AI apps on the Mac, light and dark themes, locked notes, (allowed in Settings) AI
+apps moving notes to the Trash and rewriting them, and importing from Apple Notes.
 
 Not yet: Windows, Linux and phones (the next step, from the same code; due reminders on phones wait for scheduled
 notifications in NSH), syncing of its own, tags and nested folders, rich text, scratch blocks and inline calculation.

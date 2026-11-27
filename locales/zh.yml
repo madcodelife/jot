@@ -164,6 +164,42 @@ settings:
       one: "%{count} 条没能移动，还在 %{folder}：%{error}"
       other: "%{count} 条没能移动，还在 %{folder}：%{error}"
     failed: "没能移到 iCloud 云盘：%{error}"
+  import:
+    label: 导入
+    apple_notes: 备忘录
+    hint: "把「备忘录」里的笔记导入成 Markdown。上锁的备忘录、图片和附件留在「备忘录」里。"
+    button: "导入…"
+    importing: "正在导入…"
+    reading: "正在读取「备忘录」…"
+    reading_count: "正在读取「备忘录」… %{done}/%{total}"
+    writing: "正在写入… %{done}/%{total}"
+    footnote: "第一次导入时，macOS 会请你允许 Jot 控制「备忘录」，好读取里面的笔记。再次导入会跳过导入过的笔记，已有的一条也不改；但在 Jot 里删掉的笔记会再导入回来。"
+    denied: "Jot 没有读取「备忘录」的权限。在「系统设置」›「隐私与安全性」›「自动化」里允许后再导入。"
+    timed_out: "「备忘录」10 分钟内没有答复，导入已停止，没有导入任何笔记。打开「备忘录」看看它是不是在等你操作，然后再导入。"
+    open_settings: "打开系统设置…"
+    none: "没有新的笔记"
+    imported:
+      one: "导入了 %{count} 条笔记"
+      other: "导入了 %{count} 条笔记"
+    renamed:
+      one: "「%{from}」和这里的笔记同名，存成了「%{to}」"
+      other: "%{count} 条和这里的笔记同名，加上编号另存了，比如「%{to}」"
+    already:
+      one: "%{count} 条之前已导入"
+      other: "%{count} 条之前已导入"
+    locked:
+      one: "跳过了 %{count} 条上锁的备忘录"
+      other: "跳过了 %{count} 条上锁的备忘录"
+    deleted:
+      one: "跳过了「最近删除」里的 %{count} 条"
+      other: "跳过了「最近删除」里的 %{count} 条"
+    waiting:
+      one: "%{count} 条要等 iCloud 云盘下载完同名的笔记，稍后再导入一次"
+      other: "%{count} 条要等 iCloud 云盘下载完同名的笔记，稍后再导入一次"
+    failed_some:
+      one: "「%{title}」没能导入：%{error}"
+      other: "%{count} 条没能导入，比如「%{title}」：%{error}"
+    failed: "没能从「备忘录」导入：%{error}"
   summon:
     double: 连按两下 %{key}
     on: 已开启

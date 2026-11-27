@@ -164,6 +164,42 @@ settings:
       one: "1 couldn’t be moved and is still in %{folder}: %{error}"
       other: "%{count} couldn’t be moved and are still in %{folder}: %{error}"
     failed: "Couldn’t move to iCloud Drive: %{error}"
+  import:
+    label: Import
+    apple_notes: Apple Notes
+    hint: "Your notes from Notes, as Markdown. Locked notes, images and attachments stay in Notes."
+    button: "Import…"
+    importing: "Importing…"
+    reading: "Reading Notes…"
+    reading_count: "Reading Notes… %{done}/%{total}"
+    writing: "Writing… %{done}/%{total}"
+    footnote: "The first time, macOS asks you to let Jot control Notes, so it can read your notes. Importing again skips notes imported before and changes nothing here, but brings back one you deleted in Jot."
+    denied: "Jot isn’t allowed to read Notes. Allow it in System Settings › Privacy & Security › Automation, then import again."
+    timed_out: "Notes took longer than 10 minutes to answer, so the import stopped and nothing was imported. Open Notes, check it isn’t waiting on you, then import again."
+    open_settings: "Open System Settings…"
+    none: "No new notes"
+    imported:
+      one: "Imported 1 note"
+      other: "Imported %{count} notes"
+    renamed:
+      one: "“%{from}” had the title of a note here and was saved as “%{to}”"
+      other: "%{count} had titles of notes here and were saved with a number, like “%{to}”"
+    already:
+      one: "1 already imported"
+      other: "%{count} already imported"
+    locked:
+      one: "1 locked note skipped"
+      other: "%{count} locked notes skipped"
+    deleted:
+      one: "1 in Recently Deleted skipped"
+      other: "%{count} in Recently Deleted skipped"
+    waiting:
+      one: "1 waits for iCloud Drive to download a note of the same title: import again later"
+      other: "%{count} wait for iCloud Drive to download notes of the same titles: import again later"
+    failed_some:
+      one: "“%{title}” couldn’t be imported: %{error}"
+      other: "%{count} couldn’t be imported, like “%{title}”: %{error}"
+    failed: "Couldn’t import from Notes: %{error}"
   summon:
     double: Double-press %{key}
     on: "On"

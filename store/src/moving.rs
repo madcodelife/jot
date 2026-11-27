@@ -147,7 +147,7 @@ fn move_unlocked(store: &Store, from: &Path, to: &Store, dest: &Path) -> Result<
         }
     };
     let metadata = retry(|| fs::metadata(from))?;
-    to.write_file(dest, &content, None)?;
+    to.write_file(dest, &content, None, None)?;
     fs::File::options()
         .write(true)
         .open(dest)?

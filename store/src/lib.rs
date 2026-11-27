@@ -22,6 +22,7 @@ use notify_debouncer_mini::{DebounceEventResult, DebouncedEventBatch, Debouncer,
 mod activity;
 mod cloud;
 mod conflict;
+mod import;
 mod lock;
 mod moving;
 mod settings;
@@ -32,6 +33,7 @@ pub mod when;
 
 pub use activity::{Action, Activity, ActivityTail, ROTATE_AT, watch_activity};
 pub use conflict::{Conflict, Resolution, Resolved};
+pub use import::{APPLE_NOTES_ID, ImportNote, Imported};
 pub use jiff::civil::DateTime;
 pub use moving::Moved;
 pub use settings::AiSettings;
@@ -316,7 +318,7 @@ impl Store {
         }
         let header = source.header();
         let path = self.path_for(&title);
-        self.write_file(&path, &compose(&header, body), None)?;
+        self.write_file(&path, &compose(&header, body), None, None)?;
         let (meta, _) = self.load(&Entry::new(title, path))?;
         Ok(meta)
     }
@@ -499,6 +501,7 @@ impl Store {
             &entry.path,
             &compose(parts.header, &body),
             Some(permissions),
+            None,
         )?;
         let (meta, _) = self.load(&entry)?;
         Ok(meta)
@@ -555,12 +558,14 @@ impl Store {
     }
 
     /// Writes `content` to a temporary file in the folder and renames it to `path`. Without `permissions`
-    /// (a new note), fails with `AlreadyExists` instead of replacing a file at `path`.
+    /// (a new note), fails with `AlreadyExists` instead of replacing a file at `path`. With `modified`, the file
+    /// has that modification time (set before the rename, so the note never shows another).
     fn write_file(
         &self,
         path: &Path,
         content: &str,
         permissions: Option<fs::Permissions>,
+        modified: Option<SystemTime>,
     ) -> Result<(), StoreError> {
         let mut builder = tempfile::Builder::new();
         builder.prefix(".jot-").suffix(".tmp");
@@ -574,6 +579,9 @@ impl Store {
         let mut file = builder.tempfile_in(&self.root)?;
         file.write_all(content.as_bytes())?;
         file.as_file().sync_all()?;
+        if let Some(modified) = modified {
+            file.as_file().set_modified(modified)?;
+        }
         if permissions.is_some() {
             file.persist(path).map_err(|error| error.error)?;
         } else {
@@ -785,6 +793,8 @@ impl Lowered {
 
 #[cfg(test)]
 mod cloud_tests;
+#[cfg(test)]
+mod import_tests;
 #[cfg(test)]
 mod lock_tests;
 #[cfg(test)]

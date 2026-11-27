@@ -524,3 +524,32 @@ fn on_icloud_drive() {
     store.delete("Probe").unwrap();
     drop(watcher);
 }
+
+#[test]
+fn an_import_never_numbers_past_a_note_not_downloaded() {
+    let (_dir, store, cloud) = synced();
+    // An earlier import of "Plan", moved off this Mac: it may be the very note.
+    store.create("Plan", "mine\n", Source::User).unwrap();
+    let evicted = store.root().join("Plan.md");
+    cloud.evict(evicted.clone());
+    placeholder(&store, "Old");
+    let note = |id: &str, title: &str| ImportNote {
+        id: id.to_owned(),
+        title: title.to_owned(),
+        body: "from Notes".to_owned(),
+        folder: None,
+        modified: SystemTime::UNIX_EPOCH + Duration::from_secs(1),
+    };
+    let imported = store
+        .import(&[note("a", "Plan"), note("b", "Old"), note("c", "New")])
+        .unwrap();
+    assert_eq!(imported.waiting, ["Plan", "Old"]);
+    assert_eq!(imported.imported, ["New"]);
+    assert!(cloud.asked().contains(&evicted));
+    assert!(!store.root().join("Plan 2.md").exists());
+
+    // Once here, and not that note: numbered.
+    cloud.arrive(&evicted);
+    let imported = store.import(&[note("a", "Plan")]).unwrap();
+    assert_eq!(imported.renamed, [("Plan".to_owned(), "Plan 2".to_owned())]);
+}
