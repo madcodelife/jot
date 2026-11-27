@@ -1,8 +1,10 @@
 // Small pieces the panel's rows share: a title or snippet with the query's
 // terms highlighted, key hints, the to-do checkbox (and the burst of its
-// tick), and a label that flips to its new words.
-import { Animated, computed, createAnimatedValue, effect, reduceMotion, signal, Text, untracked, View, type AnimatedNode, type CompositeAnimation, type Easing, type TextStyle } from "nsh";
-import { Checkbox } from "nsh/base";
+// tick), a label that flips to its new words, and the field a title is
+// renamed in (in its row, or at the head of the open note).
+import { Animated, computed, createAnimatedValue, effect, keymap, reduceMotion, signal, Text, untracked, View, type AnimatedNode, type CompositeAnimation, type Easing, type InputRef, type TextStyle } from "nsh";
+import { Checkbox, Input } from "nsh/base";
+import { finishRename } from "../store";
 import { Icon } from "./icons";
 import { springConfig } from "./motion";
 import { T, type Spring } from "./tokens";
@@ -372,5 +374,41 @@ export function FlipText(props: { text: string; flip: Flip; class?: string; styl
     <Text testID={props.testID} class={props.class} style={{ ...props.style, opacity, transform: [{ translateY: shift }] }}>
       {shown()}
     </Text>
+  );
+}
+
+/**
+ * A note's title being renamed, in place (its row, the open note's head), selected: Return or leaving the field
+ * renames, Escape keeps the old title. `onDone` says where the keys go next.
+ */
+export function RenameField(props: { title: string; class: string; style: TextStyle; onDone: () => void }) {
+  const value = signal(props.title);
+  let finished = false;
+  const finish = (to: string | null) => {
+    if (finished) return;
+    finished = true;
+    finishRename(to);
+    props.onDone();
+  };
+  // Newer than the panel's Escape (which steps back): this one only leaves the field.
+  keymap.bind("escape", () => finish(null), { when: "always" });
+  return (
+    <Input
+      testID="rename"
+      ref={(r: InputRef | undefined) => {
+        r?.focus();
+        r?.setSelection(0, props.title.length);
+      }}
+      class={props.class}
+      style={{ ...props.style, backgroundColor: "transparent", padding: 0 }}
+      value={value()}
+      accessibilityLabel={t("actions.rename_label", { title: props.title })}
+      autoCorrect={false}
+      autoCapitalize="none"
+      submitBehavior="submit"
+      onChange={({ value: next }) => value.set(next)}
+      onSubmit={() => finish(untracked(value))}
+      onBlur={() => finish(untracked(value))}
+    />
   );
 }

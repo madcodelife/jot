@@ -12,18 +12,17 @@
 // change the list without motion. It shows up to `T.size.listRows` rows and
 // scrolls to the rest: an arrow-key step keeps the selected row in view, a
 // new search or summon starts at the top.
-import { Animated, Canvas, type AnimatedValue, type CompositeAnimation, computed, createAnimatedValue, effect, keymap, localeSettings, reduceMotion, Scroll, signal, Text, token, untracked, View, type InputRef, type ScrollRef } from "nsh";
-import { Input } from "nsh/base";
+import { Animated, Canvas, type AnimatedValue, type CompositeAnimation, computed, createAnimatedValue, effect, localeSettings, reduceMotion, Scroll, Text, token, untracked, View, type ScrollRef } from "nsh";
 import { t } from "nsh/i18n";
 import { openActions, type ActionTarget } from "../actions";
 import { tn } from "../i18n";
-import { activate, allTodos, arriving, dropIn, dropping, editingInPlace, entering, finishRename, focusRequest, keySteps, listEntrance, listRows, now, query, renaming, rowKey, selected, stage, type ListRow as ListRowItem, type Row } from "../store";
+import { activate, allTodos, arriving, dropIn, dropping, editingInPlace, entering, focusRequest, keySteps, listEntrance, listRows, now, query, renaming, rowKey, selected, stage, type ListRow as ListRowItem, type Row } from "../store";
 import { plainSnippet } from "../tasks";
 import { age, dayGroup, dayLabel, hm, todaySummary, type DayGroup, type TodaySummary } from "../time";
 import { emojiAnchor } from "./Emoji";
 import { Icon } from "./icons";
 import { springConfig } from "./motion";
-import { Highlight, Keycaps } from "./parts";
+import { Highlight, Keycaps, RenameField } from "./parts";
 import { T } from "./tokens";
 
 type NoteRow = Extract<Row, { kind: "note" }>;
@@ -387,7 +386,7 @@ function ListRow(props: { row: Row; index: number; leaving: boolean; compact: bo
               <View class="flex-row items-center" style={{ gap: 8 }}>
                 <View class="flex-1" style={{ minWidth: 0 }}>
                   <If
-                    when={renaming() === row().meta.title}
+                    when={renaming()?.place === "row" && renaming()?.title === row().meta.title}
                     else={
                       // The emoji leads the title and takes only its own width; the query marks the title's words only.
                       <Highlight
@@ -400,7 +399,12 @@ function ListRow(props: { row: Row; index: number; leaving: boolean; compact: bo
                       />
                     }
                   >
-                    <RenameField title={row().meta.title} class={title()} />
+                    <RenameField
+                      title={row().meta.title}
+                      class={title()}
+                      style={{ fontSize: T.type.row }}
+                      onDone={() => focusRequest.set({ target: "field" })}
+                    />
                   </If>
                 </View>
                 <If when={props.compact && row().meta.locked}>
@@ -544,35 +548,3 @@ function ProgressRing(props: { done: number; total: number }) {
   );
 }
 
-/** The title being renamed, in place: Return or leaving the field renames, Escape keeps the old title. */
-function RenameField(props: { title: string; class: string }) {
-  const value = signal(props.title);
-  let finished = false;
-  const finish = (to: string | null) => {
-    if (finished) return;
-    finished = true;
-    finishRename(to);
-    focusRequest.set({ target: "field" });
-  };
-  // Newer than the panel's Escape (which steps back): this one only leaves the field.
-  keymap.bind("escape", () => finish(null), { when: "always" });
-  return (
-    <Input
-      testID="rename"
-      ref={(r: InputRef | undefined) => {
-        r?.focus();
-        r?.setSelection(0, props.title.length);
-      }}
-      class={props.class}
-      style={{ fontSize: T.type.row, backgroundColor: "transparent", padding: 0 }}
-      value={value()}
-      accessibilityLabel={t("actions.rename_label", { title: props.title })}
-      autoCorrect={false}
-      autoCapitalize="none"
-      submitBehavior="submit"
-      onChange={({ value: next }) => value.set(next)}
-      onSubmit={() => finish(untracked(value))}
-      onBlur={() => finish(untracked(value))}
-    />
-  );
-}

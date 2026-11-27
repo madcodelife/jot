@@ -18,7 +18,8 @@
 // click there unlocks it; nothing edits it (typing, ticks, times, dictation).
 // The note's emoji leads its title; a press on it changes it. Above the title,
 // a faint button, clear under the pointer, adds one (or removes it); the
-// emoji picker opens under the title.
+// emoji picker opens under the title. A press on the title (or "Rename")
+// edits it in place: Return or leaving it renames the note, Escape keeps it.
 import { cleanup, computed, createAnimatedValue, effect, keymap, Notifications, signal, Text, token, untracked, View } from "nsh";
 import { Button, Editor, type EditorDecoration, type EditorPosition, type EditorRef, type EditorSelection } from "nsh/base";
 import { t } from "nsh/i18n";
@@ -26,13 +27,14 @@ import { When, type Conflict } from "jot/native";
 import { caretOnTodo, openDuePicker, setEditorDue } from "../due";
 import { codeBlocks, continuation, fenceMark, fencedLines, isQuote, lineMarks, tableBlocks, tableMarks, tableSyntax, type Mark, type MarkKind } from "../markdown";
 import { whenOptions } from "../settings";
-import { allNotes, emojiPicking, errorMessage, lastWritten, notes, now, opened, refresh, removeEmoji, revision, save, setEditorFlush, setLocked, showFlash, startEmoji } from "../store";
+import { allNotes, emojiPicking, errorMessage, lastWritten, notes, now, opened, refresh, removeEmoji, renaming, revision, save, setEditorFlush, setLocked, showFlash, startEmoji, startRename } from "../store";
 import { taskLine, toggledLine, withDue } from "../tasks";
 import { age, parseDue } from "../time";
 import { cancelVoice, joinSpoken, listening, listeningLang, speechAvailable, startVoice, stopVoice, voiceError } from "../voice";
 import { emojiAnchor } from "./Emoji";
 import { Icon } from "./icons";
 import { fadeTo } from "./motion";
+import { RenameField } from "./parts";
 import { fade } from "./themes";
 import { T } from "./tokens";
 import { Breathing, LanguageTag, MicButton } from "./Voice";
@@ -69,6 +71,9 @@ export function Paper() {
     </Each>
   );
 }
+
+/** The open note's title: as large as the emoji before it. */
+const TITLE_TYPE = { fontSize: T.type.title, letterSpacing: -0.6, lineHeight: 33 } as const;
 
 /** The paper's margins (the design's 30 / 37 points): the title and the body share the side ones. */
 const PAPER_X = 37;
@@ -220,6 +225,13 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   const readOnly = () => downloading() || locked();
   /** The note's emoji, before its title. */
   const icon = () => meta()?.icon ?? null;
+  /** Its title is a field, being renamed (a press on it, "Rename"). */
+  const renamingHere = () => {
+    const r = renaming();
+    return r?.place === "paper" && r.title === title;
+  };
+  /** Room the title keeps on its right: clear of the microphone and "Saved" (or "Listening…"), which a long title would run under. */
+  const titleRoom = () => (listening() === "editor" ? STATUS_ROOM.listening : speechAvailable() ? STATUS_ROOM.savedMic : STATUS_ROOM.saved) - PAPER_X;
   // The emoji picker under the title closed: the text has the keys again.
   let picking = false;
   effect(() => {
@@ -702,22 +714,28 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
                 </Button>
               )}
             </If>
-            <Text
-              testID="paper-title"
-              role="header"
-              class="font-bold text-paper-fg"
-              // Clear of the microphone and "Saved" (or "Listening…") at the top right, which a long title would run under.
-              style={{
-                flexShrink: 1,
-                numberOfLines: 2,
-                fontSize: T.type.title,
-                letterSpacing: -0.6,
-                lineHeight: 33,
-                marginRight: (listening() === "editor" ? STATUS_ROOM.listening : speechAvailable() ? STATUS_ROOM.savedMic : STATUS_ROOM.saved) - PAPER_X,
-              }}
+            {/* A press on the title edits it in place (not on a locked note, or one still downloading). */}
+            <If
+              when={renamingHere()}
+              else={
+                <Button
+                  testID="paper-title-edit"
+                  accessibilityLabel={t("actions.rename_label", { title })}
+                  disabled={readOnly()}
+                  class={readOnly() ? "" : "hover:bg-paper-fg/7 active:opacity-70"}
+                  style={{ flexShrink: 1, marginLeft: -4, paddingHorizontal: 4, borderRadius: T.radius.row, borderCurve: "continuous", marginRight: titleRoom() - 4 }}
+                  onPress={() => startRename(title)}
+                >
+                  <Text testID="paper-title" role="header" class="font-bold text-paper-fg" style={{ ...TITLE_TYPE, numberOfLines: 2 }}>
+                    {title}
+                  </Text>
+                </Button>
+              }
             >
-              {title}
-            </Text>
+              <View class="flex-1" style={{ marginRight: titleRoom() }}>
+                <RenameField title={title} class="font-bold text-paper-fg" style={{ ...TITLE_TYPE, height: 33 }} onDone={() => untracked(() => editor?.focus())} />
+              </View>
+            </If>
           </View>
           <View testID="paper-meta" class="flex-row items-center" style={{ gap: 5, marginTop: 9 }}>
             <If when={locked()}>
