@@ -51,6 +51,8 @@ curl -fsSL https://madcodelife.github.io/jot/install.sh | sh
 - **待办**：输入「待办」（或 `/todo`）列出所有未完成的待办，按时间分组；⇧⌘D 改提醒时间。
 - **语音输入**：按住 ⌥ 说话，写进搜索框或笔记；在任何 App 里连按两下 ⌥ 并按住，记一条速记。
 - **锁定笔记**：⌘K →「锁定」让笔记只读，Jot、你的 AI 应用和其他任何程序都改不了它（访达里的「已锁定」）。
+- **导入「备忘录」**：设置 → 通用 →「导入」，把「备忘录」里所有账户、所有文件夹的笔记导入 Jot，转成 Markdown 并保留
+  日期。再次导入只会加上新的。上锁的备忘录、图片和附件留在「备忘录」里。
 - **连接 AI 应用**：设置 → AI 应用，每个点一下。然后就可以对它们说「把这个命令记到 Jot」「提醒我周五交周报」
   「我今天有什么要做的」。
 
@@ -62,7 +64,8 @@ curl -fsSL https://madcodelife.github.io/jot/install.sh | sh
 - 一条笔记就是笔记文件夹里的一个 `.md` 文件，文件名就是标题。打开了 iCloud 云盘时文件夹默认是 `iCloud 云盘/Jot`，
   否则是 `~/Documents/Jot`；可以在设置里改。
 - 提醒在笔记里写成普通的时间：`- [ ] 交房租 ⏰ 2026-11-14 09:00`；勾选完成的待办会记下日期：`- [x] 交房租 ✅ 2026-11-14`。
-- AI 应用新建的笔记开头有 frontmatter 记下是谁写的（`source: claude`）；你自己写的笔记没有。
+- AI 应用新建的笔记开头有 frontmatter 记下是谁写的（`source: claude`）；你自己写的笔记没有。笔记的 emoji 也记在
+  frontmatter 里（`icon: "🍜"`）。
 - Jot 自己不做同步：把文件夹放进 iCloud 云盘、Dropbox 或 Syncthing 即可。
 
 详见 [docs/storage.md](docs/storage.md)（英文）。
@@ -71,6 +74,7 @@ curl -fsSL https://madcodelife.github.io/jot/install.sh | sh
 
 - 笔记是你选的文件夹里的普通文件。Jot 没有账号、没有服务器、不做任何数据统计，也不会把你的笔记发到任何地方。
 - 它只在一件事上联网：每 6 小时去 GitHub 看一次有没有新版本，不带任何笔记内容。
+- 从「备忘录」导入只在本机读取，而且只在你按下「导入」时才读（macOS 会先征得你同意）。
 - 语音输入用的是 Apple 的语音识别，视 Mac 和语言而定，你的声音可能会在 Apple 的服务器上处理。
 - 你连接的 AI 应用通过 `jot-mcp` 读取笔记，并按它们各自的规则把读到的内容发给自己的模型服务。
 - 笔记文件夹放在 iCloud 云盘、Dropbox 或 Syncthing 里时，由这些服务负责同步，不经过 Jot。
