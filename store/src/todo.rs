@@ -213,7 +213,7 @@ fn lines(body: &str) -> impl Iterator<Item = (&str, &str)> {
 
 /// A fence's run of backticks or tildes (three or more), if `line` opens or closes fenced code: indented by up to
 /// three spaces, as CommonMark has it (deeper is an indented code line, not a fence).
-fn fence_run(line: &str) -> Option<&str> {
+pub(crate) fn fence_run(line: &str) -> Option<&str> {
     let rest = line.trim_start_matches(' ');
     if line.len() - rest.len() > 3 {
         return None;

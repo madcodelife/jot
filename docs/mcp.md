@@ -73,6 +73,11 @@ Chinese, English or Japanese; without `due`, a phrase in `text` becomes the time
 only the `⏰` part of the line changes). The last two find the open to-do the same way: the exact text, else the one
 whose text holds it; several or none fail, listing the candidates.
 
+Links between notes ([app.md](app.md)'s live preview, [storage.md](storage.md)'s renaming): no tool of their own.
+The server's instructions say that notes may link each other with `[[Title]]` (or `[[Title|words]]`) and that the
+model may name another of the user's notes that way when what it writes refers to one; `read_note` returns them as
+written, and a rename in Jot points them at the new title.
+
 ## The activity log (store/src/activity.rs, mcp/)
 
 The app learns what AI apps write from a log `jot-mcp` keeps, not from the notes folder: a note appearing there says

@@ -34,6 +34,28 @@ the list keeps its order: an emoji is no change of the note. Like every write, b
 `NotDownloaded` and `Locked`, the file untouched. Body writes keep the line, as they keep the whole frontmatter.
 `frontmatter.rs` reads and writes one top-level key on its own, for `locked` and `icon`.
 
+## Links between notes (store/src/links.rs)
+
+A note links another with `[[Title]]`, or `[[Title|words]]` to show other words, as Notational Velocity, nvALT and
+Obsidian write them. A link is on one line, outside fenced code and code spans; its title is what comes before the
+first `|`, trimmed, and holds no `[`, `]` or `|`; its words (after the `|`) are not empty and hold no `[` or `]`
+(`[[]]`, `[[a|]]` and `[[a]b]]` are no links). The title names a note as a title does anywhere in the store: in any
+case, and with `/`, `\`, `:` and control characters standing for `-` (`[[a/b]]` is the note `a-b`). The app draws the
+same links (`app/markdown.ts`'s `noteLinks`, [app.md](app.md#links-between-notes)); jot-mcp has no tool of its own for
+them ([mcp.md](mcp.md)).
+
+Renaming a note does not change its links by itself: the app calls `rename_links(from, to)` after `rename`. It reads
+every note and points each link whose title names `from` at `to`, the words after a `|` kept: `[[Old]]` becomes
+`[[New]]`, `[[old|the plan]]` `[[New|the plan]]` (the spaces inside the brackets stay). Each note changed is one atomic
+write, its frontmatter and mtime kept (as an emoji's: a link following a rename is no change of the note, which keeps
+its place in the list); the renamed note's links to itself follow too. It leaves, and says so in `Relinked`:
+
+- a locked note (the flag or `locked: true`): its links keep the old title, counted in `locked_notes` and
+  `locked_links` (the app says "2 links in locked notes kept the old title");
+- a note whose text is not on this Mac (iCloud Drive moved it off): it is not asked for, and its links keep the old
+  title, uncounted (the store cannot read them without downloading every such note);
+- everything when `to` holds `[`, `]` or `|` (`linkable`), which no link's title can.
+
 ## A synced folder (iCloud Drive; store/src/cloud.rs)
 
 Jot does no syncing itself; the folder may sit in iCloud Drive (Settings › General › iCloud Drive moves it there,
@@ -133,6 +155,9 @@ impl Store {
     pub fn append(&self, title: &str, text: &str) -> Result<NoteMeta, StoreError>;
     /// Fails with `NotFound` / `AlreadyExists`.
     pub fn rename(&self, from: &str, to: &str) -> Result<NoteMeta, StoreError>;
+    /// After `rename`: points `[[from]]` and `[[from|words]]` in every note at `to`, but in locked notes (counted)
+    /// and notes not on this Mac (above).
+    pub fn rename_links(&self, from: &str, to: &str) -> Result<Relinked, StoreError>;
     /// Deletes the file for good. Only the app calls it (the app's own delete goes through `trash`).
     pub fn delete(&self, title: &str) -> Result<(), StoreError>;
     /// Moves the note to the system trash (macOS: NSFileManager, remembering where it went; elsewhere the
@@ -183,6 +208,10 @@ pub struct Resolved { pub note: NoteMeta, pub copy: Option<NoteMeta> }  // non_e
 pub struct Moved { pub moved: Vec<String>, pub renamed: Vec<(String, String)>, pub same: Vec<String>, pub failed: Vec<(String, String)> }  // non_exhaustive
 pub struct ImportNote { pub id: String, pub title: String, pub body: String /* Markdown, no title */, pub folder: Option<String>, pub modified: SystemTime }
 pub struct Imported { pub imported: Vec<String>, pub renamed: Vec<(String, String)>, pub already: Vec<String>, pub waiting: Vec<String>, pub failed: Vec<(String, String)> }  // non_exhaustive
+
+pub struct Relinked { pub notes: usize, pub links: usize, pub locked_notes: usize, pub locked_links: usize }
+/// Whether a title can be a link's (no `[`, `]` or `|`).
+pub fn linkable(title: &str) -> bool;
 
 pub struct NoteMeta { pub title: String, pub modified: SystemTime, pub source: Source, pub preview: String /* first ~120 chars of the body, one line */, pub downloading: bool /* its text is not on this Mac yet; asked for */, pub locked: bool /* the flag, or `locked: true` */, pub icon: Option<String> /* its emoji; None while downloading */ }
 /// One emoji (above). `parse` trims; `None` for anything else.

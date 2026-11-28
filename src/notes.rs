@@ -164,6 +164,24 @@ impl Notes {
         Ok(meta.into())
     }
 
+    /// Points the links to the note once titled `from` (`[[from]]`,
+    /// `[[from|words]]`, in any case) at `to`, its new title, in every
+    /// note: after `rename`. Locked notes keep theirs, counted.
+    pub fn rename_links(&mut self, from: String, to: String) -> Result<RenamedLinks, JsError> {
+        let done = self.store.rename_links(&from, &to).map_err(|e| {
+            store_error(
+                e,
+                format_args!("cannot point the links to {from:?} at {to:?}"),
+            )
+        })?;
+        Ok(RenamedLinks {
+            notes: done.notes as u32,
+            links: done.links as u32,
+            locked_notes: done.locked_notes as u32,
+            locked_links: done.locked_links as u32,
+        })
+    }
+
     /// Deletes the note's file for good (`trash` moves it to the system
     /// trash, which can be undone).
     pub fn delete(&mut self, title: String) -> Result<(), JsError> {
@@ -541,6 +559,19 @@ pub struct ResolvedConflict {
     pub note: NoteMeta,
     /// The other version's own note, for `"both"`.
     pub copy: Option<NoteMeta>,
+}
+
+/// What `Notes.renameLinks` changed, and what it left.
+#[derive(Debug, Clone, PartialEq, JsObject)]
+pub struct RenamedLinks {
+    /// The notes rewritten.
+    pub notes: u32,
+    /// The links that took the new title.
+    pub links: u32,
+    /// The locked notes that kept links to the old title.
+    pub locked_notes: u32,
+    /// The links in them, which kept the old title.
+    pub locked_links: u32,
 }
 
 /// A note `Notes.trash` moved to the system trash.

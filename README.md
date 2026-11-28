@@ -53,6 +53,8 @@ notarized by Apple, so run `xattr -dr com.apple.quarantine /Applications/Jot.app
   notes by title and body; when nothing matches, Return creates a note with that title.
 - **Act on a note**: ⌘K on a row to open, rename, give it an emoji, copy, show in Finder, lock or move it to the Trash
   (with undo).
+- **Link notes**: `[[Title]]` links another note; ⌘-click it (or ⌘↩ in it) to open that note. Typing `[[` lists your
+  titles, and renaming a note updates the links to it.
 - **To-dos**: type `todo` (or `/todo`) for every open to-do, grouped by when it is due; ⇧⌘D changes a reminder's time.
 - **Dictation**: hold ⌥ to talk into the search field or a note; double-press and hold ⌥ in any app for a quick note.
 - **Lock a note**: ⌘K → Lock makes it read-only for Jot, your AI apps and every other program (Finder's "Locked").

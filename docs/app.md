@@ -398,9 +398,11 @@ Both in the chime's glass, struck twice and short. The new note's: B6 then E7 a 
 
 NSH's `Editor` binds Return (a line break) and ⌘↩ (a line below) itself while it has the focus, before the app's
 bindings; Jot takes them with `keymap.bind`'s `overFocused`, bound while the editor has the focus (`onFocus` /
-`onBlur`). ⌘↩ ticks or unticks the caret's to-do and does nothing on another line (the panel's own ⌘↩, which does
-the same while the note's text has no focus, is in app/ui/Panel.tsx). Return is bound only while the caret is on a list
-item, a to-do or a quote line outside fenced code with nothing selected (`continuation` in app/markdown.ts says what it
+`onBlur`). ⌘↩ opens the link to another note the caret is in ([Links between notes](#links-between-notes), not with
+the caret at either end of it), else ticks or unticks the caret's to-do, and does nothing on another line (the panel's
+own ⌘↩, which does the same while the note's text has no focus, is in app/ui/Panel.tsx). Return is bound only while the
+caret is on a list item, a to-do or a quote line outside fenced code with nothing selected, and no link is being typed
+(`[[`: Return is the suggestions' then) (`continuation` in app/markdown.ts says what it
 does there), so a line break elsewhere is the editor's own; it writes the line and the next item's start as one
 `editor.edit`, which one undo takes back, and falls back to the editor's `newline` command when the caret has left
 such a line before the key arrives. ⇧↩ is never bound: a plain break. While an input method composes (pinyin), NSH
@@ -419,9 +421,10 @@ has no focus, no caret counts: everything shows rendered.
   caret or a selection is on the line; hidden otherwise. A bullet then stands for a muted `•`; an ordered item's `1.`
   stays, muted. A heading with no words keeps its `#`.
 - **Inline syntax**: emphasis's `**` / `__` / `*` / `_` / `~~`, code's backticks, a link's `[` and `](target)` (an
-  image's `![` too): both marks of a span show while a caret or a selection is in it or at either end; hidden
-  otherwise. Its words: bold, italic, struck through, in the link colour (an image shows its alt words, no picture),
-  code in the code font on a faint fill.
+  image's `![` too), a link to another note's `[[` and `]]` (and its title and `|` when it shows other words): both
+  marks of a span show while a caret or a selection is in it or at either end; hidden otherwise. Its words: bold,
+  italic, struck through, in the link colour (an image shows its alt words, no picture; a link to a note no one has
+  made yet is muted and underlined), code in the code font on a faint fill.
 - **Headings**: levels 1 to 3 at 1.5, 1.3 and 1.15 times the body (`T.type.headings`), bold, in the heading colour;
   4 to 6 bold at the body's size. The row grows with its text (NSH grows the line height in proportion).
 - **To-dos**: `- [ ]` (dash to bracket) is a drawn box, `- [x]` a filled one with a tick (`labelStyle`); its text
@@ -452,6 +455,36 @@ Selected text is inked by more decorations over the selection (`SELECTED`); they
 sizes stay as they are, and a line a selection covers shows its syntax anyway. Labelled ranges never overlap (NSH
 shows the first of two that do), which `lineMarks` keeps. Dictation's interim words and the time phrase chip are
 drawn as before.
+
+## Links between notes
+
+`[[Title]]` (or `[[Title|words]]`) in a note links the note of that title, as in Notational Velocity, nvALT and
+Obsidian; what is a link and which note it names is jot-store's ([storage.md](storage.md#links-between-notes-storesrclinksrs)),
+and `noteLinks` in app/markdown.ts reads the same. In the open note:
+
+- **Drawn** in the live preview (above): the title, or the words after `|`, in the link colour, the brackets hidden;
+  one whose title no note has (`linkKey`, the title as the folder compares titles: in any case, `/` `\` `:` as `-`) is
+  muted and underlined. Holding ⌘ over a link underlines its words with a pointing hand (the editor's definition link:
+  `onDefinitionRequest`, trigger `hover`, answered with `presentDefinitionLink`).
+- **Followed** with a ⌘-click on it (`onTextPress` with `modifiers.platform`; a plain click only places the caret, as
+  on a Markdown link), ⌘↩ with the caret in it, or "Open Link" in ⌘K (shown while the caret is in one: `caretLink`).
+  `openLink` in app/store.ts saves the open note, then opens the note the link names, the list narrowed to it when it
+  does not show it; a note no one has made yet is made, empty, with the link's title, then opened.
+- **Typed**: `[[` asks the editor for completions (NSH's `Editor` `completion`, `[[` its trigger), and so does every
+  word typed after it until a `]`, `[` or `|`: the answer (`complete` in Paper.tsx) is the titles holding every word
+  typed since the `[[` (`linkTitles`: the store's search, its title matches only, the latest first; all notes, the
+  latest first, right after `[[`), but the open note's own and titles no link can hold, at most 50. It is `incomplete`,
+  so each word typed asks again; a space closes the editor's list and the next letter opens it, narrowed by all the
+  words. ↑↓ choose, Return or Tab puts the title in place of what was typed after `[[`, with `]]` (unless one follows
+  already), Escape closes it, and so does a click elsewhere. The list is the editor's own, under the caret. Anywhere
+  else (no `[[` before the caret, fenced code, a code span) the answer is empty and nothing shows; no inline
+  completion is ever given.
+- **Renamed**: renaming a note (⌘R, a press on its title) calls `Notes.renameLinks` after `rename`
+  ([storage.md](storage.md#links-between-notes-storesrclinksrs)): every note's `[[Old]]` and `[[Old|…]]` take the new title, but
+  in locked notes. The footer says "Updated 2 links to “New”", or "2 links in locked notes kept the old title"; with a
+  note open (no footer then) the open note's foot says it (`paperMessage`), the open note following its new name first.
+
+Backlinks (which notes link this one) are not shown.
 
 ## A note's emoji (app/ui/Emoji.tsx, app/ui/Paper.tsx)
 
@@ -492,7 +525,8 @@ set / remove its emoji (no key; [above](#a-notes-emoji-appuiemojitsx-appuipapert
 "Unlock" for "Lock" and no rename, emoji or reminder time; ⌃X on it says to unlock it first (`ERR_JOT_LOCKED`). "New" row:
 create (its second line names no key: "A new, empty note"; its ⌘↩ keycap shows while another row is selected, and
 selected itself, the footer's "Create ↩" says it); today's row: show to-dos; a to-do: open its note, tick ⌘↩, its
-reminder time ⇧⌘D (and "Remove Reminder" when it has one); in the open note, the caret's to-do's reminder time ⇧⌘D.
+reminder time ⇧⌘D (and "Remove Reminder" when it has one); in the open note, the caret's to-do's reminder time ⇧⌘D,
+and "Open Link" ⌘↩ with the caret in a link to another note ([Links between notes](#links-between-notes)).
 The action panel sits on the footer at the panel's right and grows up; over a short list it rises into the search
 field, and the field's microphone steps aside while it is open (its top edge would cut across it).
 ⌘↩ with the action panel open closes it first, then does what it does with the panel closed. Nothing but a note can be

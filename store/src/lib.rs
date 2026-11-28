@@ -26,6 +26,7 @@ mod conflict;
 mod frontmatter;
 mod icon;
 mod import;
+mod links;
 mod lock;
 mod moving;
 mod settings;
@@ -39,6 +40,7 @@ pub use conflict::{Conflict, Resolution, Resolved};
 pub use icon::Icon;
 pub use import::{APPLE_NOTES_ID, ImportNote, Imported};
 pub use jiff::civil::DateTime;
+pub use links::{Relinked, linkable};
 pub use moving::Moved;
 pub use settings::AiSettings;
 pub use source::Source;
@@ -805,6 +807,8 @@ mod cloud_tests;
 mod icon_tests;
 #[cfg(test)]
 mod import_tests;
+#[cfg(test)]
+mod links_tests;
 #[cfg(test)]
 mod lock_tests;
 #[cfg(test)]

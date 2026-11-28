@@ -76,6 +76,13 @@ note:
   create_failed: 無法新增「%{title}」：%{error}
   rename_taken: 已經有叫「%{title}」的筆記
   rename_failed: 無法重新命名「%{title}」：%{error}
+  links_renamed:
+    one: 已更新 %{count} 個指向「%{title}」的連結
+    other: 已更新 %{count} 個指向「%{title}」的連結
+  links_locked:
+    one: 鎖定筆記裡的 %{count} 個連結仍是舊標題
+    other: 鎖定筆記裡的 %{count} 個連結仍是舊標題
+  links_failed: 無法更新指向「%{title}」的連結：%{error}
 
 paper:
   by_agent: "%{agent} 記的"
@@ -352,6 +359,7 @@ actions:
   unlock: 解鎖
   emoji: 設定 Emoji…
   emoji_remove: 移除 Emoji
+  open_link: 開啟連結
 
 trash:
   bin:

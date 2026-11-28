@@ -9,6 +9,7 @@ import { caretOnTodo, openDueAtCaret, openTodoDue, writeTodoDue } from "./due";
 import {
   activate,
   binName,
+  caretLink,
   desktopOs,
   checkTodo,
   createFromQuery,
@@ -19,6 +20,7 @@ import {
   notes,
   notice,
   opened,
+  openLink,
   revealNote,
   rows,
   selected,
@@ -97,6 +99,8 @@ export function actionsFor(target: ActionTarget): Action[] {
         ...(target.index === null ? [] : [action("open", t("actions.open"), "enter", () => activate(target.index as number))]),
         // In a search with a "new note" row: ⌘↩ makes that note, as the row's keycap says.
         ...(target.index === null ? [] : createAction()),
+        // In the open note, with the caret in a link to another note: that note, as ⌘↩ opens it.
+        ...(target.index === null && caretLink() !== null ? [linkAction(caretLink() as string)] : []),
         // In the open note, with the caret on an open to-do: its reminder time.
         ...(target.index === null && caretOnTodo() && !locked ? [action("due", t("actions.due"), T.keys.due, () => void openDueAtCaret())] : []),
         action("reveal", t(`actions.reveal.${desktopOs}`), T.keys.reveal, () => revealNote(title)),
@@ -124,6 +128,9 @@ export function actionsFor(target: ActionTarget): Action[] {
       ];
   }
 }
+
+/** "Open Link": the note the caret's link names (made when there is none). */
+const linkAction = (title: string) => action("open-link", t("actions.open_link"), "mod+enter", () => openLink(title));
 
 /** The list's "new note" row, as an action of the other rows: ⌘↩ (the panel's own key, app/ui/Panel.tsx) runs it. */
 function createAction(): Action[] {

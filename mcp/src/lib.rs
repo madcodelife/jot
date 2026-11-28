@@ -52,6 +52,9 @@ sensitive personal information unless the user explicitly asks you to.
 
 Before creating a note, search for one on the same subject and append to it instead of making a near-duplicate.
 
+Notes may link each other with [[Title]] (or [[Title|words]]), which Jot shows as a link that opens that note; \
+when what you write refers to another of the user's notes, you may name it that way.
+
 To-dos are Markdown task lines (`- [ ] …`) in any note, with an optional reminder time; the Jot app notifies the \
 user when one comes due. Add one when the user asks to be reminded of something or to put something on their \
 list, list them when the user asks what they have to do, check one off when the user says it is done, and move one's reminder time (or remove it) when the user asks to reschedule it.

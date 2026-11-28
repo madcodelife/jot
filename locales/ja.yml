@@ -77,6 +77,13 @@ note:
   create_failed: 「%{title}」を作成できませんでした：%{error}
   rename_taken: 「%{title}」というメモはすでにあります
   rename_failed: 「%{title}」の名前を変更できませんでした：%{error}
+  links_renamed:
+    one: 「%{title}」へのリンクを %{count} 件更新しました
+    other: 「%{title}」へのリンクを %{count} 件更新しました
+  links_locked:
+    one: ロックされたメモの %{count} 件のリンクは古いタイトルのままです
+    other: ロックされたメモの %{count} 件のリンクは古いタイトルのままです
+  links_failed: 「%{title}」へのリンクを更新できませんでした：%{error}
 
 paper:
   by_agent: "%{agent} が作成"
@@ -353,6 +360,7 @@ actions:
   unlock: ロックを解除
   emoji: 絵文字を設定…
   emoji_remove: 絵文字を削除
+  open_link: リンクを開く
 
 trash:
   bin:

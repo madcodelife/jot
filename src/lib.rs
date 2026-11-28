@@ -61,7 +61,8 @@ pub use folder::{FailedNote, Folder, ICloudDrive, MovedNotes, RenamedNote};
 pub use input_source::InputSource;
 pub use native_build::NativeBuild;
 pub use notes::{
-    Conflict, ConflictChoice, Note, NoteMeta, Notes, ResolvedConflict, SearchHit, Todo, TrashedNote,
+    Conflict, ConflictChoice, Note, NoteMeta, Notes, RenamedLinks, ResolvedConflict, SearchHit,
+    Todo, TrashedNote,
 };
 pub use reminders::{DueEvent, Reminders};
 pub use sound_effects::SoundEffects;

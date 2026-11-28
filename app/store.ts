@@ -4,11 +4,12 @@
 // them, so every change goes through one place.
 import { batch, computed, platform, signal, Storage, untracked } from "nsh";
 import { t } from "nsh/i18n";
-import { ActivityLog, Folder, Notes, Reminders, Summon, type AgentActivity, type DueEvent, type ICloudDrive, type MovedNotes, type NoteMeta, type Todo, type TrashedNote } from "jot/native";
+import { ActivityLog, Folder, Notes, Reminders, Summon, type AgentActivity, type DueEvent, type ICloudDrive, type MovedNotes, type Note, type NoteMeta, type Todo, type TrashedNote } from "jot/native";
 import { morphNext } from "./ui/motion";
 import { T } from "./ui/tokens";
 import { syncClients } from "./connections";
-import { todoKeyword, todoKeywords } from "./i18n";
+import { tn, todoKeyword, todoKeywords } from "./i18n";
+import { linkable } from "./markdown";
 import { groupOf, parseDue, todaySummary, type TodoGroup } from "./time";
 
 /** Where the panel is: hidden, the summoned capsule, the list, or a note open beside the list. */
@@ -94,6 +95,8 @@ export const checking = signal<ReadonlySet<string>>(new Set());
 export const trashed = signal<readonly TrashedNote[]>([]);
 /** Bumped as a note goes to the trash or one comes back: the footer's countdown starts over. */
 export const trashCountdown = signal(0);
+/** A short message over the open note's foot, where the footer is not (the note's paper shows it once, then clears it). */
+export const paperMessage = signal<string | null>(null);
 /** A short confirmation in the footer ("Copied"), gone after a moment. */
 export const flash = signal<string | null>(null);
 /** Where a note's title is edited in place: in its row of the list or the sidebar, or the open note's own title. */
@@ -166,6 +169,9 @@ export const isLocked = (title: string) => allNotes().some((m) => m.title === ti
 
 /** The emoji the note titled `title` shows before its title, or null. Tracked. */
 export const iconOf = (title: string) => allNotes().find((m) => m.title === title)?.icon ?? null;
+
+/** The title of the link to another note the open note's caret is in (`[[Title]]`): the action panel offers "Open Link". */
+export const caretLink = signal<string | null>(null);
 
 /** Every note, newest first. */
 export const allNotes = computed<NoteMeta[]>(() => {
@@ -613,6 +619,46 @@ export function open(title: string, options: { line?: number; focus?: boolean } 
   });
 }
 
+/**
+ * A link to another note followed (⌘-click, ⌘↩, "Open Link"): the note it names opens (its title matched as the
+ * folder matches titles, in any case), the list narrowed to it when it does not show it; a note no one has made yet is
+ * made, empty, with that title. The open note's last edits are saved first.
+ */
+export function openLink(title: string) {
+  const n = untracked(notes);
+  if (!n) return;
+  flushEditor?.();
+  let existing: Note | null = null;
+  try {
+    existing = n.read(title);
+  } catch {
+    // A title the folder cannot take: `create` says so.
+  }
+  if (!existing) {
+    create(title);
+    return;
+  }
+  const to = existing.meta.title;
+  if (!untracked(rows).some((r) => r.kind === "note" && r.meta.title === to)) query.set(to);
+  open(to);
+}
+
+/**
+ * The titles a link being typed may take (the `[[` suggestions): the notes whose titles hold every word of `query`, as
+ * the search finds them (only title matches), the latest first; all notes, the latest first, when nothing is typed.
+ * Not `except` (the open note), nor a title that cannot be a link's.
+ */
+export function linkTitles(query: string, except: string | null, limit = 50): string[] {
+  const n = untracked(notes);
+  if (!n) return [];
+  const blank = !query.trim();
+  return n
+    .search(query, limit + 1)
+    .filter((h) => (blank || h.titleMatch) && h.meta.title !== except && linkable(h.meta.title))
+    .slice(0, limit)
+    .map((h) => h.meta.title);
+}
+
 /** Saves the editor's text (the editor calls it after a pause in typing). */
 export function save(title: string, body: string) {
   const n = untracked(notes);
@@ -805,7 +851,10 @@ export function startRename(title: string) {
   renaming.set({ title, place: paper ? "paper" : "row" });
 }
 
-/** Leaves the title field: Return or leaving it renames the note (`to` trimmed), Escape keeps the old title. */
+/**
+ * Leaves the title field: Return or leaving it renames the note (`to` trimmed), Escape keeps the old title. The links
+ * to it in every note (`[[Old]]`, `[[Old|words]]`) take the new title, but in locked notes, which the footer says.
+ */
 export function finishRename(to: string | null) {
   const editing = untracked(renaming);
   if (editing === null) return;
@@ -815,8 +864,9 @@ export function finishRename(to: string | null) {
   const n = untracked(notes);
   if (!n || !title || title === from) return;
   const wasOpen = untracked(opened)?.title === from;
-  // The editor's pending edits land in the file before it is renamed, not in a new file of the old name.
-  if (wasOpen) flushEditor?.();
+  // The editor's pending edits land in the file before it is renamed, not in a new file of the old name; and the open
+  // note's links, another note's, change on disk with nothing of its own unsaved.
+  flushEditor?.();
   let meta: NoteMeta;
   try {
     meta = n.rename(from, title);
@@ -847,6 +897,29 @@ export function finishRename(to: string | null) {
     if (wasOpen) opened.set({ title: meta.title, line: null, focus: editing.place === "paper", token: ++openings });
   });
   selectNote(meta.title);
+  // After the open note follows its new name, so what is said of the links goes to its paper.
+  renameLinks(n, from, meta.title);
+}
+
+/**
+ * Points the links to `from` at `to`, its new title, and says how many changed, or how many a lock kept: in the footer,
+ * or over the open note's foot while a note is open (the footer is not shown then).
+ */
+function renameLinks(n: Notes, from: string, to: string) {
+  const editing = untracked(stage) === "editor";
+  const warn = (text: string) => (editing ? paperMessage.set(text) : notice.set(text));
+  try {
+    const done = n.renameLinks(from, to);
+    if (done.links > 0) refresh();
+    if (done.lockedLinks > 0) warn(tn("note.links_locked", done.lockedLinks));
+    else if (done.links > 0) {
+      const text = tn("note.links_renamed", done.links, { title: to });
+      if (editing) paperMessage.set(text);
+      else showFlash(text);
+    }
+  } catch (error) {
+    warn(t("note.links_failed", { title: to, error: errorMessage(error) }));
+  }
 }
 
 /** The action panel's "Show in Finder": the note's file, selected in the file manager. */
