@@ -33,12 +33,14 @@ class Notes {                                   // wraps jot_store::Store
   settleLocks(): string[];                      // the missing half of each lock put back (folder opened / changed)
   setIcon(title: string, icon: string): NoteMeta;  // its emoji (`icon: "🍕"`), mtime kept; TypeError unless one emoji
   clearIcon(title: string): NoteMeta;           // its emoji taken away, mtime kept
+  pin(title: string): NoteMeta;                 // pinned: true, mtime kept; ERR_JOT_LOCKED
+  unpin(title: string): NoteMeta;               // its `pinned` lines out, mtime kept
   todos(): Todo[];
   setTodoDone(note: string, line: number, text: string, done: boolean): NoteMeta;
   setTodoDue(note: string, line: number, text: string, due: string | null /* "YYYY-MM-DDTHH:mm", else TypeError; null removes */): NoteMeta;  // ERR_JOT_CHANGED
   addTodo(text: string, due?: string | null /* "YYYY-MM-DDTHH:mm", else TypeError */, note?: string | null /* "待办" */): Todo;
 }
-interface NoteMeta { title: string; modified: number /* ms since epoch */; source: string | null /* null: the user; else the AI app's name, "Cursor" */; preview: string; downloading: boolean /* not on this Mac yet: read-only, empty */; locked: boolean /* read-only till unlocked */; icon?: string | null /* its emoji, "🍕" */ }
+interface NoteMeta { title: string; modified: number /* ms since epoch */; source: string | null /* null: the user; else the AI app's name, "Cursor" */; preview: string; downloading: boolean /* not on this Mac yet: read-only, empty */; locked: boolean /* read-only till unlocked */; icon?: string | null /* its emoji, "🍕" */; pinned: boolean /* at the top of the list */ }
 interface Conflict { id: string; device: string | null; modified: number; body: string }
 interface ResolvedConflict { note: NoteMeta; copy: NoteMeta | null }
 // Errors also: ERR_JOT_NOT_DOWNLOADED (the note is not on this Mac yet; nothing was changed), ERR_JOT_LOCKED (the note
@@ -290,11 +292,12 @@ A row is words alone, no icon, in two lines: a note's semibold title over its sn
 note with an emoji shows it before its title, in the title's line ("🍕 Dinner": a space after it, only its own width; a
 note without one starts with its title); a search marks the title's words, never the emoji. What tells a note apart
 sits at the end of the title's line, which gives way to it: an AI app's note has a dot and the app's name in the
-agents' colors (`agent`, `agent-ink`), a locked one a padlock, then the time (`T.type.meta`, muted, tabular figures;
-under a date group's header today's and yesterday's are the clock time alone, the header naming the day, while "2 min
-ago" and the dates of earlier notes stay as they are, as do a search's rows).
+agents' colors (`agent`, `agent-ink`), a pinned one a pin and a locked one a padlock (both 12 points, muted, in every
+list: the recent one, a search's, the sidebar), then the time (`T.type.meta`, muted, tabular figures; under a date
+group's header today's and yesterday's are the clock time alone, the header naming the day, while "2 min ago" and the
+dates of earlier notes stay as they are, as do a search's rows and the pinned notes', whose header names no day).
 The snippet has the row's whole width under them; a note not downloaded says "Downloading…" for it. A row is
-`T.size.row` (52) tall; in the sidebar beside an open note, `T.size.sidebarRow`, with the title (and padlock) alone.
+`T.size.row` (52) tall; in the sidebar beside an open note, `T.size.sidebarRow`, with the title (and pin, padlock) alone.
 
 The selected row (macOS, `T.selection` `"fill"`) has a light accent fill (`bg-primary/12`) and its title in the
 accent's ink; the snippet, the time and the AI app's name keep their colors, and a search's marks keep the
@@ -312,15 +315,18 @@ title says what is left today (or what is overdue), its second line what is over
 ring at its end fills clockwise from the top with today's done to-dos out of all of today's (a `Canvas` arc), the
 number left inside; with none due today (only overdue ones) there is no ring.
 
-The recent list (no query) falls into date groups by the day a note last changed: Today, Yesterday, This Week (from
-the week's first day, `localeSettings().firstDayOfWeek`) and Earlier (`dayGroup` in app/time.ts). A group's header
-(`T.size.daySection`, `T.type.meta`, semibold, muted) sits above its first note; today's card is in no group. Headers
-are not rows: the arrow keys and the pointer pass over them, and the selection and its index count the rows alone
-(`listItems` lays the rows and the headers out). A search's results and the sidebar have no groups.
+The recent list (no query) has the pinned notes first, newest first among them, under their own header, Pinned
+(below today's card, which stays at the very top), then falls into date groups by the day a note last changed: Today,
+Yesterday, This Week (from the week's first day, `localeSettings().firstDayOfWeek`) and Earlier (`dayGroup` in
+app/time.ts). A group's header (`T.size.daySection`, `T.type.meta`, semibold, muted) sits above its first note; today's
+card is in no group. Headers are not rows: the arrow keys and the pointer pass over them, and the selection and its
+index count the rows alone (`listItems` lays the rows and the headers out; `rows` in app/store.ts puts the pinned notes
+first). A search's results rank a pinned note as any other (it keeps its pin); they and the sidebar have no groups,
+though the sidebar keeps the recent list's order, pinned notes first.
 
 ## The list's motion (app/ui/NoteList.tsx)
 
-The list holds up to 100 notes (the latest, or a search's best), shows `T.size.listRows` (six; today's card counts as
+The list holds up to 100 notes (the pinned ones, however old, and the latest others, or a search's best), shows `T.size.listRows` (six; today's card counts as
 one) with the date groups' headers among them, and scrolls to the rest; fewer when the headers would make the panel
 taller than with a note open, so no row shows cut (`noteListHeight`). With a note open the sidebar holds the same rows
 and scrolls in its height. ↑↓ go through every row, wrapping at the ends, and keep the selected one in view (with its
@@ -332,7 +338,8 @@ on `T.spring.drop`, fading in over `T.timing.dropFade`, a date group's header wi
 ones it shows are there at once. A note that appears later drops in the same way on its own while
 the rows below make room: a note new in the folder (written by another program, synced from another Mac, or an AI
 app's, which also glows) and one brought back from the trash by ⌘Z, which ends selected (`dropIn` in app/store.ts).
-Rows a search brings in show at once: typing never animates the list.
+Rows a search brings in show at once: typing never animates the list. Pinning or unpinning a note moves its row to its
+new place on `T.spring.collapse` (`morphNext`) while the others make room, and the selection follows it.
 
 A note moved to the trash goes at once (the file, the undo stack, the footer), but its row stays for
 `T.timing.trashExit` to leave: it slides 24 points left (a ticked to-do slides right), shrinks to 0.96 and fades out;
@@ -488,8 +495,10 @@ One list of actions per row kind drives the action panel (⌘K / Ctrl+K, and a r
 `app/ui/ActionPanel.tsx`), the footer's primary action (what Return does) and the actions' own keys, which work with the
 panel closed. A note: open ↩, create the query ⌘↩ (in a search that has a "New" row: what that row does, run by the
 panel's own ⌘↩, `createFromQuery`), show in Finder ⇧⌘F, rename ⌘R (in place: in its row, or in the open note's title for the open note, which a press on the title edits too; Return or leaving the field renames, Escape keeps the old title, and the note's text has the keys again), copy title ⇧⌘C, copy text ⇧⌘A,
-set / remove its emoji (no key; [above](#a-notes-emoji-appuiemojitsx-appuipapertsx)), lock / unlock (no key), move to trash ⌃X (Windows / Linux Ctrl+D; keys in `app/ui/tokens.ts`). A locked note has
-"Unlock" for "Lock" and no rename, emoji or reminder time; ⌃X on it says to unlock it first (`ERR_JOT_LOCKED`). "New" row:
+set / remove its emoji (no key; [above](#a-notes-emoji-appuiemojitsx-appuipapertsx)), pin / unpin ⇧⌘P (`pinned: true`
+in its frontmatter, [storage.md](storage.md#pinned-notes-storesrcpinrs); the footer says "Pinned “…”" for a moment),
+lock / unlock (no key), move to trash ⌃X (Windows / Linux Ctrl+D; keys in `app/ui/tokens.ts`). A locked note has
+"Unlock" for "Lock" and no rename, emoji, pin / unpin (a note pinned before it was locked stays pinned) or reminder time; ⌃X on it says to unlock it first (`ERR_JOT_LOCKED`). "New" row:
 create (its second line names no key: "A new, empty note"; its ⌘↩ keycap shows while another row is selected, and
 selected itself, the footer's "Create ↩" says it); today's row: show to-dos; a to-do: open its note, tick ⌘↩, its
 reminder time ⇧⌘D (and "Remove Reminder" when it has one); in the open note, the caret's to-do's reminder time ⇧⌘D.

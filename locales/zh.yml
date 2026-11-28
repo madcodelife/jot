@@ -57,6 +57,8 @@ list:
     yesterday: 昨天
     week: 本周
     earlier: 更早
+  # The recent list's pinned notes, above the date groups.
+  pinned: 置顶
 
 todo:
   # 搜索框里输入这些词（或 /todo）进入待办视图；第一个是托盘和通知用的。
@@ -355,6 +357,8 @@ actions:
   unlock: 解锁
   emoji: 设置 Emoji…
   emoji_remove: 移除 Emoji
+  pin: 置顶
+  unpin: 取消置顶
 
 trash:
   bin:
@@ -396,6 +400,14 @@ lock:
   unlock_failed: 没能解锁「%{title}」：%{error}
   done: 已锁定「%{title}」
   undone: 已解锁「%{title}」
+
+pin:
+  row: 已置顶
+  done: 已置顶「%{title}」
+  undone: 已取消置顶「%{title}」
+  locked: 「%{title}」已锁定，解锁后才能置顶或取消置顶
+  failed: 没能置顶「%{title}」：%{error}
+  unpin_failed: 没能取消置顶「%{title}」：%{error}
 
 emoji:
   label: 「%{title}」的 Emoji

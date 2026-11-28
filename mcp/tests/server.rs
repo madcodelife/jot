@@ -212,6 +212,22 @@ async fn create_search_read_append() {
     let (_, text) = call(&client, "recent_notes", serde_json::json!({ "limit": 1 })).await;
     assert_eq!(text.matches("\n## ").count(), 1, "{text}");
 
+    // A note pinned in Jot says so; the others do not.
+    Store::open(dir.path()).unwrap().pin("Groceries").unwrap();
+    let (_, text) = call(&client, "recent_notes", serde_json::json!({})).await;
+    assert!(
+        text.contains("written by the user · pinned in Jot\n"),
+        "{text}"
+    );
+    assert_eq!(text.matches("pinned in Jot").count(), 1, "{text}");
+    let (_, text) = call(
+        &client,
+        "read_note",
+        serde_json::json!({ "title": "Groceries" }),
+    )
+    .await;
+    assert!(text.contains("· pinned in Jot"), "{text}");
+
     client.cancel().await.unwrap();
     server.await.unwrap();
 }

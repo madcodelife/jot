@@ -1,4 +1,5 @@
-//! One top-level key of a note's frontmatter, read and written on its own: `locked` (`lock`) and `icon` (`icon`).
+//! One top-level key of a note's frontmatter, read and written on its own: `locked` (`lock`), `icon` (`icon`) and
+//! `pinned` (`pin`).
 //! Writing it leaves every other line of the frontmatter and the body as they are.
 
 use crate::split;

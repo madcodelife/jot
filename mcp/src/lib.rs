@@ -1089,13 +1089,14 @@ fn describe(meta: &NoteMeta) -> String {
         );
     }
     let author = meta.source.label().unwrap_or_else(|| "the user".to_owned());
+    let pinned = if meta.pinned { " · pinned in Jot" } else { "" };
     let locked = if meta.locked {
         " · locked in Jot (read-only)"
     } else {
         ""
     };
     format!(
-        "Modified {} · written by {author}{locked}",
+        "Modified {} · written by {author}{pinned}{locked}",
         format_time(meta.modified)
     )
 }

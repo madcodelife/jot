@@ -369,6 +369,27 @@ impl Notes {
         Ok(meta.into())
     }
 
+    /// Pins the note to the top of the list: `pinned: true` in its
+    /// frontmatter. Its modification time stays (no change of the note).
+    /// Throws `ERR_JOT_LOCKED`, `ERR_JOT_NOT_FOUND`, `ERR_JOT_NOT_DOWNLOADED`.
+    pub fn pin(&mut self, title: String) -> Result<NoteMeta, JsError> {
+        let meta = self
+            .store
+            .pin(&title)
+            .map_err(|e| store_error(e, format_args!("cannot pin the note {title:?}")))?;
+        Ok(meta.into())
+    }
+
+    /// Unpins the note: `pinned` out of its frontmatter (its modification
+    /// time stays); a note not pinned stays as it is. Throws as `pin` does.
+    pub fn unpin(&mut self, title: String) -> Result<NoteMeta, JsError> {
+        let meta = self
+            .store
+            .unpin(&title)
+            .map_err(|e| store_error(e, format_args!("cannot unpin the note {title:?}")))?;
+        Ok(meta.into())
+    }
+
     /// Brings each note's two marks of a lock in line: the flag back on a
     /// note whose frontmatter says locked (synced from another Mac, or
     /// cleared by iCloud Drive as it uploaded the note), `locked: true` on a
@@ -473,6 +494,9 @@ pub struct NoteMeta {
     pub locked: bool,
     /// The emoji shown before its title (`"🍕"`), or `null`.
     pub icon: Option<String>,
+    /// The note is pinned (`pinned: true` in its frontmatter): the list
+    /// shows it at the top. `false` while it is downloading.
+    pub pinned: bool,
 }
 
 /// A time as TS gets it: milliseconds since the Unix epoch.
@@ -494,6 +518,7 @@ impl From<jot_store::NoteMeta> for NoteMeta {
             downloading: meta.downloading,
             locked: meta.locked,
             icon: meta.icon,
+            pinned: meta.pinned,
         }
     }
 }

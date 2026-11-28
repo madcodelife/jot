@@ -275,6 +275,8 @@ export interface PlatformTokens {
     copyBody: string;
     /** The reminder time picker of the to-do in focus (Things' deadline key; no editor or panel key has it). */
     due: string;
+    /** Pins or unpins the note in focus (no editor or panel key has it). */
+    pin: string;
   };
   /** Where notes live by default, relative to the home directory, and how the folder is shown. */
   folder: { path: string; shown: string };
@@ -431,6 +433,7 @@ const macos: PlatformTokens = {
     copyTitle: "mod+shift+c",
     copyBody: "mod+shift+a",
     due: "mod+shift+d",
+    pin: "mod+shift+p",
   },
   folder: { path: "Documents/Jot", shown: "~/Documents/Jot" },
   colors: null,
@@ -465,6 +468,7 @@ const windows: PlatformTokens = {
     copyTitle: "mod+shift+c",
     copyBody: "mod+shift+a",
     due: "mod+shift+d",
+    pin: "mod+shift+p",
   },
   folder: { path: "Documents\\Jot", shown: "Documents\\Jot" },
   colors: null,
@@ -499,6 +503,7 @@ const linux: PlatformTokens = {
     copyTitle: "mod+shift+c",
     copyBody: "mod+shift+a",
     due: "mod+shift+d",
+    pin: "mod+shift+p",
   },
   folder: { path: "Documents/Jot", shown: "~/Documents/Jot" },
   colors: null,

@@ -65,6 +65,10 @@ MCP tools (mcp/) on a locked note: reading, searching, listing and `list_todos` 
 "locked in Jot (read-only)"); every tool that writes fails with "locked in Jot … the user unlocks it in Jot first".
 No tool locks or unlocks.
 
+MCP tools (mcp/) on a pinned note ([storage.md](storage.md#pinned-notes-storesrcpinrs)): listings and `read_note` say
+"pinned in Jot"; nothing ranks it higher, and no tool pins or unpins (a rewrite keeps the frontmatter, and with it the
+pin).
+
 MCP tools (mcp/): `create_note` and `add_todo` record the calling app as the new note's `source`
 (`Source::from_client` of the `initialize` handshake's `clientInfo.name`). `add_todo(text, due?, note?)` (`due`: ISO `2026-11-14T09:00` or a phrase `when::parse` reads, in
 Chinese, English or Japanese; without `due`, a phrase in `text` becomes the time),

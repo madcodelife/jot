@@ -1,8 +1,8 @@
 //! Jot's notes folder.
 //!
 //! A note is one `.md` file directly in the folder; its title is the file stem. A note may start with YAML
-//! frontmatter between `---` lines: Jot reads `source` (who created the note), `locked` and `icon` (its emoji) from it
-//! and keeps everything else untouched.
+//! frontmatter between `---` lines: Jot reads `source` (who created the note), `locked`, `icon` (its emoji) and
+//! `pinned` from it and keeps everything else untouched.
 //! Every write goes to a temporary file in the same folder that is then renamed over the note, so readers
 //! (the app, the MCP server, sync clients) never see half a file.
 //!
@@ -28,6 +28,7 @@ mod icon;
 mod import;
 mod lock;
 mod moving;
+mod pin;
 mod settings;
 mod source;
 mod todo;
@@ -91,6 +92,8 @@ pub struct NoteMeta {
     pub locked: bool,
     /// The emoji shown before its title: its frontmatter's `icon`, when that is one emoji. See `icon`.
     pub icon: Option<String>,
+    /// The note is pinned (`pinned: true` in its frontmatter): the app lists it at the top. See `pin`.
+    pub pinned: bool,
 }
 
 /// A note with its body.
@@ -545,6 +548,7 @@ impl Store {
                 downloading: true,
                 locked: lock::is_locked(&metadata, None),
                 icon: None,
+                pinned: false,
             };
             return Ok((meta, String::new()));
         };
@@ -561,6 +565,7 @@ impl Store {
             downloading: false,
             locked: lock::is_locked(&metadata, Some(&content)),
             icon: icon::icon_of(&content),
+            pinned: pin::frontmatter_pinned(&content),
         };
         Ok((meta, parts.body.to_owned()))
     }
@@ -807,5 +812,7 @@ mod icon_tests;
 mod import_tests;
 #[cfg(test)]
 mod lock_tests;
+#[cfg(test)]
+mod pin_tests;
 #[cfg(test)]
 mod tests;

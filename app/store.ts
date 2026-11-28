@@ -164,6 +164,9 @@ export const todoMode = computed(() => isTodoQuery(query()));
 /** Whether the note titled `title` is locked (in Jot, in Finder or on another Mac): read-only until it is unlocked. Tracked. */
 export const isLocked = (title: string) => allNotes().some((m) => m.title === title && m.locked);
 
+/** Whether the note titled `title` is pinned: the recent list shows it at the top. Tracked. */
+export const isPinned = (title: string) => allNotes().some((m) => m.title === title && m.pinned);
+
 /** The emoji the note titled `title` shows before its title, or null. Tracked. */
 export const iconOf = (title: string) => allNotes().find((m) => m.title === title)?.icon ?? null;
 
@@ -198,7 +201,9 @@ export const allTodos = computed<Todo[]>(() => {
 
 /**
  * The list's rows for the query: while it is empty, today's row first when something is left today or overdue (none
- * when nothing is due: the to-do view is a "todo" away); a "new note" row last while no note has that title.
+ * when nothing is due: the to-do view is a "todo" away), then the pinned notes, then the latest others (pinned notes
+ * are there however old, the others fill the rest of `LIMIT`); a search ranks pinned notes as any other, with a "new
+ * note" row last while no note has that title.
  */
 export const rows = computed<Row[]>(() => {
   const n = notes();
@@ -209,7 +214,9 @@ export const rows = computed<Row[]>(() => {
   const going = leaving().filter((l) => l.query === q);
   const limit = Math.max(0, LIMIT - going.length);
   if (!q) {
-    const recent = allNotes().slice(0, limit);
+    const all = allNotes();
+    const pinned = all.filter((m) => m.pinned);
+    const recent = [...pinned, ...all.filter((m) => !m.pinned).slice(0, Math.max(0, limit - pinned.length))];
     const due = todaySummary(allTodos(), new Date(now()));
     const head: Row[] = due.left || due.late ? [{ kind: "summary" }] : [];
     return [...head, ...recent.map((meta): Row => ({ kind: "note", meta, snippet: meta.preview, terms: [] }))];
@@ -877,6 +884,35 @@ export function setLocked(title: string, lock: boolean) {
   notice.set(null);
   refresh();
   showFlash(t(lock ? "lock.done" : "lock.undone", { title: meta.title }));
+}
+
+/**
+ * Pins the note (`pinned: true` in its frontmatter; no change of the note) or unpins it: the recent list shows pinned
+ * notes at the top. The selection follows the note to its new place; the footer says so for a moment.
+ */
+export function setPinned(title: string, pin: boolean) {
+  const n = untracked(notes);
+  if (!n) return;
+  let meta: NoteMeta;
+  try {
+    meta = pin ? n.pin(title) : n.unpin(title);
+  } catch (error) {
+    notice.set(
+      errorCode(error) === "ERR_JOT_LOCKED" ? t("pin.locked", { title }) : t(pin ? "pin.failed" : "pin.unpin_failed", { title, error: errorMessage(error) }),
+    );
+    return;
+  }
+  // The frontmatter Jot wrote is no outside change of the open note.
+  const body = n.read(meta.title)?.body;
+  if (body !== undefined) lastWritten.set(meta.title, body);
+  morphNext(T.spring.collapse);
+  batch(() => {
+    notice.set(null);
+    refresh();
+  });
+  const index = untracked(rows).findIndex((r) => r.kind === "note" && r.meta.title === meta.title);
+  if (index >= 0) selected.set(index);
+  showFlash(t(pin ? "pin.done" : "pin.undone", { title: meta.title }));
 }
 
 /** "Set Emoji…": the emoji picker opens under the open note's title when it is the open one, under its row in the

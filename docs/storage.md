@@ -11,7 +11,8 @@ folder. Part of [the architecture](architecture.md).
   case-insensitively for existence checks (macOS file systems are case-insensitive).
 - Optional YAML frontmatter at the very top (`---` lines). Jot writes these keys: `source`, on notes created through
   MCP: the app that created it (`source: cursor`, `source: "agent:Goose"`), `locked: true` on a locked note
-  ([locks.md](locks.md)), `icon: "🍕"`, the note's emoji ([below](#a-notes-emoji-storesrciconrs)), and `apple-notes-id` and `folder` on a note imported from Apple Notes (below). Only the
+  ([locks.md](locks.md)), `icon: "🍕"`, the note's emoji ([below](#a-notes-emoji-storesrciconrs)), `pinned: true` on a
+  note pinned to the top of the app's list ([below](#pinned-notes-storesrcpinrs)), and `apple-notes-id` and `folder` on a note imported from Apple Notes (below). Only the
   values Jot writes mark a note as an app's; any other `source` (a web clipper's URL, a book) is the user's. Unknown
   keys are preserved on every write. `body` never includes the frontmatter.
 - Writes are atomic: a temp file in the same folder, then rename.
@@ -32,7 +33,21 @@ and a frontmatter left empty goes. The rest of the frontmatter, its line breaks 
 does the file's mtime (written as a lock's frontmatter is: the time set on the temporary file before the rename), so
 the list keeps its order: an emoji is no change of the note. Like every write, both fail with `NotFound`,
 `NotDownloaded` and `Locked`, the file untouched. Body writes keep the line, as they keep the whole frontmatter.
-`frontmatter.rs` reads and writes one top-level key on its own, for `locked` and `icon`.
+`frontmatter.rs` reads and writes one top-level key on its own, for `locked`, `icon` and `pinned`.
+
+## Pinned notes (store/src/pin.rs)
+
+A note is pinned (`NoteMeta::pinned`) when its frontmatter has a top-level `pinned` line whose value is `true` (in any
+case, quoted or not, a `# comment` after it), read as `locked` is; the app lists pinned notes at the top
+([app.md](app.md#the-lists-rows-appuinotelisttsx)). The store's own listing and search keep their order: pinning
+ranks nothing in `list` or `search`, nor in `jot-mcp` ([mcp.md](mcp.md)).
+
+`pin` writes `pinned: true` in place of the first `pinned` line (a `pinned: false` too), else as the frontmatter's last
+line, or in a new frontmatter; a note pinned already stays as it is. `unpin` takes every top-level `pinned` line out,
+and a frontmatter left empty goes. Like an emoji, pinning is no change of the note: the rest of the frontmatter, the
+body and the file's mtime stay, so an unpinned note goes back to its place among the others. Both fail with
+`NotFound`, `NotDownloaded` and `Locked`: a locked note can be neither pinned nor unpinned, and one pinned before it
+was locked stays pinned. A note not downloaded reads as not pinned until its text is here (its frontmatter is in it).
 
 ## A synced folder (iCloud Drive; store/src/cloud.rs)
 
@@ -151,6 +166,9 @@ impl Store {
     /// The note's emoji: `icon: "<emoji>"` in its frontmatter / its `icon` lines out (mtime kept; above).
     pub fn set_icon(&self, title: &str, icon: &Icon) -> Result<NoteMeta, StoreError>;
     pub fn clear_icon(&self, title: &str) -> Result<NoteMeta, StoreError>;
+    /// Pins / unpins the note: `pinned: true` in its frontmatter / its `pinned` lines out (mtime kept; above).
+    pub fn pin(&self, title: &str) -> Result<NoteMeta, StoreError>;
+    pub fn unpin(&self, title: &str) -> Result<NoteMeta, StoreError>;
     /// Moves it back out of the trash, or rebuilds it from `Trashed::content` (frontmatter included, mtime kept)
     /// when the trash no longer has it or the platform did not say where it went. `AlreadyExists` when the
     /// title is taken.
@@ -184,7 +202,7 @@ pub struct Moved { pub moved: Vec<String>, pub renamed: Vec<(String, String)>, p
 pub struct ImportNote { pub id: String, pub title: String, pub body: String /* Markdown, no title */, pub folder: Option<String>, pub modified: SystemTime }
 pub struct Imported { pub imported: Vec<String>, pub renamed: Vec<(String, String)>, pub already: Vec<String>, pub waiting: Vec<String>, pub failed: Vec<(String, String)> }  // non_exhaustive
 
-pub struct NoteMeta { pub title: String, pub modified: SystemTime, pub source: Source, pub preview: String /* first ~120 chars of the body, one line */, pub downloading: bool /* its text is not on this Mac yet; asked for */, pub locked: bool /* the flag, or `locked: true` */, pub icon: Option<String> /* its emoji; None while downloading */ }
+pub struct NoteMeta { pub title: String, pub modified: SystemTime, pub source: Source, pub preview: String /* first ~120 chars of the body, one line */, pub downloading: bool /* its text is not on this Mac yet; asked for */, pub locked: bool /* the flag, or `locked: true` */, pub icon: Option<String> /* its emoji; None while downloading */, pub pinned: bool /* `pinned: true`; false while downloading */ }
 /// One emoji (above). `parse` trims; `None` for anything else.
 pub struct Icon(/* … */);
 impl Icon { pub fn parse(text: &str) -> Option<Icon>; pub fn as_str(&self) -> &str; }  // + Display
