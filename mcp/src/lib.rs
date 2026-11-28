@@ -4,8 +4,8 @@
 //! The app can create a note (marked with its name from the MCP `initialize` handshake, `source: cursor`:
 //! `jot_store::Source::from_client`), append to one, add a to-do, check one off or move its reminder time. Two tools
 //! take something away, and only while the user allows it in Jot's settings (`jot_store::AiSettings`, read on every
-//! call): `trash_note` moves a note to the system trash, `replace_note` rewrites a whole note after putting its
-//! previous version in the trash; nothing is ever deleted for good. A note the user locked in Jot is read-only to
+//! call): `trash_note` moves a note to the system trash, `replace_note` rewrites a whole note after saving its
+//! previous version to the note's version history in Jot (`jot_store::Version`); nothing is ever deleted for good. A note the user locked in Jot is read-only to
 //! every tool, and none unlocks one.
 //!
 //! Every write is recorded in Jot's activity log (`jot_store::Activity`, beside the settings), which the app reads
@@ -61,8 +61,9 @@ rewritten; you cannot unlock them: the user unlocks a note in Jot.";
 
 /// What the instructions say of `trash_note` and `replace_note`, by the setting as the server starts.
 const ALLOWED: &str = "\
-The user allows you to remove and rewrite notes: trash_note moves a note to the macOS Trash and replace_note \
-rewrites a whole note, its previous version going to the Trash; the user can get either back from the Trash. Use \
+The user allows you to remove and rewrite notes: trash_note moves a note to the macOS Trash, where the user can \
+get it back, and replace_note rewrites a whole note, its previous version kept in the note's Version History in \
+Jot, where the user can restore it. Use \
 them only when the user asks you to delete or rewrite a note, and prefer append_note for adding to one. When the \
 user asks to remove many notes at once (\"delete all my notes\", \"全部清掉\", \"clear out the old ones\"), first list \
 the notes you would move to the Trash and ask the user to confirm, and move only those they confirm.";
@@ -772,9 +773,8 @@ impl JotServer {
 
     #[tool(
         description = "Rewrite the whole text of one of the user's existing Jot notes: `body` replaces what the \
-            note says. Its previous version goes to the macOS Trash first, named \"<title> (before rewrite · \
-            <date> <time>)\" (in the language Jot shows), where the user can get it back. The note's frontmatter \
-            (who wrote it, …) stays as it is; `body` must not start with a `---` frontmatter block. Use it only \
+            note says. Its previous version is kept in the note's Version History in Jot first, where the user can \
+            restore it. The note's frontmatter (who wrote it, …) stays as it is; `body` must not start with a `---` frontmatter block. Use it only \
             when the user asks you to rewrite, reorganize or clean up a note as a whole; to add to a note use \
             append_note, to change a to-do use complete_todo or reschedule_todo. Read the note first. Works only \
             while the user allows it in Jot › Settings › AI Apps, and never on a note the user locked in Jot.",
@@ -791,8 +791,7 @@ impl JotServer {
         Parameters(params): Parameters<ReplaceParams>,
         context: RequestContext<RoleServer>,
     ) -> CallToolResult {
-        let settings = self.ai_settings();
-        if !settings.allow_trash_and_rewrite {
+        if !self.ai_settings().allow_trash_and_rewrite {
             return not_allowed("rewrite notes");
         }
         if params.body.trim().is_empty() {
@@ -809,26 +808,17 @@ impl JotServer {
                     .to_owned(),
             );
         }
-        let lang = when::Lang::from_locale(settings.language.as_deref().unwrap_or("en"));
-        let at = (self.now)();
         match self
-            .downloaded(|| {
-                self.store.replace(&params.title, &params.body, |title| {
-                    previous_title(title, lang, at)
-                })
-            })
+            .downloaded(|| self.store.replace(&params.title, &params.body))
             .await
         {
             Ok(replaced) => match replaced.previous {
-                Some(previous) => {
-                    self.record(&context, Action::Replace, &replaced.note.title, |a| {
-                        a.with_previous(previous.title.clone())
-                            .with_in_trash(previous.in_trash.clone())
-                    });
+                Some(_) => {
+                    self.record(&context, Action::Replace, &replaced.note.title, |a| a);
                     text(format!(
-                        "Rewrote the note \"{}\". Its previous version is in the Trash as \"{}.md\"; the user can \
-                     put it back from there.",
-                        replaced.note.title, previous.title
+                        "Rewrote the note \"{}\". The previous version is in the note's Version History in Jot; the \
+                         user can restore it from there.",
+                        replaced.note.title
                     ))
                 }
                 None => text(format!(
@@ -1100,30 +1090,6 @@ fn describe(meta: &NoteMeta) -> String {
     )
 }
 
-/// The name a note's previous version takes in the trash: `Plan (before rewrite · 2026-11-25 14.30)` in the language
-/// Jot shows (no colon, which Finder shows as a slash), the title shortened when the name would be too long for a
-/// file.
-fn previous_title(title: &str, lang: when::Lang, at: DateTime) -> String {
-    let time = at.strftime("%Y-%m-%d %H.%M");
-    let suffix = match lang {
-        when::Lang::ZhHans => format!("（改写前 · {time}）"),
-        when::Lang::ZhHant => format!("（改寫前 · {time}）"),
-        when::Lang::Ja => format!("（書き換え前 · {time}）"),
-        _ => format!(" (before rewrite · {time})"),
-    };
-    // 255 bytes for the name, `.md` included.
-    let room = 255 - ".md".len() - suffix.len();
-    let mut kept = title;
-    while kept.len() > room {
-        let mut cut = kept.len() - 1;
-        while !kept.is_char_boundary(cut) {
-            cut -= 1;
-        }
-        kept = &kept[..cut];
-    }
-    format!("{}{suffix}", kept.trim_end())
-}
-
 /// Whether `body` starts with a frontmatter block (`---` lines) that would become the note's frontmatter.
 fn starts_with_frontmatter(body: &str) -> bool {
     let mut lines = body.split_inclusive('\n');
@@ -1369,33 +1335,6 @@ mod tests {
         assert_eq!(without("交房租 明天 9:00", 10..21), "交房租");
         assert_eq!(without("明天交房租", 0..6), "交房租");
         assert_eq!(without("交 明天 房租", 4..10), "交 房租");
-    }
-
-    #[test]
-    fn previous_versions_are_named_in_the_language_shown() {
-        let at = jiff::civil::date(2026, 11, 25).at(14, 30, 0, 0);
-        assert_eq!(
-            previous_title("Plan", when::Lang::En, at),
-            "Plan (before rewrite · 2026-11-25 14.30)"
-        );
-        assert_eq!(
-            previous_title("计划", when::Lang::ZhHans, at),
-            "计划（改写前 · 2026-11-25 14.30）"
-        );
-        assert_eq!(
-            previous_title("計劃", when::Lang::ZhHant, at),
-            "計劃（改寫前 · 2026-11-25 14.30）"
-        );
-        assert_eq!(
-            previous_title("計画", when::Lang::Ja, at),
-            "計画（書き換え前 · 2026-11-25 14.30）"
-        );
-        // A long title is shortened (at a character) so the name fits a file name.
-        let long = "长".repeat(100);
-        let name = previous_title(&long, when::Lang::ZhHans, at);
-        assert!(name.len() + 3 <= 255, "{}", name.len());
-        assert!(name.ends_with("（改写前 · 2026-11-25 14.30）"));
-        assert!(!name.contains(':'));
     }
 
     #[test]

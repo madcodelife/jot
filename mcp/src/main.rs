@@ -34,7 +34,11 @@ async fn main() -> ExitCode {
         }
     };
     let store = match Store::open(&dir) {
-        Ok(store) => store,
+        // A note's earlier versions are kept beside Jot's settings, as the app keeps them.
+        Ok(store) => match Store::default_history_folder() {
+            Some(history) => store.with_history_folder(history),
+            None => store,
+        },
         Err(error) => {
             eprintln!("jot-mcp: cannot open {}: {error}", dir.display());
             return ExitCode::FAILURE;

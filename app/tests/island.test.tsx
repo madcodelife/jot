@@ -70,11 +70,11 @@ test("each kind of write says what the app did: a new note is written letter by 
     ["todo", "待办", "Claude Code · 加了一条待办"],
     ["complete", "购物", "Claude Code · 勾选了一条待办"],
     ["reschedule", "账单", "Claude Code · 改了提醒时间"],
-    ["replace", "计划", "Claude Code · 改写了 · 旧版本在废纸篓"],
+    ["replace", "计划", "Claude Code · 改写了 · 旧版本在版本历史里"],
     ["trash", "旧想法", "Claude Code · 移到了废纸篓"],
   ];
   // One after another, each on its own island.
-  for (const [action, title] of kinds) wrote(log, dir, action, title, action === "replace" ? { previous: `${title}（改写前 · 2026-11-26 14.30）` } : {});
+  for (const [action, title] of kinds) wrote(log, dir, action, title);
   for (const [, title, label] of kinds) {
     await app.waitUntil(() => showing(app, label) && app.texts().includes(title), { timeout: 8000 });
     // Never the new note's letters, never "writing".
@@ -163,7 +163,7 @@ test("only this folder's writes, and only from the log: a note an AI app made el
   app.dispose();
 });
 
-test("a click opens the note the app wrote to, or shows a trashed one in the Trash", async () => {
+test("a click opens the note the app wrote to, a rewritten one with its version history, or shows a trashed one in the Trash", async () => {
   const { dir, log } = setup("click");
   new Notes(dir).create("周报", "本周进展");
   const trashShown: (string | null)[] = [];
@@ -178,6 +178,18 @@ test("a click opens the note the app wrote to, or shows a trashed one in the Tra
   await app.press("id:island-write");
   await app.waitFor("id:paper-title");
   expect(app.texts()).toContain("周报");
+  await app.waitFor("id:island-write", { state: "gone" });
+
+  // A rewrite: the note opens with its version history over it; Escape goes back to the note.
+  wrote(log, dir, "replace", "周报");
+  await app.waitUntil(() => showing(app, "Claude Code · 改写了 · 旧版本在版本历史里"));
+  expect(app.shows("label:查看「周报」的版本历史")).toBe(true);
+  await app.press("id:island-write");
+  await app.waitFor("id:history");
+  expect(app.texts()).toContain("版本历史");
+  await app.keyboard.press("escape");
+  await app.waitFor("id:history", { state: "gone" });
+  expect(app.shows("id:paper-title")).toBe(true);
   await app.waitFor("id:island-write", { state: "gone" });
 
   wrote(log, dir, "trash", "旧想法", { inTrash: "/Users/me/.Trash/旧想法.md" });

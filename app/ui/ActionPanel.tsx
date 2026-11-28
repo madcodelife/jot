@@ -58,8 +58,9 @@ export function ActionPanel(props: { left: number; top: number; returnFocus: "fi
   };
   const run = (item: Action | undefined) => {
     if (!item) return;
-    // The action may want the focus itself (rename, the emoji picker, the reminder time picker); the field gets it otherwise.
-    if (item.id !== "rename" && item.id !== "emoji" && item.id !== "due") focusRequest.set({ target: props.returnFocus });
+    // The action may want the focus itself (rename, the emoji picker, the reminder time picker, the version history);
+    // the field gets it otherwise.
+    if (!["rename", "emoji", "due", "history"].includes(item.id)) focusRequest.set({ target: props.returnFocus });
     runAction(item);
   };
   const step = (delta: number) => {

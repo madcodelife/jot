@@ -37,7 +37,12 @@ class Notes {                                   // wraps jot_store::Store
   setTodoDone(note: string, line: number, text: string, done: boolean): NoteMeta;
   setTodoDue(note: string, line: number, text: string, due: string | null /* "YYYY-MM-DDTHH:mm", else TypeError; null removes */): NoteMeta;  // ERR_JOT_CHANGED
   addTodo(text: string, due?: string | null /* "YYYY-MM-DDTHH:mm", else TypeError */, note?: string | null /* "待办" */): Todo;
+  keepHistory(folder: string): void;            // keeps the notes' earlier versions there (VersionHistory.path()); none until called
+  versions(title: string): NoteVersion[];       // its version history, newest first (storage.md)
+  saveVersion(title: string): NoteVersion;      // keeps its text now, whenever the last version was kept
+  restoreVersion(title: string, id: string): NoteMeta;  // the version's body back, the text now kept first; ERR_JOT_LOCKED, ERR_JOT_NOT_FOUND
 }
+interface NoteVersion { id: string; saved: number /* ms since epoch, kept at */; modified: number /* its text is from */; body: string }
 interface NoteMeta { title: string; modified: number /* ms since epoch */; source: string | null /* null: the user; else the AI app's name, "Cursor" */; preview: string; downloading: boolean /* not on this Mac yet: read-only, empty */; locked: boolean /* read-only till unlocked */; icon?: string | null /* its emoji, "🍕" */ }
 interface Conflict { id: string; device: string | null; modified: number; body: string }
 interface ResolvedConflict { note: NoteMeta; copy: NoteMeta | null }
@@ -55,6 +60,10 @@ module ActivityLog {                            // the log jot-mcp records AI ap
 interface AgentActivity { at: string /* local, "2026-11-26T14:30:05" */; dir: string; agent: string /* "Claude Code" */; action: "create" | "append" | "todo" | "complete" | "reschedule" | "replace" | "trash"; title: string; previous?: string | null; inTrash?: string | null }
 // watchActivity starts at the log's end and reads only the lines added (a rotated log followed), keeping those whose
 // `dir` is the folder's, links resolved and, on the Mac, case aside.
+
+module VersionHistory {                         // where the notes' earlier versions are kept (src/version_history.rs; storage.md)
+  path(): string | null;                        // ~/Library/Application Support/Jot/history; null without a home folder
+}
 
 module When {                                   // phrases of every language are read whatever the locale
   parse(text: string, options?: WhenOptions): { start: number; end: number; due: string; label: string } | null;   // start/end: UTF-16 offsets
@@ -185,8 +194,8 @@ How much it shows follows what was done:
 - **Any other write**, said at once with no glow and no letters: "Claude · Added to" (`append`), "Added a to-do to"
   (`todo`), "Completed a to-do in" (`complete`), "Changed a reminder in" (`reschedule`), each over the note's title; the
   avatar falls, the check pops in as it lands, and the island closes after `T.timing.islandLightHold`. A rewrite
-  (`replace`) says "Rewrote · the old version is in the Trash" and stays `T.timing.islandReplaceHold`; a note moved to
-  the Trash (`trash`) says "Moved to the Trash".
+  (`replace`) says "Rewrote · the old version is in Version History" and stays `T.timing.islandReplaceHold`; a note
+  moved to the Trash (`trash`) says "Moved to the Trash".
 - **Several writes in a row** of one app to one note, each within `T.timing.islandMerge` (3 s) of the one before, are
   one island: one showing says the latest and its hold starts again (a new note still being written goes on), one
   waiting takes the latest in. A new note stays a new note; a note moved to the Trash says so.
@@ -197,7 +206,8 @@ one that turns into a completed to-do after its check is in plays then, once
 ([Jot's sounds](#jots-sounds-for-ai-apps-writes-appsoundsts)).
 
 A click on the island while a write shows opens that note in the panel (summoned as from the tray's menu); on a
-trashed note it shows the file in the Trash, selected in Finder (`Folder.showInTrash`), or the Trash itself when the
+rewritten note with its version history over it ([below](#a-notes-version-history-apphistoryts-appuihistoryviewtsx)),
+Escape going back to the note; on a trashed note it shows the file in the Trash, selected in Finder (`Folder.showInTrash`), or the Trash itself when the
 log has no path. Either way the island closes. While a write shows, the island's window, room and all, takes clicks,
 as for a reminder. A reminder shares the fall, the hop and the lift-out (below); dictation keeps its own motion.
 
@@ -488,7 +498,8 @@ One list of actions per row kind drives the action panel (⌘K / Ctrl+K, and a r
 `app/ui/ActionPanel.tsx`), the footer's primary action (what Return does) and the actions' own keys, which work with the
 panel closed. A note: open ↩, create the query ⌘↩ (in a search that has a "New" row: what that row does, run by the
 panel's own ⌘↩, `createFromQuery`), show in Finder ⇧⌘F, rename ⌘R (in place: in its row, or in the open note's title for the open note, which a press on the title edits too; Return or leaving the field renames, Escape keeps the old title, and the note's text has the keys again), copy title ⇧⌘C, copy text ⇧⌘A,
-set / remove its emoji (no key; [above](#a-notes-emoji-appuiemojitsx-appuipapertsx)), lock / unlock (no key), move to trash ⌃X (Windows / Linux Ctrl+D; keys in `app/ui/tokens.ts`). A locked note has
+set / remove its emoji (no key; [above](#a-notes-emoji-appuiemojitsx-appuipapertsx)), its version history (no key;
+[below](#a-notes-version-history-apphistoryts-appuihistoryviewtsx)), lock / unlock (no key), move to trash ⌃X (Windows / Linux Ctrl+D; keys in `app/ui/tokens.ts`). A locked note has
 "Unlock" for "Lock" and no rename, emoji or reminder time; ⌃X on it says to unlock it first (`ERR_JOT_LOCKED`). "New" row:
 create (its second line names no key: "A new, empty note"; its ⌘↩ keycap shows while another row is selected, and
 selected itself, the footer's "Create ↩" says it); today's row: show to-dos; a to-do: open its note, tick ⌘↩, its
@@ -506,6 +517,28 @@ The footer (app/ui/Panel.tsx) is Raycast's: no rule above it, a round settings b
 "Copied" beside it while one shows, else a downloaded update's "Update ready · Restart":
 [Updates](#updates-appupdatests)) and on the right a capsule of the primary action and "Actions ⌘K", each a button
 that does what its keys do.
+
+## A note's version history (app/history.ts, app/ui/HistoryView.tsx)
+
+"Version History…" (⌘K on a note, a right click on its row, ⌘K in the open note; no key of its own) shows the note's
+earlier versions ([storage.md](storage.md#a-notes-version-history-storesrchistoryrs)) in the panel, which grows to a
+note's width: on the left the versions, newest first, each with when its text is from (`versionTime`: "Today 14:30",
+"Yesterday 09:05", the weekday within the week, then the date) and a line of what differs from the note now
+(`versionHint`: the first line the version has that the note no longer has, else "3 lines fewer than now", "Same as
+now" or "Only the spacing differs"); on the right, on the paper, the selected version's text, read-only, as written
+(no live preview), and "Restore This Version" with its ↩. ↑↓ (and a press) select, Return restores, Escape goes back
+where it opened: the list, or the open note. ⌘K, the actions' keys and ⌘↩ wait while it shows; typing in the field
+goes back to the list, as over an open note. With no versions yet it says so ("No earlier versions yet").
+
+The open note stays under the history, hidden (`display: none`), so it keeps its text, its caret and its undo. Restoring
+puts the version's body back as the note's text, its frontmatter kept: in the open note the editor's pending edits are
+saved, its text now is kept in its history (`saveVersion`), and the whole text is replaced as one `editor.edit`, saved at
+once, which one ⌘Z takes back once the history has closed and the keys are the note's again; elsewhere it is
+`restoreVersion`, which keeps the text now first. The footer then says "Restored the version from Today 14:30". A
+locked note's history can be read; its Restore is disabled, saying "Unlock the note to restore". A click on the
+island's "Rewrote" opens the note with its history over it. The app gives `Notes.keepHistory` the history folder as
+it opens a notes folder (`VersionHistory.path()`); the tests' stand-in gives none, and app/tests/history.test.tsx a
+folder of its own.
 
 ## The tray's icon (app/ink.ts, app/trayink.ts)
 

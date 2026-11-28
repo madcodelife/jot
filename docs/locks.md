@@ -11,7 +11,7 @@ A lock is two marks, either of which makes the note locked (`NoteMeta::locked`):
   it allowed), so the lock travels with the text to other devices.
 
 Every write of the store (`write`, `append`, `set_todo_done`, `set_todo_due`, `add_todo` into the note, `rename`,
-`delete`, `trash`, `replace`, `resolve` with `UseOther`, `set_icon`, `clear_icon`) checks both before it touches the file and fails with
+`delete`, `trash`, `replace`, `restore_version`, `resolve` with `UseOther`, `set_icon`, `clear_icon`) checks both before it touches the file and fails with
 `StoreError::Locked`, the file left as it was. `lock` writes the frontmatter (mtime kept: locking is no change of
 the note; the write sets the time on the temporary file before the rename) and then the flag; `unlock` clears the
 flag, then takes the line out (a frontmatter left empty goes), and sets the flag back if that write fails.
@@ -55,4 +55,7 @@ note (app/ui/Paper.tsx) is read-only while locked (`readOnly`: the editor, ticks
 list continuation, dictation all stop; the microphone hides) and its header shows a padlock and "Locked", a
 `Button` that unlocks it (`setLocked`, which saves the open note's edits before locking). Rows show a padlock
 (`note-locked`). The to-do view's tick and the island's checkbox catch `ERR_JOT_LOCKED`: the footer says to unlock the
-note, the island shows "Locked" with a padlock for its checkbox and closes; the reminder still comes due.
+note, the island shows "Locked" with a padlock for its checkbox and closes; the reminder still comes due. A locked note's
+version history can be read, its "Restore This Version" disabled ("Unlock the note to restore";
+[app.md](app.md#a-notes-version-history-apphistoryts-appuihistoryviewtsx)); since nothing writes a locked note, its
+history gains nothing while it is locked.

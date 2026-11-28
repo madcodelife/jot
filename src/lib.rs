@@ -23,6 +23,8 @@
 //!   OTA package must have been published for.
 //! - [`SoundEffects`]: whether the system lets apps play interface sound
 //!   effects.
+//! - [`VersionHistory`]: where the notes' earlier versions are kept, which
+//!   `Notes::keep_history` takes.
 //!
 //! Platform code lives in `platform/<os>.rs` behind one interface, so
 //! `App.tsx` never checks the platform for these.
@@ -46,6 +48,7 @@ mod relay;
 mod reminders;
 mod sound_effects;
 mod summon;
+mod version_history;
 mod when;
 
 // `nsh-extra` is here for TSX (dictation's `Speech`), `nsh-base` for its `EmojiPicker` feature; no Rust uses them.
@@ -61,11 +64,13 @@ pub use folder::{FailedNote, Folder, ICloudDrive, MovedNotes, RenamedNote};
 pub use input_source::InputSource;
 pub use native_build::NativeBuild;
 pub use notes::{
-    Conflict, ConflictChoice, Note, NoteMeta, Notes, ResolvedConflict, SearchHit, Todo, TrashedNote,
+    Conflict, ConflictChoice, Note, NoteMeta, NoteVersion, Notes, ResolvedConflict, SearchHit,
+    Todo, TrashedNote,
 };
 pub use reminders::{DueEvent, Reminders};
 pub use sound_effects::SoundEffects;
 pub use summon::{Summon, SummonKey};
+pub use version_history::VersionHistory;
 pub use when::{When, WhenMatch};
 
 /// The crate's UI set (`nsh.json` `"rust"`).
@@ -83,5 +88,6 @@ fn native(registry: &mut Registry) {
         .module::<AiAccess>()
         .module::<AppleNotes>()
         .module::<NativeBuild>()
-        .module::<SoundEffects>();
+        .module::<SoundEffects>()
+        .module::<VersionHistory>();
 }

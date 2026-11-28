@@ -133,6 +133,21 @@ export function age(modified: number, now: number, sectioned = false): string {
   return fullDate(d);
 }
 
+/**
+ * When a note's earlier version is from, to the minute, as its version history lists it: today and yesterday by name
+ * ("Today 14:30"), the weekday within the week ("Fri 09:12"), then the month and day ("Nov 20 09:12"), with the year
+ * when it is another.
+ */
+export function versionTime(modified: number, now: number): string {
+  const d = new Date(modified);
+  const today = new Date(now);
+  const n = daysFrom(d, today);
+  if (n === 0) return t("time.today_at", { time: hm(d) });
+  if (n === -1) return t("time.yesterday_at", { time: hm(d) });
+  const day = n > -7 && n < 0 ? weekday(d) : d.getFullYear() === today.getFullYear() ? monthDay(d) : fullDate(d);
+  return t("time.day_at", { day, time: hm(d) });
+}
+
 /** The recent list's date groups, in order: a note by the day it last changed. */
 export type DayGroup = "today" | "yesterday" | "week" | "earlier";
 

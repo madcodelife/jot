@@ -6,13 +6,14 @@
 //! line,
 //!
 //! ```json
-//! {"at":"2026-11-26T14:30:05","dir":"/Users/me/Documents/Jot","agent":"Claude Code","action":"replace","title":"Plan","previous":"Plan (before rewrite · 2026-11-26 14.30)","inTrash":"/Users/me/.Trash/Plan (before rewrite · 2026-11-26 14.30).md"}
+//! {"at":"2026-11-26T14:30:05","dir":"/Users/me/Documents/Jot","agent":"Claude Code","action":"trash","title":"Plan","inTrash":"/Users/me/.Trash/Plan.md"}
 //! ```
 //!
 //! `at` is the local time, `dir` the notes folder (absolute, links resolved), `agent` the app's name as Jot shows it,
 //! `action` what it did (`create`, `append`, `todo`, `complete`, `reschedule`, `replace`, `trash`), `title` the
-//! note's. `previous` is the name a rewritten note's previous version took in the trash, and `inTrash` where a
-//! trashed note (or that previous version) went, when the system says.
+//! note's. `inTrash` is where a trashed note went, when the system says. `previous` (with `inTrash`) is what an older
+//! `jot-mcp` recorded for a rewrite whose previous version went to the trash; a rewrite now keeps it in the note's
+//! version history (`history`) and records neither.
 //!
 //! Each line is one `write` to the file opened for appending, so lines from several `jot-mcp` processes never mix.
 //! Past [`ROTATE_AT`] the file is renamed `activity.1.jsonl` (over the one before) and a new one started. A reader
@@ -48,7 +49,7 @@ pub enum Action {
     Complete,
     /// Moved a to-do's reminder time, or removed it (`reschedule_todo`).
     Reschedule,
-    /// Rewrote a whole note, its previous version going to the trash (`replace_note`).
+    /// Rewrote a whole note, its previous version kept in its version history (`replace_note`).
     Replace,
     /// Moved a note to the trash (`trash_note`).
     Trash,
@@ -97,9 +98,10 @@ pub struct Activity {
     pub action: Action,
     /// The note's title.
     pub title: String,
-    /// `Replace`: the name the previous version took in the trash.
+    /// `Replace` from an older `jot-mcp`: the name the previous version took in the trash.
     pub previous: Option<String>,
-    /// Where the trashed note (`Trash`) or the previous version (`Replace`) is in the trash, when the system said.
+    /// Where the trashed note (`Trash`), or an older `jot-mcp`'s previous version (`Replace`), is in the trash, when
+    /// the system said.
     pub in_trash: Option<PathBuf>,
 }
 

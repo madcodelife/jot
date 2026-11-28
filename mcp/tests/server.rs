@@ -810,7 +810,10 @@ async fn every_write_is_recorded_for_the_app() {
     jot_store::AiSettings::new(true, Some("en".into()))
         .write(&settings)
         .unwrap();
-    let store = Store::open(&notes).unwrap().with_trash_folder(&trash);
+    let store = Store::open(&notes)
+        .unwrap()
+        .with_trash_folder(&trash)
+        .with_history_folder(dir.path().join("Application Support/Jot/history"));
     fs::write(notes.join("Plan.md"), "old plan\n").unwrap();
 
     let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
@@ -899,19 +902,10 @@ async fn every_write_is_recorded_for_the_app() {
         assert_eq!(record.dir, folder);
         assert_eq!(record.at, friday_morning());
     }
+    // A rewrite's previous version is in the note's history, not the trash: the record names no file.
     let replaced = &records[6];
-    assert_eq!(
-        replaced.previous.as_deref(),
-        Some("Plan (before rewrite · 2026-11-13 10.30)")
-    );
-    assert_eq!(
-        replaced.in_trash.as_deref(),
-        Some(
-            trash
-                .join("Plan (before rewrite · 2026-11-13 10.30).md")
-                .as_path()
-        )
-    );
+    assert_eq!(replaced.previous, None);
+    assert_eq!(replaced.in_trash, None);
     let trashed = &records[7];
     assert_eq!(trashed.previous, None);
     assert_eq!(

@@ -1,6 +1,6 @@
 //! `trash_note` and `replace_note` with the setting off and on, and notes the user locked, through an MCP client
-//! over an in-memory transport. The trash is a folder of the test (`Store::with_trash_folder`): nothing reaches the
-//! user's trash.
+//! over an in-memory transport. The trash and the notes' version history are folders of the test
+//! (`Store::with_trash_folder`, `Store::with_history_folder`): nothing reaches the user's.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -51,6 +51,10 @@ impl Setup {
         self.dir.path().join("Trash")
     }
 
+    fn history(&self) -> PathBuf {
+        self.dir.path().join("Application Support/Jot/history")
+    }
+
     fn settings(&self) -> PathBuf {
         self.dir.path().join("Application Support/Jot/ai.json")
     }
@@ -71,6 +75,7 @@ impl Setup {
         Store::open(self.notes())
             .unwrap()
             .with_trash_folder(self.trash())
+            .with_history_folder(self.history())
     }
 
     fn note(&self, title: &str) -> PathBuf {
@@ -186,7 +191,12 @@ async fn the_tools_are_listed_with_their_hints() {
             assert_eq!(hints.idempotent_hint, Some(true), "{}", tool.name);
             assert_eq!(hints.open_world_hint, Some(false), "{}", tool.name);
             let description = tool.description.as_deref().unwrap();
-            assert!(description.contains("Trash"), "{description}");
+            let kept = if tool.name == "trash_note" {
+                "Trash"
+            } else {
+                "Version History"
+            };
+            assert!(description.contains(kept), "{description}");
             assert!(description.contains("Settings › AI Apps"), "{description}");
         }
     }
@@ -283,7 +293,7 @@ async fn trash_and_rewrite_with_the_setting_on() {
     assert!(is_error);
     assert!(text.contains("No note is titled"), "{text}");
 
-    // Rewrite: the frontmatter stays, the old file goes to the trash under a name in the language shown.
+    // Rewrite: the frontmatter stays, the old text goes to the note's version history (not the trash).
     let (is_error, text) = call(
         &client,
         "replace_note",
@@ -292,19 +302,26 @@ async fn trash_and_rewrite_with_the_setting_on() {
     .await;
     assert!(!is_error, "{text}");
     assert!(
-        text.contains("Plan（改写前 · 2026-11-25 14.30）.md"),
+        text.contains("The previous version is in the note's Version History in Jot"),
         "{text}"
     );
     assert_eq!(
         fs::read_to_string(setup.note("Plan")).unwrap(),
         "---\nsource: claude\nkeep: this\n---\n- one\n- two\n"
     );
-    assert_eq!(
-        fs::read_to_string(setup.trash().join("Plan（改写前 · 2026-11-25 14.30）.md")).unwrap(),
-        "---\nsource: claude\nkeep: this\n---\n1. one\n2. two\n"
-    );
+    let bodies = |setup: &Setup| -> Vec<String> {
+        setup
+            .store()
+            .versions("Plan")
+            .unwrap()
+            .into_iter()
+            .map(|version| version.body)
+            .collect()
+    };
+    assert_eq!(bodies(&setup), ["1. one\n2. two\n"]);
+    assert_eq!(trash_names(&setup), ["Old idea.md"]);
 
-    // The same text again changes nothing, and puts nothing more in the trash.
+    // The same text again changes nothing, and keeps nothing more.
     let (is_error, text) = call(
         &client,
         "replace_note",
@@ -313,7 +330,18 @@ async fn trash_and_rewrite_with_the_setting_on() {
     .await;
     assert!(!is_error, "{text}");
     assert!(text.contains("nothing changed"), "{text}");
-    assert_eq!(trash_names(&setup).len(), 2);
+    assert_eq!(bodies(&setup).len(), 1);
+
+    // A second rewrite right after keeps the first rewrite's text too.
+    let (is_error, text) = call(
+        &client,
+        "replace_note",
+        serde_json::json!({ "title": "Plan", "body": "- three\n" }),
+    )
+    .await;
+    assert!(!is_error, "{text}");
+    assert_eq!(bodies(&setup), ["- one\n- two\n", "1. one\n2. two\n"]);
+    assert_eq!(trash_names(&setup), ["Old idea.md"]);
 
     // A body that would become the frontmatter, or none at all, is refused.
     for body in ["---\nsource: user\nlocked: false\n---\ntaken over", "  \n"] {
@@ -327,7 +355,7 @@ async fn trash_and_rewrite_with_the_setting_on() {
     }
     assert_eq!(
         fs::read_to_string(setup.note("Plan")).unwrap(),
-        "---\nsource: claude\nkeep: this\n---\n- one\n- two\n"
+        "---\nsource: claude\nkeep: this\n---\n- three\n"
     );
     let (is_error, text) = call(
         &client,

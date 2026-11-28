@@ -104,6 +104,8 @@ time:
     one: "%{count} 分鐘前"
     other: "%{count} 分鐘前"
   today_at: 今天 %{time}
+  yesterday_at: 昨天 %{time}
+  day_at: "%{day} %{time}"
   today: 今天
   tomorrow: 明天
   day_after: 後天
@@ -116,9 +118,10 @@ island:
   todo_added: "%{agent} · 加了一個待辦"
   todo_done: "%{agent} · 勾選了一個待辦"
   rescheduled: "%{agent} · 改了提醒時間"
-  replaced: "%{agent} · 改寫了 · 舊版本在垃圾桶"
+  replaced: "%{agent} · 改寫了 · 舊版本在版本歷史裡"
   trashed: "%{agent} · 丟到了垃圾桶"
   open_note: 打開「%{title}」
+  open_history: 查看「%{title}」的版本歷史
   show_trashed: 在垃圾桶裡顯示「%{title}」
   done: 已完成
   remind: 提醒 · %{time} · %{note}
@@ -278,7 +281,7 @@ settings:
     then: 之後在 App 裡說「記到 Jot」或「我今天有什麼要做的」。
     access: 權限
     trash_rewrite: 允許 AI App 把筆記丟到垃圾桶和改寫筆記
-    trash_rewrite_hint: 它們丟掉的筆記、改寫前的筆記都會放進垃圾桶，可以從那裡找回。鎖定的筆記不受影響。
+    trash_rewrite_hint: 它們丟掉的筆記會放進垃圾桶，改寫前的內容留在筆記的版本歷史裡，都可以找回。鎖定的筆記不受影響。
     trash_rewrite_failed: 無法儲存這項設定：%{error}
   about:
     title: 關於 Jot
@@ -352,6 +355,7 @@ actions:
   unlock: 解鎖
   emoji: 設定 Emoji…
   emoji_remove: 移除 Emoji
+  history: 版本歷史…
 
 trash:
   bin:
@@ -436,3 +440,21 @@ update:
   restart: 重新啟動並更新
   restart_to: 重新啟動並更新至 %{version}
   ready_short: 新版本已就緒 · 重新啟動
+
+history:
+  title: 版本歷史
+  empty: 還沒有更早的版本
+  empty_hint: 筆記每次改動前，Jot 會在這台 Mac 上留下它原本的內容，保留 30 天。
+  empty_paper: 「%{title}」改動之後，更早的版本會顯示在這裡。
+  of: 「%{title}」當時的內容
+  row: "%{time} 的版本"
+  restore: 還原此版本
+  locked: 解鎖筆記後才能還原
+  back: 返回
+  same: 與現在相同
+  spacing: 只有空白不同
+  fewer:
+    one: 比現在少 1 行
+    other: 比現在少 %{count} 行
+  restored: 已還原 %{time} 的版本
+  restore_failed: 無法還原「%{title}」：%{error}

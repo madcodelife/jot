@@ -102,8 +102,12 @@ impl Store {
                 self.ensure_unlocked(&entry, None)?;
                 // The whole file, frontmatter included: the version is the note as the other device saved it.
                 let content = retry(|| fs::read_to_string(&version.file))?;
-                let permissions = retry(|| fs::metadata(&entry.path))?.permissions();
-                self.write_file(&entry.path, &content, Some(permissions), None)?;
+                let metadata = retry(|| fs::metadata(&entry.path))?;
+                // This Mac's text goes to the note's history first.
+                if let Ok(Some(current)) = retry(|| self.cloud.read(&entry.path)) {
+                    self.keep_version_now(&entry, &current, metadata.modified()?);
+                }
+                self.write_file(&entry.path, &content, Some(metadata.permissions()), None)?;
             }
             Resolution::KeepBoth { title } => {
                 let content = retry(|| fs::read_to_string(&version.file))?;

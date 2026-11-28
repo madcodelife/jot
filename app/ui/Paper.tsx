@@ -20,11 +20,14 @@
 // a faint button, clear under the pointer, adds one (or removes it); the
 // emoji picker opens under the title. A press on the title (or "Rename")
 // edits it in place: Return or leaving it renames the note, Escape keeps it.
+// Its version history (app/history.ts) shows over it in the panel; a version
+// put back is one edit of its text, which undo takes back.
 import { cleanup, computed, createAnimatedValue, effect, keymap, Notifications, signal, Text, token, untracked, View } from "nsh";
 import { Button, Editor, type EditorDecoration, type EditorPosition, type EditorRef, type EditorSelection } from "nsh/base";
 import { t } from "nsh/i18n";
 import { When, type Conflict } from "jot/native";
 import { caretOnTodo, openDuePicker, setEditorDue } from "../due";
+import { setEditorHistory } from "../history";
 import { codeBlocks, continuation, fenceMark, fencedLines, isQuote, lineMarks, tableBlocks, tableMarks, tableSyntax, type Mark, type MarkKind } from "../markdown";
 import { whenOptions } from "../settings";
 import { allNotes, emojiPicking, errorMessage, lastWritten, notes, now, opened, refresh, removeEmoji, renaming, revision, save, setEditorFlush, setLocked, showFlash, startEmoji, startRename } from "../store";
@@ -398,6 +401,18 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   setEditorFlush(saveNow);
   const dueSide = { apply: writeDue, openAtCaret: () => pickDueAt(untracked(caretLine)), focus: () => editor?.focus() };
   setEditorDue(dueSide);
+  /** An earlier version put back (its history's Restore): the whole text replaced as one edit, saved at once. */
+  function restoreText(body: string): boolean {
+    if (!editor || untracked(readOnly)) return false;
+    const now = untracked(text);
+    if (body !== now) editor.edit([{ range: { start: { line: 0, column: 0 }, end: endOf(now) }, text: body }]);
+    // Saved now, not after the pause typing waits for: the editor may report the change a moment later.
+    text.set(body);
+    saveNow();
+    return true;
+  }
+  const historySide = { title, restore: restoreText, focus: () => editor?.focus() };
+  setEditorHistory(historySide);
   // Whether the caret is on an open to-do: the action panel offers "Reminder Time…" then.
   effect(() => {
     const task = taskAt(text(), caretLine());
@@ -408,6 +423,7 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
       current = null;
       setEditorFlush(null);
       setEditorDue(null);
+      setEditorHistory(null);
       caretOnTodo.set(false);
     }
     // The note closes while dictating into it: the words go with it.
