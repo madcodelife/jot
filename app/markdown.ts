@@ -14,13 +14,20 @@
 // A table (GFM's) is drawn as cells of fixed widths, its pipes and its
 // delimiter row hidden, while no caret or selection is in it; touched
 // anywhere, all of it shows as written (`tableBlocks`, `tableMarks`).
+// A link to another note, `[[Title]]` (or `[[Title|words]]`), shows its title
+// (or its words) in the link colour, its brackets hidden; one to a note that
+// is not there is muted and underlined (`noteLinks`).
 import { taskLine, type Span } from "./tasks";
 
 /**
- * What a part of a line is: syntax, or words drawn as a heading's, a link's, code, bold, italic or struck through; a
- * to-do's box; a table's cell (its header's: `head`) and the rule its delimiter row stands for.
+ * What a part of a line is: syntax, or words drawn as a heading's, a link's (`missing`: a link to a note that is not
+ * there), code, bold, italic or struck through; a to-do's box; a table's cell (its header's: `head`) and the rule its
+ * delimiter row stands for.
  */
-export type MarkKind = "syntax" | "heading" | "link" | "code" | "strong" | "em" | "strike" | "box" | "cell" | "head" | "rule";
+export type MarkKind = "syntax" | "heading" | "link" | "missing" | "code" | "strong" | "em" | "strike" | "box" | "cell" | "head" | "rule";
+
+/** Whether a note has the title a link names (`linkKey`): the live preview draws a link to one that has not as missing. */
+export type NoteExists = (title: string) => boolean;
 
 /** How a table's column sets its words in its cells. */
 export type Align = "left" | "center" | "right";
@@ -117,7 +124,7 @@ const touches = (touched: readonly Span[], start: number, end: number) => touche
  * is covered whole); empty when none is on the line, or the editor has no focus: then all of its syntax hides.
  * Marks with a label never overlap one another; a heading's or emphasis's words lie over the syntax inside them.
  */
-export function lineMarks(line: string, touched: readonly Span[] = []): Mark[] {
+export function lineMarks(line: string, touched: readonly Span[] = [], exists?: NoteExists): Mark[] {
   if (FENCE.test(line)) return [{ start: 0, end: line.length, kind: "syntax" }];
   // A rule stays as it is, muted (the editor draws no line across).
   if (RULE.test(line)) return [{ start: 0, end: line.length, kind: "syntax" }];
@@ -141,7 +148,7 @@ export function lineMarks(line: string, touched: readonly Span[] = []): Mark[] {
     if (words < line.length) {
       out.push(lead(marker));
       out.push({ start: words, end: line.length, kind: "heading", level });
-      out.push(...inlineMarks(line, words, touched));
+      out.push(...inlineMarks(line, words, touched, exists));
     } else out.push(marker);
     return out.sort((a, b) => a.start - b.start);
   }
@@ -153,7 +160,7 @@ export function lineMarks(line: string, touched: readonly Span[] = []): Mark[] {
     out.push({ start: dash, end: dash + 1, kind: "syntax" });
     const box: Mark = { start: dash, end: task.box.end, kind: "box", done: task.done };
     out.push(touches(touched, box.start, box.end) ? box : { ...box, label: task.done ? "✓" : "" });
-    out.push(...inlineMarks(line, task.rest.start, touched));
+    out.push(...inlineMarks(line, task.rest.start, touched, exists));
     return out.sort((a, b) => a.start - b.start);
   }
   const bullet = BULLET.exec(line.slice(at));
@@ -164,12 +171,81 @@ export function lineMarks(line: string, touched: readonly Span[] = []): Mark[] {
     out.push(/\d/.test(bullet[2]) ? marker : lead(marker, "•"));
     at = marker.end;
   }
-  out.push(...inlineMarks(line, at, touched));
+  out.push(...inlineMarks(line, at, touched, exists));
   return out.sort((a, b) => a.start - b.start);
 }
 
+/** The code spans of `line` from column `from` (their backticks included), and how many backticks each has. */
+function codeSpans(line: string, from: number): (Span & { ticks: number })[] {
+  const out: (Span & { ticks: number })[] = [];
+  const code = /(`+)([^`]|[^`][\s\S]*?[^`])\1(?!`)/g;
+  code.lastIndex = from;
+  for (let m = code.exec(line); m; m = code.exec(line)) out.push({ start: m.index, end: m.index + m[0].length, ticks: m[1].length });
+  return out;
+}
+
+/** A link to another note on a line, `[[Title]]` or `[[Title|words]]`, by column (its brackets included). */
+export interface NoteLink extends Span {
+  /** The title it names, trimmed. */
+  title: string;
+  /** What it shows: its title (between its brackets), or the words after its `|`. */
+  words: Span;
+}
+
+/** `[[`, a title (no `[`, `]` or `|`), maybe `|` and words (no `[` or `]`), `]]`: on one line. */
+const NOTE_LINK = /\[\[([^[\]|\n]+)(?:\|([^[\]\n]+))?\]\]/g;
+
+/**
+ * The links to other notes on `line` (a line outside fenced code) from column `from`, outside its code spans, as
+ * jot-store reads them (`store/src/links.rs`), which points them at a note's new title when it is renamed.
+ */
+export function noteLinks(line: string, from = 0): NoteLink[] {
+  const code = codeSpans(line, from);
+  const out: NoteLink[] = [];
+  NOTE_LINK.lastIndex = from;
+  for (let m = NOTE_LINK.exec(line); m; m = NOTE_LINK.exec(line)) {
+    const start = m.index;
+    const end = start + m[0].length;
+    const title = m[1].trim();
+    if (!title || code.some((c) => c.start < end && start < c.end)) {
+      NOTE_LINK.lastIndex = start + 1;
+      continue;
+    }
+    const words = m[2] === undefined ? { start: start + 2, end: end - 2 } : { start: end - 2 - m[2].length, end: end - 2 };
+    out.push({ start, end, title, words });
+  }
+  return out;
+}
+
+/**
+ * The title a link names as the notes folder reads titles (jot-store's `clean_title`), in lower case: trimmed, the
+ * characters a file name cannot hold as `-`. Two titles with the same key are the same note.
+ */
+export const linkKey = (title: string) =>
+  title
+    .trim()
+    .replace(/[/\\:\p{Cc}]/gu, "-")
+    .toLowerCase();
+
+/** Whether `title` can be a link's: none of the characters that end one. */
+export const linkable = (title: string) => !/[[\]|\n\r]/.test(title);
+
+/**
+ * The link being typed at `column` of `line` (a line outside fenced code): an `[[` before the caret, outside code,
+ * with no `[`, `]` or `|` after it up to the caret. Its title starts at `start`; `query` is what is typed of it.
+ */
+export function linkTyped(line: string, column: number): { start: number; query: string } | null {
+  const before = line.slice(0, column);
+  const open = before.lastIndexOf("[[");
+  if (open < 0) return null;
+  const query = before.slice(open + 2);
+  if (/[[\]|]/.test(query)) return null;
+  if (codeSpans(line, 0).some((c) => c.start <= open && open < c.end)) return null;
+  return { start: open + 2, query };
+}
+
 /** Inline code, links and emphasis of `line` from column `from`: each one's marks hide unless `touched` touches it. */
-function inlineMarks(line: string, from: number, touched: readonly Span[]): Mark[] {
+function inlineMarks(line: string, from: number, touched: readonly Span[], exists?: NoteExists): Mark[] {
   const out: Mark[] = [];
   /** The marks of a span `start`..`end`: both hide, or both show. */
   const marks = (start: number, end: number, ...parts: Mark[]) => {
@@ -178,21 +254,30 @@ function inlineMarks(line: string, from: number, touched: readonly Span[]): Mark
   };
   // Code spans first: what is inside them is no Markdown.
   const taken: Span[] = [];
-  const code = /(`+)([^`]|[^`][\s\S]*?[^`])\1(?!`)/g;
-  code.lastIndex = from;
-  for (let m = code.exec(line); m; m = code.exec(line)) {
-    const ticks = m[1].length;
-    const end = m.index + m[0].length;
+  for (const { start, end, ticks } of codeSpans(line, from)) {
     marks(
-      m.index,
+      start,
       end,
-      { start: m.index, end: m.index + ticks, kind: "syntax" },
-      { start: m.index + ticks, end: end - ticks, kind: "code" },
+      { start, end: start + ticks, kind: "syntax" },
+      { start: start + ticks, end: end - ticks, kind: "code" },
       { start: end - ticks, end, kind: "syntax" },
     );
-    taken.push({ start: m.index, end });
+    taken.push({ start, end });
   }
   const free = (start: number, end: number) => taken.every((t) => end <= t.start || start >= t.end);
+  // Links to other notes: the title (or the words after `|`) in the link colour, muted when no note has the title;
+  // the brackets, and a title the words stand for, syntax.
+  for (const link of noteLinks(line, from)) {
+    const kind: MarkKind = exists && !exists(link.title) ? "missing" : "link";
+    marks(
+      link.start,
+      link.end,
+      { start: link.start, end: link.words.start, kind: "syntax" },
+      { start: link.words.start, end: link.words.end, kind },
+      { start: link.words.end, end: link.end, kind: "syntax" },
+    );
+    taken.push(link);
+  }
   // Links and images: `[words](target)`, the words in the link colour, the rest syntax (an image shows its words too).
   const link = /(!?\[)([^\]\n]+)(\]\([^)\s]*(?:\s+"[^"]*")?\))/g;
   link.lastIndex = from;

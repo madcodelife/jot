@@ -76,6 +76,8 @@ async fn create_search_read_append() {
             .unwrap()
             .contains("before you guess at or ask for a fact")
     );
+    // Notes link each other as Jot draws them.
+    assert!(info.instructions.as_deref().unwrap().contains("[[Title]]"));
 
     let mut tools: Vec<String> = client
         .list_all_tools()

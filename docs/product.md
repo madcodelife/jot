@@ -25,7 +25,11 @@ you share the notebook with your AI apps (Claude, Cursor, Codex, …), so they c
    reads as it renders (large headings, bold words, a link's words, code in a monospaced font, a checkbox for a to-do)
    while its syntax hides; the syntax comes back where the caret is, so the file stays plain Markdown and there is no
    separate preview mode.
-5. Notes an AI app wrote carry its name in the list (Claude, Cursor, …); while the app is open, new notes appear
+5. Notes link each other as in Notational Velocity, nvALT and Obsidian: `[[Title]]` (or `[[Title|words]]`) reads as
+   the title in the link colour, and a ⌘-click or ⌘↩ on it opens that note, making it if there is none yet (such a
+   link is muted until then). Typing `[[` lists the notes' titles to pick from. Renaming a note updates the links to
+   it in every note, but in locked ones, which Jot says. There are no backlinks.
+6. Notes an AI app wrote carry its name in the list (Claude, Cursor, …); while the app is open, new notes appear
    immediately.
 
 ## To-dos and reminders

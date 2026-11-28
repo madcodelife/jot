@@ -78,6 +78,13 @@ note:
   create_failed: 没能新建「%{title}」：%{error}
   rename_taken: 已有叫「%{title}」的笔记
   rename_failed: 没能重命名「%{title}」：%{error}
+  links_renamed:
+    one: 已更新 %{count} 个指向「%{title}」的链接
+    other: 已更新 %{count} 个指向「%{title}」的链接
+  links_locked:
+    one: 锁定笔记里的 %{count} 个链接仍用旧标题
+    other: 锁定笔记里的 %{count} 个链接仍用旧标题
+  links_failed: 没能更新指向「%{title}」的链接：%{error}
 
 paper:
   by_agent: "%{agent} 记的"
@@ -355,6 +362,7 @@ actions:
   unlock: 解锁
   emoji: 设置 Emoji…
   emoji_remove: 移除 Emoji
+  open_link: 打开链接
 
 trash:
   bin:

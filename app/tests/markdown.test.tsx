@@ -1,9 +1,10 @@
 // The editor's Markdown (app/markdown.ts): which parts of a line are syntax
 // and which are a heading's, a link's, code's or emphasis's words; what the
 // live preview shows in place of the syntax, by where the caret is; fenced
-// code; tables, drawn as cells; what Return does on a list. Pure functions, no app.
+// code; tables, drawn as cells; what Return does on a list; links to other
+// notes (`[[Title]]`). Pure functions, no app.
 import { expect, test } from "nsh/test";
-import { cellText, codeBlocks, continuation, fenceMark, fencedLines, isQuote, lineMarks, tableBlocks, tableMarks, tableSyntax, textWidth, type Mark } from "../markdown";
+import { cellText, codeBlocks, continuation, fenceMark, fencedLines, isQuote, lineMarks, linkable, linkKey, linkTyped, noteLinks, tableBlocks, tableMarks, tableSyntax, textWidth, type Mark } from "../markdown";
 
 /**
  * The marks as `kind:text`, in order, with `→label` where the preview shows a label in place of the text (`→` alone:
@@ -337,4 +338,38 @@ test("a table's syntax as written: its pipes, and all of its delimiter row", () 
   expect(syntax("| a \\| b |")).toEqual(["0-1", "9-10"]);
   expect(syntax("> | a |")).toEqual(["2-3", "6-7"]);
   expect(syntax("| --- |", true)).toEqual(["0-7"]);
+});
+
+test("a link to another note shows its title, or the words after its `|`, its brackets hidden off the caret", () => {
+  expect(shown("见 [[项目计划]] 和 [[Plan|这份]]")).toEqual(["syntax:[[→", "link:项目计划", "syntax:]]→", "syntax:[[Plan|→", "link:这份", "syntax:]]→"]);
+  // The caret in it, or at either end: all of it shows.
+  expect(shown("[[A]] b", 0)).toEqual(["syntax:[[", "link:A", "syntax:]]"]);
+  expect(shown("[[A|b]]", 7)).toEqual(["syntax:[[A|", "link:b", "syntax:]]"]);
+  // In code it is code; a bold inside it is its words.
+  expect(shown("`[[code]]`")).toEqual(["syntax:`→", "code:[[code]]", "syntax:`→"]);
+  expect(shown("[[**b**]]")).toEqual(["syntax:[[→", "link:**b**", "syntax:]]→"]);
+  // In a heading and a to-do too.
+  expect(shown("# [[A]]")).toEqual(["syntax:# →", "heading:[[A]]", "syntax:[[→", "link:A", "syntax:]]→"]);
+  // No title, nothing after `|`, a bracket inside: no link.
+  for (const line of ["[[]]", "[[ ]]", "[[a|]]", "[[a]b]]", "[[a"]) expect(noteLinks(line)).toEqual([]);
+});
+
+test("a link to a note that is not there is drawn as missing; titles match as the folder's do", () => {
+  const titles = new Set(["项目计划", "a-b"].map(linkKey));
+  const kinds = (line: string) => lineMarks(line, [], (t) => titles.has(linkKey(t))).filter((m) => m.kind !== "syntax").map((m) => `${m.kind}:${line.slice(m.start, m.end)}`);
+  expect(kinds("[[项目计划]] [[ 没有 ]] [[A/B|x]]")).toEqual(["link:项目计划", "missing: 没有 ", "link:x"]);
+  expect(noteLinks("[[ 周报 |本周]] [[x]]").map((l) => l.title)).toEqual(["周报", "x"]);
+  expect(linkKey(" A:b ")).toBe("a-b");
+  expect(linkable("a|b")).toBe(false);
+  expect(linkable("周报 2026")).toBe(true);
+});
+
+test("a link being typed: an `[[` before the caret, not closed, not in code", () => {
+  expect(linkTyped("见 [[项目", 6)).toEqual({ start: 4, query: "项目" });
+  expect(linkTyped("[[", 2)).toEqual({ start: 2, query: "" });
+  expect(linkTyped("[[project r", 11)).toEqual({ start: 2, query: "project r" });
+  expect(linkTyped("[[a]] b", 7)).toBeNull();
+  expect(linkTyped("[[a|b", 5)).toBeNull();
+  expect(linkTyped("`[[a`", 4)).toBeNull();
+  expect(linkTyped("no link", 7)).toBeNull();
 });

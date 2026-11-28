@@ -20,14 +20,38 @@
 // a faint button, clear under the pointer, adds one (or removes it); the
 // emoji picker opens under the title. A press on the title (or "Rename")
 // edits it in place: Return or leaving it renames the note, Escape keeps it.
+// A link to another note (`[[Title]]`) opens it with a ⌘-click, or ⌘↩ with
+// the caret in it; typing `[[` lists the notes' titles to complete it with.
 import { cleanup, computed, createAnimatedValue, effect, keymap, Notifications, signal, Text, token, untracked, View } from "nsh";
-import { Button, Editor, type EditorDecoration, type EditorPosition, type EditorRef, type EditorSelection } from "nsh/base";
+import { Button, Editor, type EditorCompletionRequest, type EditorDecoration, type EditorDefinitionRequest, type EditorPosition, type EditorRef, type EditorSelection } from "nsh/base";
 import { t } from "nsh/i18n";
 import { When, type Conflict } from "jot/native";
 import { caretOnTodo, openDuePicker, setEditorDue } from "../due";
-import { codeBlocks, continuation, fenceMark, fencedLines, isQuote, lineMarks, tableBlocks, tableMarks, tableSyntax, type Mark, type MarkKind } from "../markdown";
+import { codeBlocks, continuation, fenceMark, fencedLines, isQuote, lineMarks, linkKey, linkTyped, noteLinks, tableBlocks, tableMarks, tableSyntax, type Mark, type MarkKind } from "../markdown";
 import { whenOptions } from "../settings";
-import { allNotes, emojiPicking, errorMessage, lastWritten, notes, now, opened, refresh, removeEmoji, renaming, revision, save, setEditorFlush, setLocked, showFlash, startEmoji, startRename } from "../store";
+import {
+  allNotes,
+  caretLink,
+  emojiPicking,
+  errorMessage,
+  lastWritten,
+  linkTitles,
+  notes,
+  now,
+  opened,
+  openLink,
+  paperMessage,
+  refresh,
+  removeEmoji,
+  renaming,
+  revision,
+  save,
+  setEditorFlush,
+  setLocked,
+  showFlash,
+  startEmoji,
+  startRename,
+} from "../store";
 import { taskLine, toggledLine, withDue } from "../tasks";
 import { age, parseDue } from "../time";
 import { cancelVoice, joinSpoken, listening, listeningLang, speechAvailable, startVoice, stopVoice, voiceError } from "../voice";
@@ -39,7 +63,7 @@ import { fade } from "./themes";
 import { T } from "./tokens";
 import { Breathing, LanguageTag, MicButton } from "./Voice";
 
-/** What the panel's keys ask of the open note (⌘↩ ticks the caret's task). */
+/** What the panel's keys ask of the open note (⌘↩ opens the caret's link, or ticks the caret's task). */
 interface PaperActions {
   toggleTaskAtCaret(): void;
   dictate(options: { byHold?: boolean }): boolean;
@@ -47,7 +71,7 @@ interface PaperActions {
 
 let current: PaperActions | null = null;
 
-/** ⌘↩ with a note open: ticks or unticks the task under the caret. Returns whether a note was open. */
+/** ⌘↩ with a note open: opens the link to another note the caret is in, else ticks or unticks the task under the caret. Returns whether a note was open. */
 export function toggleTaskAtCaret(): boolean {
   if (!current) return false;
   current.toggleTaskAtCaret();
@@ -85,6 +109,8 @@ const MARK_CLASS: Record<MarkKind, string> = {
   syntax: "text-paper-muted",
   heading: "text-heading font-bold",
   link: "text-accent-ink",
+  // A link to a note that is not there: muted, underlined (a ⌘-click makes it).
+  missing: "text-paper-muted underline",
   code: "bg-paper-fg/7",
   strong: "font-bold",
   em: "italic",
@@ -147,6 +173,20 @@ function taskAt(text: string, line: number) {
 /** Whether line `line` of `text` is in fenced code (its fences too). */
 const inCode = (text: string, line: number) => fencedLines(text.split("\n"))[line] ?? false;
 
+/** The link to another note on line `line` of `text` that holds `column` (`inside`: not at either end), unless the line is fenced code. */
+function linkAt(text: string, line: number, column: number, inside: boolean) {
+  const lines = text.split("\n");
+  if (fencedLines(lines)[line]) return null;
+  return noteLinks(lines[line] ?? "").find((l) => (inside ? l.start < column && column < l.end : l.start <= column && column < l.end)) ?? null;
+}
+
+/** The link being typed at `at` in `text` (`[[` before the caret, not closed yet), unless it is in fenced code. */
+function typedAt(text: string, at: EditorPosition | null) {
+  if (!at) return null;
+  const lines = text.split("\n");
+  return fencedLines(lines)[at.line] ? null : linkTyped(lines[at.line] ?? "", at.column);
+}
+
 /** The position just past the text's end. */
 function endOf(text: string) {
   const lines = text.split("\n");
@@ -195,8 +235,11 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   const caretLine = signal(props.line ?? 0);
   /** A time phrase on the caret's line, shown as a chip after a pause in typing. */
   const phrase = signal<{ line: number; start: number; end: number } | null>(null);
-  /** A notice over the note's foot: text was added to its end from outside, or it changed in a way Jot could not merge. */
-  const notice = signal<{ kind: "append" | "conflict"; text: string } | null>(null);
+  /**
+   * A notice over the note's foot: text was added to its end from outside, or it changed in a way Jot could not merge;
+   * or a message of the panel's (`paperMessage`: the links a rename changed), which the footer would say with no note open.
+   */
+  const notice = signal<{ kind: "append" | "conflict" | "message"; text: string } | null>(null);
   const savedOpacity = createAnimatedValue(0);
   /** The words of a dictation still being recognized: drawn faint. */
   const interim = signal<{ line: number; start: number; end: number } | null>(null);
@@ -257,11 +300,21 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     }
   }
 
-  function showNotice(kind: "append" | "conflict", message: string) {
+  function showNotice(kind: "append" | "conflict" | "message", message: string) {
     notice.set({ kind, text: message });
     clearTimeout(noticeTimer);
-    if (kind === "append") noticeTimer = setTimeout(() => notice.set(null), T.timing.noticeFor);
+    if (kind !== "conflict") noticeTimer = setTimeout(() => notice.set(null), T.timing.noticeFor);
   }
+
+  // A message of the panel's for the open note (it may have come as this note opened: a rename from its title).
+  effect(() => {
+    const message = paperMessage();
+    if (message === null) return;
+    untracked(() => {
+      paperMessage.set(null);
+      showNotice("message", message);
+    });
+  });
 
   function changed(value: string) {
     text.set(value);
@@ -392,7 +445,14 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     if (due) askToNotify();
   }
 
-  const actions: PaperActions = { toggleTaskAtCaret: () => toggleLine(untracked(caretLine)), dictate };
+  /** ⌘↩: the link the caret is in opens; else the caret's to-do ticks. */
+  function actAtCaret() {
+    const link = untracked(caretLink);
+    if (link !== null) openLink(link);
+    else toggleLine(untracked(caretLine));
+  }
+
+  const actions: PaperActions = { toggleTaskAtCaret: actAtCaret, dictate };
   current = actions;
   // Before the note goes to the trash or takes a new name, what was typed is saved.
   setEditorFlush(saveNow);
@@ -403,12 +463,18 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     const task = taskAt(text(), caretLine());
     caretOnTodo.set(!!task && !task.done && !readOnly());
   });
+  // The link the caret is in (not at either end, where the caret is beside it): ⌘↩ and "Open Link" open it.
+  effect(() => {
+    const at = caret();
+    caretLink.set(at ? (linkAt(text(), at.line, at.column, true)?.title ?? null) : null);
+  });
   cleanup(() => {
     if (current === actions) {
       current = null;
       setEditorFlush(null);
       setEditorDue(null);
       caretOnTodo.set(false);
+      caretLink.set(null);
     }
     // The note closes while dictating into it: the words go with it.
     cancelVoice("editor");
@@ -475,18 +541,54 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   }
 
   // The editor binds ⌘↩ (a line below) and Return itself; while it has the focus, Jot's come first (`overFocused`).
-  // ⌘↩ ticks the caret's to-do, and does nothing on another line. Return is Jot's only while the caret is on an item
-  // line, so a line break elsewhere stays the editor's own; ⇧↩ is always a plain break. An input method composing
-  // (pinyin) keeps Return: NSH gives no binding a key then, and Return commits the letters.
-  const onItem = computed(() => focused() && !readOnly() && itemReturn(text(), caret()) !== null);
+  // ⌘↩ opens the link the caret is in, else ticks the caret's to-do, and does nothing on another line. Return is Jot's
+  // only while the caret is on an item line and no link is being typed (`[[`: Return is then the suggestions', the
+  // editor's own list), so a line break elsewhere stays the editor's own; ⇧↩ is always a plain break. An input method
+  // composing (pinyin) keeps Return: NSH gives no binding a key then, and Return commits the letters.
+  const onItem = computed(() => focused() && !readOnly() && typedAt(text(), caret()) === null && itemReturn(text(), caret()) !== null);
   effect(() => {
     if (!focused()) return;
-    return keymap.bind("mod+enter", () => toggleLine(untracked(caretLine)), { when: "always", overFocused: true });
+    return keymap.bind("mod+enter", actAtCaret, { when: "always", overFocused: true });
   });
   effect(() => {
     if (!onItem()) return;
     return keymap.bind("enter", pressReturn, { when: "always", repeat: true, overFocused: true });
   });
+
+  /**
+   * The editor asks for completions (a word typed, `[[`): while a link is being typed, the titles of the notes that
+   * hold what is typed of it, each going in with its `]]` (unless one follows already) in place of all of it; else
+   * none. Typing on asks again (`incomplete`), so a title of several words keeps its list.
+   */
+  function complete(request: EditorCompletionRequest) {
+    if (!editor || untracked(readOnly)) return;
+    const ref = editor;
+    void ref.value().then((value) => {
+      const typed = typedAt(value, request.position);
+      if (!typed) return ref.presentCompletions(request.id, []);
+      const line = lineAt(value, request.position.line);
+      const closed = line.slice(request.position.column).startsWith("]]");
+      const range = { start: { line: request.position.line, column: typed.start }, end: request.position };
+      const items = linkTitles(typed.query, title).map((label, k) => ({
+        label,
+        insertText: closed ? label : `${label}]]`,
+        range,
+        // The search's order (title matches, the latest first) among equal matches of the word typed.
+        sortText: String(k).padStart(3, "0"),
+      }));
+      ref.presentCompletions(request.id, items, true);
+    });
+  }
+
+  /** Mod held over a link to another note (`hover`) underlines its words; F12 (`key`) at a link opens it. A Mod-click is `onTextPress`'s. */
+  function define(request: EditorDefinitionRequest) {
+    const { line, column } = request.position;
+    const link = linkAt(untracked(text), line, column, false);
+    if (!link || !editor) return;
+    if (request.trigger === "hover") {
+      editor.presentDefinitionLink(request.id, { start: { line, column: link.words.start }, end: { line, column: link.words.end } });
+    } else if (request.trigger === "key") openLink(link.title);
+  }
 
   /** Reads the versions iCloud Drive kept (none for most notes, at a glance). */
   function readVersions() {
@@ -571,9 +673,13 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   // own Markdown colours are the same in every theme), links, code and emphasis set apart; fenced code the
   // highlighter's, in the code font on a tinted block. Task lines, reminders and done stamps, styled where they are;
   // the live phrase as a chip.
+  /** The notes' titles as links name them (`linkKey`): a link to none of them draws as missing. */
+  const titleKeys = computed(() => new Set(allNotes().map((m) => linkKey(m.title))));
   const decorations = computed<EditorDecoration[]>(() => {
     const out: EditorDecoration[] = [];
     const lines = text().split("\n");
+    const keys = titleKeys();
+    const exists = (linked: string) => keys.has(linkKey(linked));
     const fenced = fencedLines(lines);
     const at = now();
     const carets = focused() ? touching() : [];
@@ -612,14 +718,14 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
         const content = lines[line];
         const marks = drawn
           ? drawn[line - block.start]
-          : [...tableSyntax(content, line === block.start + 1), ...lineMarks(content, shown ? [{ start: 0, end: content.length }] : touchedOn(line, content.length))];
+          : [...tableSyntax(content, line === block.start + 1), ...lineMarks(content, shown ? [{ start: 0, end: content.length }] : touchedOn(line, content.length), exists)];
         tabled.set(line, marks);
       }
     }
     lines.forEach((content, line) => {
       const span = (start: number, end: number) => ({ start: { line, column: start }, end: { line, column: end } });
       if (!fenced[line]) {
-        const marks = tabled.get(line) ?? lineMarks(content, touchedOn(line, content.length));
+        const marks = tabled.get(line) ?? lineMarks(content, touchedOn(line, content.length), exists);
         const heading = marks.some((m) => m.level !== undefined);
         for (const m of marks) {
           const d: EditorDecoration = { range: span(m.start, m.end) };
@@ -849,6 +955,11 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
         indentGuides={false}
         // Prose, not code: a bracket or a quote typed is one character.
         autoClose={false}
+        // `[[` lists the notes' titles (`complete`); nothing else completes, and no inline completion is ever given.
+        completion={!readOnly()}
+        completionTriggerCharacters={["[["]}
+        onCompletionRequest={complete}
+        onDefinitionRequest={define}
         softWrap
         scrollBeyondLastLine={false}
         fontFamily="system-ui"
@@ -867,7 +978,15 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
           normalize(untracked(caretLine));
           saveNow();
         }}
-        onTextPress={({ position, clicks }) => {
+        onTextPress={({ position, clicks, modifiers }) => {
+          // A ⌘-click on a link to another note opens it.
+          if (modifiers.platform && clicks === 1) {
+            const link = linkAt(untracked(text), position.line, position.column, false);
+            if (link) {
+              openLink(link.title);
+              return;
+            }
+          }
           const task = taskAt(untracked(text), position.line);
           if (clicks !== 1 || !task) return;
           // The box: its `[ ]`, or the drawn box standing for `- [ ]` (a press on a label lands at either end).
@@ -888,30 +1007,35 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
               testID="paper-notice"
               role="alert"
               class="flex-row items-center bg-glass-fill border border-glass-line"
-              style={{ gap: 8, paddingVertical: 6, paddingLeft: 14, paddingRight: 6, borderRadius: T.radius.chip, borderCurve: "continuous" }}
+              style={{ gap: 8, paddingVertical: 6, paddingLeft: 14, paddingRight: n().kind === "message" ? 14 : 6, borderRadius: T.radius.chip, borderCurve: "continuous" }}
             >
-              <Icon name="spark" size={12} tint={token("agent")} />
+              <If when={n().kind !== "message"}>
+                <Icon name="spark" size={12} tint={token("agent")} />
+              </If>
               <Text class="text-glass-fg" style={{ fontSize: 12.5 }}>
                 {n().text}
               </Text>
-              <Button
-                class="px-2 py-1"
-                onPress={() => {
-                  if (n().kind === "append") editor?.scrollToLine(endOf(untracked(text)).line);
-                  else {
-                    const disk = untracked(notes)?.read(title)?.body;
-                    if (disk !== undefined && editor) {
-                      editor.setValue(disk);
-                      onDisk = disk;
+              {/* A message is only words; the others offer what to do about them. */}
+              <If when={n().kind !== "message"}>
+                <Button
+                  class="px-2 py-1"
+                  onPress={() => {
+                    if (n().kind === "append") editor?.scrollToLine(endOf(untracked(text)).line);
+                    else {
+                      const disk = untracked(notes)?.read(title)?.body;
+                      if (disk !== undefined && editor) {
+                        editor.setValue(disk);
+                        onDisk = disk;
+                      }
                     }
-                  }
-                  notice.set(null);
-                }}
-              >
-                <Text class="font-semibold text-accent-ink" style={{ fontSize: 12.5 }}>
-                  {n().kind === "append" ? t("paper.view_end") : t("paper.use_theirs")}
-                </Text>
-              </Button>
+                    notice.set(null);
+                  }}
+                >
+                  <Text class="font-semibold text-accent-ink" style={{ fontSize: 12.5 }}>
+                    {n().kind === "append" ? t("paper.view_end") : t("paper.use_theirs")}
+                  </Text>
+                </Button>
+              </If>
             </View>
           </View>
         )}

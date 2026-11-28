@@ -78,6 +78,13 @@ note:
   create_failed: "Couldn’t create “%{title}”: %{error}"
   rename_taken: "A note named “%{title}” already exists"
   rename_failed: "Couldn’t rename “%{title}”: %{error}"
+  links_renamed:
+    one: "Updated 1 link to “%{title}”"
+    other: "Updated %{count} links to “%{title}”"
+  links_locked:
+    one: "1 link in a locked note kept the old title"
+    other: "%{count} links in locked notes kept the old title"
+  links_failed: "Couldn’t update the links to “%{title}”: %{error}"
 
 paper:
   by_agent: By %{agent}
@@ -354,6 +361,7 @@ actions:
   unlock: Unlock
   emoji: Set Emoji…
   emoji_remove: Remove Emoji
+  open_link: Open Link
 
 trash:
   bin:
