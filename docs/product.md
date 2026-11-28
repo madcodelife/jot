@@ -18,9 +18,11 @@ you share the notebook with your AI apps (Claude, Cursor, Codex, …), so they c
 1. Double-press ⌥ to summon a centered floating panel; press it again or Esc to hide it (⌥Space is often taken by
    launchers). Double-pressing ⌥ needs Accessibility access; without it, Jot falls back to a fallback shortcut you can
    change.
-2. The input field sits at the top of the panel. Typing filters notes by title and body as you type, most recently
-   modified first.
-3. ↑↓ select, Return opens; when nothing matches, Return creates a note with what you typed as its title.
+2. The input field sits at the top of the panel. Typing filters notes by title and body as you type: title matches
+   first, then the rest, most recently modified first within each. Chinese titles are found by their pinyin too
+   (`fwq` or `fuwuqi` for 服务器).
+3. ↑↓ select, Return opens; a note found by its body opens with the matching word selected and in view. When nothing
+   matches, Return creates a note with what you typed as its title.
 4. Below is the editor, with a live Markdown preview and autosave as you type; there is no save button. The Markdown
    reads as it renders (large headings, bold words, a link's words, code in a monospaced font, a checkbox for a to-do)
    while its syntax hides; the syntax comes back where the caret is, so the file stays plain Markdown and there is no

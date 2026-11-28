@@ -1,7 +1,7 @@
 # Storage
 
-The notes folder: its format, a synced folder (iCloud Drive) and jot-store's API, then how the app shows a synced
-folder. Part of [the architecture](architecture.md).
+The notes folder: its format, search, a synced folder (iCloud Drive) and jot-store's API, then how the app shows a
+synced folder. Part of [the architecture](architecture.md).
 
 ## Notes folder format
 
@@ -33,6 +33,26 @@ does the file's mtime (written as a lock's frontmatter is: the time set on the t
 the list keeps its order: an emoji is no change of the note. Like every write, both fail with `NotFound`,
 `NotDownloaded` and `Locked`, the file untouched. Body writes keep the line, as they keep the whole frontmatter.
 `frontmatter.rs` reads and writes one top-level key on its own, for `locked` and `icon`.
+
+## Search (store/src/lib.rs, store/src/hanzi.rs)
+
+`Store::search` splits the query at whitespace; a note matches when every term is in its title or its body, case
+aside. A term in ASCII letters (digits and other ASCII may come with them) also matches the title by the pinyin of its
+Chinese: each Chinese character of a run of the title takes any start of one of its readings, so "服务器" is found by
+`fuwuqi`, `fu wu qi`, `fuwu`, `fwq` or `fuwq`, and "Ubuntu 服务器" by `ubuntu fwq`; the other characters of the run
+are typed as they are (`upan` for "U盘"), `ü` as `v` or `u` (`lvse`). Every reading the `pinyin` crate lists for a
+character counts (多音字: "银行" is `yinhang` and "行程" `xingcheng`), so a rare reading can bring in a title too. A
+body matches by its text only: no pinyin over bodies, which would mean reading every character of every note on each
+keystroke.
+
+The hits rank in three tiers, newest first within each: every term in the title as written (`SearchHit::title_match`),
+then every term in the title or its pinyin, some only by pinyin (`pinyin_match`), then the rest (some term only in the
+body). Nothing is cached: every search reads the folder (the note files), and the readings of a title are looked up
+(a table in the crate) only for a term not in it as written; over 5000 Chinese titles the pinyin takes about 1.5 ms of
+a search, the reading of the files nearly all the rest (`pinyin_search_speed`, ignored: `cargo test -p jot-store
+--release pinyin_search_speed -- --ignored --nocapture`).
+
+The app's to-do view keywords (`todo`, `待办`, `/todo`) never reach the store's search: the app takes them first.
 
 ## A synced folder (iCloud Drive; store/src/cloud.rs)
 
@@ -121,8 +141,9 @@ impl Store {
     pub fn root(&self) -> &Path;
     /// Every note, most recently modified first.
     pub fn list(&self) -> Result<Vec<NoteMeta>, StoreError>;
-    /// Case-insensitive match of every whitespace-separated term in the title or body.
-    /// Title matches rank first, then by `modified`, newest first. An empty query is `list()` truncated.
+    /// Case-insensitive match of every whitespace-separated term in the title (or its pinyin) or body (above).
+    /// Title matches, then pinyin matches, then the rest, each by `modified`, newest first. An empty query is `list()`
+    /// truncated.
     pub fn search(&self, query: &str, limit: usize) -> Result<Vec<SearchHit>, StoreError>;
     pub fn read(&self, title: &str) -> Result<Option<Note>, StoreError>;
     /// Fails with `AlreadyExists` if the title exists.
@@ -189,7 +210,7 @@ pub struct NoteMeta { pub title: String, pub modified: SystemTime, pub source: S
 pub struct Icon(/* … */);
 impl Icon { pub fn parse(text: &str) -> Option<Icon>; pub fn as_str(&self) -> &str; }  // + Display
 pub struct Note { pub meta: NoteMeta, pub body: String }
-pub struct SearchHit { pub meta: NoteMeta, pub snippet: String /* ~120 chars around the first body match, or the preview */, pub title_match: bool }
+pub struct SearchHit { pub meta: NoteMeta, pub snippet: String /* ~120 chars around the first body match, or the preview */, pub title_match: bool, pub pinyin_match: bool /* never with title_match */ }
 pub struct Trashed { pub title: String, pub in_trash: Option<PathBuf>, pub content: String, pub modified: SystemTime }  // non_exhaustive
 pub struct Replaced { pub note: NoteMeta, pub previous: Option<Trashed> }  // non_exhaustive
 /// Jot's settings for AI apps, a file the app writes and jot-mcp reads (mcp.md).

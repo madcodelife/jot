@@ -264,7 +264,8 @@ impl JotServer {
 
     #[tool(
         description = "Search the user's Jot notes by title and body. Every word of the query must match \
-            (case-insensitive). Returns each note's title, when it was modified, who wrote it and a snippet \
+            (case-insensitive); a word in Latin letters also matches a Chinese title by its pinyin (fwq or fuwuqi \
+            for 服务器). Returns each note's title, when it was modified, who wrote it and a snippet \
             around the match; title matches come first, then the newest. Use this first when the user asks \
             whether they noted something (\"did I write down…\", \"what was the command I saved for…\"), or \
             before you guess at or ask for a fact about their own things that the conversation doesn't give (which \

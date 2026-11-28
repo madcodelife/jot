@@ -235,7 +235,7 @@ test("the to-do view's selected row has the same light fill", async () => {
 
 /** A note's row as the list holds it. */
 const noteRow = (title: string, modified: number, index: number, leaving = false): ListRow => ({
-  row: { kind: "note", meta: { title, modified, preview: "", downloading: false, locked: false } as NoteMeta, snippet: "", terms: [] },
+  row: { kind: "note", meta: { title, modified, preview: "", downloading: false, locked: false } as NoteMeta, snippet: "", terms: [], bodyHit: false },
   index: leaving ? -1 : index,
   leaving,
 });

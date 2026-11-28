@@ -91,11 +91,11 @@ which `jot-mcp` writes and the app reads for the island ([mcp.md](mcp.md)).
 
 ## Topics
 
-- [storage.md](storage.md): the notes folder format, a synced folder (iCloud Drive), jot-store's API, the app and a
+- [storage.md](storage.md): the notes folder format, search (pinyin included), a synced folder (iCloud Drive), jot-store's API, the app and a
   synced folder.
 - [locks.md](locks.md): locked notes, in the store and in the app.
 - [todos.md](todos.md): to-dos, time phrases (`when`) and the reminder time picker.
 - [mcp.md](mcp.md): `jot-mcp`'s tools, AI apps removing and rewriting notes, and the activity log.
-- [app.md](app.md): the app's Rust face (`jot/native`), the list's rows, the open note's Return and ⌘↩, its live
+- [app.md](app.md): the app's Rust face (`jot/native`), the list's rows, opening a note from a search, the open note's Return and ⌘↩, its live
   Markdown preview, a note's emoji, row actions, importing from Apple Notes, updates, packaging.
 - [product.md](product.md): the product definition.
