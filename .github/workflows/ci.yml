@@ -49,13 +49,15 @@ jobs:
         id: nsh
         run: echo "which=$(scripts/install-nsh.sh --which)" >> "$GITHUB_OUTPUT"
 
-      # A commit of NSH is built from source. Without a build of that commit, an older one is restored: the script
-      # checks the new commit out over it and cargo rebuilds only what changed.
+      # A commit of NSH is built from source, by a toolchain: a new Rust rebuilds all of NSH (27 minutes), so the key
+      # has both, or a build of the commit by the old Rust is restored, built again and never saved. Without a build
+      # of that commit by this Rust, an older one is restored: the script checks the new commit out over it and cargo
+      # rebuilds only what changed.
       - uses: actions/cache/restore@v6
         id: nsh-cache
         with:
           path: ~/.nsh
-          key: nsh-${{ runner.os }}-${{ runner.arch }}-${{ steps.nsh.outputs.which }}
+          key: nsh-${{ runner.os }}-${{ runner.arch }}-${{ steps.nsh.outputs.which }}-${{ steps.toolchain.outputs.cachekey }}
           restore-keys: nsh-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install NSH
