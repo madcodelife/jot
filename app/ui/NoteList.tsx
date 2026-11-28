@@ -1,8 +1,9 @@
 // The list under the search field: today's to-dos as a card, the notes that
 // match, and "new note" for a title no note has. Rows are words alone, no
 // icon: a semibold title (led by the note's emoji, when it has one) with the
-// AI app that wrote the note, a padlock and the time at its end, and the
-// snippet under it across the row. The recent list (no query) falls into
+// AI app that wrote the note, a pin, a padlock and the time at its end, and
+// the snippet under it across the row. The recent list (no query) has its
+// pinned notes first under a header of their own (Pinned), then falls into
 // date groups under small headers (Today, Yesterday, This Week, Earlier),
 // which the keys and the pointer pass over. With a note open the same rows
 // narrow into a sidebar of titles, ungrouped. Rows drop in one after
@@ -44,20 +45,24 @@ function targetOf(row: Row, index: number): ActionTarget {
 /** Today's to-dos at a glance, for the summary card. */
 const summary = computed(() => todaySummary(allTodos(), new Date(now())));
 
-/** An item of the list as it lays out: a row, or the header of a date group above its first note. */
-export type ListItem = { kind: "row"; item: ListRowItem } | { kind: "day"; group: DayGroup; next: number };
+/** A group of the recent list: its pinned notes, or a date group. */
+export type ListGroup = "pinned" | DayGroup;
+
+/** An item of the list as it lays out: a row, or the header of a group above its first note. */
+export type ListItem = { kind: "row"; item: ListRowItem } | { kind: "day"; group: ListGroup; next: number };
 
 /**
- * The list's items: its rows, with a date group's header before the first note of each group when `grouped` (the
- * recent list). Today's card is in no group; a note leaving keeps its group's header until it has gone. `next` is the
- * index of the row under a header, so the header drops in with it.
+ * The list's items: its rows, with a group's header before the first note of each group when `grouped` (the recent
+ * list): the pinned notes (`rows` has them first), then a date group for each day. Today's card is in no group; a note
+ * leaving keeps its group's header until it has gone. `next` is the index of the row under a header, so the header
+ * drops in with it.
  */
 export function listItems(rows: readonly ListRowItem[], grouped: boolean, at: number, firstDay: number): ListItem[] {
   const out: ListItem[] = [];
-  let last: DayGroup | null = null;
+  let last: ListGroup | null = null;
   rows.forEach((item, place) => {
     if (grouped && item.row.kind === "note") {
-      const group = dayGroup(item.row.meta.modified, at, firstDay);
+      const group = item.row.meta.pinned ? "pinned" : dayGroup(item.row.meta.modified, at, firstDay);
       if (group !== last) out.push({ kind: "day", group, next: item.leaving ? place : item.index });
       last = group;
     }
@@ -215,9 +220,9 @@ function dropOnEntrance(opacity: AnimatedValue, offset: AnimatedValue, place: ()
   });
 }
 
-/** A date group's header: small, semibold and faint; the keys and the pointer pass over it. A header new while the
- * list shows (a note new in the folder starting today's group) fades in with the row it heads. */
-function DayHeader(props: { group: DayGroup; next: number }) {
+/** A group's header: small, semibold and faint; the keys and the pointer pass over it. A header new while the list
+ * shows (a note new in the folder starting today's group, a first note pinned) fades in with the row it heads. */
+function DayHeader(props: { group: ListGroup; next: number }) {
   const opacity = createAnimatedValue(1);
   const offset = createAnimatedValue(0);
   dropOnEntrance(opacity, offset, () => props.next);
@@ -233,7 +238,7 @@ function DayHeader(props: { group: DayGroup; next: number }) {
       style={{ height: T.size.daySection, paddingHorizontal: 14, paddingBottom: 5, opacity, transform: [{ translateY: offset }] }}
     >
       <Text class="font-semibold text-glass-muted" style={{ numberOfLines: 1, fontSize: T.type.meta }}>
-        {dayLabel(props.group)}
+        {props.group === "pinned" ? t("list.pinned") : dayLabel(props.group)}
       </Text>
     </View>
   );
@@ -382,7 +387,7 @@ function ListRow(props: { row: Row; index: number; leaving: boolean; compact: bo
         <If when={note()}>
           {(row: () => NoteRow) => (
             <>
-              {/* The title's line: the title gives way to the AI app, the padlock and the time at its end. */}
+              {/* The title's line: the title gives way to the AI app, the pin, the padlock and the time at its end. */}
               <View class="flex-row items-center" style={{ gap: 8 }}>
                 <View class="flex-1" style={{ minWidth: 0 }}>
                   <If
@@ -407,21 +412,28 @@ function ListRow(props: { row: Row; index: number; leaving: boolean; compact: bo
                     />
                   </If>
                 </View>
+                <If when={props.compact && row().meta.pinned}>
+                  <PinMark filled={accent()} />
+                </If>
                 <If when={props.compact && row().meta.locked}>
                   <LockMark filled={accent()} />
                 </If>
                 <If when={!props.compact}>
                   <If when={row().meta.source}>{(agent) => <AgentMark name={agent()} filled={accent()} />}</If>
+                  <If when={row().meta.pinned}>
+                    <PinMark filled={accent()} />
+                  </If>
                   <If when={row().meta.locked}>
                     <LockMark filled={accent()} />
                   </If>
-                  {/* Under a date group's header the time leaves out the day it names: "13:41", not "Today 13:41". */}
+                  {/* Under a date group's header the time leaves out the day it names: "13:41", not "Today 13:41"; the
+                      pinned notes' header names none. */}
                   <Text
                     testID="note-time"
                     class={sub()}
                     style={{ numberOfLines: 1, fontSize: T.type.meta, fontVariant: ["tabular-nums"], flexShrink: 0 }}
                   >
-                    {age(row().meta.modified, now(), !query().trim())}
+                    {age(row().meta.modified, now(), !query().trim() && !row().meta.pinned)}
                   </Text>
                 </If>
               </View>
@@ -480,6 +492,15 @@ function LockMark(props: { filled: boolean }) {
   return (
     <View testID="note-locked" accessible accessibilityLabel={t("lock.row")} style={{ flexShrink: 0 }}>
       <Icon name="lock" size={12} tint={props.filled ? token("selected-muted") : token("glass-muted")} />
+    </View>
+  );
+}
+
+/** A pinned note's small pin, in the title's line, drawn as the padlock is. */
+function PinMark(props: { filled: boolean }) {
+  return (
+    <View testID="note-pinned" accessible accessibilityLabel={t("pin.row")} style={{ flexShrink: 0 }}>
+      <Icon name="pin" size={12} tint={props.filled ? token("selected-muted") : token("glass-muted")} />
     </View>
   );
 }

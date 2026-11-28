@@ -27,6 +27,9 @@ you share the notebook with your AI apps (Claude, Cursor, Codex, …), so they c
    separate preview mode.
 5. Notes an AI app wrote carry its name in the list (Claude, Cursor, …); while the app is open, new notes appear
    immediately.
+6. A note the user comes back to often can be pinned (⌘K → "Pin", or ⇧⌘P): with nothing typed, pinned notes come
+   first under "Pinned", however old, each with a small pin; a search ranks them as any other. A locked note can be
+   neither pinned nor unpinned.
 
 ## To-dos and reminders
 
@@ -69,7 +72,7 @@ Not doing: projects, priorities, tag-style contexts, complex recurrence rules, a
   run is remembered: turning iCloud Drive off or on later never moves Jot.
 - YAML frontmatter at the top records the source: `source: claude`, `source: cursor`, `source: "agent:<name>"`. Notes
   the user writes get none, and a `source` the user wrote (a clipped page's URL) still means the user. A locked note
-  also has `locked: true` (below).
+  also has `locked: true` (below), a pinned one `pinned: true`, so a pin travels with the note too.
 - Jot does no syncing of its own; iCloud Drive, Dropbox or Syncthing handle it. Settings can move the notes into
   iCloud Drive in one step (asking first; nothing there is overwritten). A synced folder must never lose a note:
   one iCloud moved off the Mac is still listed and searchable by title, downloads when needed and is read-only till

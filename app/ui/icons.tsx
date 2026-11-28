@@ -16,6 +16,7 @@ import {
   Lock,
   Mic,
   Option,
+  Pin,
   Search,
   Settings,
   SmilePlus,
@@ -34,6 +35,8 @@ const ICONS = {
   cloud: CloudDownload,
   // A locked note.
   lock: Lock,
+  // A pinned note.
+  pin: Pin,
   // The open note's "Add Emoji".
   smile: SmilePlus,
   gear: Settings,

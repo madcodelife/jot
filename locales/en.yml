@@ -57,6 +57,8 @@ list:
     yesterday: Yesterday
     week: This Week
     earlier: Earlier
+  # The recent list's pinned notes, above the date groups.
+  pinned: Pinned
 
 todo:
   # Typed in the search field (or /todo), these open the to-do view; the first is the one the menu and notifications use.
@@ -354,6 +356,8 @@ actions:
   unlock: Unlock
   emoji: Set Emoji…
   emoji_remove: Remove Emoji
+  pin: Pin
+  unpin: Unpin
 
 trash:
   bin:
@@ -395,6 +399,14 @@ lock:
   unlock_failed: "Couldn’t unlock “%{title}”: %{error}"
   done: "Locked “%{title}”"
   undone: "Unlocked “%{title}”"
+
+pin:
+  row: Pinned
+  done: "Pinned “%{title}”"
+  undone: "Unpinned “%{title}”"
+  locked: "“%{title}” is locked. Unlock it to pin or unpin it"
+  failed: "Couldn’t pin “%{title}”: %{error}"
+  unpin_failed: "Couldn’t unpin “%{title}”: %{error}"
 
 emoji:
   label: "Emoji for “%{title}”"

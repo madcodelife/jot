@@ -49,10 +49,10 @@ notarized by Apple, so run `xattr -dr com.apple.quarantine /Applications/Jot.app
 
 - **Open the panel**: double-press ⌥. The first time, macOS asks for Accessibility access, which the double-press
   needs; without it, ⌃⌥J opens the panel.
-- **Find or create**: with nothing typed, today's to-dos sit above your recent notes, grouped by day. Type to filter
-  notes by title and body; when nothing matches, Return creates a note with that title.
-- **Act on a note**: ⌘K on a row to open, rename, give it an emoji, copy, show in Finder, lock or move it to the Trash
-  (with undo).
+- **Find or create**: with nothing typed, today's to-dos sit above your pinned notes and then your recent ones,
+  grouped by day. Type to filter notes by title and body; when nothing matches, Return creates a note with that title.
+- **Act on a note**: ⌘K on a row to open, rename, give it an emoji, pin it to the top (⇧⌘P), copy, show in Finder,
+  lock or move it to the Trash (with undo).
 - **To-dos**: type `todo` (or `/todo`) for every open to-do, grouped by when it is due; ⇧⌘D changes a reminder's time.
 - **Dictation**: hold ⌥ to talk into the search field or a note; double-press and hold ⌥ in any app for a quick note.
 - **Lock a note**: ⌘K → Lock makes it read-only for Jot, your AI apps and every other program (Finder's "Locked").
@@ -72,7 +72,7 @@ High Contrast themes. In English, Simplified and Traditional Chinese and Japanes
 - A reminder is written into the note as a plain time, `- [ ] pay rent ⏰ 2026-11-14 09:00`, and a checked to-do gets
   its date, `- [x] pay rent ✅ 2026-11-14`.
 - A note an AI app creates starts with frontmatter naming it (`source: claude`); your own notes have none. A note's
-  emoji is in its frontmatter too (`icon: "🍜"`).
+  emoji is in its frontmatter too (`icon: "🍜"`), and so is a pin (`pinned: true`).
 - Jot does no syncing itself: keep the folder in iCloud Drive, Dropbox or Syncthing.
 
 More in [docs/storage.md](docs/storage.md).

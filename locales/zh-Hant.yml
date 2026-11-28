@@ -56,6 +56,8 @@ list:
     yesterday: 昨天
     week: 本週
     earlier: 更早
+  # The recent list's pinned notes, above the date groups.
+  pinned: 置頂
 
 todo:
   keywords: 待辦
@@ -352,6 +354,8 @@ actions:
   unlock: 解鎖
   emoji: 設定 Emoji…
   emoji_remove: 移除 Emoji
+  pin: 置頂
+  unpin: 取消置頂
 
 trash:
   bin:
@@ -393,6 +397,14 @@ lock:
   unlock_failed: 無法解鎖「%{title}」：%{error}
   done: 已鎖定「%{title}」
   undone: 已解鎖「%{title}」
+
+pin:
+  row: 已置頂
+  done: 已置頂「%{title}」
+  undone: 已取消置頂「%{title}」
+  locked: 「%{title}」已鎖定，解鎖後才能置頂或取消置頂
+  failed: 無法置頂「%{title}」：%{error}
+  unpin_failed: 無法取消置頂「%{title}」：%{error}
 
 emoji:
   label: 「%{title}」的 Emoji

@@ -16,6 +16,7 @@ import {
   errorMessage,
   iconOf,
   isLocked,
+  isPinned,
   notes,
   notice,
   opened,
@@ -29,6 +30,7 @@ import {
   todoMode,
   removeEmoji,
   setLocked,
+  setPinned,
   startEmoji,
   trashNote,
 } from "./store";
@@ -85,7 +87,8 @@ const action = (id: string, label: string, shortcut: string, run: () => void, de
 /**
  * The actions of `target`, in the panel's order; the one on Return first (none in the open note). No to-do, "today"
  * or "new" row can be trashed. A locked note has "Unlock" instead of "Lock", and nothing that changes it but its
- * trash key, which says to unlock it first. "Remove Emoji" shows only for a note with one.
+ * trash key, which says to unlock it first (no "Pin" / "Unpin" either: a pinned note locked stays pinned). "Remove
+ * Emoji" shows only for a note with one.
  */
 export function actionsFor(target: ActionTarget): Action[] {
   switch (target.kind) {
@@ -105,6 +108,9 @@ export function actionsFor(target: ActionTarget): Action[] {
         ...(locked || iconOf(title) === null ? [] : [action("emoji-remove", t("actions.emoji_remove"), "", () => removeEmoji(title))]),
         action("copy-title", t("actions.copy_title"), T.keys.copyTitle, () => copy(title)),
         action("copy-body", t("actions.copy_body"), T.keys.copyBody, () => copy(untracked(notes)?.read(title)?.body ?? "")),
+        ...(locked
+          ? []
+          : [isPinned(title) ? action("unpin", t("actions.unpin"), T.keys.pin, () => setPinned(title, false)) : action("pin", t("actions.pin"), T.keys.pin, () => setPinned(title, true))]),
         locked
           ? action("unlock", t("actions.unlock"), "", () => setLocked(title, false))
           : action("lock", t("actions.lock"), "", () => setLocked(title, true)),
@@ -148,7 +154,7 @@ export function runShortcut(shortcut: string) {
 }
 
 /** The keys actions bind directly (Return and ⌘↩ are the panel's own). */
-export const actionShortcuts = () => [T.keys.reveal, T.keys.rename, T.keys.copyTitle, T.keys.copyBody, T.keys.trashShortcut, T.keys.due];
+export const actionShortcuts = () => [T.keys.reveal, T.keys.rename, T.keys.copyTitle, T.keys.copyBody, T.keys.trashShortcut, T.keys.due, T.keys.pin];
 
 function copy(text: string) {
   Clipboard.writeText(text).then(

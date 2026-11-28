@@ -56,6 +56,8 @@ list:
     yesterday: 昨日
     week: 今週
     earlier: それ以前
+  # The recent list's pinned notes, above the date groups.
+  pinned: ピン留め
 
 todo:
   # 検索フィールドにこれ（または /todo）を入力すると、やることの一覧になります。最初の語はメニューと通知で使います。
@@ -353,6 +355,8 @@ actions:
   unlock: ロックを解除
   emoji: 絵文字を設定…
   emoji_remove: 絵文字を削除
+  pin: ピン留め
+  unpin: ピン留めを外す
 
 trash:
   bin:
@@ -394,6 +398,14 @@ lock:
   unlock_failed: 「%{title}」のロックを解除できませんでした：%{error}
   done: 「%{title}」をロックしました
   undone: 「%{title}」のロックを解除しました
+
+pin:
+  row: ピン留め中
+  done: 「%{title}」をピン留めしました
+  undone: 「%{title}」のピン留めを外しました
+  locked: 「%{title}」はロックされています。ピン留めを変えるにはロックを解除してください
+  failed: 「%{title}」をピン留めできませんでした：%{error}
+  unpin_failed: 「%{title}」のピン留めを外せませんでした：%{error}
 
 emoji:
   label: 「%{title}」の絵文字
