@@ -20,8 +20,8 @@ they keep one notebook between you.
 
 - **Summon from anywhere** — double-press ⌥, search and create from the same field, Esc and it is gone.
 - **Markdown, previewed live** — as Typora does: the syntax shows only where the caret is. Saved as you type.
-- **To-dos in your notes** — `- [ ] pay rent tomorrow 9am` becomes a reminder with a notification. Times are read in
-  English, Chinese and Japanese.
+- **To-dos in your notes** — `- [ ] pay rent tomorrow 9am` becomes a reminder with a notification; `every month`
+  makes it repeat. Times are read in English, Chinese and Japanese.
 - **Shared with your AI apps** — connect Claude Code, Claude, Cursor, VS Code, Windsurf, Codex or Gemini CLI in one
   click; a note an app writes carries its name.
 - **Plain files, yours** — one `.md` file per note, in iCloud Drive or any folder. No account, no server, no analytics.
@@ -69,8 +69,8 @@ High Contrast themes. In English, Simplified and Traditional Chinese and Japanes
 
 - One note is one `.md` file in the notes folder, named after its title. The folder is `iCloud Drive/Jot` when iCloud
   Drive is on, else `~/Documents/Jot`; Settings changes it.
-- A reminder is written into the note as a plain time, `- [ ] pay rent ⏰ 2026-11-14 09:00`, and a checked to-do gets
-  its date, `- [x] pay rent ✅ 2026-11-14`.
+- A reminder is written into the note as a plain time, `- [ ] pay rent ⏰ 2026-11-14 09:00` (a repeating one adds
+  `🔁 every month`), and a checked to-do gets its date, `- [x] pay rent ✅ 2026-11-14`.
 - A note an AI app creates starts with frontmatter naming it (`source: claude`); your own notes have none. A note's
   emoji is in its frontmatter too (`icon: "🍜"`).
 - Jot does no syncing itself: keep the folder in iCloud Drive, Dropbox or Syncthing.
@@ -113,7 +113,7 @@ that page shows, or write it by hand:
 | `recent_notes(limit?)` | The most recently modified notes |
 | `create_note(title, body)` | Create a note, marked with the app's name |
 | `append_note(title, text)` | Append to a note |
-| `add_todo(text, due?, note?)` | Add a to-do; `due` is an ISO local time or a phrase such as `tomorrow 3pm` or `明天 9点` |
+| `add_todo(text, due?, note?, repeat?)` | Add a to-do; `due` is an ISO local time or a phrase such as `tomorrow 3pm` or `明天 9点`; `repeat` makes it repeat |
 | `list_todos(range?)` | Open to-dos: `overdue`, `today`, `upcoming` or `all` (default: today's and overdue) |
 | `complete_todo(note, text)` | Check off a to-do |
 | `reschedule_todo(note, text, due)` | Change a to-do's reminder time; `null` removes it |

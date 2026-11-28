@@ -19,7 +19,7 @@
 
 - **随处呼出** — 连按两下 ⌥，搜索和新建都在同一个输入框里，按 Esc 就收起。
 - **Markdown 实时预览** — 像 Typora 那样，光标所在处才显示 Markdown 符号。边写边保存。
-- **待办长在笔记里** — `- [ ] 交房租 明天 9:00` 就成了一条提醒，到点弹通知。中文、英文、日文的时间说法都认。
+- **待办长在笔记里** — `- [ ] 交房租 明天 9:00` 就成了一条提醒，到点弹通知；写 `每月1号` 就每月重复。中文、英文、日文的时间说法都认。
 - **和 AI 应用共用** — 一键连接 Claude Code、Claude、Cursor、VS Code、Windsurf、Codex 或 Gemini CLI；应用写的笔记
   带着它的名字。
 - **普通文件，归你所有** — 一条笔记一个 `.md` 文件，放在 iCloud 云盘或任何文件夹里。不用注册账号，没有服务器，不做数据统计。
@@ -63,7 +63,7 @@ curl -fsSL https://madcodelife.github.io/jot/install.sh | sh
 
 - 一条笔记就是笔记文件夹里的一个 `.md` 文件，文件名就是标题。打开了 iCloud 云盘时文件夹默认是 `iCloud 云盘/Jot`，
   否则是 `~/Documents/Jot`；可以在设置里改。
-- 提醒在笔记里写成普通的时间：`- [ ] 交房租 ⏰ 2026-11-14 09:00`；勾选完成的待办会记下日期：`- [x] 交房租 ✅ 2026-11-14`。
+- 提醒在笔记里写成普通的时间：`- [ ] 交房租 ⏰ 2026-11-14 09:00`（重复的再加上 `🔁 every month`）；勾选完成的待办会记下日期：`- [x] 交房租 ✅ 2026-11-14`。
 - AI 应用新建的笔记开头有 frontmatter 记下是谁写的（`source: claude`）；你自己写的笔记没有。笔记的 emoji 也记在
   frontmatter 里（`icon: "🍜"`）。
 - Jot 自己不做同步：把文件夹放进 iCloud 云盘、Dropbox 或 Syncthing 即可。
@@ -102,7 +102,7 @@ Jot.app 里自带 `jot-mcp`（`Jot.app/Contents/MacOS/jot-mcp`），一个 MCP �
 | `recent_notes(limit?)` | 最近修改的笔记 |
 | `create_note(title, body)` | 新建笔记，标上应用的名字 |
 | `append_note(title, text)` | 往笔记末尾追加 |
-| `add_todo(text, due?, note?)` | 加一条待办；`due` 是 ISO 本地时间，或 `明天 9点`、`tomorrow 3pm` 这类说法 |
+| `add_todo(text, due?, note?, repeat?)` | 加一条待办；`due` 是 ISO 本地时间，或 `明天 9点`、`tomorrow 3pm` 这类说法；`repeat` 让它重复 |
 | `list_todos(range?)` | 未完成的待办：`overdue`、`today`、`upcoming` 或 `all`（默认今天的和已过期的） |
 | `complete_todo(note, text)` | 勾选完成一条待办 |
 | `reschedule_todo(note, text, due)` | 改一条待办的提醒时间；`null` 移除提醒 |

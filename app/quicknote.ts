@@ -1,8 +1,8 @@
 // A quick note said anywhere (the double press of ⌥ held): where it is
-// filed. With a time in it, a to-do that reminds then (in the to-do note);
-// without, a line in the inbox note with the time it was said. Pure: the
-// notes, the inbox's name and the time phrases' options come in, so tests
-// call it on a folder of their own.
+// filed. With a time in it, a to-do that reminds then (in the to-do note),
+// repeating when it says so ("每天9点吃药"); without, a line in the inbox
+// note with the time it was said. Pure: the notes, the inbox's name and the
+// time phrases' options come in, so tests call it on a folder of their own.
 import { When, type Notes, type WhenOptions } from "jot/native";
 
 /** Where a quick note went. */
@@ -30,7 +30,7 @@ export function fileQuickNote(notes: Notes, text: string, options: { inbox: stri
   const said = text.trim();
   const match = When.parse(said, options.when);
   if (match) {
-    const todo = notes.addTodo(todoText(said, match.start, match.end), match.due, null);
+    const todo = notes.addTodo(todoText(said, match.start, match.end), match.due, null, match.repeat ?? null);
     return { kind: "todo", text: todo.text, label: match.label, note: todo.note };
   }
   const meta = notes.append(options.inbox, `- ${clock(options.now)} ${said}`);

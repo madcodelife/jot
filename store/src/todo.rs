@@ -3,7 +3,8 @@
 //! A to-do is a line `- [ ] text` (also `*` / `+`, indented or not) outside code fences; a checked one is
 //! `- [x] text ✅ 2026-11-14`, the date it was checked. A reminder time is ` ⏰ YYYY-MM-DD HH:mm` anywhere in the
 //! line, in local time (the Obsidian Reminder plugin's form); a date alone means 09:00. Relative phrases such as
-//! `明天 9:00` are only an input form (`crate::when`), never stored.
+//! `明天 9:00` are only an input form (`crate::when`), never stored. A repeating to-do has its rule after the
+//! reminder: ` 🔁 every month` (`crate::repeat`).
 
 use std::cmp::Reverse;
 use std::io;
@@ -12,6 +13,7 @@ use std::time::SystemTime;
 
 use jiff::civil::{Date, DateTime};
 
+use crate::repeat::{self, Repeat};
 use crate::{NoteMeta, Source, Store, StoreError, clean_title};
 
 /// The note `add_todo` writes to when the caller names none.
@@ -28,12 +30,14 @@ pub struct Todo {
     pub note: String,
     /// The 0-based line in the note's body (the text after the frontmatter).
     pub line: usize,
-    /// The line's text without the box and the `⏰` and `✅` parts.
+    /// The line's text without the box and the `⏰`, `🔁` and `✅` parts.
     pub text: String,
     /// Whether it is checked.
     pub done: bool,
     /// The reminder time, local.
     pub due: Option<DateTime>,
+    /// How often it comes back (`🔁 every month`).
+    pub repeat: Option<Repeat>,
     /// The day it was checked.
     pub done_on: Option<Date>,
 }
@@ -48,9 +52,12 @@ pub(crate) struct TaskLine {
     pub(crate) done: bool,
     pub(crate) text: String,
     pub(crate) due: Option<DateTime>,
+    pub(crate) repeat: Option<Repeat>,
     done_on: Option<Date>,
     /// The `⏰ <time>` part with the spaces before it, if any.
-    due_range: Option<Range<usize>>,
+    pub(crate) due_range: Option<Range<usize>>,
+    /// The `🔁 every <rule>` part with the spaces before it, if any.
+    pub(crate) repeat_range: Option<Range<usize>>,
     /// The `✅ <date>` part with the spaces before it, if any.
     done_range: Option<Range<usize>>,
 }
@@ -96,8 +103,12 @@ impl TaskLine {
             let date = parse_date(value.get(..10)?)?;
             Some((date, 10))
         });
+        let rule = find_marker(content, repeat::MARKER, Repeat::read);
         let mut cuts: Vec<Range<usize>> = Vec::new();
         if let Some((_, range)) = &reminder {
+            cuts.push(range.clone());
+        }
+        if let Some((_, range)) = &rule {
             cuts.push(range.clone());
         }
         if let Some((_, range)) = &checked {
@@ -118,8 +129,11 @@ impl TaskLine {
             done,
             text: text.trim().to_owned(),
             due: reminder.as_ref().map(|(at, _)| *at),
+            repeat: rule.as_ref().map(|(repeat, _)| *repeat),
             done_on: checked.as_ref().map(|(date, _)| *date),
             due_range: reminder
+                .map(|(_, range)| content_start + range.start..content_start + range.end),
+            repeat_range: rule
                 .map(|(_, range)| content_start + range.start..content_start + range.end),
             done_range: checked
                 .map(|(_, range)| content_start + range.start..content_start + range.end),
@@ -288,15 +302,17 @@ impl Store {
     }
 
     /// Checks or unchecks the to-do at `line` of `note`, if that line's text is still `text` (else
-    /// `StoreError::Changed`); checking adds ` ✅ <today>`, unchecking removes it. Fails with `NotFound` when the
-    /// note is gone. A to-do already in that state is left as it is.
+    /// `StoreError::Changed`); checking adds ` ✅ <today>`, unchecking removes it. Checking a repeating to-do
+    /// with a time also puts its next one right above it ([`repeated_line`]), in the same write: the checked
+    /// line is then at `line + 1`. Fails with `NotFound` when the note is gone. A to-do already in that state is
+    /// left as it is.
     pub fn set_todo_done(
         &self,
         note: &str,
         line: usize,
         text: &str,
         done: bool,
-        today: Date,
+        now: DateTime,
     ) -> Result<NoteMeta, StoreError> {
         let entry = self
             .find(&clean_title(note)?)?
@@ -314,7 +330,17 @@ impl Store {
             let mut out = String::with_capacity(body.len() + 16);
             for (index, (whole, content)) in lines(body).enumerate() {
                 if index == line {
-                    out.push_str(&toggled(content, &task, done, today));
+                    let next = done.then(|| repeated_line(content, now)).flatten();
+                    if let Some(next) = next {
+                        out.push_str(&next);
+                        let ending = &whole[content.len()..];
+                        out.push_str(match ending {
+                            "" if body.contains("\r\n") => "\r\n",
+                            "" => "\n",
+                            ending => ending,
+                        });
+                    }
+                    out.push_str(&toggled(content, &task, done, now.date()));
                     out.push_str(&whole[content.len()..]);
                 } else {
                     out.push_str(whole);
@@ -325,9 +351,10 @@ impl Store {
     }
 
     /// Sets (`Some`) or clears (`None`) the reminder time of the to-do at `line` of `note`, if that line's text is
-    /// still `text` (else `StoreError::Changed`). A time it has is replaced where it is written; a new one goes at
-    /// the line's end, before a done stamp. Fails with `NotFound` when the note is gone. A to-do already at that
-    /// time (or without one, for `None`) is left as it is.
+    /// still `text` (else `StoreError::Changed`). A time it has is replaced where it is written, its rule kept; a
+    /// new one goes at the line's end, before a rule and a done stamp. Clearing it clears the rule too: a rule
+    /// repeats a time. Fails with `NotFound` when the note is gone. A to-do already at that time (or without one,
+    /// for `None`) is left as it is.
     pub fn set_todo_due(
         &self,
         note: &str,
@@ -344,30 +371,51 @@ impl Store {
                 .map(|(_, task)| task)
                 .filter(|task| task.text == text.trim())
                 .ok_or(StoreError::Changed)?;
-            let mut out = String::with_capacity(body.len() + 24);
-            let mut changed = false;
-            for (index, (whole, content)) in lines(body).enumerate() {
-                if index == line {
-                    let next = rescheduled(content, &task, due);
-                    changed = next != content;
-                    out.push_str(&next);
-                    out.push_str(&whole[content.len()..]);
-                } else {
-                    out.push_str(whole);
-                }
-            }
-            Ok(changed.then_some(out))
+            Ok(replace_line(
+                body,
+                line,
+                rescheduled(&body_line(body, line), &task, due),
+            ))
         })
     }
 
-    /// Appends `- [ ] text[ ⏰ due]` to `note` (default "待办"), creating the note with `source` as needed. The
-    /// line goes right after a to-do at the end of the note, else after a blank line. Line breaks in `text`
-    /// become spaces; an empty text fails with an `InvalidInput` I/O error.
+    /// Sets (`Some`) or clears (`None`) the rule of the to-do at `line` of `note`, if that line's text is still
+    /// `text` (else `StoreError::Changed`). A rule it has is replaced where it is written; a new one goes right
+    /// after its time (else at the line's end, before a done stamp; it repeats nothing until the to-do has a
+    /// time). Fails with `NotFound` when the note is gone. A to-do already so is left as it is.
+    pub fn set_todo_repeat(
+        &self,
+        note: &str,
+        line: usize,
+        text: &str,
+        repeat: Option<Repeat>,
+    ) -> Result<NoteMeta, StoreError> {
+        let entry = self
+            .find(&clean_title(note)?)?
+            .ok_or(StoreError::NotFound)?;
+        self.try_rewrite(entry, |body| {
+            let task = task_lines(body)
+                .find(|(task_line, _)| *task_line == line)
+                .map(|(_, task)| task)
+                .filter(|task| task.text == text.trim())
+                .ok_or(StoreError::Changed)?;
+            Ok(replace_line(
+                body,
+                line,
+                with_repeat(&body_line(body, line), &task, repeat),
+            ))
+        })
+    }
+
+    /// Appends `- [ ] text[ ⏰ due][ 🔁 every <rule>]` to `note` (default "待办"), creating the note with `source`
+    /// as needed. The line goes right after a to-do at the end of the note, else after a blank line. Line breaks
+    /// in `text` become spaces; an empty text fails with an `InvalidInput` I/O error.
     pub fn add_todo(
         &self,
         note: Option<&str>,
         text: &str,
         due: Option<DateTime>,
+        repeat: Option<Repeat>,
         source: Source,
     ) -> Result<Todo, StoreError> {
         let text = text.replace(['\r', '\n'], " ");
@@ -381,6 +429,9 @@ impl Store {
         let mut new_line = format!("- [ ] {text}");
         if let Some(due) = due {
             new_line.push_str(&format!(" {REMINDER} {}", format_due(due)));
+        }
+        if let Some(repeat) = repeat {
+            new_line.push_str(&format!(" {} {repeat}", repeat::MARKER));
         }
         let title = clean_title(note.unwrap_or(DEFAULT_TODO_NOTE))?;
 
@@ -417,8 +468,45 @@ fn todo(note: &str, line: usize, task: TaskLine) -> Todo {
         text: task.text,
         done: task.done,
         due: task.due,
+        repeat: task.repeat,
         done_on: task.done_on,
     }
+}
+
+/// The open line that follows `line`, a repeating to-do with a time, once it is checked off at `now`: the same
+/// line (its indent, words and rule) unchecked, due at the rule's next time after `now` ([`Repeat::next`]).
+/// `None` for a line that is no such to-do (no rule, no time, a rule's time past the calendar's end). The store
+/// writes it above the checked line; the app's editor does the same with it.
+pub fn repeated_line(line: &str, now: DateTime) -> Option<String> {
+    let task = TaskLine::parse(line)?;
+    let next = task.repeat?.next(task.due?, now)?;
+    let open = toggled(line, &task, false, now.date());
+    let task = TaskLine::parse(&open)?;
+    Some(rescheduled(&open, &task, Some(next)))
+}
+
+/// Line `index` of `body` without its line break.
+fn body_line(body: &str, index: usize) -> String {
+    lines(body)
+        .nth(index)
+        .map(|(_, content)| content.to_owned())
+        .unwrap_or_default()
+}
+
+/// `body` with line `index` (without its break) now `next`, or `None` when that changes nothing.
+fn replace_line(body: &str, index: usize, next: String) -> Option<String> {
+    let mut out = String::with_capacity(body.len() + 24);
+    let mut changed = false;
+    for (at, (whole, content)) in lines(body).enumerate() {
+        if at == index {
+            changed = next != content;
+            out.push_str(&next);
+            out.push_str(&whole[content.len()..]);
+        } else {
+            out.push_str(whole);
+        }
+    }
+    changed.then_some(out)
 }
 
 /// `line` (without its line break) checked or unchecked.
@@ -445,11 +533,12 @@ fn toggled(line: &str, task: &TaskLine, done: bool, today: Date) -> String {
     out
 }
 
-/// `line` (without its line break) with its reminder time set to `due`, or without one for `None`.
+/// `line` (without its line break) with its reminder time set to `due`, or without one (and without a rule:
+/// a rule repeats a time) for `None`.
 fn rescheduled(line: &str, task: &TaskLine, due: Option<DateTime>) -> String {
     let written = due.map(|at| format!("{REMINDER} {}", format_due(at)));
     match (&task.due_range, written) {
-        // Replaced where it is: a time in the middle of the text stays there.
+        // Replaced where it is: a time in the middle of the text stays there, its rule after it.
         (Some(range), Some(written)) => {
             let space = if range.start == task.content_start {
                 ""
@@ -462,42 +551,94 @@ fn rescheduled(line: &str, task: &TaskLine, due: Option<DateTime>) -> String {
                 &line[range.end..]
             )
         }
-        (Some(range), None) => {
-            let rest = &line[range.end..];
-            // A time right after the box leaves no space at the text's start.
-            let rest = if range.start == task.content_start {
-                rest.trim_start_matches([' ', '\t'])
-            } else {
-                rest
-            };
-            let out = format!("{}{rest}", &line[..range.start]);
-            if rest.is_empty() {
-                out.trim_end_matches([' ', '\t']).to_owned()
-            } else {
-                out
+        (_, None) => {
+            let mut out = line.to_owned();
+            // The later part first, so the earlier one's place holds.
+            let mut cuts: Vec<Range<usize>> = [task.due_range.clone(), task.repeat_range.clone()]
+                .into_iter()
+                .flatten()
+                .collect();
+            cuts.sort_by_key(|range| Reverse(range.start));
+            for range in cuts {
+                out = cut(&out, task.content_start, range);
             }
+            out
         }
-        // A new time goes at the end, before a done stamp.
-        (None, Some(written)) => {
-            let end = task
-                .done_range
-                .as_ref()
-                .map_or(line.len(), |range| range.start);
-            let head = line[..end].trim_end_matches([' ', '\t']);
-            let space = if head.len() < task.content_start {
+        // A new time goes at the end, before a rule and a done stamp.
+        (None, Some(written)) => insert_at_end(line, task, &written),
+    }
+}
+
+/// `line` (without its line break) with its rule set to `repeat`, or without one for `None`: a rule it has is
+/// replaced where it is; a new one goes right after the time, else at the end, before a done stamp.
+fn with_repeat(line: &str, task: &TaskLine, repeat: Option<Repeat>) -> String {
+    let written = repeat.map(|repeat| format!("{} {repeat}", repeat::MARKER));
+    match (&task.repeat_range, written) {
+        (Some(range), Some(written)) => {
+            let space = if range.start == task.content_start {
                 ""
             } else {
                 " "
             };
-            let head = if head.len() < task.content_start {
-                &line[..task.content_start]
-            } else {
-                head
-            };
-            format!("{head}{space}{written}{}", &line[end..])
+            format!(
+                "{}{space}{written}{}",
+                &line[..range.start],
+                &line[range.end..]
+            )
         }
+        (Some(range), None) => cut(line, task.content_start, range.clone()),
+        (None, Some(written)) => match &task.due_range {
+            Some(due) => format!("{} {written}{}", &line[..due.end], &line[due.end..]),
+            None => insert_at_end(line, task, &written),
+        },
         (None, None) => line.to_owned(),
     }
+}
+
+/// `line` without `range` (a marker and its value, with the spaces before it); one right after the box leaves no
+/// space at the text's start, and none is left at the line's end.
+fn cut(line: &str, content_start: usize, range: Range<usize>) -> String {
+    let rest = &line[range.end..];
+    let rest = if range.start == content_start {
+        rest.trim_start_matches([' ', '\t'])
+    } else {
+        rest
+    };
+    let out = format!("{}{rest}", &line[..range.start]);
+    if rest.is_empty() {
+        out.trim_end_matches([' ', '\t']).to_owned()
+    } else {
+        out
+    }
+}
+
+/// `line` with `written` (a marker and its value) at the end of its text, before a rule and a done stamp.
+fn insert_at_end(line: &str, task: &TaskLine, written: &str) -> String {
+    let end = [&task.repeat_range, &task.done_range]
+        .into_iter()
+        .flatten()
+        .map(|range| range.start)
+        .min()
+        .unwrap_or(line.len());
+    let head = line[..end].trim_end_matches([' ', '\t']);
+    let space = if head.len() < task.content_start {
+        ""
+    } else {
+        " "
+    };
+    let head = if head.len() < task.content_start {
+        &line[..task.content_start]
+    } else {
+        head
+    };
+    let tail = &line[end..];
+    // A rule right after the box had no space before it.
+    let gap = if tail.is_empty() || tail.starts_with([' ', '\t']) {
+        ""
+    } else {
+        " "
+    };
+    format!("{head}{space}{written}{gap}{tail}")
 }
 
 /// `body` with `line` appended, and the new line's index.
@@ -700,7 +841,7 @@ mod tests {
             "---\nsource: claude\n---\n- [ ] 写周报 ⏰ 2026-11-14 09:00\r\n- [ ] 发版\n",
         )
         .unwrap();
-        let today = date(2026, 11, 13);
+        let today = date(2026, 11, 13).at(12, 0, 0, 0);
 
         store
             .set_todo_done("work", 0, "写周报", true, today)
@@ -711,7 +852,13 @@ mod tests {
         );
         // Already checked: unchanged.
         store
-            .set_todo_done("Work", 0, "写周报", true, date(2026, 11, 20))
+            .set_todo_done(
+                "Work",
+                0,
+                "写周报",
+                true,
+                date(2026, 11, 20).at(12, 0, 0, 0),
+            )
             .unwrap();
         assert!(
             fs::read_to_string(&path)
@@ -741,7 +888,7 @@ mod tests {
         let (_dir, store) = store();
         let path = store.root().join("Work.md");
         fs::write(&path, "intro\n- [ ] 发版\n").unwrap();
-        let today = date(2026, 11, 13);
+        let today = date(2026, 11, 13).at(12, 0, 0, 0);
         for (line, text) in [(1, "写周报"), (0, "发版"), (5, "发版")] {
             assert!(matches!(
                 store.set_todo_done("Work", line, text, true, today),
@@ -869,7 +1016,13 @@ mod tests {
 
         // Creates 待办 with the source.
         let todo = store
-            .add_todo(None, " 交房租\n给房东 ", Some(due), Source::agent("claude"))
+            .add_todo(
+                None,
+                " 交房租\n给房东 ",
+                Some(due),
+                None,
+                Source::agent("claude"),
+            )
             .unwrap();
         assert_eq!(
             todo,
@@ -879,6 +1032,7 @@ mod tests {
                 text: "交房租 给房东".to_owned(),
                 done: false,
                 due: Some(due),
+                repeat: None,
                 done_on: None,
             }
         );
@@ -890,7 +1044,7 @@ mod tests {
 
         // Right after the last to-do.
         let todo = store
-            .add_todo(Some("待办"), "买牛奶", None, Source::User)
+            .add_todo(Some("待办"), "买牛奶", None, None, Source::User)
             .unwrap();
         assert_eq!(todo.line, 1);
         assert_eq!(
@@ -902,7 +1056,7 @@ mod tests {
         let notes = store.root().join("Notes.md");
         fs::write(&notes, "# Notes\nsome text\n\n").unwrap();
         let todo = store
-            .add_todo(Some("notes"), "回电话", None, Source::agent("claude"))
+            .add_todo(Some("notes"), "回电话", None, None, Source::agent("claude"))
             .unwrap();
         assert_eq!((todo.note.as_str(), todo.line), ("Notes", 3));
         assert_eq!(
@@ -914,11 +1068,11 @@ mod tests {
         assert!(listed.contains(&todo));
 
         assert!(matches!(
-            store.add_todo(None, " \n", None, Source::User),
+            store.add_todo(None, " \n", None, None, Source::User),
             Err(StoreError::Io(error)) if error.kind() == io::ErrorKind::InvalidInput
         ));
         assert!(matches!(
-            store.add_todo(Some(".x"), "a", None, Source::User),
+            store.add_todo(Some(".x"), "a", None, None, Source::User),
             Err(StoreError::InvalidTitle)
         ));
     }
@@ -934,6 +1088,274 @@ mod tests {
         assert_eq!(
             append_line("text\r\n", "- [ ] a"),
             ("text\r\n\r\n- [ ] a\r\n".to_owned(), 2)
+        );
+    }
+
+    #[test]
+    fn rules_are_read() {
+        // (line, text, due, repeat)
+        let nine = Some(date(2026, 12, 1).at(9, 0, 0, 0));
+        let cases: &[(&str, &str, Option<DateTime>, Option<Repeat>)] = &[
+            (
+                "- [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every month",
+                "交房租",
+                nine,
+                Some(Repeat::Month),
+            ),
+            (
+                "- [x] 交房租 ⏰ 2026-12-01 09:00 🔁 every month ✅ 2026-11-30",
+                "交房租",
+                nine,
+                Some(Repeat::Month),
+            ),
+            ("- [ ] 吃药 🔁 every day", "吃药", None, Some(Repeat::Day)),
+            (
+                "- [ ] standup 🔁 Every Weekday",
+                "standup",
+                None,
+                Some(Repeat::Weekday),
+            ),
+            // Not one of the rules: it stays in the text.
+            (
+                "- [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every 2 weeks",
+                "交房租 🔁 every 2 weeks",
+                nine,
+                None,
+            ),
+            (
+                "- [ ] gym 🔁 every monday",
+                "gym 🔁 every monday",
+                None,
+                None,
+            ),
+            (
+                "- [ ] gym 🔁 every weekdays",
+                "gym 🔁 every weekdays",
+                None,
+                None,
+            ),
+        ];
+        for &(line, text, due, repeat) in cases {
+            let task = TaskLine::parse(line).unwrap();
+            assert_eq!(
+                (task.text.as_str(), task.due, task.repeat),
+                (text, due, repeat),
+                "{line:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn rescheduling_keeps_the_rule() {
+        let at = Some(date(2026, 11, 20).at(9, 30, 0, 0));
+        // (line, due, expected)
+        let cases: &[(&str, Option<DateTime>, &str)] = &[
+            (
+                "- [ ] 交房租 ⏰ 2026-11-14 09:00 🔁 every month",
+                at,
+                "- [ ] 交房租 ⏰ 2026-11-20 09:30 🔁 every month",
+            ),
+            (
+                "- [ ] 交房租 🔁 every month",
+                at,
+                "- [ ] 交房租 ⏰ 2026-11-20 09:30 🔁 every month",
+            ),
+            (
+                "- [ ] 🔁 every month",
+                at,
+                "- [ ] ⏰ 2026-11-20 09:30 🔁 every month",
+            ),
+            // Without a time, without its rule: a rule repeats a time.
+            (
+                "- [ ] 交房租 ⏰ 2026-11-14 09:00 🔁 every month",
+                None,
+                "- [ ] 交房租",
+            ),
+            (
+                "- [ ] ⏰ 2026-11-14 09:00 🔁 every month 交房租",
+                None,
+                "- [ ] 交房租",
+            ),
+            (
+                "- [x] 交房租 ⏰ 2026-11-14 09:00 🔁 every day ✅ 2026-11-14",
+                None,
+                "- [x] 交房租 ✅ 2026-11-14",
+            ),
+            ("- [ ] 交房租 🔁 every day", None, "- [ ] 交房租"),
+        ];
+        for &(line, due, expected) in cases {
+            let task = TaskLine::parse(line).unwrap();
+            assert_eq!(rescheduled(line, &task, due), expected, "{line:?}");
+        }
+    }
+
+    #[test]
+    fn setting_and_clearing_the_rule() {
+        // (line, repeat, expected)
+        let cases: &[(&str, Option<Repeat>, &str)] = &[
+            (
+                "- [ ] 交房租 ⏰ 2026-12-01 09:00",
+                Some(Repeat::Month),
+                "- [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every month",
+            ),
+            (
+                "- [ ] 交 ⏰ 2026-12-01 09:00 房租",
+                Some(Repeat::Month),
+                "- [ ] 交 ⏰ 2026-12-01 09:00 🔁 every month 房租",
+            ),
+            (
+                "- [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every month",
+                Some(Repeat::Year),
+                "- [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every year",
+            ),
+            (
+                "- [x] 交房租 ✅ 2026-11-30",
+                Some(Repeat::Day),
+                "- [x] 交房租 🔁 every day ✅ 2026-11-30",
+            ),
+            (
+                "- [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every month",
+                None,
+                "- [ ] 交房租 ⏰ 2026-12-01 09:00",
+            ),
+            ("- [ ] 🔁 every month 交房租", None, "- [ ] 交房租"),
+            ("- [ ] 交房租", None, "- [ ] 交房租"),
+        ];
+        for &(line, repeat, expected) in cases {
+            let task = TaskLine::parse(line).unwrap();
+            let next = with_repeat(line, &task, repeat);
+            assert_eq!(next, expected, "{line:?}");
+            let back = TaskLine::parse(&next).unwrap();
+            assert_eq!((back.text, back.repeat), (task.text, repeat), "{line:?}");
+        }
+
+        let (_dir, store) = store();
+        let path = store.root().join("Home.md");
+        fs::write(&path, "- [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every month\n").unwrap();
+        store.set_todo_repeat("home", 0, "交房租", None).unwrap();
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            "- [ ] 交房租 ⏰ 2026-12-01 09:00\n"
+        );
+        store
+            .set_todo_repeat("Home", 0, "交房租", Some(Repeat::Week))
+            .unwrap();
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            "- [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every week\n"
+        );
+        assert!(matches!(
+            store.set_todo_repeat("Home", 0, "交周报", None),
+            Err(StoreError::Changed)
+        ));
+    }
+
+    #[test]
+    fn next_lines() {
+        // Friday 2026-11-13, 10:00.
+        let now = date(2026, 11, 13).at(10, 0, 0, 0);
+        // (line, next)
+        let cases: &[(&str, Option<&str>)] = &[
+            (
+                "- [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every month",
+                Some("- [ ] 交房租 ⏰ 2027-01-01 09:00 🔁 every month"),
+            ),
+            // Overdue for weeks: the next one after now, not a backlog.
+            (
+                "  * [ ] 吃药 ⏰ 2026-10-01 08:00 🔁 every day",
+                Some("  * [ ] 吃药 ⏰ 2026-11-14 08:00 🔁 every day"),
+            ),
+            (
+                "- [ ] 交 ⏰ 2026-10-31 09:00 房租 🔁 every month",
+                Some("- [ ] 交 ⏰ 2026-11-30 09:00 房租 🔁 every month"),
+            ),
+            (
+                "- [ ] standup ⏰ 2026-11-13 09:30 🔁 every weekday",
+                Some("- [ ] standup ⏰ 2026-11-16 09:30 🔁 every weekday"),
+            ),
+            // Checked already: the open line all the same.
+            (
+                "- [x] 交房租 ⏰ 2026-12-01 09:00 🔁 every month ✅ 2026-11-30",
+                Some("- [ ] 交房租 ⏰ 2027-01-01 09:00 🔁 every month"),
+            ),
+            ("- [ ] 交房租 ⏰ 2026-12-01 09:00", None),
+            // A rule repeats a time: without one, nothing comes back.
+            ("- [ ] 交房租 🔁 every month", None),
+            ("交房租 ⏰ 2026-12-01 09:00 🔁 every month", None),
+        ];
+        for &(line, next) in cases {
+            assert_eq!(repeated_line(line, now).as_deref(), next, "{line:?}");
+        }
+    }
+
+    #[test]
+    fn checking_off_a_repeating_todo() {
+        let (_dir, store) = store();
+        let path = store.root().join("Home.md");
+        fs::write(
+            &path,
+            "---\nsource: claude\n---\n# Home\n  - [ ] 交房租 ⏰ 2026-11-01 09:00 🔁 every month\r\n- [ ] 买牛奶\n",
+        )
+        .unwrap();
+        let now = date(2026, 11, 13).at(10, 0, 0, 0);
+
+        store.set_todo_done("home", 1, "交房租", true, now).unwrap();
+        // The next one above it, in one write; the checked one keeps its rule.
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            "---\nsource: claude\n---\n# Home\n  - [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every month\r\n\
+             \x20 - [x] 交房租 ⏰ 2026-11-01 09:00 🔁 every month ✅ 2026-11-13\r\n- [ ] 买牛奶\n"
+        );
+        let todos = store.todos().unwrap();
+        let open: Vec<(usize, &str, Option<DateTime>, Option<Repeat>)> = todos
+            .iter()
+            .filter(|todo| !todo.done)
+            .map(|todo| (todo.line, todo.text.as_str(), todo.due, todo.repeat))
+            .collect();
+        assert_eq!(
+            open,
+            [
+                (
+                    1,
+                    "交房租",
+                    Some(date(2026, 12, 1).at(9, 0, 0, 0)),
+                    Some(Repeat::Month)
+                ),
+                (3, "买牛奶", None, None),
+            ]
+        );
+
+        // Unchecking takes only the stamp away; the next one stays.
+        store
+            .set_todo_done("Home", 2, "交房租", false, now)
+            .unwrap();
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            "---\nsource: claude\n---\n# Home\n  - [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every month\r\n\
+             \x20 - [ ] 交房租 ⏰ 2026-11-01 09:00 🔁 every month\r\n- [ ] 买牛奶\n"
+        );
+
+        // The last line, without a break.
+        fs::write(&path, "- [ ] 吃药 ⏰ 2026-11-13 08:00 🔁 every day").unwrap();
+        store.set_todo_done("Home", 0, "吃药", true, now).unwrap();
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            "- [ ] 吃药 ⏰ 2026-11-14 08:00 🔁 every day\n\
+             - [x] 吃药 ⏰ 2026-11-13 08:00 🔁 every day ✅ 2026-11-13"
+        );
+    }
+
+    #[test]
+    fn adding_a_repeating_todo() {
+        let (_dir, store) = store();
+        let due = date(2026, 12, 1).at(9, 0, 0, 0);
+        let todo = store
+            .add_todo(None, "交房租", Some(due), Some(Repeat::Month), Source::User)
+            .unwrap();
+        assert_eq!(todo.repeat, Some(Repeat::Month));
+        assert_eq!(
+            fs::read_to_string(store.root().join("待办.md")).unwrap(),
+            "- [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every month\n"
         );
     }
 }

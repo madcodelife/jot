@@ -182,12 +182,13 @@ fn a_locked_note_refuses_every_write() {
     let f = Fixture::new();
     f.write(
         "Plan",
-        "---\nsource: user-clip\n---\n- [ ] call ⏰ 2026-11-20 09:00\n",
+        // A repeating to-do: checking it off would also write its next one.
+        "---\nsource: user-clip\n---\n- [ ] call ⏰ 2026-11-20 09:00 🔁 every week\n",
         100,
     );
     f.store.lock("Plan").unwrap();
     let before = f.snapshot("Plan");
-    let today = jiff::civil::date(2026, 11, 25);
+    let today = jiff::civil::date(2026, 11, 25).at(12, 0, 0, 0);
     let due = Some(jiff::civil::date(2026, 11, 26).at(9, 0, 0, 0));
 
     let refused: Vec<(&str, Result<(), StoreError>)> = vec![
@@ -204,9 +205,13 @@ fn a_locked_note_refuses_every_write() {
             f.store.set_todo_due("Plan", 0, "call", due).map(drop),
         ),
         (
+            "set_todo_repeat",
+            f.store.set_todo_repeat("Plan", 0, "call", None).map(drop),
+        ),
+        (
             "add_todo",
             f.store
-                .add_todo(Some("Plan"), "more", None, Source::User)
+                .add_todo(Some("Plan"), "more", None, None, Source::User)
                 .map(drop),
         ),
         ("rename", f.store.rename("Plan", "Other").map(drop)),

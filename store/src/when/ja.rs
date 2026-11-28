@@ -8,9 +8,10 @@ use jiff::ToSpan as _;
 use jiff::civil::{Date, Weekday};
 
 use super::{
-    Clock, DateHit, Period, Week, day_of_month_date, digits, eat, eat_any, month_day_date, number,
-    skip_spaces, weekday_date,
+    Clock, DateHit, Period, Week, at_word_start, day_of_month_date, digits, eat, eat_any,
+    month_day_date, number, skip_spaces, weekday_date,
 };
+use crate::repeat::Repeat;
 
 /// The kanji before `曜` that names `weekday` (`金曜`).
 pub(super) fn weekday_char(weekday: Weekday) -> char {
@@ -40,6 +41,38 @@ pub(super) fn relative(text: &str, start: usize) -> Option<(usize, i64)> {
     };
     let end = eat(text, end, "後")?;
     Some((eat(text, end, "に").unwrap_or(end), minutes))
+}
+
+/// A rule: `毎日`, `平日`, `毎週`, `毎月`, `毎年`, as its end, the rule and whether a date follows that belongs to
+/// it: `毎月曜` / `毎日曜日` are `毎` before the weekday (`毎日` is not `毎日曜`). `毎週月曜` and `毎月1日` are
+/// `毎週` / `毎月` before a date read as any other.
+pub(super) fn rule(text: &str, start: usize) -> Option<(usize, Repeat, bool)> {
+    let Some(after) = eat(text, start, "毎") else {
+        // `平日` on its own, as a word.
+        let end = eat(text, start, "平日")?;
+        return at_word_start(text, start).then_some((end, Repeat::Weekday, false));
+    };
+    let mut chars = text[after..].chars();
+    if let (Some('月' | '火' | '水' | '木' | '金' | '土' | '日'), Some('曜')) =
+        (chars.next(), chars.next())
+    {
+        return Some((after, Repeat::Week, true));
+    }
+    const WORDS: [(&str, Repeat); 5] = [
+        ("日", Repeat::Day),
+        ("平日", Repeat::Weekday),
+        ("週", Repeat::Week),
+        ("月", Repeat::Month),
+        ("年", Repeat::Year),
+    ];
+    let (end, repeat) = WORDS
+        .iter()
+        .find_map(|(word, repeat)| Some((eat(text, after, word)?, *repeat)))?;
+    // `毎週末`, `毎月末`, `毎年末` are no rule.
+    if text[end..].starts_with('末') {
+        return None;
+    }
+    Some((end, repeat, false))
 }
 
 /// A date: `今日`, `明日`, `明後日`, `今夜`, `金曜`, `来週の金曜`, `11月20日`, `20日`.

@@ -54,6 +54,11 @@ const monthDay = (d: Date) => format(shownLanguage(), { month: "short", day: "nu
 /** The date with its year: `2025年3月2日`, `Mar 2, 2025`. */
 const fullDate = (d: Date) => format(shownLanguage(), { year: "numeric", month: "short", day: "numeric" }).format(d);
 
+/** How often a to-do comes back, short, in the language shown: `每月`, `Monthly`, `平日` (`"month"`, … as the store gives it). */
+export function repeatLabel(rule: string): string {
+  return t(`repeat.${rule}`);
+}
+
 /** A due time from the store (`"2026-11-14T09:00"`, or with a space), as a local date. */
 export function parseDue(due: string | null | undefined): Date | null {
   if (!due) return null;

@@ -69,6 +69,7 @@ todo:
   tick: 勾選「%{text}」
   row: "%{text}，%{note}"
   due_tip: "%{when} · 到時提醒"
+  due_repeat_tip: "%{when} · 到時提醒 · %{repeat}"
   due_change: 更改「%{text}」的提醒時間
 
 note:
@@ -366,6 +367,13 @@ trash:
   restore_taken: 已經有叫「%{title}」的筆記，原本那則還在%{bin}裡
   restore_failed: 無法還原「%{title}」：%{error}
 
+repeat:
+  day: 每天
+  weekday: 每個工作日
+  week: 每週
+  month: 每月
+  year: 每年
+
 due:
   title: 提醒時間
   none: 沒有提醒
@@ -377,6 +385,7 @@ due:
   time: 時間
   set: 設定
   remove: 移除提醒
+  remove_repeat: 移除重複
   previous_month: 上個月
   next_month: 下個月
   changed: 這則待辦剛被更改過，提醒時間沒有變

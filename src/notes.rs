@@ -132,14 +132,17 @@ impl Notes {
     }
 
     /// Adds the to-do `- [ ] text` (with ` ⏰ due` when `due` is given,
-    /// `"YYYY-MM-DDTHH:mm"` local time) at the end of the note titled
-    /// `note`, `"待办"` when not given, creating the note as needed.
-    /// Throws a `TypeError` for another form of `due`.
+    /// `"YYYY-MM-DDTHH:mm"` local time, and ` 🔁 every <repeat>` when
+    /// `repeat` is: `"day"`, `"weekday"`, `"week"`, `"month"` or `"year"`)
+    /// at the end of the note titled `note`, `"待办"` when not given,
+    /// creating the note as needed. Throws a `TypeError` for another form
+    /// of `due` or `repeat`.
     pub fn add_todo(
         &mut self,
         text: String,
         due: Option<String>,
         note: Option<String>,
+        repeat: Option<String>,
     ) -> Result<Todo, JsError> {
         let due = due
             .map(|due| {
@@ -148,9 +151,10 @@ impl Notes {
                 })
             })
             .transpose()?;
+        let repeat = repeat.map(|repeat| parse_repeat(&repeat)).transpose()?;
         let todo = self
             .store
-            .add_todo(note.as_deref(), &text, due, Source::User)
+            .add_todo(note.as_deref(), &text, due, repeat, Source::User)
             .map_err(|e| store_error(e, format_args!("cannot add the to-do {text:?}")))?;
         Ok(todo.into())
     }
@@ -392,7 +396,9 @@ impl Notes {
 
     /// Checks (`done`) or unchecks the to-do at `line` of `note`, if that
     /// line's text is still `text` (else throws `ERR_JOT_CHANGED`):
-    /// checking adds today's date, unchecking removes it.
+    /// checking adds today's date, unchecking removes it. Checking a
+    /// repeating to-do with a time also writes its next one right above it
+    /// (the checked line is then `line + 1`).
     pub fn set_todo_done(
         &mut self,
         note: String,
@@ -400,10 +406,10 @@ impl Notes {
         text: String,
         done: bool,
     ) -> Result<NoteMeta, JsError> {
-        let today = jiff::ZonedDateTime::now().date();
+        let now = jiff::ZonedDateTime::now().datetime();
         let meta = self
             .store
-            .set_todo_done(&note, line as usize, &text, done, today)
+            .set_todo_done(&note, line as usize, &text, done, now)
             .map_err(|e| {
                 store_error(
                     e,
@@ -438,6 +444,30 @@ impl Notes {
                 store_error(
                     e,
                     format_args!("cannot change the reminder at line {line} of {note:?}"),
+                )
+            })?;
+        Ok(meta.into())
+    }
+
+    /// Sets the rule of the to-do at `line` of `note` to `repeat`
+    /// (`"day"`, `"weekday"`, `"week"`, `"month"` or `"year"`), or removes
+    /// it for `null`, if that line's text is still `text` (else throws
+    /// `ERR_JOT_CHANGED`). Throws a `TypeError` for another `repeat`.
+    pub fn set_todo_repeat(
+        &mut self,
+        note: String,
+        line: u32,
+        text: String,
+        repeat: Option<String>,
+    ) -> Result<NoteMeta, JsError> {
+        let repeat = repeat.map(|repeat| parse_repeat(&repeat)).transpose()?;
+        let meta = self
+            .store
+            .set_todo_repeat(&note, line as usize, &text, repeat)
+            .map_err(|e| {
+                store_error(
+                    e,
+                    format_args!("cannot change the repeat at line {line} of {note:?}"),
                 )
             })?;
         Ok(meta.into())
@@ -605,6 +635,9 @@ pub struct Todo {
     pub done: bool,
     /// When it is due, in local time (`"2026-11-14T09:00"`), or `null`.
     pub due: Option<String>,
+    /// How often it comes back (`🔁 every month`): `"day"`, `"weekday"`,
+    /// `"week"`, `"month"` or `"year"`, or `null`.
+    pub repeat: Option<String>,
     /// The day it was checked (`"2026-11-14"`), or `null`.
     pub done_on: Option<String>,
 }
@@ -617,9 +650,20 @@ impl From<jot_store::Todo> for Todo {
             text: todo.text,
             done: todo.done,
             due: todo.due.map(format_due),
+            repeat: todo.repeat.map(|repeat| repeat.name().to_owned()),
             done_on: todo.done_on.map(|date| date.to_string()),
         }
     }
+}
+
+/// A rule as TS gives it: `"day"`, `"weekday"`, `"week"`, `"month"` or
+/// `"year"`.
+pub(crate) fn parse_repeat(repeat: &str) -> Result<jot_store::Repeat, JsError> {
+    jot_store::Repeat::from_name(repeat).ok_or_else(|| {
+        JsError::Type(format!(
+            "repeat must be \"day\", \"weekday\", \"week\", \"month\" or \"year\", got {repeat:?}"
+        ))
+    })
 }
 
 /// A due time as TS gets it: `"2026-11-14T09:00"`.

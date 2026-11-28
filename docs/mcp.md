@@ -66,12 +66,16 @@ MCP tools (mcp/) on a locked note: reading, searching, listing and `list_todos` 
 No tool locks or unlocks.
 
 MCP tools (mcp/): `create_note` and `add_todo` record the calling app as the new note's `source`
-(`Source::from_client` of the `initialize` handshake's `clientInfo.name`). `add_todo(text, due?, note?)` (`due`: ISO `2026-11-14T09:00` or a phrase `when::parse` reads, in
-Chinese, English or Japanese; without `due`, a phrase in `text` becomes the time),
-`list_todos(range?)` (`overdue` | `today` | `upcoming` | `all`, default `today`+`overdue`), `complete_todo(note, text)`,
-`reschedule_todo(note, text, due)` (`due` required: ISO or a phrase `when::parse` reads; `null` removes the reminder;
-only the `⏰` part of the line changes). The last two find the open to-do the same way: the exact text, else the one
-whose text holds it; several or none fail, listing the candidates.
+(`Source::from_client` of the `initialize` handshake's `clientInfo.name`). `add_todo(text, due?, note?, repeat?)`
+(`due`: ISO `2026-11-14T09:00` or a phrase `when::parse` reads, in Chinese, English or Japanese; without `due`, a
+phrase in `text` becomes the time; `repeat`: `day` | `weekday` | `week` | `month` | `year`, else the rule a phrase says,
+`每月1号`; a repeating one without a time is first due at the next 09:00 its rule allows, `Repeat::first`),
+`list_todos(range?)` (`overdue` | `today` | `upcoming` | `all`, default `today`+`overdue`; a repeating one says
+`repeats every month`), `complete_todo(note, text)` (a repeating one's next one is written above it, and the reply
+gives its time), `reschedule_todo(note, text, due)` (`due` required: ISO or a phrase `when::parse` reads; `null`
+removes the reminder, and a rule with it; only the `⏰` part of the line changes, a rule stays). The last two find the
+open to-do the same way: the exact text, else the one whose text holds it; several or none fail, listing the
+candidates. The instructions say a to-do can repeat by one of the five rules and nothing more complex.
 
 ## The activity log (store/src/activity.rs, mcp/)
 

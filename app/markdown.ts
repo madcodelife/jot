@@ -478,7 +478,7 @@ const ITEM = /^([ \t]*)((?:>[ \t]?)*)(?:([-*+]|(\d{1,9})([.)]))([ \t]+|$)(\[[ xX
 /**
  * What Return does with the caret at `column` of `line` (outside fenced code), as Bear and Notes have it, or `null`
  * for a plain line break: a list item goes on with the same marker (an ordered one with the next number), at its
- * indent and in its quote; a to-do with an open box, its reminder and stamp kept where they were; a quote line with
+ * indent and in its quote; a to-do with an open box, its reminder, repeat and stamp kept where they were; a quote line with
  * `> `. An empty item (its marker alone) loses the marker: the list ends. A caret in the marker breaks the line.
  */
 export function continuation(line: string, column: number): Continuation | null {
@@ -497,9 +497,9 @@ export function continuation(line: string, column: number): Continuation | null 
   }
   const next = marker ? (number !== undefined ? `${Number(number) + 1}${delimiter}` : marker) : "";
   const start = indent + quote + (marker ? next + (gap || " ") + (box ? `[ ]${box.slice(3) || " "}` : "") : "");
-  // A to-do's reminder and done stamp stay with it: the words before them move on, they do not.
+  // A to-do's reminder, repeat and done stamp stay with it: the words before them move on, they do not.
   const task = box ? taskLine(line) : null;
-  const metaAt = Math.min(task?.due?.start ?? Infinity, task?.stamp?.start ?? Infinity);
+  const metaAt = Math.min(task?.due?.start ?? Infinity, task?.repeat?.start ?? Infinity, task?.stamp?.start ?? Infinity);
   // Spaces the caret leaves behind it go; the marker's own stay.
   let head = prefix + line.slice(prefix.length, column).trimEnd();
   let tail = line.slice(column);

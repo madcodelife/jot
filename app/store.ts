@@ -630,11 +630,13 @@ export function tickFoldAfter(): number {
 }
 
 /** Ticks a to-do in the to-do view: it shows checked and slides out, then its row folds away. A locked note's stays as
- * it is, unticked. */
+ * it is, unticked. A repeating one's next one (written above it, the store's `set_todo_done`) shows in its group. */
 export function checkTodo(todo: Todo) {
   const n = untracked(notes);
   if (!n) return;
-  const key = stamp(todo);
+  if (untracked(checking).has(stamp(todo))) return;
+  // The store puts a repeating to-do's next one on its line: the ticked one is the line below then.
+  const key = todo.repeat && todo.due ? stamp({ ...todo, line: todo.line + 1 }) : stamp(todo);
   if (untracked(checking).has(key)) return;
   try {
     n.setTodoDone(todo.note, todo.line, todo.text, true);

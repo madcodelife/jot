@@ -835,7 +835,6 @@ fn japanese() {
         "3日間",
         "1日1回",
         "1日中",
-        "毎日",
         "日本",
         "2月30日",
     ]);
@@ -1206,4 +1205,397 @@ fn hours_without_a_part_of_the_day() {
     let evening = date(2026, 11, 13).at(19, 0, 0, 0);
     let found = parse("三点", evening).unwrap();
     assert_eq!(found.at, tomorrow(15, 0));
+}
+
+#[test]
+fn rules() {
+    // Friday 2026-11-13 10:30: (text, phrase, time, rule, label)
+    let cases: &[(&str, &str, DateTime, Repeat, &str)] = &[
+        (
+            "每天",
+            "每天",
+            at(2026, 11, 14, 9, 0),
+            Repeat::Day,
+            "明天 09:00 · 每天",
+        ),
+        (
+            "每日",
+            "每日",
+            at(2026, 11, 14, 9, 0),
+            Repeat::Day,
+            "明天 09:00 · 每天",
+        ),
+        (
+            "每天 9点",
+            "每天 9点",
+            at(2026, 11, 14, 9, 0),
+            Repeat::Day,
+            "明天 09:00 · 每天",
+        ),
+        (
+            "每天晚上",
+            "每天晚上",
+            at(2026, 11, 13, 20, 0),
+            Repeat::Day,
+            "今天 20:00 · 每天",
+        ),
+        (
+            "每天下午3点",
+            "每天下午3点",
+            at(2026, 11, 13, 15, 0),
+            Repeat::Day,
+            "今天 15:00 · 每天",
+        ),
+        (
+            "9点 每天",
+            "9点 每天",
+            at(2026, 11, 14, 9, 0),
+            Repeat::Day,
+            "明天 09:00 · 每天",
+        ),
+        (
+            "每个工作日",
+            "每个工作日",
+            at(2026, 11, 16, 9, 0),
+            Repeat::Weekday,
+            "周一 09:00 · 每个工作日",
+        ),
+        // Saturday 09:00 falls on Monday.
+        (
+            "工作日 9点",
+            "工作日 9点",
+            at(2026, 11, 16, 9, 0),
+            Repeat::Weekday,
+            "周一 09:00 · 每个工作日",
+        ),
+        (
+            "每周",
+            "每周",
+            at(2026, 11, 20, 9, 0),
+            Repeat::Week,
+            "11月20日 09:00 · 每周",
+        ),
+        (
+            "每周一",
+            "每周一",
+            at(2026, 11, 16, 9, 0),
+            Repeat::Week,
+            "周一 09:00 · 每周",
+        ),
+        (
+            "每星期三",
+            "每星期三",
+            at(2026, 11, 18, 9, 0),
+            Repeat::Week,
+            "周三 09:00 · 每周",
+        ),
+        (
+            "每週一",
+            "每週一",
+            at(2026, 11, 16, 9, 0),
+            Repeat::Week,
+            "周一 09:00 · 每周",
+        ),
+        (
+            "每周五下午3点",
+            "每周五下午3点",
+            at(2026, 11, 13, 15, 0),
+            Repeat::Week,
+            "今天 15:00 · 每周",
+        ),
+        (
+            "每周周一",
+            "每周周一",
+            at(2026, 11, 16, 9, 0),
+            Repeat::Week,
+            "周一 09:00 · 每周",
+        ),
+        (
+            "每月",
+            "每月",
+            at(2026, 12, 13, 9, 0),
+            Repeat::Month,
+            "12月13日 09:00 · 每月",
+        ),
+        (
+            "每月1号",
+            "每月1号",
+            at(2026, 12, 1, 9, 0),
+            Repeat::Month,
+            "12月1日 09:00 · 每月",
+        ),
+        (
+            "每月15号 9:30",
+            "每月15号 9:30",
+            at(2026, 11, 15, 9, 30),
+            Repeat::Month,
+            "后天 09:30 · 每月",
+        ),
+        (
+            "每年",
+            "每年",
+            at(2027, 11, 13, 9, 0),
+            Repeat::Year,
+            "11月13日 09:00 · 每年",
+        ),
+        (
+            "每年3月5日",
+            "每年3月5日",
+            at(2027, 3, 5, 9, 0),
+            Repeat::Year,
+            "3月5日 09:00 · 每年",
+        ),
+        (
+            "交房租 每月1号",
+            "每月1号",
+            at(2026, 12, 1, 9, 0),
+            Repeat::Month,
+            "12月1日 09:00 · 每月",
+        ),
+    ];
+    for &(text, phrase, expected, repeat, label) in cases {
+        let found = parse(text, now()).unwrap_or_else(|| panic!("no phrase in {text:?}"));
+        assert_eq!(&text[found.range.clone()], phrase, "{text:?}");
+        assert_eq!(
+            (found.at, found.repeat),
+            (expected, Some(repeat)),
+            "{text:?}"
+        );
+        assert_eq!(found.label, label, "{text:?}");
+    }
+    // A time phrase alone has no rule.
+    assert_eq!(parse("明天 9点", now()).unwrap().repeat, None);
+
+    let english: &[(&str, &str, DateTime, Repeat, &str)] = &[
+        (
+            "every day",
+            "every day",
+            at(2026, 11, 14, 9, 0),
+            Repeat::Day,
+            "Tomorrow 9:00 AM · Daily",
+        ),
+        (
+            "every day at 9am",
+            "every day at 9am",
+            at(2026, 11, 14, 9, 0),
+            Repeat::Day,
+            "Tomorrow 9:00 AM · Daily",
+        ),
+        (
+            "9am every day",
+            "9am every day",
+            at(2026, 11, 14, 9, 0),
+            Repeat::Day,
+            "Tomorrow 9:00 AM · Daily",
+        ),
+        (
+            "every weekday",
+            "every weekday",
+            at(2026, 11, 16, 9, 0),
+            Repeat::Weekday,
+            "Mon 9:00 AM · Weekdays",
+        ),
+        (
+            "every week",
+            "every week",
+            at(2026, 11, 20, 9, 0),
+            Repeat::Week,
+            "Nov 20 9:00 AM · Weekly",
+        ),
+        (
+            "Every Monday",
+            "Every Monday",
+            at(2026, 11, 16, 9, 0),
+            Repeat::Week,
+            "Mon 9:00 AM · Weekly",
+        ),
+        (
+            "every monday 3pm",
+            "every monday 3pm",
+            at(2026, 11, 16, 15, 0),
+            Repeat::Week,
+            "Mon 3:00 PM · Weekly",
+        ),
+        (
+            "every month",
+            "every month",
+            at(2026, 12, 13, 9, 0),
+            Repeat::Month,
+            "Dec 13 9:00 AM · Monthly",
+        ),
+        (
+            "every year",
+            "every year",
+            at(2027, 11, 13, 9, 0),
+            Repeat::Year,
+            "Nov 13 9:00 AM · Yearly",
+        ),
+    ];
+    let japanese: &[(&str, &str, DateTime, Repeat, &str)] = &[
+        (
+            "毎日",
+            "毎日",
+            at(2026, 11, 14, 9, 0),
+            Repeat::Day,
+            "明日 9:00 · 毎日",
+        ),
+        (
+            "毎日9時",
+            "毎日9時",
+            at(2026, 11, 14, 9, 0),
+            Repeat::Day,
+            "明日 9:00 · 毎日",
+        ),
+        (
+            "平日",
+            "平日",
+            at(2026, 11, 16, 9, 0),
+            Repeat::Weekday,
+            "月曜 9:00 · 平日",
+        ),
+        (
+            "毎週",
+            "毎週",
+            at(2026, 11, 20, 9, 0),
+            Repeat::Week,
+            "11月20日 9:00 · 毎週",
+        ),
+        (
+            "毎週月曜",
+            "毎週月曜",
+            at(2026, 11, 16, 9, 0),
+            Repeat::Week,
+            "月曜 9:00 · 毎週",
+        ),
+        (
+            "毎月曜",
+            "毎月曜",
+            at(2026, 11, 16, 9, 0),
+            Repeat::Week,
+            "月曜 9:00 · 毎週",
+        ),
+        (
+            "毎日曜日",
+            "毎日曜日",
+            at(2026, 11, 15, 9, 0),
+            Repeat::Week,
+            "明後日 9:00 · 毎週",
+        ),
+        (
+            "毎月",
+            "毎月",
+            at(2026, 12, 13, 9, 0),
+            Repeat::Month,
+            "12月13日 9:00 · 毎月",
+        ),
+        (
+            "毎月1日",
+            "毎月1日",
+            at(2026, 12, 1, 9, 0),
+            Repeat::Month,
+            "12月1日 9:00 · 毎月",
+        ),
+        (
+            "毎年",
+            "毎年",
+            at(2027, 11, 13, 9, 0),
+            Repeat::Year,
+            "11月13日 9:00 · 毎年",
+        ),
+    ];
+    for (lang, cases) in [(Lang::En, english), (Lang::Ja, japanese)] {
+        let options = Options {
+            lang,
+            ..Options::default()
+        };
+        for &(text, phrase, expected, repeat, label) in cases {
+            let found = parse_with(text, now(), &options)
+                .unwrap_or_else(|| panic!("no phrase in {text:?}"));
+            assert_eq!(&text[found.range.clone()], phrase, "{text:?}");
+            assert_eq!(
+                (found.at, found.repeat),
+                (expected, Some(repeat)),
+                "{text:?}"
+            );
+            assert_eq!(found.label, label, "{text:?}");
+        }
+    }
+    let options = Options {
+        lang: Lang::ZhHant,
+        ..Options::default()
+    };
+    let found = parse_with("每個工作日", now(), &options).unwrap();
+    assert_eq!(found.label, "週一 09:00 · 每個工作日");
+
+    // No rule: only the simple ones are.
+    no_phrase_in(&[
+        "每两周",
+        "每隔一天",
+        "每3天",
+        "每周末打扫",
+        "每月底",
+        "下个工作日",
+        "every 2 weeks",
+        "everyday",
+        "every weekend",
+        "every other day",
+        "weekly report",
+        "毎週末",
+        "毎月末",
+    ]);
+}
+
+#[test]
+fn normalizes_rules() {
+    let now = now();
+    let cases: &[(&str, Option<&str>)] = &[
+        (
+            "- [ ] 交房租 每月1号",
+            Some("- [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every month"),
+        ),
+        (
+            "- [ ] 每天 9点 吃药",
+            Some("- [ ] 吃药 ⏰ 2026-11-14 09:00 🔁 every day"),
+        ),
+        (
+            "- [ ] standup every weekday 9:30",
+            Some("- [ ] standup ⏰ 2026-11-16 09:30 🔁 every weekday"),
+        ),
+        (
+            "- [ ] 週會 每週一 下午3點",
+            Some("- [ ] 週會 ⏰ 2026-11-16 15:00 🔁 every week"),
+        ),
+        (
+            "- [ ] 家賃 毎月1日",
+            Some("- [ ] 家賃 ⏰ 2026-12-01 09:00 🔁 every month"),
+        ),
+        // A reminder already: the rule is added to it.
+        (
+            "- [ ] 交房租 ⏰ 2026-12-01 09:00 每月",
+            Some("- [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every month"),
+        ),
+        (
+            "- [ ] 交 ⏰ 2026-12-01 09:00 房租 每月",
+            Some("- [ ] 交 房租 ⏰ 2026-12-01 09:00 🔁 every month"),
+        ),
+        // ... and a weekday with it is its new date.
+        (
+            "- [ ] 开会 ⏰ 2026-12-01 15:00 每周一",
+            Some("- [ ] 开会 ⏰ 2026-11-16 09:00 🔁 every week"),
+        ),
+        // A rule already: a time is added before it.
+        (
+            "- [ ] 吃药 🔁 every day 明天 8点",
+            Some("- [ ] 吃药 ⏰ 2026-11-14 08:00 🔁 every day"),
+        ),
+        // A reminder takes no time phrase without a rule; with both, the line takes none.
+        ("- [ ] 跟进 9点的会 ⏰ 2026-12-01 15:00", None),
+        ("- [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every month 明天", None),
+        ("- [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every month 每年", None),
+        ("- [ ] 每周末 打扫", None),
+        ("- [x] 交房租 每月1号 ✅ 2026-11-13", None),
+    ];
+    for &(line, expected) in cases {
+        assert_eq!(normalize_line(line, now).as_deref(), expected, "{line:?}");
+    }
 }

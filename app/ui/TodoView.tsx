@@ -11,7 +11,7 @@ import type { Todo } from "jot/native";
 import { clearTodoAnchor, openTodoDue, regrouping, setTodoAnchor } from "../due";
 import { activate, checking, checkTodo, entering, keySteps, listEntrance, now, selected, stage, todoItems, type TodoItem } from "../store";
 import { t } from "nsh/i18n";
-import { dueLabel, groupLabel, parseDue, type TodoGroup } from "../time";
+import { dueLabel, groupLabel, parseDue, repeatLabel, type TodoGroup } from "../time";
 import { Icon } from "./icons";
 import { fadeTo, springConfig } from "./motion";
 import { DRAW, FlipText, StrikeLine, TodoCheck, type Flip } from "./parts";
@@ -333,7 +333,8 @@ function DueButton(props: { item: TodoRowItem; selected: boolean }) {
 /** A due chip's label flips to a new time: the old one lifts out, the new one springs up from below. */
 const CHIP_FLIP: Flip = { lift: 8, out: T.timing.flip.chipOut, rise: 8, in: T.timing.flip.chipIn, spring: T.spring.chip };
 
-/** A to-do's due time as a small chip (red once it is past; its label flips to a new time); nothing without one. */
+/** A to-do's due time as a small chip (red once it is past; its label flips to a new time), a repeating one's rule after
+ * it ("↻ 每月"); nothing without a time. */
 export function DueChip(props: { todo: Todo; group: TodoGroup | null; size?: number }) {
   const due = () => parseDue(props.todo.due);
   const late = () => !props.todo.done && (due()?.getTime() ?? Infinity) < now();
@@ -353,7 +354,11 @@ export function DueChip(props: { todo: Todo; group: TodoGroup | null; size?: num
             borderRadius: T.radius.chip,
             borderCurve: "continuous",
           }}
-          tooltip={t("todo.due_tip", { when: dueLabel(d(), null, new Date(now())) })}
+          tooltip={
+            props.todo.repeat
+              ? t("todo.due_repeat_tip", { when: dueLabel(d(), null, new Date(now())), repeat: repeatLabel(props.todo.repeat) })
+              : t("todo.due_tip", { when: dueLabel(d(), null, new Date(now())) })
+          }
         >
           <Icon name="alarm" size={size() * 1.05} tint={tint()} />
           <FlipText
@@ -362,6 +367,16 @@ export function DueChip(props: { todo: Todo; group: TodoGroup | null; size?: num
             class={`font-medium ${ink()}`}
             style={{ fontSize: size(), fontVariant: ["tabular-nums"] }}
           />
+          <If when={props.todo.repeat}>
+            {(rule) => (
+              <View testID={`repeat:${props.todo.text}`} class="flex-row items-center" style={{ gap: size() * 0.2, marginLeft: size() * 0.15 }}>
+                <Icon name="repeat" size={size() * 0.95} tint={tint()} />
+                <Text class={`font-medium ${ink()}`} style={{ fontSize: size() }}>
+                  {repeatLabel(rule())}
+                </Text>
+              </View>
+            )}
+          </If>
         </View>
       )}
     </If>

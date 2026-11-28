@@ -1,23 +1,26 @@
 // The reminder time picker's state: which to-do it is changing (a line of
 // the open note, or a row of the to-do view), where it is anchored, the
-// quick choices it offers, and writing the time it picks: through the
-// editor for the open note (one edit undo takes back), through the store
-// for the to-do view.
+// quick choices it offers, and writing the time it picks (or taking the
+// to-do's repeat away): through the editor for the open note (one edit undo
+// takes back), through the store for the to-do view.
 import { batch, signal, untracked, type Bounds, type ViewRef } from "nsh";
 import { t } from "nsh/i18n";
 import type { Todo } from "jot/native";
 import { morphNext, settleMs } from "./ui/motion";
 import { T } from "./ui/tokens";
 import { errorCode, errorMessage, focusRequest, keySteps, notes, notice, refresh, selected, todoItems } from "./store";
+import type { Repeat } from "./tasks";
 import { dueValue, parseDue } from "./time";
 
 /** The to-do whose time is picked: a line of the open note (its text when the picker opened), or a to-do of the to-do view. */
 export type DueTarget = { kind: "editor"; line: number; text: string } | { kind: "todo"; todo: Todo };
 
-/** The picker, while it shows: its to-do, the time it has (`"2026-11-14T09:00"`), and what it is placed against. */
+/** The picker, while it shows: its to-do, the time it has (`"2026-11-14T09:00"`) and its repeat, and what it is placed against. */
 export interface DuePickerState {
   target: DueTarget;
   due: string | null;
+  /** How often it comes back (`🔁 every month`): `"month"`, …; `null` when it does not. */
+  repeat: Repeat | null;
   /** The time chip's (or the caret's) box in the panel's window, or the to-do row's label; `null`: the panel's foot. */
   anchor: ViewRef | Bounds | null;
 }
@@ -31,6 +34,8 @@ export const caretOnTodo = signal(false);
 export interface EditorDue {
   /** Writes `due` on `line` if its text is still `text`, as one edit undo takes back; the caret stays. */
   apply(line: number, text: string, due: Date | null): void;
+  /** Takes the repeat off `line` if its text is still `text`, as one edit undo takes back. */
+  removeRepeat(line: number, text: string): void;
   /** Opens the picker on the caret's to-do; false when the caret is on no open to-do. */
   openAtCaret(): boolean;
   /** Gives the note's text the keys again. */
@@ -45,8 +50,8 @@ export function setEditorDue(handler: EditorDue | null) {
 }
 
 /** Opens the picker on `target`, placed against `anchor`. */
-export function openDuePicker(target: DueTarget, due: string | null, anchor: DuePickerState["anchor"]) {
-  duePicker.set({ target, due, anchor });
+export function openDuePicker(target: DueTarget, due: string | null, repeat: Repeat | null, anchor: DuePickerState["anchor"]) {
+  duePicker.set({ target, due, repeat, anchor });
 }
 
 /** The to-do view's due labels (each row's, empty without a time), by the row's key: where the picker opens for a row. */
@@ -64,7 +69,7 @@ export function clearTodoAnchor(key: string, ref: ViewRef | undefined) {
 
 /** The picker on a to-do of the to-do view, under its due label. */
 export function openTodoDue(todo: Todo) {
-  openDuePicker({ kind: "todo", todo }, todo.due ?? null, todoAnchors.get(`${todo.note}\u0000${todo.line}`) ?? null);
+  openDuePicker({ kind: "todo", todo }, todo.due ?? null, (todo.repeat as Repeat | null) ?? null, todoAnchors.get(`${todo.note}\u0000${todo.line}`) ?? null);
 }
 
 /** ⇧⌘D, or the action panel's "Reminder Time…" in the note: the picker on the caret's to-do. */
@@ -92,6 +97,26 @@ export function pickDue(due: Date | null) {
     return;
   }
   writeTodoDue(target.todo, due);
+}
+
+/** Takes the picker's to-do's repeat away (its time stays) and closes the picker. */
+export function removeRepeat() {
+  const state = untracked(duePicker);
+  if (!state) return;
+  closeDuePicker();
+  const { target } = state;
+  if (target.kind === "editor") {
+    editorDue?.removeRepeat(target.line, target.text);
+    return;
+  }
+  const n = untracked(notes);
+  if (!n) return;
+  try {
+    n.setTodoRepeat(target.todo.note, target.todo.line, target.todo.text, null);
+  } catch (error) {
+    notice.set(errorCode(error) === "ERR_JOT_CHANGED" ? t("due.changed") : t("due.failed", { error: errorMessage(error) }));
+  }
+  refresh();
 }
 
 /** The to-do view's row (its key) moving to its new group after its time changed: lifted while it moves, `landed`

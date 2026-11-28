@@ -40,7 +40,7 @@ which `jot-mcp` writes and the app reads for the island ([mcp.md](mcp.md)).
 | `app/tests/` | The client's TSX tests (`*.test.tsx`), which `nsh test` runs headless. |
 | `locales/` | The client's translations (`en`, `zh`, `zh-Hant`, `ja`), read by `nsh/i18n`. |
 | `src/` | `nsh-app-jot`, the Rust that `App.tsx` imports as `jot/native` ([app.md](app.md)); platform code in `src/platform/<os>.rs` (and `src/platform/apple-notes.js`, the script macOS reads Apple Notes with). |
-| `store/` | `jot-store`: the notes folder, iCloud Drive, locks, to-dos and time phrases (`store/src/when/`), importing notes, the AI apps' setting and activity log, in plain Rust. |
+| `store/` | `jot-store`: the notes folder, iCloud Drive, locks, to-dos and their repeats, time phrases (`store/src/when/`), importing notes, the AI apps' setting and activity log, in plain Rust. |
 | `mcp/` | `jot-mcp`, the MCP server AI apps start ([mcp.md](mcp.md)). |
 | `install.sh` | Installs `Jot.app` from the latest GitHub release (`curl … \| sh`; README's "Install"); published at `https://madcodelife.github.io/jot/install.sh`. |
 | `scripts/install-nsh.sh` | Installs the `nsh` CLI that `Cargo.lock` pins (CI uses it too). |
