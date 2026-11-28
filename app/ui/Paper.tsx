@@ -67,7 +67,7 @@ export function Paper() {
   });
   return (
     <Each of={openings()} key={(o) => o.token}>
-      {(o) => <NotePaper title={o().title} line={o().line} focus={o().focus} />}
+      {(o) => <NotePaper title={o().title} line={o().line} find={o().find} focus={o().focus} />}
     </Each>
   );
 }
@@ -180,7 +180,7 @@ function askToNotify() {
   });
 }
 
-function NotePaper(props: { title: string; line: number | null; focus: boolean }) {
+function NotePaper(props: { title: string; line: number | null; find: string[] | null; focus: boolean }) {
   const title = props.title;
   const first = untracked(notes)?.read(title) ?? null;
   /** Its text is not on this Mac yet (iCloud Drive is downloading it): the editor waits, read-only. */
@@ -419,10 +419,12 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     clearTimeout(savedTimer);
   });
 
-  // A to-do opened from the to-do view: the caret goes to the end of its line.
+  // A to-do opened from the to-do view: the caret goes to the end of its line. A search's hit in the body: the first
+  // query term there is selected.
   effect(() => {
     untracked(() => {
       if (editor && props.line !== null) placeCaret(editor, props.line, text());
+      else if (editor && props.find) selectTerm(editor, props.find, text());
     });
     // Return in the search field opens the note: the caret moves here once the field's submit is done
     // (`autoFocus` alone loses to the field, which still has the keys while Return is handled).
@@ -956,6 +958,31 @@ function VersionsBar(props: { version: Conflict; more: number; onSettle: (choice
       </View>
     </View>
   );
+}
+
+/**
+ * Where the first of `terms` (in their order) that `text` holds is, case aside: its first occurrence, in UTF-16
+ * columns as the editor counts them. `null` when none is in it.
+ */
+function firstTerm(text: string, terms: readonly string[]): { start: EditorPosition; end: EditorPosition } | null {
+  const lines = text.split("\n");
+  for (const term of terms) {
+    if (!term) continue;
+    const pattern = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "iu");
+    for (let line = 0; line < lines.length; line++) {
+      const found = pattern.exec(lines[line]);
+      if (found) return { start: { line, column: found.index }, end: { line, column: found.index + found[0].length } };
+    }
+  }
+  return null;
+}
+
+/** Selects the first of `terms` in `text` (the editor's) and scrolls it to the middle of the view (nothing when none is there). */
+function selectTerm(editor: EditorRef, terms: readonly string[], text: string) {
+  const found = firstTerm(text, terms);
+  if (!found) return;
+  editor.setSelections([{ anchor: found.start, head: found.end }]);
+  editor.revealPosition(found.start, true);
 }
 
 /** Puts the caret at the end of `line` and scrolls to it. */

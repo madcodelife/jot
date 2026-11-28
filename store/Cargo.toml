@@ -14,6 +14,8 @@ serde_json = "1"
 # A note's icon is one emoji: one grapheme cluster, an emoji character.
 unicode-segmentation = "1.13"
 unicode-properties = { version = "0.1.5", default-features = false, features = ["emoji"] }
+# Search matches a Chinese title by its pinyin (`hanzi`): readings without tones, every reading of a character.
+pinyin = { version = "0.11", default-features = false, features = ["plain", "heteronym"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 # The trash, and iCloud Drive: downloading a note, the versions kept in a conflict.

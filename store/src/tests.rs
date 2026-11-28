@@ -515,6 +515,123 @@ fn search_snippets_show_the_first_match() {
 }
 
 #[test]
+fn search_matches_chinese_titles_by_pinyin() {
+    let (_dir, store) = store();
+    store
+        .create("Ubuntu 服务器", "ssh root@10.0.0.2", Source::User)
+        .unwrap();
+    store.create("银行卡", "尾号 1234", Source::User).unwrap();
+    store
+        .create("Notes", "服务器 is down; fwq", Source::User)
+        .unwrap();
+
+    let titles = |query: &str| -> Vec<String> {
+        store
+            .search(query, 10)
+            .unwrap()
+            .into_iter()
+            .map(|hit| hit.meta.title)
+            .collect()
+    };
+    // Full pinyin, syllables as separate terms, starts of syllables, initials, a mixed query.
+    for query in ["fuwuqi", "fu wu qi", "fuwu", "FWQ", "ubuntu fwq"] {
+        assert!(
+            titles(query).contains(&"Ubuntu 服务器".to_owned()),
+            "{query}"
+        );
+    }
+    // A heteronym's other reading (行: xing, hang).
+    assert_eq!(titles("yinhang"), ["银行卡"]);
+    assert_eq!(titles("yhk"), ["银行卡"]);
+    // Bodies match by their text only: "fuwuqi" is not in the body of "Notes".
+    assert_eq!(titles("fuwuqi"), ["Ubuntu 服务器"]);
+    // A term by pinyin, another in the body.
+    assert_eq!(titles("fwq root"), ["Ubuntu 服务器"]);
+    assert!(titles("xyz").is_empty());
+
+    let hit = &store.search("ubuntu fwq", 10).unwrap()[0];
+    assert!(hit.pinyin_match && !hit.title_match);
+    let hit = &store.search("ubuntu", 10).unwrap()[0];
+    assert!(hit.title_match && !hit.pinyin_match);
+}
+
+#[test]
+fn search_ranks_title_then_pinyin_then_body() {
+    let (_dir, store) = store();
+    store.create("服务器 fwq", "", Source::User).unwrap();
+    store.create("服务器", "", Source::User).unwrap();
+    store.create("旧服务器", "", Source::User).unwrap();
+    store.create("Log", "fwq restarted", Source::User).unwrap();
+    store
+        .create("Older log", "fwq again", Source::User)
+        .unwrap();
+    touch(&store, "服务器 fwq", 100);
+    touch(&store, "服务器", 300);
+    touch(&store, "旧服务器", 200);
+    touch(&store, "Log", 500);
+    touch(&store, "Older log", 400);
+
+    let hits = store.search("fwq", 10).unwrap();
+    let found: Vec<(&str, bool, bool)> = hits
+        .iter()
+        .map(|hit| (hit.meta.title.as_str(), hit.title_match, hit.pinyin_match))
+        .collect();
+    // The title as written first, then by pinyin, then bodies; newest first within each.
+    assert_eq!(
+        found,
+        [
+            ("服务器 fwq", true, false),
+            ("服务器", false, true),
+            ("旧服务器", false, true),
+            ("Log", false, false),
+            ("Older log", false, false),
+        ]
+    );
+}
+
+/// How long pinyin search takes over 5000 notes with Chinese titles (prints it):
+/// `cargo test -p jot-store --release pinyin_search_speed -- --ignored --nocapture`.
+#[test]
+#[ignore]
+fn pinyin_search_speed() {
+    let (_dir, store) = store();
+    let words = [
+        "服务器",
+        "银行卡",
+        "会议记录",
+        "读书笔记",
+        "旅行计划",
+        "周报",
+        "密码",
+        "购物清单",
+    ];
+    for i in 0..5000 {
+        let title = format!("{} {i}", words[i % words.len()]);
+        store
+            .create(&title, &format!("body {i} with some text"), Source::User)
+            .unwrap();
+    }
+    // The pinyin part alone: every title read and matched, as a search does for a term not in it as written.
+    let titles: Vec<String> = (0..5000)
+        .map(|i| format!("{} {i}", words[i % words.len()]))
+        .collect();
+    let started = std::time::Instant::now();
+    let matched = titles
+        .iter()
+        .filter(|title| hanzi::Readings::new(title).is_some_and(|r| r.matches("lvxingjh")))
+        .count();
+    println!(
+        "pinyin alone: {matched} of 5000 titles in {:?}",
+        started.elapsed()
+    );
+    for query in ["fwq", "lvxing jihua", "zzzz", "body"] {
+        let started = std::time::Instant::now();
+        let hits = store.search(query, 100).unwrap();
+        println!("{query:?}: {} hits in {:?}", hits.len(), started.elapsed());
+    }
+}
+
+#[test]
 fn writes_are_atomic_and_leave_no_temporary_files() {
     let (_dir, store) = store();
     store

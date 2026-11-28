@@ -17,8 +17,11 @@ export type Stage = "hidden" | "capsule" | "list" | "editor";
 /** A row of the list. */
 export type Row =
   | { kind: "summary" }
-  | { kind: "note"; meta: NoteMeta; snippet: string; terms: string[] }
+  | { kind: "note"; meta: NoteMeta; snippet: string; terms: string[]; bodyHit: boolean }
   | { kind: "create"; title: string };
+
+/** A note row's way to open: a search's hit in its body opens with the first query term there selected. */
+const openingOf = (row: Extract<Row, { kind: "note" }>) => (row.bodyHit ? { find: row.terms } : {});
 
 /** A row as the list shows it: `index` is its place in `rows` (what the keys and the selection count); a row `leaving`
  * (a note just moved to the trash, playing its exit) has none and takes no input. */
@@ -54,8 +57,9 @@ export const trusted = signal(Summon.isTrusted());
 export const stage = signal<Stage>("hidden");
 export const query = signal("");
 export const selected = signal(0);
-/** The note open in the editor; `token` changes on each opening (the editor reloads), `line` is where its caret goes. */
-export const opened = signal<{ title: string; line: number | null; focus: boolean; token: number } | null>(null);
+/** The note open in the editor; `token` changes on each opening (the editor reloads), `line` is where its caret goes,
+ * `find` the query terms whose first one in the body gets selected (a search's hit in the body). */
+export const opened = signal<{ title: string; line: number | null; find: string[] | null; focus: boolean; token: number } | null>(null);
 /** A row that just arrived from an AI app (a new note whose `source` is an app's, from this Mac or synced from another): it drops in once. */
 export const arriving = signal<string | null>(null);
 /** A short message in the footer (a title the folder cannot take). */
@@ -212,11 +216,12 @@ export const rows = computed<Row[]>(() => {
     const recent = allNotes().slice(0, limit);
     const due = todaySummary(allTodos(), new Date(now()));
     const head: Row[] = due.left || due.late ? [{ kind: "summary" }] : [];
-    return [...head, ...recent.map((meta): Row => ({ kind: "note", meta, snippet: meta.preview, terms: [] }))];
+    return [...head, ...recent.map((meta): Row => ({ kind: "note", meta, snippet: meta.preview, terms: [], bodyHit: false }))];
   }
   const terms = q.split(/\s+/).filter(Boolean);
   const hits = limit ? n.search(q, limit) : [];
-  const out: Row[] = hits.map((h) => ({ kind: "note", meta: h.meta, snippet: h.snippet, terms }));
+  // Matched in the title as written or by its pinyin, or (some term) only in the body.
+  const out: Row[] = hits.map((h) => ({ kind: "note", meta: h.meta, snippet: h.snippet, terms, bodyHit: !h.titleMatch && !h.pinyinMatch }));
   const named = (title: string) => title.toLowerCase() === q.toLowerCase();
   if (!hits.some((h) => named(h.meta.title)) && !going.some((l) => named(l.row.meta.title))) out.push({ kind: "create", title: q });
   return out;
@@ -535,7 +540,7 @@ export function move(delta: number) {
   keySteps.update((n) => n + 1);
   if (s === "editor") {
     const row = untracked(rows)[next];
-    if (row?.kind === "note") open(row.meta.title, { focus: false });
+    if (row?.kind === "note") open(row.meta.title, { ...openingOf(row), focus: false });
   }
 }
 
@@ -563,7 +568,7 @@ export function activate(index = untracked(selected)) {
     morphNext(T.spring.expand);
     setQuery(todoKeyword());
     startEntrance();
-  } else if (row.kind === "note") open(row.meta.title);
+  } else if (row.kind === "note") open(row.meta.title, openingOf(row));
   else create(row.title);
 }
 
@@ -601,14 +606,15 @@ export function create(title: string) {
   }
 }
 
-/** Opens `title` in the editor beside the list, its caret on `line` (or at the end). */
-export function open(title: string, options: { line?: number; focus?: boolean } = {}) {
+/** Opens `title` in the editor beside the list, its caret on `line`, or on the first of the `find` terms in its body
+ * (selected), or at the end. */
+export function open(title: string, options: { line?: number; find?: string[]; focus?: boolean } = {}) {
   backQuery = null;
   if (untracked(stage) !== "editor") morphNext(T.spring.open);
   const index = untracked(rows).findIndex((r) => r.kind === "note" && r.meta.title === title);
   batch(() => {
     if (index >= 0 && !untracked(todoMode)) selected.set(index);
-    opened.set({ title, line: options.line ?? null, focus: options.focus ?? true, token: ++openings });
+    opened.set({ title, line: options.line ?? null, find: options.find ?? null, focus: options.focus ?? true, token: ++openings });
     stage.set("editor");
   });
 }
@@ -844,7 +850,7 @@ export function finishRename(to: string | null) {
     refresh();
     if (untracked(query).trim()) query.set(meta.title);
     // The open note follows its new name (a new editor on the same text), which has the keys when its title was edited.
-    if (wasOpen) opened.set({ title: meta.title, line: null, focus: editing.place === "paper", token: ++openings });
+    if (wasOpen) opened.set({ title: meta.title, line: null, find: null, focus: editing.place === "paper", token: ++openings });
   });
   selectNote(meta.title);
 }

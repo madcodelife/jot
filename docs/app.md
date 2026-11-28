@@ -44,7 +44,7 @@ interface ResolvedConflict { note: NoteMeta; copy: NoteMeta | null }
 // Errors also: ERR_JOT_NOT_DOWNLOADED (the note is not on this Mac yet; nothing was changed), ERR_JOT_LOCKED (the note
 // is locked; nothing was changed).
 interface Note { meta: NoteMeta; body: string }
-interface SearchHit { meta: NoteMeta; snippet: string; titleMatch: boolean }
+interface SearchHit { meta: NoteMeta; snippet: string; titleMatch: boolean; pinyinMatch: boolean /* the title by pinyin (storage.md, Search) */ }
 interface TrashedNote { title: string; token: number }   // the last 64 trashed per folder can be restored
 interface Todo { note: string; line: number; text: string; done: boolean; due: string | null /* "2026-11-14T09:00" */; doneOn: string | null }
 
@@ -393,6 +393,15 @@ Both in the chime's glass, struck twice and short. The new note's: B6 then E7 a 
 100 ms; 0.3 s in all, at −18 dBFS; 13 KB. The completed to-do's: E6 then B6 a fifth up, 60 ms apart, dying out in
 120 ms; 0.35 s in all, at −16 dBFS; 15 KB. Both well under the chime; mono 16-bit 22.05 kHz WAV, made by
 `design/sound/build.py` with the chime. Tests: app/tests/sounds.test.tsx (`app.audio()`).
+
+## Opening a note from a search (app/store.ts, app/ui/Paper.tsx)
+
+A search's row whose hit is in the note's body (neither `titleMatch` nor `pinyinMatch`: some term matched only the
+body) opens, by Return, a press or the arrow keys beside an open note, with the first query term the body holds (in
+the query's order, case aside) selected at its first occurrence and scrolled to the middle of the view
+(`editor.setSelections`, `editor.revealPosition`); typing replaces it. A title's hit, as written or by pinyin, a note
+opened without a query, a new note and a to-do's note open as before (a to-do's with the caret at the end of its
+line). Tests: app/tests/search-jump.test.tsx.
 
 ## The open note's Return and ⌘↩ (app/ui/Paper.tsx)
 

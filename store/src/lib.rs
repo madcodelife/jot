@@ -24,6 +24,7 @@ mod activity;
 mod cloud;
 mod conflict;
 mod frontmatter;
+mod hanzi;
 mod icon;
 mod import;
 mod lock;
@@ -112,6 +113,9 @@ pub struct SearchHit {
     pub snippet: String,
     /// Whether every term of the query is in the title.
     pub title_match: bool,
+    /// Whether every term is in the title or spelled by the pinyin of its Chinese (`fwq`, `fuwuqi` for
+    /// "服务器"), some only by pinyin. Never with `title_match`; neither means some term matched only the body.
+    pub pinyin_match: bool,
 }
 
 /// Why a store operation failed.
@@ -248,10 +252,12 @@ impl Store {
         Ok(notes)
     }
 
-    /// Case-insensitive match of every whitespace-separated term in the title or body.
+    /// Case-insensitive match of every whitespace-separated term in the title or body. A term in ASCII letters also
+    /// matches the title by the pinyin of its Chinese (`hanzi`): full (`fuwuqi`), starts of syllables (`fuwu`) or
+    /// initials (`fwq`); the body by its text only.
     ///
-    /// Title matches (every term in the title) rank first, then by `modified`, newest first. An empty query
-    /// is `list()` truncated.
+    /// Title matches (every term in the title) rank first, then pinyin matches (every term in the title or its
+    /// pinyin), then the rest; within each, by `modified`, newest first. An empty query is `list()` truncated.
     pub fn search(&self, query: &str, limit: usize) -> Result<Vec<SearchHit>, StoreError> {
         let terms: Vec<String> = query.split_whitespace().map(str::to_lowercase).collect();
         if terms.is_empty() {
@@ -263,6 +269,7 @@ impl Store {
                     snippet: meta.preview.clone(),
                     meta,
                     title_match: false,
+                    pinyin_match: false,
                 })
                 .collect());
         }
@@ -276,32 +283,50 @@ impl Store {
             };
             let title = meta.title.to_lowercase();
             let lowered = Lowered::new(&body);
-            if !terms
-                .iter()
-                .all(|term| title.contains(term.as_str()) || lowered.text.contains(term.as_str()))
-            {
+            // Read once, and only when a term is not in the title as written.
+            let mut readings = None;
+            let mut rank = Rank::Title;
+            let all = terms.iter().all(|term| {
+                if title.contains(term.as_str()) {
+                    return true;
+                }
+                if readings
+                    .get_or_insert_with(|| hanzi::Readings::new(&title))
+                    .as_ref()
+                    .is_some_and(|readings| readings.matches(term))
+                {
+                    rank = rank.max(Rank::Pinyin);
+                    return true;
+                }
+                rank = Rank::Body;
+                lowered.text.contains(term.as_str())
+            });
+            if !all {
                 continue;
             }
-            let title_match = terms.iter().all(|term| title.contains(term.as_str()));
             let snippet = match terms.iter().filter_map(|term| lowered.find(term)).min() {
                 Some(at) => snippet_at(&body, at),
                 None => meta.preview.clone(),
             };
-            hits.push(SearchHit {
-                meta,
-                snippet,
-                title_match,
-            });
+            hits.push((
+                rank,
+                SearchHit {
+                    meta,
+                    snippet,
+                    title_match: rank == Rank::Title,
+                    pinyin_match: rank == Rank::Pinyin,
+                },
+            ));
         }
-        hits.sort_by(|a, b| {
-            (!a.title_match, Reverse(a.meta.modified), &a.meta.title).cmp(&(
-                !b.title_match,
+        hits.sort_by(|(a_rank, a), (b_rank, b)| {
+            (a_rank, Reverse(a.meta.modified), &a.meta.title).cmp(&(
+                b_rank,
                 Reverse(b.meta.modified),
                 &b.meta.title,
             ))
         });
         hits.truncate(limit);
-        Ok(hits)
+        Ok(hits.into_iter().map(|(_, hit)| hit).collect())
     }
 
     /// The note with this title (compared case-insensitively), if any.
@@ -768,6 +793,17 @@ fn snippet_at(body: &str, at: usize) -> String {
     } else {
         format!("…{line}")
     }
+}
+
+/// How well a note matches a search, best first.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum Rank {
+    /// Every term in the title as written.
+    Title,
+    /// Every term in the title or its pinyin.
+    Pinyin,
+    /// Some term only in the body.
+    Body,
 }
 
 /// A text lowercased, with the way back to the original's byte offsets.

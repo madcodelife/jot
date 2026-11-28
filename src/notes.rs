@@ -73,8 +73,10 @@ impl Notes {
     }
 
     /// The notes whose title or body holds every word of `query` (case
-    /// does not matter), title matches first, then the most recently
-    /// modified; at most `limit`. An empty query lists the latest notes.
+    /// does not matter; a word in Latin letters also matches a Chinese title
+    /// by its pinyin), title matches first, then pinyin matches, then the
+    /// rest, each the most recently modified first; at most `limit`. An empty
+    /// query lists the latest notes.
     pub fn search(&self, query: String, limit: u32) -> Result<Vec<SearchHit>, JsError> {
         let hits = self
             .store
@@ -580,6 +582,9 @@ pub struct SearchHit {
     pub snippet: String,
     /// Whether every word of the query is in the title.
     pub title_match: bool,
+    /// Whether every word is in the title or spelled by the pinyin of its
+    /// Chinese, some only by pinyin (never with `title_match`).
+    pub pinyin_match: bool,
 }
 
 impl From<jot_store::SearchHit> for SearchHit {
@@ -588,6 +593,7 @@ impl From<jot_store::SearchHit> for SearchHit {
             meta: hit.meta.into(),
             snippet: hit.snippet,
             title_match: hit.title_match,
+            pinyin_match: hit.pinyin_match,
         }
     }
 }
