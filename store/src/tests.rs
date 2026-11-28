@@ -253,6 +253,74 @@ fn append_adds_a_paragraph() {
 }
 
 #[test]
+fn edit_replaces_the_one_place_of_a_text() {
+    let (_dir, store) = store();
+    assert!(matches!(
+        store.edit("Hosts", "a", "b"),
+        Err(StoreError::NotFound)
+    ));
+    let path = store.root().join("Hosts.md");
+    fs::write(&path, "---\nip: 10.0.0.1\n---\nnas 10.0.0.1\npi 10.0.0.2\n").unwrap();
+
+    // Once in the body: replaced there; the frontmatter (which holds it too) is never looked at.
+    let edited = store.edit("hosts", "10.0.0.1", "10.0.0.9").unwrap();
+    assert!(matches!(&edited, Edited::Done(meta) if meta.title == "Hosts"));
+    assert_eq!(
+        fs::read_to_string(&path).unwrap(),
+        "---\nip: 10.0.0.1\n---\nnas 10.0.0.9\npi 10.0.0.2\n"
+    );
+
+    // None, or more than once (overlapping places counted): nothing changes.
+    let before = fs::read_to_string(&path).unwrap();
+    assert_eq!(store.edit("Hosts", "ip:", "x").unwrap(), Edited::Matches(0));
+    assert_eq!(
+        store.edit("Hosts", "10.0.0", "x").unwrap(),
+        Edited::Matches(2)
+    );
+    assert_eq!(fs::read_to_string(&path).unwrap(), before);
+    // "haha" is in "hahaha" at two places that overlap.
+    fs::write(store.root().join("Laugh.md"), "hahaha\n").unwrap();
+    assert_eq!(
+        store.edit("Laugh", "haha", "x").unwrap(),
+        Edited::Matches(2)
+    );
+    assert_eq!(
+        fs::read_to_string(store.root().join("Laugh.md")).unwrap(),
+        "hahaha\n"
+    );
+
+    // Empty new text removes it; text across lines and in any script is matched as written.
+    store.edit("Hosts", "\npi 10.0.0.2", "").unwrap();
+    store.edit("Hosts", "nas", "群晖 NAS").unwrap();
+    store
+        .edit(
+            "Hosts",
+            "群晖 NAS 10.0.0.9\n",
+            "群晖 NAS 10.0.0.9\n\n备注：静态 IP\n",
+        )
+        .unwrap();
+    assert_eq!(
+        fs::read_to_string(&path).unwrap(),
+        "---\nip: 10.0.0.1\n---\n群晖 NAS 10.0.0.9\n\n备注：静态 IP\n"
+    );
+
+    // No text to look for, or a body that would become frontmatter: refused, nothing written.
+    assert!(matches!(
+        store.edit("Hosts", "", "x"),
+        Err(StoreError::Io(error)) if error.kind() == io::ErrorKind::InvalidInput
+    ));
+    fs::write(store.root().join("Plain.md"), "rule\ntext\n---\nmore\n").unwrap();
+    assert!(matches!(
+        store.edit("Plain", "rule", "---"),
+        Err(StoreError::Io(error)) if error.kind() == io::ErrorKind::InvalidInput
+    ));
+    assert_eq!(
+        fs::read_to_string(store.root().join("Plain.md")).unwrap(),
+        "rule\ntext\n---\nmore\n"
+    );
+}
+
+#[test]
 fn rename_moves_the_file() {
     let (_dir, store) = store();
     store.create("Old", "text", Source::User).unwrap();

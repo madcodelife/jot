@@ -1,5 +1,5 @@
-//! Drives the server through an MCP client over an in-memory transport: create → search → read → append, and
-//! add → list → complete → reschedule for to-dos.
+//! Drives the server through an MCP client over an in-memory transport: create → search → read → append → edit,
+//! and add → list → complete → reschedule for to-dos.
 
 use std::fs;
 
@@ -92,6 +92,7 @@ async fn create_search_read_append() {
             "append_note",
             "complete_todo",
             "create_note",
+            "edit_note",
             "list_todos",
             "read_note",
             "recent_notes",
@@ -856,6 +857,10 @@ async fn every_write_is_recorded_for_the_app() {
             "replace_note",
             serde_json::json!({ "title": "Plan", "body": "new plan" }),
         ),
+        (
+            "edit_note",
+            serde_json::json!({ "title": "plan", "old_text": "new", "new_text": "final" }),
+        ),
         ("trash_note", serde_json::json!({ "title": "Deploy" })),
         // Nothing written, nothing recorded: a failure, and a rewrite to the same text.
         (
@@ -864,7 +869,11 @@ async fn every_write_is_recorded_for_the_app() {
         ),
         (
             "replace_note",
-            serde_json::json!({ "title": "Plan", "body": "new plan" }),
+            serde_json::json!({ "title": "Plan", "body": "final plan" }),
+        ),
+        (
+            "edit_note",
+            serde_json::json!({ "title": "Plan", "old_text": "missing", "new_text": "x" }),
         ),
     ];
     for (tool, arguments) in calls {
@@ -891,6 +900,7 @@ async fn every_write_is_recorded_for_the_app() {
             ("complete", "待办"),
             ("reschedule", "待办"),
             ("replace", "Plan"),
+            ("edit", "Plan"),
             ("trash", "Deploy"),
         ]
     );
@@ -912,7 +922,7 @@ async fn every_write_is_recorded_for_the_app() {
                 .as_path()
         )
     );
-    let trashed = &records[7];
+    let trashed = &records[8];
     assert_eq!(trashed.previous, None);
     assert_eq!(
         trashed.in_trash.as_deref(),
@@ -921,6 +931,7 @@ async fn every_write_is_recorded_for_the_app() {
     assert!(
         records[..6]
             .iter()
+            .chain(&records[7..8])
             .all(|r| r.previous.is_none() && r.in_trash.is_none())
     );
     // One line each, as the app reads them.
@@ -928,4 +939,131 @@ async fn every_write_is_recorded_for_the_app() {
         fs::read_to_string(&activity).unwrap().lines().count(),
         records.len()
     );
+}
+
+#[tokio::test]
+async fn edit_changes_one_passage() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Store::open(dir.path()).unwrap();
+    let activity = dir.path().join(".activity.jsonl");
+    // The setting to remove and rewrite notes is off: editing does not need it.
+    let settings = dir.path().join(".ai.json");
+    let note = dir.path().join("Servers.md");
+    fs::write(
+        &note,
+        "---\nsource: user\nhost: nas\n---\n## nas\nIP 192.168.1.20\nuser admin\n\n## pi\nIP 192.168.1.30\nuser admin\n",
+    )
+    .unwrap();
+
+    let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
+    let log = activity.clone();
+    tokio::spawn(async move {
+        JotServer::new(store)
+            .with_activity_file(log)
+            .with_settings_file(settings)
+            .serve(server_transport)
+            .await
+            .unwrap()
+            .waiting()
+            .await
+            .unwrap();
+    });
+    let client = Client("claude-code").serve(client_transport).await.unwrap();
+    let instructions = client.peer_info().unwrap().instructions.clone().unwrap();
+    assert!(instructions.contains("edit_note"), "{instructions}");
+    let edit = |title: &str, old: &str, new: &str| serde_json::json!({ "title": title, "old_text": old, "new_text": new });
+
+    // Changed where it is: the rest of the note, and its frontmatter, stay as they are.
+    let (is_error, text) = call(
+        &client,
+        "edit_note",
+        edit("servers", "192.168.1.20", "192.168.1.25"),
+    )
+    .await;
+    assert!(!is_error, "{text}");
+    assert_eq!(text, "Changed the passage in the note \"Servers\".");
+    assert_eq!(
+        fs::read_to_string(&note).unwrap(),
+        "---\nsource: user\nhost: nas\n---\n## nas\nIP 192.168.1.25\nuser admin\n\n## pi\nIP 192.168.1.30\nuser admin\n"
+    );
+
+    // In it twice: nothing changes, and the count says to pass more of the text.
+    let (is_error, text) = call(
+        &client,
+        "edit_note",
+        edit("Servers", "user admin", "user pi"),
+    )
+    .await;
+    assert!(is_error);
+    assert!(text.contains("2 times"), "{text}");
+    // More of the text around it: found once.
+    let (is_error, text) = call(
+        &client,
+        "edit_note",
+        edit(
+            "Servers",
+            "192.168.1.30\nuser admin",
+            "192.168.1.30\nuser pi",
+        ),
+    )
+    .await;
+    assert!(!is_error, "{text}");
+
+    // Not there (the frontmatter is not searched): nothing changes, and it points to read_note.
+    for old in ["10.0.0.1", "host: nas"] {
+        let (is_error, text) = call(&client, "edit_note", edit("Servers", old, "x")).await;
+        assert!(is_error, "{old}: {text}");
+        assert!(text.contains("read_note"), "{text}");
+        assert!(text.contains("nothing was changed"), "{text}");
+    }
+
+    // An empty new text removes the passage.
+    let (is_error, text) = call(
+        &client,
+        "edit_note",
+        edit("Servers", "\n\n## pi\nIP 192.168.1.30\nuser pi", ""),
+    )
+    .await;
+    assert!(!is_error, "{text}");
+    assert!(text.starts_with("Removed the passage"), "{text}");
+    assert_eq!(
+        fs::read_to_string(&note).unwrap(),
+        "---\nsource: user\nhost: nas\n---\n## nas\nIP 192.168.1.25\nuser admin\n"
+    );
+
+    // Refused, changing nothing: no text to look for, the same text, a missing note, a change that would make a
+    // frontmatter block of the body.
+    fs::write(dir.path().join("Plain.md"), "rule\ntext\n---\nmore\n").unwrap();
+    for (title, old, new, says) in [
+        ("Servers", "", "x", "empty"),
+        ("Servers", "admin", "admin", "same"),
+        ("Nope", "a", "b", "search_notes"),
+        ("Plain", "rule\ntext", "---\ntext", "frontmatter"),
+    ] {
+        let (is_error, text) = call(&client, "edit_note", edit(title, old, new)).await;
+        assert!(is_error, "{title} {old:?}: {text}");
+        assert!(text.contains(says), "{text}");
+    }
+    assert_eq!(
+        fs::read_to_string(dir.path().join("Plain.md")).unwrap(),
+        "rule\ntext\n---\nmore\n"
+    );
+
+    // Each change is recorded; the refused ones are not. Nothing goes anywhere else.
+    let actions: Vec<String> = fs::read_to_string(&activity)
+        .unwrap()
+        .lines()
+        .map(|line| {
+            let record = jot_store::Activity::parse(line).unwrap();
+            format!("{} {}", record.action.as_str(), record.title)
+        })
+        .collect();
+    assert_eq!(actions, ["edit Servers", "edit Servers", "edit Servers"]);
+    let mut names: Vec<String> = fs::read_dir(dir.path())
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+        .filter(|name| !name.starts_with('.'))
+        .collect();
+    names.sort();
+    assert_eq!(names, ["Plain.md", "Servers.md"]);
 }

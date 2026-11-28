@@ -77,6 +77,8 @@ pub enum AgentAction {
     Create,
     /// Added text at a note's end.
     Append,
+    /// Changed one passage of a note's text.
+    Edit,
     /// Added a to-do to a note that was there.
     Todo,
     /// Checked a to-do off.
@@ -94,6 +96,7 @@ impl From<Action> for AgentAction {
         match action {
             Action::Create => AgentAction::Create,
             Action::Append => AgentAction::Append,
+            Action::Edit => AgentAction::Edit,
             Action::Todo => AgentAction::Todo,
             Action::Complete => AgentAction::Complete,
             Action::Reschedule => AgentAction::Reschedule,
@@ -108,6 +111,7 @@ impl From<AgentAction> for Action {
         match action {
             AgentAction::Create => Action::Create,
             AgentAction::Append => Action::Append,
+            AgentAction::Edit => Action::Edit,
             AgentAction::Todo => Action::Todo,
             AgentAction::Complete => Action::Complete,
             AgentAction::Reschedule => Action::Reschedule,

@@ -2,7 +2,7 @@
 //! folder, and keep their to-dos.
 //!
 //! The app can create a note (marked with its name from the MCP `initialize` handshake, `source: cursor`:
-//! `jot_store::Source::from_client`), append to one, add a to-do, check one off or move its reminder time. Two tools
+//! `jot_store::Source::from_client`), append to one, change one passage of one, add a to-do, check one off or move its reminder time. Two tools
 //! take something away, and only while the user allows it in Jot's settings (`jot_store::AiSettings`, read on every
 //! call): `trash_note` moves a note to the system trash, `replace_note` rewrites a whole note after putting its
 //! previous version in the trash; nothing is ever deleted for good. A note the user locked in Jot is read-only to
@@ -17,8 +17,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use jiff::civil::{Date, DateTime};
 use jot_store::{
-    Action, Activity, AiSettings, DEFAULT_TODO_NOTE, NoteMeta, Source, Store, StoreError, Todo,
-    when,
+    Action, Activity, AiSettings, DEFAULT_TODO_NOTE, Edited, NoteMeta, Source, Store, StoreError,
+    Todo, when,
 };
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
@@ -50,7 +50,10 @@ Write what the user asked for, briefly and in their words: a command, a decision
 summary. Never dump a conversation or long transcripts into a note. Do not store passwords, keys, tokens or other \
 sensitive personal information unless the user explicitly asks you to.
 
-Before creating a note, search for one on the same subject and append to it instead of making a near-duplicate.
+Before creating a note, search for one on the same subject and append to it instead of making a near-duplicate. \
+When a fact a note holds has changed (a machine's new address, a renamed account, a decision taken back), correct it \
+where it is with edit_note instead of appending a line that contradicts it: use append_note to add something new, \
+and replace_note only when the user asks for a whole note to be rewritten.
 
 To-dos are Markdown task lines (`- [ ] …`) in any note, with an optional reminder time; the Jot app notifies the \
 user when one comes due. Add one when the user asks to be reminded of something or to put something on their \
@@ -63,14 +66,16 @@ rewritten; you cannot unlock them: the user unlocks a note in Jot.";
 const ALLOWED: &str = "\
 The user allows you to remove and rewrite notes: trash_note moves a note to the macOS Trash and replace_note \
 rewrites a whole note, its previous version going to the Trash; the user can get either back from the Trash. Use \
-them only when the user asks you to delete or rewrite a note, and prefer append_note for adding to one. When the \
-user asks to remove many notes at once (\"delete all my notes\", \"全部清掉\", \"clear out the old ones\"), first list \
-the notes you would move to the Trash and ask the user to confirm, and move only those they confirm.";
+them only when the user asks you to delete or rewrite a note; prefer append_note for adding to one and edit_note \
+for changing part of it. When the user asks to remove many notes at once (\"delete all my notes\", \"全部清掉\", \
+\"clear out the old ones\"), first list the notes you would move to the Trash and ask the user to confirm, and move \
+only those they confirm.";
 const NOT_ALLOWED: &str = "\
 The user has not allowed you to remove or rewrite notes: trash_note and replace_note fail until they turn on \
 \"Allow AI apps to move notes to the Trash and rewrite notes\" in Jot › Settings › AI Apps. Tell the user so when \
-they ask you to delete or rewrite a note; do not work around it. If they turn it on, the same rules hold: use the \
-tools only when asked, and before removing many notes at once list them and ask the user to confirm.";
+they ask you to delete or rewrite a note; do not work around it. append_note and edit_note need no such setting. \
+If they turn it on, the same rules hold: use the tools only when asked, and before removing many notes at once list \
+them and ask the user to confirm.";
 
 /// The MCP server over one notes folder.
 #[derive(Debug, Clone)]
@@ -133,6 +138,19 @@ pub struct AppendParams {
     pub title: String,
     /// The text to add at the end, in Markdown. It goes after a blank line.
     pub text: String,
+}
+
+/// `edit_note`'s arguments.
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct EditParams {
+    /// The existing note's title, as search_notes or recent_notes returned it (case-insensitive).
+    pub title: String,
+    /// The text to change, exactly as read_note showed it (line breaks included): a passage of the note's text
+    /// that occurs in it only once. Take in a few words around the part that changes when that part alone may occur
+    /// more than once. The frontmatter is not searched.
+    pub old_text: String,
+    /// The text to put in its place, in Markdown. Empty removes the passage.
+    pub new_text: String,
 }
 
 /// `add_todo`'s arguments.
@@ -407,6 +425,74 @@ impl JotServer {
             Ok(meta) => {
                 self.record(&context, Action::Append, &meta.title, |a| a);
                 text(format!("Appended to the note \"{}\".", meta.title))
+            }
+            Err(StoreError::NotFound) => not_found(&params.title),
+            Err(error) => failure(&error, &params.title),
+        }
+    }
+
+    #[tool(
+        description = "Change one passage of an existing Jot note: the exact text `old_text` becomes `new_text` \
+            (an empty `new_text` removes it); the rest of the note stays as it is. Use it to correct or update a \
+            fact the note holds, such as a machine's new IP address or a changed setting, instead of appending a \
+            line that contradicts it. Read the note first with read_note and copy `old_text` from it exactly; it \
+            must occur in the note only once, so take in some surrounding words when needed. To add something \
+            new use append_note; to change a to-do use complete_todo or reschedule_todo.",
+        annotations(
+            title = "Edit note",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
+    )]
+    async fn edit_note(
+        &self,
+        Parameters(params): Parameters<EditParams>,
+        context: RequestContext<RoleServer>,
+    ) -> CallToolResult {
+        if params.old_text.is_empty() {
+            return error(
+                "`old_text` is empty: pass the text to change, exactly as read_note showed it. To add to the \
+                 note, use append_note."
+                    .to_owned(),
+            );
+        }
+        if params.old_text == params.new_text {
+            return error("`old_text` and `new_text` are the same; nothing to change.".to_owned());
+        }
+        match self
+            .downloaded(|| {
+                self.store
+                    .edit(&params.title, &params.old_text, &params.new_text)
+            })
+            .await
+        {
+            Ok(Edited::Done(meta)) => {
+                self.record(&context, Action::Edit, &meta.title, |a| a);
+                let done = if params.new_text.is_empty() {
+                    "Removed the passage from"
+                } else {
+                    "Changed the passage in"
+                };
+                text(format!("{done} the note \"{}\".", meta.title))
+            }
+            Ok(Edited::Matches(0)) => error(format!(
+                "`old_text` is not in the note \"{}\"; nothing was changed. Read it with read_note and copy \
+                 the text exactly as it is written there (the frontmatter is not searched).",
+                params.title.trim()
+            )),
+            Ok(Edited::Matches(times)) => error(format!(
+                "`old_text` occurs {times} times in the note \"{}\"; nothing was changed. Pass more of the \
+                 text around the part to change, so that it occurs only once.",
+                params.title.trim()
+            )),
+            Err(StoreError::Io(io)) if io.kind() == std::io::ErrorKind::InvalidInput => {
+                error(format!(
+                    "That change would make the note \"{}\" start with a `---` frontmatter block; nothing was \
+                 changed. Start it with something other than a `---` block.",
+                    params.title.trim()
+                ))
             }
             Err(StoreError::NotFound) => not_found(&params.title),
             Err(error) => failure(&error, &params.title),
@@ -776,7 +862,8 @@ impl JotServer {
             <date> <time>)\" (in the language Jot shows), where the user can get it back. The note's frontmatter \
             (who wrote it, …) stays as it is; `body` must not start with a `---` frontmatter block. Use it only \
             when the user asks you to rewrite, reorganize or clean up a note as a whole; to add to a note use \
-            append_note, to change a to-do use complete_todo or reschedule_todo. Read the note first. Works only \
+            append_note, to correct or update part of it edit_note, to change a to-do use complete_todo or \
+            reschedule_todo. Read the note first. Works only \
             while the user allows it in Jot › Settings › AI Apps, and never on a note the user locked in Jot.",
         annotations(
             title = "Rewrite note",

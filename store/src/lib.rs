@@ -114,6 +114,16 @@ pub struct SearchHit {
     pub title_match: bool,
 }
 
+/// What `Store::edit` did.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Edited {
+    /// The text was in the body once and is replaced (nothing is written when the new text is the same); the note
+    /// as it is now.
+    Done(NoteMeta),
+    /// The text is in the body this many times, none or more than once: nothing was changed.
+    Matches(usize),
+}
+
 /// Why a store operation failed.
 #[derive(Debug)]
 pub enum StoreError {
@@ -352,6 +362,49 @@ impl Store {
             } else {
                 format!("{kept}\n\n{added}\n")
             }
+        })
+    }
+
+    /// Replaces the one place `old` is in the note's body with `new` (empty `new` removes it); the frontmatter is
+    /// never looked at nor changed. When `old` is not in the body, or is in it more than once (overlapping places
+    /// counted), nothing changes and the count comes back (`Edited::Matches`). Fails with `NotFound` when no note
+    /// has this title, and with an `InvalidInput` I/O error for an empty `old` or when the body would then start
+    /// with a `---` frontmatter block of its own (it would become the note's frontmatter).
+    pub fn edit(&self, title: &str, old: &str, new: &str) -> Result<Edited, StoreError> {
+        if old.is_empty() {
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, "no text to replace").into());
+        }
+        let entry = self
+            .find(&clean_title(title)?)?
+            .ok_or(StoreError::NotFound)?;
+        let mut matches = 0;
+        let meta = self.try_rewrite(entry, |body| {
+            let places: Vec<usize> = body
+                .char_indices()
+                .map(|(index, _)| index)
+                .filter(|&index| body[index..].starts_with(old))
+                .collect();
+            matches = places.len();
+            let [at] = places[..] else {
+                return Ok(None);
+            };
+            let edited = format!("{}{new}{}", &body[..at], &body[at + old.len()..]);
+            if edited == body {
+                return Ok(None);
+            }
+            if split(&edited).frontmatter.is_some() && split(body).frontmatter.is_none() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "the body would start with a frontmatter block",
+                )
+                .into());
+            }
+            Ok(Some(edited))
+        })?;
+        Ok(if matches == 1 {
+            Edited::Done(meta)
+        } else {
+            Edited::Matches(matches)
         })
     }
 

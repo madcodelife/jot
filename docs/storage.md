@@ -131,6 +131,10 @@ impl Store {
     pub fn write(&self, title: &str, body: &str) -> Result<NoteMeta, StoreError>;
     /// Appends `text` after one blank line. Fails with `NotFound`.
     pub fn append(&self, title: &str, text: &str) -> Result<NoteMeta, StoreError>;
+    /// Replaces the one place `old` is in the body with `new` (empty removes it); the frontmatter is never searched.
+    /// None or several places (overlapping ones counted) change nothing: `Edited::Matches(count)`. `NotFound`; an
+    /// `InvalidInput` I/O error for an empty `old` or a body that would start with a `---` block. `edit_note` calls it.
+    pub fn edit(&self, title: &str, old: &str, new: &str) -> Result<Edited, StoreError>;
     /// Fails with `NotFound` / `AlreadyExists`.
     pub fn rename(&self, from: &str, to: &str) -> Result<NoteMeta, StoreError>;
     /// Deletes the file for good. Only the app calls it (the app's own delete goes through `trash`).

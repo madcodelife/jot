@@ -10,8 +10,8 @@
 //! ```
 //!
 //! `at` is the local time, `dir` the notes folder (absolute, links resolved), `agent` the app's name as Jot shows it,
-//! `action` what it did (`create`, `append`, `todo`, `complete`, `reschedule`, `replace`, `trash`), `title` the
-//! note's. `previous` is the name a rewritten note's previous version took in the trash, and `inTrash` where a
+//! `action` what it did (`create`, `append`, `edit`, `todo`, `complete`, `reschedule`, `replace`, `trash`), `title`
+//! the note's. `previous` is the name a rewritten note's previous version took in the trash, and `inTrash` where a
 //! trashed note (or that previous version) went, when the system says.
 //!
 //! Each line is one `write` to the file opened for appending, so lines from several `jot-mcp` processes never mix.
@@ -42,6 +42,8 @@ pub enum Action {
     Create,
     /// Added text at a note's end (`append_note`).
     Append,
+    /// Changed one passage of a note's text (`edit_note`).
+    Edit,
     /// Added a to-do to a note that was there (`add_todo`).
     Todo,
     /// Checked a to-do off (`complete_todo`).
@@ -60,6 +62,7 @@ impl Action {
         match self {
             Action::Create => "create",
             Action::Append => "append",
+            Action::Edit => "edit",
             Action::Todo => "todo",
             Action::Complete => "complete",
             Action::Reschedule => "reschedule",
@@ -73,6 +76,7 @@ impl Action {
         Some(match name {
             "create" => Action::Create,
             "append" => Action::Append,
+            "edit" => Action::Edit,
             "todo" => Action::Todo,
             "complete" => Action::Complete,
             "reschedule" => Action::Reschedule,
@@ -398,6 +402,7 @@ mod tests {
         for action in [
             Action::Create,
             Action::Append,
+            Action::Edit,
             Action::Todo,
             Action::Complete,
             Action::Reschedule,

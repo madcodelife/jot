@@ -52,7 +52,7 @@ module ActivityLog {                            // the log jot-mcp records AI ap
   path(): string | null;                        // ~/Library/Application Support/Jot/activity.jsonl; null without a home folder
   append(path: string, activity: AgentActivity): void;  // a line, as jot-mcp writes it (tests)
 }
-interface AgentActivity { at: string /* local, "2026-11-26T14:30:05" */; dir: string; agent: string /* "Claude Code" */; action: "create" | "append" | "todo" | "complete" | "reschedule" | "replace" | "trash"; title: string; previous?: string | null; inTrash?: string | null }
+interface AgentActivity { at: string /* local, "2026-11-26T14:30:05" */; dir: string; agent: string /* "Claude Code" */; action: "create" | "append" | "edit" | "todo" | "complete" | "reschedule" | "replace" | "trash"; title: string; previous?: string | null; inTrash?: string | null }
 // watchActivity starts at the log's end and reads only the lines added (a rotated log followed), keeping those whose
 // `dir` is the folder's, links resolved and, on the Mac, case aside.
 
@@ -182,11 +182,11 @@ How much it shows follows what was done:
   rise in one after another. While the note is written (`T.timing.islandSheen`, 1.3 s) a sheen sweeps the title. Then
   the colors give way to a green flash, the label says the note is saved, the avatar hops and the check pops in; after
   `T.timing.islandHold` the content lifts out and the island closes. Each step waits for the one before.
-- **Any other write**, said at once with no glow and no letters: "Claude · Added to" (`append`), "Added a to-do to"
-  (`todo`), "Completed a to-do in" (`complete`), "Changed a reminder in" (`reschedule`), each over the note's title; the
-  avatar falls, the check pops in as it lands, and the island closes after `T.timing.islandLightHold`. A rewrite
-  (`replace`) says "Rewrote · the old version is in the Trash" and stays `T.timing.islandReplaceHold`; a note moved to
-  the Trash (`trash`) says "Moved to the Trash".
+- **Any other write**, said at once with no glow and no letters: "Claude · Added to" (`append`), "Edited" (`edit`),
+  "Added a to-do to" (`todo`), "Completed a to-do in" (`complete`), "Changed a reminder in" (`reschedule`), each over
+  the note's title; the avatar falls, the check pops in as it lands, and the island closes after
+  `T.timing.islandLightHold`. A rewrite (`replace`) says "Rewrote · the old version is in the Trash" and stays
+  `T.timing.islandReplaceHold`; a note moved to the Trash (`trash`) says "Moved to the Trash".
 - **Several writes in a row** of one app to one note, each within `T.timing.islandMerge` (3 s) of the one before, are
   one island: one showing says the latest and its hold starts again (a new note still being written goes on), one
   waiting takes the latest in. A new note stays a new note; a note moved to the Trash says so.
@@ -375,7 +375,7 @@ the to-do view, the open note or the island's reminder is silent. Two of an AI a
 - a new note (`create`): a bright glass tap (`assets/new.wav`) as the island opens on it, with the glow (`next`);
 - a completed to-do (`complete`): a soft one (`assets/done.wav`) as its check pops in, once the avatar has landed.
 
-Every other write (`append`, `todo`, `reschedule`, `replace`, `trash`) is silent. Each island plays at most once
+Every other write (`append`, `edit`, `todo`, `reschedule`, `replace`, `trash`) is silent. Each island plays at most once
 (`sound` in Island.tsx, `sounded`): writes merged into it do not play it again; one that turns from another write into
 a completed to-do plays as it does if its check is already in, else when the check pops in, and never twice however it
 turns after. Nothing plays where nothing calls the island: with the island off in Settings (`islandOn`), on platforms

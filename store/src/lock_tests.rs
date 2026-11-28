@@ -193,6 +193,7 @@ fn a_locked_note_refuses_every_write() {
     let refused: Vec<(&str, Result<(), StoreError>)> = vec![
         ("write", f.store.write("plan", "gone").map(drop)),
         ("append", f.store.append("Plan", "more").map(drop)),
+        ("edit", f.store.edit("Plan", "call", "ring").map(drop)),
         (
             "set_todo_done",
             f.store

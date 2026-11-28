@@ -67,6 +67,7 @@ test("each kind of write says what the app did: a new note is written letter by 
 
   const kinds: [AgentAction, string, string][] = [
     ["append", "部署命令", "Claude Code · 追加到"],
+    ["edit", "服务器", "Claude Code · 改了一处"],
     ["todo", "待办", "Claude Code · 加了一条待办"],
     ["complete", "购物", "Claude Code · 勾选了一条待办"],
     ["reschedule", "账单", "Claude Code · 改了提醒时间"],

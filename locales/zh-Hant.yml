@@ -113,6 +113,7 @@ island:
   writing: "%{agent} · 正在記到 Jot"
   written: "%{agent} · 已記下"
   appended: "%{agent} · 追加到"
+  edited: "%{agent} · 改了一處"
   todo_added: "%{agent} · 加了一個待辦"
   todo_done: "%{agent} · 勾選了一個待辦"
   rescheduled: "%{agent} · 改了提醒時間"
