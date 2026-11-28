@@ -1071,6 +1071,7 @@ function WriteContent(props: { event: WriteEvent }) {
 /** What each write other than a new note says. */
 const DONE_LABEL: Record<Exclude<AgentAction, "create">, string> = {
   append: "island.appended",
+  edit: "island.edited",
   todo: "island.todo_added",
   complete: "island.todo_done",
   reschedule: "island.rescheduled",

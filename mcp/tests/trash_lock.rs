@@ -163,6 +163,7 @@ async fn the_tools_are_listed_with_their_hints() {
             "append_note",
             "complete_todo",
             "create_note",
+            "edit_note",
             "list_todos",
             "read_note",
             "recent_notes",
@@ -382,6 +383,10 @@ async fn a_locked_note_is_read_only() {
         (
             "append_note",
             serde_json::json!({ "title": "Passport", "text": "more" }),
+        ),
+        (
+            "edit_note",
+            serde_json::json!({ "title": "Passport", "old_text": "123", "new_text": "456" }),
         ),
         (
             "add_todo",

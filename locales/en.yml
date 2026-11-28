@@ -115,6 +115,7 @@ island:
   writing: "%{agent} · Writing to Jot"
   written: "%{agent} · Saved to Jot"
   appended: "%{agent} · Added to"
+  edited: "%{agent} · Edited"
   todo_added: "%{agent} · Added a to-do to"
   todo_done: "%{agent} · Completed a to-do in"
   rescheduled: "%{agent} · Changed a reminder in"

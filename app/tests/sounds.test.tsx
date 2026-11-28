@@ -71,6 +71,9 @@ test("an AI app's completed to-do plays the done sound once, as the check pops i
   wrote(log, dir, "append", "部署命令");
   await islandSays(app, "Claude Code · 追加到");
   expect(played(app)).toEqual([]);
+  wrote(log, dir, "edit", "服务器");
+  await islandSays(app, "Claude Code · 改了一处");
+  expect(played(app)).toEqual([]);
 
   wrote(log, dir, "complete", "购物");
   await app.waitUntil(() => app.texts().includes("Claude Code · 勾选了一条待办"));

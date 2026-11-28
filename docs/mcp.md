@@ -51,15 +51,18 @@ instructions say how the setting stood as the app connected, to use the tools on
 notes and ask before removing many at once. `replace_note` refuses an empty body and a body that starts with a `---`
 frontmatter block (it would become the note's frontmatter); the note's own frontmatter is kept.
 
+`edit_note` is not one of them: changing one passage is an ordinary write like `append_note`, works whatever the
+setting and puts nothing in the Trash ([below](#mcp-tools-mcp)).
+
 The switch is about Jot's tools: an app that runs shell commands can edit the file, or the notes, itself; locking
 a note is what keeps it as it is.
 
 ## MCP tools (mcp/)
 
 MCP tools (mcp/) never wait on a download unbounded: a tool that needs a note's text (`read_note`, `append_note`,
-`add_todo`, `complete_todo`, `reschedule_todo`) waits up to 20 s for a note iCloud is downloading, then says it is
-still downloading (`NotDownloaded`); listings mark such a note "not downloaded to this Mac yet"; `read_note`
-mentions conflict versions iCloud kept.
+`edit_note`, `add_todo`, `complete_todo`, `reschedule_todo`) waits up to 20 s for a note iCloud is downloading, then
+says it is still downloading (`NotDownloaded`); listings mark such a note "not downloaded to this Mac yet";
+`read_note` mentions conflict versions iCloud kept.
 
 MCP tools (mcp/) on a locked note: reading, searching, listing and `list_todos` go on (listings and `read_note` say
 "locked in Jot (read-only)"); every tool that writes fails with "locked in Jot … the user unlocks it in Jot first".
@@ -72,6 +75,16 @@ Chinese, English or Japanese; without `due`, a phrase in `text` becomes the time
 `reschedule_todo(note, text, due)` (`due` required: ISO or a phrase `when::parse` reads; `null` removes the reminder;
 only the `⏰` part of the line changes). The last two find the open to-do the same way: the exact text, else the one
 whose text holds it; several or none fail, listing the candidates.
+
+MCP tools (mcp/): `edit_note(title, old_text, new_text)` changes one passage of a note, so an app corrects a fact (a
+machine's new IP) where it is instead of appending a line that contradicts it or rewriting the whole note
+(`Store::edit`). `old_text` is matched exactly, line breaks included, in the body only: the frontmatter is never
+searched nor changed. It must be there once: none fails saying it was not found (read the note with `read_note`),
+several fail with the count (pass more of the text around it), overlapping places counted. An empty `new_text`
+removes the passage. Refused, changing nothing: an empty `old_text`, a `new_text` the same as it, and a change that
+would make the body start with a `---` block (it would become the frontmatter). It is annotated like `append_note`
+(not destructive, not idempotent). The server's instructions say to use it to fix or update a fact in an existing
+note, `append_note` to add something, and `replace_note` only for a whole rewrite the user asked for.
 
 ## The activity log (store/src/activity.rs, mcp/)
 
@@ -91,9 +104,9 @@ neither who wrote it nor on which Mac (one an AI app made on another Mac arrives
   `at` is the local time; `dir` the notes folder, absolute with links resolved; `agent` the app's name as Jot shows it
   (`Source::label` of the `initialize` handshake's `clientInfo.name`: "Claude Code", "Cursor", or the name an unknown
   app gave); `title` the note's. `action`: `create` (`create_note`, and `add_todo` into a note it made), `append`
-  (`append_note`), `todo` (`add_todo` into a note that was there), `complete` (`complete_todo`), `reschedule`
-  (`reschedule_todo`), `replace` (`replace_note`; `previous` is the name the old version took in the Trash) or `trash`
-  (`trash_note`). `inTrash` is where the trashed note (or the old version) went, when the system says.
+  (`append_note`), `edit` (`edit_note`), `todo` (`add_todo` into a note that was there), `complete`
+  (`complete_todo`), `reschedule` (`reschedule_todo`), `replace` (`replace_note`; `previous` is the name the old
+  version took in the Trash) or `trash` (`trash_note`). `inTrash` is where the trashed note (or the old version) went, when the system says.
 - **Writing**: each line is one `write` to the file opened for appending (`O_APPEND`), so lines from several
   `jot-mcp` processes (one per AI app) never mix. Past about 256 KB (`ROTATE_AT`) the file is renamed
   `activity.1.jsonl`, over the one before, and a new one is started. A record that cannot be written is left out

@@ -90,7 +90,8 @@ app is running.
 Its instructions tell the model to search the notes not only when the user asks about them, but also before guessing
 at or asking for a fact about the user's own things that the conversation does not give: which machine, its address
 or login, an account, an earlier decision. "Check my Ubuntu machine" should find the note with its login before the
-model tries usernames.
+model tries usernames. They also say how to change what a note holds: `edit_note` to correct or update a fact where
+it is, `append_note` to add something new, `replace_note` only for a whole rewrite the user asked for.
 
 | Tool | What it does |
 |---|---|
@@ -99,6 +100,7 @@ model tries usernames.
 | `recent_notes(limit?)` | Lists the most recently modified notes |
 | `create_note(title, body)` | Creates a note, marked with the app's name; fails if the title exists, suggesting `append_note` instead |
 | `append_note(title, text)` | Appends a paragraph to the end of an existing note |
+| `edit_note(title, old_text, new_text)` | Changes one passage of a note's body: `old_text`, which must occur in it exactly once, becomes `new_text` (empty removes it); the frontmatter is never touched. For correcting a fact in place (a machine's new IP) instead of appending a line that contradicts it; an ordinary write, needing no permission |
 | `add_todo(text, due?, note?)` | Adds a to-do; `due` is an ISO time, and without `note` it goes to the note "待办" (To-dos) |
 | `list_todos(range?)` | Lists open to-dos: `overdue` / `today` / `upcoming` / `all`, with their times and notes |
 | `complete_todo(note, text)` | Checks off a to-do (only its checkbox changes; nothing is deleted) |

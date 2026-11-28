@@ -114,6 +114,7 @@ island:
   writing: "%{agent} · Jot に書き込み中"
   written: "%{agent} · 保存しました"
   appended: "%{agent} · 追記しました"
+  edited: "%{agent} · 一部を編集しました"
   todo_added: "%{agent} · やることを追加しました"
   todo_done: "%{agent} · やることを完了にしました"
   rescheduled: "%{agent} · リマインダーの時刻を変更しました"

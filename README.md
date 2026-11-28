@@ -113,6 +113,7 @@ that page shows, or write it by hand:
 | `recent_notes(limit?)` | The most recently modified notes |
 | `create_note(title, body)` | Create a note, marked with the app's name |
 | `append_note(title, text)` | Append to a note |
+| `edit_note(title, old_text, new_text)` | Change one passage of a note, such as a machine's new address |
 | `add_todo(text, due?, note?)` | Add a to-do; `due` is an ISO local time or a phrase such as `tomorrow 3pm` or `明天 9点` |
 | `list_todos(range?)` | Open to-dos: `overdue`, `today`, `upcoming` or `all` (default: today's and overdue) |
 | `complete_todo(note, text)` | Check off a to-do |
