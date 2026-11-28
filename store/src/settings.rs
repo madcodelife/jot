@@ -17,8 +17,8 @@ pub struct AiSettings {
     /// AI apps may move notes to the trash (`trash_note`) and rewrite whole notes (`replace_note`). Off unless the
     /// user turned it on.
     pub allow_trash_and_rewrite: bool,
-    /// The language Jot shows in (`zh-Hans`, `zh-Hant`, `en`, `ja`): what `jot-mcp` names a note's previous version
-    /// in. `None`: English.
+    /// The language Jot shows in (`zh-Hans`, `zh-Hant`, `en`, `ja`). `jot-mcp` reads nothing from it now: it named a
+    /// rewritten note's previous version in the trash, which the note's version history keeps instead. `None`: English.
     pub language: Option<String>,
 }
 

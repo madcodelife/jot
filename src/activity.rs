@@ -63,10 +63,11 @@ pub struct AgentActivity {
     pub action: AgentAction,
     /// The note's title.
     pub title: String,
-    /// `replace`: the name the note's previous version took in the trash.
+    /// `replace` from an older `jot-mcp`: the name the note's previous
+    /// version took in the trash (now it is in the note's version history).
     pub previous: Option<String>,
-    /// `trash`, `replace`: where the note (or its previous version) is in
-    /// the trash, when the system said.
+    /// `trash`: where the note is in the trash, when the system said (and,
+    /// from an older `jot-mcp`, a `replace`'s previous version).
     pub in_trash: Option<String>,
 }
 
@@ -83,7 +84,7 @@ pub enum AgentAction {
     Complete,
     /// Moved a to-do's reminder time, or removed it.
     Reschedule,
-    /// Rewrote a whole note, its previous version going to the trash.
+    /// Rewrote a whole note, its previous version kept in its version history.
     Replace,
     /// Moved a note to the trash.
     Trash,

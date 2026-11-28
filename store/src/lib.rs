@@ -24,6 +24,7 @@ mod activity;
 mod cloud;
 mod conflict;
 mod frontmatter;
+mod history;
 mod icon;
 mod import;
 mod lock;
@@ -36,6 +37,7 @@ pub mod when;
 
 pub use activity::{Action, Activity, ActivityTail, ROTATE_AT, watch_activity};
 pub use conflict::{Conflict, Resolution, Resolved};
+pub use history::{KEPT, KEPT_FOR, QUIET, Version};
 pub use icon::Icon;
 pub use import::{APPLE_NOTES_ID, ImportNote, Imported};
 pub use jiff::civil::DateTime;
@@ -62,6 +64,8 @@ pub struct Store {
     cloud: Arc<dyn cloud::Cloud>,
     /// Where trashed notes go: the system trash, or a folder in tests.
     bin: Arc<dyn trash::Bin>,
+    /// Where the notes' earlier versions are kept, if anywhere. See `history`.
+    history: history::History,
 }
 
 impl PartialEq for Store {
@@ -221,6 +225,7 @@ impl Store {
             root,
             cloud,
             bin: Arc::new(trash::SystemBin),
+            history: history::History::off(),
         })
     }
 
@@ -375,6 +380,8 @@ impl Store {
         if path != source.path {
             fs::rename(&source.path, &path)?;
         }
+        // Its versions go along.
+        self.move_history(&source.title, &to);
         let (meta, _) = self.load(&Entry::new(to, path))?;
         Ok(meta)
     }
@@ -484,7 +491,8 @@ impl Store {
     }
 
     /// Rewrites a note's body with `edit`, keeping its frontmatter; leaves the file untouched when `edit`
-    /// returns `None` or fails, or the note is locked (`Locked`).
+    /// returns `None` or fails, or the note is locked (`Locked`). A change of the text keeps the text before in the
+    /// note's history (`history`: unless a version was saved a moment ago).
     fn try_rewrite(
         &self,
         entry: Entry,
@@ -502,11 +510,14 @@ impl Store {
             let (meta, _) = self.load(&entry)?;
             return Ok(meta);
         };
-        let permissions = retry(|| fs::metadata(&entry.path))?.permissions();
+        let metadata = retry(|| fs::metadata(&entry.path))?;
+        if body != parts.body {
+            self.keep_version(&entry, &content, metadata.modified()?);
+        }
         self.write_file(
             &entry.path,
             &compose(parts.header, &body),
-            Some(permissions),
+            Some(metadata.permissions()),
             None,
         )?;
         let (meta, _) = self.load(&entry)?;
@@ -801,6 +812,8 @@ impl Lowered {
 
 #[cfg(test)]
 mod cloud_tests;
+#[cfg(test)]
+mod history_tests;
 #[cfg(test)]
 mod icon_tests;
 #[cfg(test)]

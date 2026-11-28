@@ -57,6 +57,48 @@ impl Notes {
         })
     }
 
+    /// Keeps the notes' earlier versions in `folder` (`VersionHistory.path()`,
+    /// a leading `~/` the home folder), in a folder of this notes folder's
+    /// own: before a change of a note's text, its text as it was goes there
+    /// (unless a version was kept a moment ago), and `versions` lists them.
+    pub fn keep_history(&mut self, folder: String) {
+        self.store = self.store.clone().with_history_folder(expand_home(&folder));
+    }
+
+    /// The note's earlier versions, newest first (none without a history,
+    /// `keepHistory`).
+    pub fn versions(&self, title: String) -> Result<Vec<NoteVersion>, JsError> {
+        let versions = self
+            .store
+            .versions(&title)
+            .map_err(|e| store_error(e, format_args!("cannot read the history of {title:?}")))?;
+        Ok(versions.into_iter().map(NoteVersion::from).collect())
+    }
+
+    /// Keeps the note's text as it is now in its history, whenever the last
+    /// version was kept: before the open note takes an earlier version back
+    /// as an edit. Throws `ERR_JOT_NOT_FOUND`, `ERR_JOT_NOT_DOWNLOADED`, and
+    /// when there is no history or it cannot be written.
+    pub fn save_version(&mut self, title: String) -> Result<NoteVersion, JsError> {
+        let version = self
+            .store
+            .save_version(&title)
+            .map_err(|e| store_error(e, format_args!("cannot keep a version of {title:?}")))?;
+        Ok(version.into())
+    }
+
+    /// Puts the version `id` back as the note's text (its frontmatter, its
+    /// lock and emoji, stay), its text now kept in its history first.
+    /// Throws `ERR_JOT_LOCKED`, `ERR_JOT_NOT_FOUND` (the note or the version
+    /// is gone), `ERR_JOT_NOT_DOWNLOADED`.
+    pub fn restore_version(&mut self, title: String, id: String) -> Result<NoteMeta, JsError> {
+        let meta = self
+            .store
+            .restore_version(&title, &id)
+            .map_err(|e| store_error(e, format_args!("cannot restore a version of {title:?}")))?;
+        Ok(meta.into())
+    }
+
     /// The folder's path.
     #[getter]
     pub fn dir(&self) -> String {
@@ -541,6 +583,31 @@ pub struct ResolvedConflict {
     pub note: NoteMeta,
     /// The other version's own note, for `"both"`.
     pub copy: Option<NoteMeta>,
+}
+
+/// An earlier text of a note, kept in its history.
+#[derive(Debug, Clone, PartialEq, JsObject)]
+pub struct NoteVersion {
+    /// What `Notes.restoreVersion` takes.
+    pub id: String,
+    /// When it was kept, in milliseconds since the Unix epoch.
+    pub saved: f64,
+    /// When the note had last changed before: the time its text is from,
+    /// in milliseconds since the Unix epoch.
+    pub modified: f64,
+    /// The Markdown after the frontmatter.
+    pub body: String,
+}
+
+impl From<jot_store::Version> for NoteVersion {
+    fn from(version: jot_store::Version) -> Self {
+        NoteVersion {
+            id: version.id,
+            saved: millis(version.saved),
+            modified: millis(version.modified),
+            body: version.body,
+        }
+    }
 }
 
 /// A note `Notes.trash` moved to the system trash.

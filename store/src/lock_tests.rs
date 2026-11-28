@@ -1,4 +1,4 @@
-//! Locked notes (`lock.rs`), the trash as a folder, and `replace`. The flag is the real one (`chflags`) on macOS;
+//! Locked notes (`lock.rs`) and the trash as a folder. The flag is the real one (`chflags`) on macOS;
 //! each test clears it again before its temporary folder goes, which the system would refuse to delete otherwise.
 
 use std::fs;
@@ -21,7 +21,8 @@ impl Fixture {
         let dir = tempfile::tempdir().unwrap();
         let store = Store::open(dir.path().join("Jot"))
             .unwrap()
-            .with_trash_folder(dir.path().join("Trash"));
+            .with_trash_folder(dir.path().join("Trash"))
+            .with_history_folder(dir.path().join("History"));
         Fixture { dir, store }
     }
 
@@ -212,11 +213,10 @@ fn a_locked_note_refuses_every_write() {
         ("rename", f.store.rename("Plan", "Other").map(drop)),
         ("trash", f.store.trash("Plan").map(drop)),
         ("delete", f.store.delete("Plan")),
+        ("replace", f.store.replace("Plan", "new").map(drop)),
         (
-            "replace",
-            f.store
-                .replace("Plan", "new", |t| format!("{t} (before)"))
-                .map(drop),
+            "restore_version",
+            f.store.restore_version("Plan", "1").map(drop),
         ),
     ];
     for (what, result) in refused {
@@ -386,69 +386,6 @@ fn trash_to_a_folder_and_back() {
         fs::read_to_string(f.path("Passport")).unwrap(),
         "---\nsource: claude\n---\nExpires in May"
     );
-}
-
-#[test]
-fn replace_puts_the_old_version_in_the_trash() {
-    let f = Fixture::new();
-    f.write(
-        "Plan",
-        "---\nsource: \"https://example.com\"\nkeep: me\n---\nold text\n",
-        100,
-    );
-    let replaced = f
-        .store
-        .replace("plan", "new text\n", |title| {
-            format!("{title} (before rewrite · 2026-11-25 14.30)")
-        })
-        .unwrap();
-    assert_eq!(
-        fs::read_to_string(f.path("Plan")).unwrap(),
-        "---\nsource: \"https://example.com\"\nkeep: me\n---\nnew text\n",
-        "the frontmatter stays as it was"
-    );
-    assert_eq!(replaced.note.title, "Plan");
-    assert_eq!(replaced.note.preview, "new text");
-    let previous = replaced.previous.unwrap();
-    assert_eq!(previous.title, "Plan (before rewrite · 2026-11-25 14.30)");
-    let in_trash = previous.in_trash.unwrap();
-    assert_eq!(
-        in_trash,
-        f.trash()
-            .join("Plan (before rewrite · 2026-11-25 14.30).md")
-    );
-    assert_eq!(
-        fs::read_to_string(&in_trash).unwrap(),
-        "---\nsource: \"https://example.com\"\nkeep: me\n---\nold text\n",
-        "the whole file as it was"
-    );
-    assert_eq!(
-        fs::metadata(&in_trash).unwrap().modified().unwrap(),
-        at(100)
-    );
-    // Nothing else showed up in the notes folder.
-    assert_eq!(titles(&f.store.list().unwrap()), ["Plan"]);
-
-    // The same body again: nothing changes, nothing goes to the trash.
-    let before = f.snapshot("Plan");
-    let same = f
-        .store
-        .replace("Plan", "new text\n", |t| format!("{t} (again)"))
-        .unwrap();
-    assert!(same.previous.is_none());
-    assert_eq!(f.snapshot("Plan"), before);
-    assert_eq!(fs::read_dir(f.trash()).unwrap().count(), 1);
-
-    assert!(matches!(
-        f.store.replace("Nothing", "x", |t| t.to_owned()),
-        Err(StoreError::NotFound)
-    ));
-    // A name the folder could not take: the note stays.
-    assert!(matches!(
-        f.store.replace("Plan", "x", |_| ".hidden".to_owned()),
-        Err(StoreError::InvalidTitle)
-    ));
-    assert_eq!(f.snapshot("Plan"), before);
 }
 
 #[test]

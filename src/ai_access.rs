@@ -26,7 +26,7 @@ impl AiAccess {
     }
 
     /// Writes the setting, with the language Jot shows in (`"zh-Hans"`,
-    /// `"en"`, …: what a rewritten note's previous version is named in).
+    /// `"en"`, …; kept in the file, which `jot-mcp` no longer reads it from).
     /// Throws when the file cannot be written.
     pub fn set(allow_trash_and_rewrite: bool, language: String) -> Result<(), JsError> {
         let path = AiSettings::default_path()

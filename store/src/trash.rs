@@ -15,7 +15,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::SystemTime;
 
-use crate::{EXTENSION, Entry, NoteMeta, Store, StoreError, clean_title, compose, retry, split};
+use crate::{
+    EXTENSION, Entry, NoteMeta, Store, StoreError, Version, clean_title, compose, retry, split,
+};
 
 /// Where trashed files go.
 pub(crate) trait Bin: Send + Sync + fmt::Debug {
@@ -69,9 +71,9 @@ impl Bin for FolderBin {
 pub struct Replaced {
     /// The note, with its new body.
     pub note: NoteMeta,
-    /// The version before, as it went to the trash under its own name (`title`); `None` when the body was the
-    /// same already and nothing changed.
-    pub previous: Option<Trashed>,
+    /// The version before, as it was saved to the note's history; `None` when the body was the same already and
+    /// nothing changed.
+    pub previous: Option<Version>,
 }
 
 /// A note moved to the system trash: what it takes to bring it back.
@@ -141,17 +143,11 @@ impl Store {
         Ok(meta)
     }
 
-    /// Rewrites the whole body of the note, its frontmatter kept as it is. The file as it was (frontmatter
-    /// included, its modification time kept) goes to the trash first, under the name `previous` makes of the
-    /// note's title (`Title (before rewrite · 2026-11-25 14.30)`; a name the folder could not take fails with
-    /// `InvalidTitle`), so it can be put back; if that fails, the note stays as it was. A body that is the note's
-    /// already changes nothing (`Replaced::previous` is `None`). Fails with `NotFound`, `NotDownloaded`, `Locked`.
-    pub fn replace(
-        &self,
-        title: &str,
-        body: &str,
-        previous: impl FnOnce(&str) -> String,
-    ) -> Result<Replaced, StoreError> {
+    /// Rewrites the whole body of the note, its frontmatter kept as it is. The file as it was goes to the note's
+    /// version history first (`history`), whenever the last version was saved; if that fails (no history, a full
+    /// disk), the note stays as it was and the error is returned. A body that is the note's already changes nothing
+    /// (`Replaced::previous` is `None`). Fails with `NotFound`, `NotDownloaded`, `Locked`.
+    pub fn replace(&self, title: &str, body: &str) -> Result<Replaced, StoreError> {
         let entry = self
             .find(&clean_title(title)?)?
             .ok_or(StoreError::NotFound)?;
@@ -166,18 +162,7 @@ impl Store {
             });
         }
         let metadata = retry(|| fs::metadata(&entry.path))?;
-        let modified = metadata.modified()?;
-        let name = clean_title(&previous(&entry.title))?;
-        // The old file is written anew under its new name outside the notes folder (no note shows up there for a
-        // moment), then trashed from there.
-        let staging = tempfile::Builder::new().prefix("jot-previous-").tempdir()?;
-        let old = staging.path().join(format!("{name}.{EXTENSION}"));
-        fs::write(&old, &content)?;
-        fs::File::options()
-            .write(true)
-            .open(&old)?
-            .set_modified(modified)?;
-        let in_trash = self.bin.put(&old)?;
+        let previous = self.snapshot(&entry.title, &content, metadata.modified()?)?;
         self.write_file(
             &entry.path,
             &compose(parts.header, body),
@@ -187,12 +172,7 @@ impl Store {
         let (note, _) = self.load(&entry)?;
         Ok(Replaced {
             note,
-            previous: Some(Trashed {
-                title: name,
-                in_trash,
-                content,
-                modified,
-            }),
+            previous: Some(previous),
         })
     }
 
