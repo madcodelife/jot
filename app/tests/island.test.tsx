@@ -87,7 +87,8 @@ type Seen = { opens: number; open: boolean };
 
 /**
  * Counts the island's openings, looking every 50 ms for `ms` (it stays shut 420 ms between two islands), and runs
- * `each` at every look.
+ * `each` at every look. Timed by the clock, not by the looks: on a slow machine a look takes longer than its wait, and
+ * counting them ran the test past its 30 s.
  */
 async function countOpens(
   app: { wait(ms: number): Promise<void>; layout(selector: string): { height: number } | null },
@@ -95,7 +96,8 @@ async function countOpens(
   each: () => void = () => {},
 ): Promise<Seen> {
   const seen = { opens: 0, open: false };
-  for (let waited = 0; waited < ms; waited += 50) {
+  const until = Date.now() + ms;
+  while (Date.now() < until) {
     const open = (app.layout("id:island")?.height ?? 0) > 60;
     if (open && !seen.open) seen.opens++;
     seen.open = open;
