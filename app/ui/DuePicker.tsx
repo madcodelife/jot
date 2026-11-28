@@ -4,17 +4,17 @@
 // choices first, as Things, Reminders and Raycast offer them (in an hour,
 // this evening, tomorrow morning, next Monday morning; past ones hidden),
 // then a calendar and a time field for any time, set with ⌘↩, and "Remove
-// Reminder" when there is one. It opens with the first choice focused:
+// Reminder" when there is one ("Remove Repeat" too, for a repeating one). It opens with the first choice focused:
 // ↑↓ move among the choices, Return picks, Tab goes on to the calendar
 // (its arrows move the day) and the time field, Escape closes.
 import { Animated, createAnimatedValue, effect, keymap, localeSettings, Overlay, reduceMotion, signal, Text, token, untracked, View, type ViewRef } from "nsh";
 import { Button, Calendar, TimeField, type CalendarEntry } from "nsh/base";
 import { t } from "nsh/i18n";
-import { closeDuePicker, duePicker, pickDue, type DuePickerState } from "../due";
+import { closeDuePicker, duePicker, pickDue, removeRepeat, type DuePickerState } from "../due";
 import { shownLanguage } from "../i18n";
 import { defaultTime } from "../settings";
 import { now, opened, stage, todoMode } from "../store";
-import { dueLabel, isoDay, parseDue, quickChoices, type QuickChoice } from "../time";
+import { dueLabel, isoDay, parseDue, quickChoices, repeatLabel, type QuickChoice } from "../time";
 import { Icon } from "./icons";
 import { springConfig } from "./motion";
 import { Keycaps } from "./parts";
@@ -58,12 +58,19 @@ function Picker(props: { state: DuePickerState }) {
   const hourCycle = untracked(localeSettings).hourCycle;
   const twelve = hourCycle === "h12" || hourCycle === "h11";
 
-  /** The rows ↑↓ move among: the quick choices, then "Remove Reminder" when there is one. */
-  const rows: (QuickChoice | "remove")[] = [...choices, ...(current ? (["remove"] as const) : [])];
+  const repeat = props.state.repeat;
+  /** The rows ↑↓ move among: the quick choices, then "Remove Repeat" and "Remove Reminder" when there are. */
+  const rows: (QuickChoice | "repeat" | "remove")[] = [
+    ...choices,
+    ...(repeat ? (["repeat"] as const) : []),
+    ...(current ? (["remove"] as const) : []),
+  ];
   const refs: (ViewRef | undefined)[] = [];
   const focused = signal<number | null>(null);
 
-  const run = (row: QuickChoice | "remove") => pickDue(row === "remove" ? null : row.at);
+  const run = (row: QuickChoice | "repeat" | "remove") => (row === "repeat" ? removeRepeat() : pickDue(row === "remove" ? null : row.at));
+  /** The row index of a foot row ("repeat" or "remove"). */
+  const footAt = (row: "repeat" | "remove") => rows.indexOf(row);
   const setCustom = () => pickDue(at(untracked(day), untracked(time)));
 
   // In: the action panel's motion, a quick fade with the summon spring; with reduced motion, the fade alone.
@@ -147,6 +154,16 @@ function Picker(props: { state: DuePickerState }) {
             >
               {current ? dueLabel(current, null, today) : t("due.none")}
             </Text>
+            <If when={repeat}>
+              {(rule) => (
+                <View testID="due-repeat" class="flex-row items-center" style={{ gap: 4 }}>
+                  <Icon name="repeat" size={11} tint={token("due")} />
+                  <Text class="text-due" style={{ numberOfLines: 1, fontSize: T.type.meta }}>
+                    {repeatLabel(rule())}
+                  </Text>
+                </View>
+              )}
+            </If>
           </View>
           <Each of={choices} key={(c) => c.id}>
             {(choice, index) => (
@@ -167,18 +184,33 @@ function Picker(props: { state: DuePickerState }) {
             )}
           </Each>
           <View class="flex-1" style={{ minHeight: 8 }} />
+          <If when={repeat}>
+            <ChoiceRow
+              testID="due-remove-repeat"
+              label={t("due.remove_repeat")}
+              destructive
+              focused={focused() === footAt("repeat")}
+              nodeRef={(r) => {
+                refs[footAt("repeat")] = r;
+                if (footAt("repeat") === 0) setTimeout(() => r.focus(), 0);
+              }}
+              onFocus={() => focused.set(footAt("repeat"))}
+              onBlur={() => focused.update((f) => (f === footAt("repeat") ? null : f))}
+              onPress={() => run("repeat")}
+            />
+          </If>
           <If when={current}>
             <ChoiceRow
               testID="due-remove"
               label={t("due.remove")}
               destructive
-              focused={focused() === choices.length}
+              focused={focused() === footAt("remove")}
               nodeRef={(r) => {
-                refs[choices.length] = r;
-                if (!choices.length) setTimeout(() => r.focus(), 0);
+                refs[footAt("remove")] = r;
+                if (footAt("remove") === 0) setTimeout(() => r.focus(), 0);
               }}
-              onFocus={() => focused.set(choices.length)}
-              onBlur={() => focused.update((f) => (f === choices.length ? null : f))}
+              onFocus={() => focused.set(footAt("remove"))}
+              onBlur={() => focused.update((f) => (f === footAt("remove") ? null : f))}
               onPress={() => run("remove")}
             />
           </If>

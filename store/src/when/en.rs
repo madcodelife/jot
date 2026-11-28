@@ -10,6 +10,7 @@ use jiff::ToSpan as _;
 use jiff::civil::{Date, Weekday};
 
 use super::{Clock, DateHit, Period, Week, digits, month_day_date, skip_spaces, weekday_date};
+use crate::repeat::Repeat;
 
 /// `Fri`.
 pub(super) fn weekday_short(weekday: Weekday) -> &'static str {
@@ -66,6 +67,28 @@ fn words(text: &str, start: usize, words: &[&str]) -> Option<usize> {
         end = word(text, end, w)?;
     }
     Some(end)
+}
+
+/// A rule: `every day`, `every weekday`, `every week`, `every month`, `every year`, as its end, the rule and whether
+/// a date follows that belongs to it: `every monday` is `every` before the date `monday` (Monday's week).
+pub(super) fn rule(text: &str, start: usize, today: Date) -> Option<(usize, Repeat, bool)> {
+    let after = word(text, start, "every")?;
+    let pos = skip_spaces(text, after);
+    if pos == after {
+        return None;
+    }
+    if let Some(found) = Repeat::ALL
+        .iter()
+        .find_map(|repeat| Some((word(text, pos, repeat.name())?, *repeat, false)))
+    {
+        return Some(found);
+    }
+    // Only a plain weekday: not `every next friday`.
+    if word(text, pos, "next").is_none() && word(text, pos, "this").is_none() {
+        weekday_at(text, pos, today, true)?;
+        return Some((after, Repeat::Week, true));
+    }
+    None
 }
 
 /// `in 30 min`, `in 2 hours`, `in 2h`, `in an hour`, `in half an hour`, `in an hour and a half`, as the minutes

@@ -221,7 +221,7 @@ fn notes_not_downloaded_are_never_written() {
         );
         assert!(
             matches!(
-                store.add_todo(Some(title), "x", None, Source::User),
+                store.add_todo(Some(title), "x", None, None, Source::User),
                 Err(StoreError::NotDownloaded)
             ),
             "{title}"

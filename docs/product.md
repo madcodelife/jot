@@ -43,6 +43,12 @@ Jot is still a notebook: to-dos live in notes, not in a separate task manager.
   下周五 (next Friday), 11月20日 (Nov 20), 20号 (the 20th), 9点 / 9:30 / 下午3点 (9 o'clock / 9:30 / 3 pm),
   半小时后 / 2小时后 (in half an hour / in 2 hours); a date without a time means 9:00. English and Japanese phrases
   work too (`tomorrow 9am`, `next friday`, `明日 9時`).
+- A to-do can repeat, simply: `- [ ] 交房租 每月1号` ("pay rent on the 1st of every month") is saved as
+  `- [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every month` (Obsidian Tasks' wording, in English in every language). Every day,
+  every weekday, every week (`每周一`, `every monday`), every month, every year; nothing more. Checking one off writes
+  the next one right above it, due at its next time (one, however late it was checked); the checked line stays as a
+  record. The note shows the rule as a small chip ("↻ 每月"), the to-do view after the time; the time picker's "Remove
+  Repeat" takes it off, and removing the time removes it too.
 - Changing a time needs no typing: click the time chip in a note or the time in the to-do view, or press ⇧⌘D on a
   to-do ("Reminder Time…" in ⌘K), and a time picker opens: first "In an hour / This evening / Tomorrow morning / Next
   Monday" (past ones are left out), then a calendar and a time, set with ⌘↩; when there is a time, "Remove Reminder".
@@ -56,8 +62,9 @@ Jot is still a notebook: to-dos live in notes, not in a separate task manager.
   overdue, today, tomorrow, later and without a time; each shows the note it is in. When the panel has just been
   summoned and nothing is typed yet, the top of the list has a row "3 to-dos today" (or "1 overdue to-do") while
   something is left today or overdue, and none when nothing is due; Return on it opens the to-do view.
-- AI apps: say "remind me to send the weekly report on Friday" and the app writes a to-do with a time; ask "what do I
-  have to do today" and it lists them; say "move paying rent to Friday" and it changes its time.
+- AI apps: say "remind me to send the weekly report on Friday" and the app writes a to-do with a time ("every Friday"
+  and it repeats); ask "what do I have to do today" and it lists them; say "move paying rent to Friday" and it changes
+  its time.
 
 Not doing: projects, priorities, tag-style contexts, complex recurrence rules, assigning to other people.
 
@@ -99,9 +106,9 @@ model tries usernames.
 | `recent_notes(limit?)` | Lists the most recently modified notes |
 | `create_note(title, body)` | Creates a note, marked with the app's name; fails if the title exists, suggesting `append_note` instead |
 | `append_note(title, text)` | Appends a paragraph to the end of an existing note |
-| `add_todo(text, due?, note?)` | Adds a to-do; `due` is an ISO time, and without `note` it goes to the note "待办" (To-dos) |
+| `add_todo(text, due?, note?, repeat?)` | Adds a to-do; `due` is an ISO time, and without `note` it goes to the note "待办" (To-dos); `repeat` (day, weekday, week, month, year) makes it repeat |
 | `list_todos(range?)` | Lists open to-dos: `overdue` / `today` / `upcoming` / `all`, with their times and notes |
-| `complete_todo(note, text)` | Checks off a to-do (only its checkbox changes; nothing is deleted) |
+| `complete_todo(note, text)` | Checks off a to-do (only its checkbox changes; nothing is deleted); a repeating one gets its next one |
 | `reschedule_todo(note, text, due)` | Changes the reminder time of an open to-do (only its `⏰` part); `due` is an ISO time or a phrase such as 周五 9点 ("Friday 9 o'clock"), `null` removes the reminder |
 | `trash_note(title)` | Moves a note to the system Trash (not a permanent delete); needs the user's permission |
 | `replace_note(title, body)` | Rewrites a note's whole body, its frontmatter kept; the note as it was goes to the Trash first, as "Title (before rewrite · 2026-11-25 14.30)" in Jot's language; needs the user's permission |

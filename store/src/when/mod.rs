@@ -38,11 +38,22 @@
 //!
 //! `12am` is 00:00 and `12pm` 12:00; `午前12時` is 00:00 and `午後12時` 12:00, as 12-hour clocks show them.
 //! `midnight` and `晚上12点` are the end of the day: the next day's 00:00.
+//!
+//! A phrase may also say how often the to-do comes back ([`Repeat`], written ` 🔁 every month` in the file): `每天` /
+//! `每日`, `每个工作日` / `工作日`, `每周`, `每周一`…`每周日`, `每月`, `每月1号`, `每年`; `every day`, `every weekday`,
+//! `every week`, `every monday`, `every month`, `every year`; `毎日`, `平日`, `毎週`, `毎週月曜` / `毎月曜`, `毎月`,
+//! `毎年`. Nothing else (`每两周`, `every 2 weeks` are no rule). A time right before or after it goes with it
+//! (`每天 9点`, `每周一下午3点`, `every day at 9am`, `9am every day`, `毎月1日 9時`); a weekday (`每周一`, `every
+//! monday`) or a day of the month (`每月1号`) is its first date. A rule without a time is first due today at
+//! [`Options::default_time`] (a part of the day alone, `每天晚上`, at that part's hour), or by the rule's next
+//! once that is past; `every weekday`'s time falls on a weekday.
 
 use std::ops::Range;
 
 use jiff::ToSpan as _;
 use jiff::civil::{Date, DateTime, Time, Weekday};
+
+pub use crate::repeat::Repeat;
 
 mod en;
 mod ja;
@@ -57,8 +68,10 @@ pub struct When {
     pub at: DateTime,
     /// A short label for the time in [`Options::lang`]: the day (`明天`, `Tomorrow`, `明日`), a weekday within the
     /// coming week (`周五`, `Fri`, `金曜`) or the month and day (`11月20日`, `Nov 20`), a space, then the time
-    /// (`09:00`, `9:00 AM`, `9:00`).
+    /// (`09:00`, `9:00 AM`, `9:00`), and the rule after ` · ` when there is one (`明天 09:00 · 每天`).
     pub label: String,
+    /// How often it comes back, when the phrase says (`每月`, `every day`).
+    pub repeat: Option<Repeat>,
 }
 
 /// The language of a [`When`]'s label. Phrases of every language are read whatever it is.
@@ -125,17 +138,25 @@ pub fn parse_with(text: &str, now: DateTime, options: &Options) -> Option<When> 
     let now = to_minute(now);
     let input = Input::new(text);
     text.char_indices().find_map(|(start, _)| {
-        let (end, at) = phrase_at(&input, start, now, options)?;
+        let found = found_at(&input, start, now, options)?;
+        let mut label = label(found.at, now, options.lang);
+        if let Some(repeat) = found.repeat {
+            label.push_str(" · ");
+            label.push_str(repeat_label(repeat, options.lang));
+        }
         Some(When {
-            range: start..end,
-            at,
-            label: label(at, now, options.lang),
+            range: found.range,
+            at: found.at,
+            label,
+            repeat: found.repeat,
         })
     })
 }
 
-/// A to-do line with its first time phrase replaced by ` ⏰ YYYY-MM-DD HH:mm` at the end of the line, or `None`
-/// when the line is not an open to-do, has no phrase, or already has a reminder. A date alone means 09:00.
+/// A to-do line with its first time phrase replaced by ` ⏰ YYYY-MM-DD HH:mm` (and ` 🔁 every <rule>` when the
+/// phrase has a rule) at the end of the line, or `None` when the line is not an open to-do or has no phrase. A
+/// to-do that has a reminder already takes only a phrase with a rule (its time then the phrase's, if it says
+/// one); one that has a reminder and a rule takes none. A date alone means 09:00.
 pub fn normalize_line(line: &str, now: DateTime) -> Option<String> {
     normalize_line_with(line, now, &Options::default())
 }
@@ -143,35 +164,176 @@ pub fn normalize_line(line: &str, now: DateTime) -> Option<String> {
 /// [`normalize_line`] with `options` (only [`Options::default_time`] matters: the file's form has no language).
 pub fn normalize_line_with(line: &str, now: DateTime, options: &Options) -> Option<String> {
     let task = crate::todo::TaskLine::parse(line)?;
-    if task.done || task.due.is_some() {
+    if task.done || (task.due.is_some() && task.repeat.is_some()) {
         return None;
     }
-    let content = &line[task.content_start..];
-    let found = parse_with(content, now, options)?;
-    let before = content[..found.range.start].trim_end_matches(is_space);
-    let after = content[found.range.end..].trim_start_matches(is_space);
-    let mut text = String::with_capacity(content.len() + 20);
-    text.push_str(before);
-    // Keep the words on either side apart if the phrase stood between them with spaces.
-    if !before.is_empty()
-        && !after.is_empty()
-        && (before.len() < found.range.start || content.len() - found.range.end > after.len())
-    {
-        text.push(' ');
-    }
-    text.push_str(after);
-    let text = text.trim_end_matches(is_space);
+    let start = task.content_start;
+    let content = &line[start..];
+    // The time and the rule written already are no phrase (`09:00` would read as one).
+    let written: Vec<Range<usize>> = [&task.due_range, &task.repeat_range]
+        .into_iter()
+        .flatten()
+        .map(|range| range.start - start..range.end - start)
+        .collect();
+    let masked = written.iter().fold(content.to_owned(), |text, range| {
+        blanked(&text, range.clone())
+    });
+    let now = to_minute(now);
+    let input = Input::new(&masked);
+    let found = masked.char_indices().find_map(|(at, _)| {
+        found_at(&input, at, now, options)
+            .filter(|found| task.due.is_none() || found.repeat.is_some())
+    })?;
+    let repeat = found.repeat.or(task.repeat);
+    let at = match task.due {
+        Some(due) if !found.timed => due,
+        _ => repeat.map_or(found.at, |repeat| repeat.align(found.at)),
+    };
 
-    let mut out = String::with_capacity(line.len() + 20);
-    out.push_str(&line[..task.content_start]);
-    out.push_str(text);
+    let mut cuts = written;
+    cuts.push(found.range);
+    let text = without(content, cuts);
+    let mut out = String::with_capacity(line.len() + 40);
+    out.push_str(&line[..start]);
+    out.push_str(&text);
     if !text.is_empty() {
         out.push(' ');
     }
     out.push_str(crate::todo::REMINDER);
     out.push(' ');
-    out.push_str(&crate::todo::format_due(found.at));
+    out.push_str(&crate::todo::format_due(at));
+    if let Some(repeat) = repeat {
+        out.push(' ');
+        out.push_str(crate::repeat::MARKER);
+        out.push_str(&format!(" {repeat}"));
+    }
     Some(out)
+}
+
+/// `text` without the byte ranges `cuts`; where one stood between words with spaces, they stay one space apart.
+fn without(text: &str, mut cuts: Vec<Range<usize>>) -> String {
+    // Overlapping ones are one; the later ones go first, so the earlier ones' places hold.
+    cuts.sort_by_key(|range| range.start);
+    let mut merged: Vec<Range<usize>> = Vec::new();
+    for range in cuts {
+        match merged.last_mut() {
+            Some(last) if range.start <= last.end => last.end = last.end.max(range.end),
+            _ => merged.push(range),
+        }
+    }
+    let mut out = text.to_owned();
+    for range in merged.into_iter().rev() {
+        let before = out[..range.start].trim_end_matches(is_space);
+        let after = out[range.end..].trim_start_matches(is_space);
+        let apart = !before.is_empty()
+            && !after.is_empty()
+            && (before.len() < range.start || out.len() - range.end > after.len());
+        out = format!("{before}{}{after}", if apart { " " } else { "" });
+    }
+    out.trim_end_matches(is_space).to_owned()
+}
+
+/// `text` with the bytes of `range` (on char boundaries) spaces: the same offsets, nothing there to read.
+fn blanked(text: &str, range: Range<usize>) -> String {
+    let mut out = String::with_capacity(text.len());
+    out.push_str(&text[..range.start]);
+    out.extend(std::iter::repeat_n(' ', range.len()));
+    out.push_str(&text[range.end..]);
+    out
+}
+
+/// What a phrase at a place says.
+struct Found {
+    range: Range<usize>,
+    at: DateTime,
+    repeat: Option<Repeat>,
+    /// Whether it says a time (else it is a rule's first time).
+    timed: bool,
+}
+
+/// The phrase starting at byte `start`: a rule with the time right after it (`每天 9点`, `每周一`, `every monday
+/// 3pm`) or alone, else a time with a rule right after it (`9点 每天`) or alone.
+fn found_at(input: &Input<'_>, start: usize, now: DateTime, options: &Options) -> Option<Found> {
+    let text = input.text;
+    if let Some((rule_end, repeat, dated)) = rule_at(input, start, now.date()) {
+        // What follows is read with the rule's words blanked out: `每月1号`'s `1号` is a day of the month, not the
+        // day of a month and day.
+        let rest = blanked(text, start..rule_end);
+        let rest = Input::new(&rest);
+        let after = skip_spaces(text, rule_end);
+        if let Some((end, at)) = phrase_at(&rest, after, now, options) {
+            return Some(Found {
+                range: start..end,
+                at: repeat.align(at),
+                repeat: Some(repeat),
+                timed: true,
+            });
+        }
+        if !dated {
+            // `每天晚上`: the part of the day's hour.
+            let (end, time) = match period_at(&rest, after) {
+                Some((end, part)) => (end, Time::new(part.default_hour(), 0, 0, 0).ok()?),
+                None => (rule_end, options.default_time),
+            };
+            return Some(Found {
+                range: start..end,
+                at: repeat.first(now, time),
+                repeat: Some(repeat),
+                timed: false,
+            });
+        }
+    }
+    let (end, at) = phrase_at(input, start, now, options)?;
+    // `9点 每天`, `9am every day`: a rule that needs no date of its own.
+    if let Some((rule_end, repeat, false)) = rule_at(input, skip_spaces(text, end), now.date()) {
+        return Some(Found {
+            range: start..rule_end,
+            at: repeat.align(at),
+            repeat: Some(repeat),
+            timed: true,
+        });
+    }
+    Some(Found {
+        range: start..end,
+        at,
+        repeat: None,
+        timed: true,
+    })
+}
+
+/// The rule the languages read at `start`: its end, the rule, and whether a date right after it belongs to it.
+fn rule_at(input: &Input<'_>, start: usize, today: Date) -> Option<(usize, Repeat, bool)> {
+    longest(
+        [
+            zh::rule(&input.folded, start),
+            ja::rule(input.text, start),
+            en::rule(input.text, start, today),
+        ],
+        |found| found.0,
+    )
+}
+
+/// A rule's short name in `lang`: `每月`, `每個工作日`, `Monthly`, `平日`.
+fn repeat_label(repeat: Repeat, lang: Lang) -> &'static str {
+    match (lang, repeat) {
+        (Lang::ZhHans | Lang::ZhHant, Repeat::Day) => "每天",
+        (Lang::ZhHans, Repeat::Weekday) => "每个工作日",
+        (Lang::ZhHant, Repeat::Weekday) => "每個工作日",
+        (Lang::ZhHans, Repeat::Week) => "每周",
+        (Lang::ZhHant, Repeat::Week) => "每週",
+        (Lang::ZhHans | Lang::ZhHant, Repeat::Month) => "每月",
+        (Lang::ZhHans | Lang::ZhHant, Repeat::Year) => "每年",
+        (Lang::En, Repeat::Day) => "Daily",
+        (Lang::En, Repeat::Weekday) => "Weekdays",
+        (Lang::En, Repeat::Week) => "Weekly",
+        (Lang::En, Repeat::Month) => "Monthly",
+        (Lang::En, Repeat::Year) => "Yearly",
+        (Lang::Ja, Repeat::Day) => "毎日",
+        (Lang::Ja, Repeat::Weekday) => "平日",
+        (Lang::Ja, Repeat::Week) => "毎週",
+        (Lang::Ja, Repeat::Month) => "毎月",
+        (Lang::Ja, Repeat::Year) => "毎年",
+    }
 }
 
 /// The label of `at` as seen at `now`: today, tomorrow, the day after (in the languages that have a word for
@@ -655,6 +817,11 @@ fn eat(text: &str, start: usize, word: &str) -> Option<usize> {
 /// The end of the first of `words` `text` has at `start`.
 fn eat_any(text: &str, start: usize, words: &[&str]) -> Option<usize> {
     words.iter().find_map(|word| eat(text, start, word))
+}
+
+/// Whether a word starts at `start`: no letter (CJK included) or digit right before it.
+fn at_word_start(text: &str, start: usize) -> bool {
+    !text[..start].ends_with(char::is_alphanumeric)
 }
 
 fn is_space(c: char) -> bool {

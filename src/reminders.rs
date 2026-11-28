@@ -313,6 +313,7 @@ mod tests {
             text: format!("{note} {line}"),
             done: false,
             due,
+            repeat: None,
             done_on: None,
         }
     }

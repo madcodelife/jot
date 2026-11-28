@@ -16,6 +16,7 @@ import {
   Lock,
   Mic,
   Option,
+  Repeat,
   Search,
   Settings,
   SmilePlus,
@@ -29,6 +30,8 @@ const ICONS = {
   check: Check,
   bell: Bell,
   alarm: AlarmClock,
+  // A repeating to-do.
+  repeat: Repeat,
   mic: Mic,
   // A note iCloud Drive is downloading.
   cloud: CloudDownload,

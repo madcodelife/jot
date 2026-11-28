@@ -2,9 +2,11 @@
 // NSH's editor, previewed live as Typora does (app/markdown.ts): the syntax
 // hides where the caret is not, and shows where it is; headings are large,
 // code is monospaced. Typing saves itself after a short pause; task lines get
-// their boxes, due times and done stamps styled, and the box ticks with a
-// click or ⌘↩; a time phrase being typed ("明天 9 点") lights up as a chip
-// and becomes an absolute time when the caret leaves the line. Changes made
+// their boxes, due times, repeats ("↻ 每月" off the caret) and done stamps
+// styled, and the box ticks with a click or ⌘↩ (a repeating one's next one
+// goes above it, in the same edit); a time phrase being typed ("明天 9 点",
+// "每月1号") lights up as a chip and becomes an absolute time (and a repeat)
+// when the caret leaves the line. Changes made
 // elsewhere (an AI app appending to the note) come in without moving the caret.
 // Dictation (⌥ held, or the microphone at the top right) types at the caret:
 // the words still being recognized show faint, and turn to ink when final.
@@ -28,8 +30,8 @@ import { caretOnTodo, openDuePicker, setEditorDue } from "../due";
 import { codeBlocks, continuation, fenceMark, fencedLines, isQuote, lineMarks, tableBlocks, tableMarks, tableSyntax, type Mark, type MarkKind } from "../markdown";
 import { whenOptions } from "../settings";
 import { allNotes, emojiPicking, errorMessage, lastWritten, notes, now, opened, refresh, removeEmoji, renaming, revision, save, setEditorFlush, setLocked, showFlash, startEmoji, startRename } from "../store";
-import { taskLine, toggledLine, withDue } from "../tasks";
-import { age, parseDue } from "../time";
+import { taskLine, toggledLine, withDue, withoutRepeat } from "../tasks";
+import { age, parseDue, repeatLabel } from "../time";
 import { cancelVoice, joinSpoken, listening, listeningLang, speechAvailable, startVoice, stopVoice, voiceError } from "../voice";
 import { emojiAnchor } from "./Emoji";
 import { Icon } from "./icons";
@@ -276,9 +278,18 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
   function findPhrase() {
     const line = untracked(caretLine);
     const content = lineAt(untracked(text), line);
-    if (/⏰ \d{4}-\d\d-\d\d \d\d:\d\d/.test(content) || inCode(untracked(text), line)) return phrase.set(null);
-    const match = When.parse(content, whenOptions());
-    phrase.set(match ? { line, start: match.start, end: match.end } : null);
+    if (inCode(untracked(text), line)) return phrase.set(null);
+    const task = taskLine(content);
+    // A to-do's time and repeat as written are no phrase (`09:00` would read as one): blanked out, the same length. One
+    // with a time takes only a phrase with a repeat (`每月`), as the store has it; one with both takes none.
+    if (task?.due && task.repeat) return phrase.set(null);
+    if (!task && /⏰ \d{4}-\d\d-\d\d \d\d:\d\d/.test(content)) return phrase.set(null);
+    const blank = [task?.due, task?.repeat].reduce(
+      (line, span) => (span ? line.slice(0, span.start) + " ".repeat(span.end - span.start) + line.slice(span.end) : line),
+      content,
+    );
+    const match = When.parse(blank, whenOptions());
+    phrase.set(match && (!task?.due || match.repeat) ? { line, start: match.start, end: match.end } : null);
   }
 
   /** Writes the line's time phrase as an absolute time (` ⏰ 2026-11-14 09:00`), once the caret has left it. */
@@ -298,7 +309,10 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     const task = taskAt(untracked(text), line);
     if (!task || !editor) return;
     const next = toggledLine(content, !task.done, new Date(untracked(now)));
-    editor.edit([{ range: { start: { line, column: 0 }, end: { line, column: content.length } }, text: next }]);
+    // A repeating to-do ticked: its next one goes above it, in the same edit (one undo takes both back), as the store
+    // writes it (`set_todo_done`).
+    const following = task.done ? null : When.nextLine(content);
+    editor.edit([{ range: { start: { line, column: 0 }, end: { line, column: content.length } }, text: following ? `${following}\n${next}` : next }]);
   }
 
   /**
@@ -364,24 +378,30 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     const column = task.due ? task.due.start : content.length;
     const end = task.due ? task.due.end : content.length;
     const due = task.due ? task.due.at.replace(" ", "T") : null;
+    const repeat = task.repeat?.rule ?? null;
     const target = { kind: "editor" as const, line, text: content };
     void editor
       .rangeBounds({ start: { line, column }, end: { line, column: end } })
-      .then((boxes) => openDuePicker(target, due, boxes[0]?.pageBounds ?? null))
-      .catch(() => openDuePicker(target, due, null));
+      .then((boxes) => openDuePicker(target, due, repeat, boxes[0]?.pageBounds ?? null))
+      .catch(() => openDuePicker(target, due, repeat, null));
     return true;
   }
 
   /** Writes the picked time on `line`, if it still reads `before`: only the part that changes, so a caret elsewhere on the line stays where it was. */
   function writeDue(line: number, before: string, due: Date | null) {
+    if (rewriteTask(line, before, (content) => withDue(content, due)) && due) askToNotify();
+  }
+
+  /** Rewrites the to-do on `line` with `change`, if it still reads `before`: only the part that changes, as one edit. */
+  function rewriteTask(line: number, before: string, change: (content: string) => string): boolean {
     const content = lineAt(untracked(text), line);
-    if (!editor || untracked(readOnly)) return;
+    if (!editor || untracked(readOnly)) return false;
     if (taskAt(untracked(text), line) === null || content !== before) {
       showNotice("conflict", t("due.changed"));
-      return;
+      return false;
     }
-    const next = withDue(content, due);
-    if (next === content) return;
+    const next = change(content);
+    if (next === content) return false;
     let from = 0;
     while (from < content.length && from < next.length && content[from] === next[from]) from++;
     let back = 0;
@@ -389,14 +409,19 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
     editor.edit([
       { range: { start: { line, column: from }, end: { line, column: content.length - back } }, text: next.slice(from, next.length - back) },
     ]);
-    if (due) askToNotify();
+    return true;
   }
 
   const actions: PaperActions = { toggleTaskAtCaret: () => toggleLine(untracked(caretLine)), dictate };
   current = actions;
   // Before the note goes to the trash or takes a new name, what was typed is saved.
   setEditorFlush(saveNow);
-  const dueSide = { apply: writeDue, openAtCaret: () => pickDueAt(untracked(caretLine)), focus: () => editor?.focus() };
+  const dueSide = {
+    apply: writeDue,
+    removeRepeat: (line: number, before: string) => void rewriteTask(line, before, withoutRepeat),
+    openAtCaret: () => pickDueAt(untracked(caretLine)),
+    focus: () => editor?.focus(),
+  };
   setEditorDue(dueSide);
   // Whether the caret is on an open to-do: the action panel offers "Reminder Time…" then.
   effect(() => {
@@ -648,6 +673,13 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
           class: task.done ? "text-paper-muted" : late ? "bg-late/13 text-late font-semibold" : "bg-due/13 text-due font-semibold",
         });
       }
+      // The repeat: off the caret, a chip of its own words ("↻ 每月"); at the caret, `🔁 every month` as written.
+      if (task.repeat) {
+        const r = task.repeat;
+        const look = task.done ? "text-paper-muted" : "bg-due/13 text-due font-semibold";
+        const near = touchedOn(line, content.length).some((c) => c.start <= r.end && c.end >= r.start);
+        out.push(near ? { range: span(r.start, r.end), class: look } : { range: span(r.start, r.end), class: look, label: `↻ ${repeatLabel(r.rule)}`, labelClass: look });
+      }
       if (task.stamp) out.push({ range: span(task.stamp.start, task.stamp.end), class: "text-paper-muted" });
     });
     const words = interim();
@@ -877,8 +909,9 @@ function NotePaper(props: { title: string; line: number | null; focus: boolean }
             const words = { line: position.line, column: task.rest.start };
             if (!untracked(readOnly)) editor?.setSelections([{ anchor: words, head: words }]);
           }
-          // The time chip: the picker opens over it.
+          // The time chip (or the repeat's): the picker opens over it.
           else if (task.due && !task.done && position.column >= task.due.start && position.column <= task.due.end) pickDueAt(position.line);
+          else if (task.repeat && !task.done && position.column >= task.repeat.start && position.column <= task.repeat.end) pickDueAt(position.line);
         }}
       />
       <If when={notice()}>

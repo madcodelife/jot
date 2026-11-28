@@ -1,11 +1,13 @@
 // To-do lines in a note's Markdown, for the editor: where the box, the
-// reminder (` ⏰ 2026-11-14 09:00`) and the done stamp (` ✅ 2026-11-14`)
-// are, and a line ticked or unticked. The file format is the store's
+// reminder (` ⏰ 2026-11-14 09:00`), the repeat (` 🔁 every month`) and the
+// done stamp (` ✅ 2026-11-14`) are, and a line ticked or unticked. The file format is the store's
 // (docs/todos.md "To-dos"); the store parses the same lines for `todos()`.
 import { absolute, isoDay } from "./time";
 
 const TASK = /^(\s*)[-*] \[( |x|X)\] /;
 const DUE = / ?⏰ (\d{4}-\d\d-\d\d \d\d:\d\d)/;
+/** ` 🔁 every month`: one of the five rules the store reads (`store/src/repeat.rs`), the word ending there. */
+const REPEAT = / ?🔁 every (day|weekday|week|month|year)(?=\s|$)/i;
 const DONE = / ?✅ \d{4}-\d\d-\d\d\s*$/;
 
 /** A column range of one line, UTF-16 units. */
@@ -23,9 +25,14 @@ export interface TaskLine {
   rest: Span;
   /** ` ⏰ …`'s date and time, when it has one. */
   due: (Span & { at: string }) | null;
+  /** ` 🔁 every …`, from 🔁, and its rule, when it has one. */
+  repeat: (Span & { rule: Repeat }) | null;
   /** ` ✅ …`, when it has one. */
   stamp: Span | null;
 }
+
+/** A rule: `🔁 every day`, `every weekday`, `every week`, `every month`, `every year`. */
+export type Repeat = "day" | "weekday" | "week" | "month" | "year";
 
 /** The parts of `text` (one line) when it is a task, else `null`. */
 export function taskLine(text: string): TaskLine | null {
@@ -34,19 +41,39 @@ export function taskLine(text: string): TaskLine | null {
   const boxStart = m[1].length + 2;
   const done = m[2] !== " ";
   const due = DUE.exec(text);
+  const repeat = REPEAT.exec(text);
   const stamp = DONE.exec(text);
   return {
     box: { start: boxStart, end: boxStart + 3 },
     done,
     rest: { start: m[0].length, end: text.length },
     due: due ? { start: due.index + (due[0].startsWith(" ") ? 1 : 0), end: due.index + due[0].length, at: due[1] } : null,
+    repeat: repeat
+      ? { start: repeat.index + (repeat[0].startsWith(" ") ? 1 : 0), end: repeat.index + repeat[0].length, rule: repeat[1].toLowerCase() as Repeat }
+      : null,
     stamp: stamp ? { start: stamp.index + (stamp[0].startsWith(" ") ? 1 : 0), end: text.length } : null,
   };
 }
 
-/** The task's text alone: without the box, the reminder and the stamp. */
+/** The task's text alone: without the box, the reminder, the repeat and the stamp. */
 export function taskText(text: string): string {
-  return text.replace(TASK, "").replace(DUE, "").replace(DONE, "").trim();
+  return text.replace(TASK, "").replace(DUE, "").replace(REPEAT, "").replace(DONE, "").trim();
+}
+
+/** `text` without `span` (a reminder or a repeat, from its marker) and the space before it; one right after the box
+ * leaves no space at the text's start, and none is left at the line's end. */
+function cut(text: string, rest: number, span: Span): string {
+  const start = span.start > rest && text[span.start - 1] === " " ? span.start - 1 : span.start;
+  const head = text.slice(0, start);
+  const tail = text.slice(span.end);
+  const after = start === rest ? tail.replace(/^[ \t]+/, "") : tail;
+  return after ? head + after : head.replace(/[ \t]+$/, "");
+}
+
+/** `text` (a task line) without its repeat: the store's `set_todo_repeat(None)` for the open note's editor. */
+export function withoutRepeat(text: string): string {
+  const task = taskLine(text);
+  return task?.repeat ? cut(text, task.rest.start, task.repeat) : text;
 }
 
 /** `text` (a task line) ticked (`- [x] … ✅ today`) or unticked (`- [ ] …`). */
@@ -59,29 +86,32 @@ export function toggledLine(text: string, done: boolean, today: Date): string {
 }
 
 /**
- * `text` (a task line) with its reminder at `due`, or without one for `null`: the store's
- * `set_todo_due` for the open note's editor. A time it has is replaced where it is written; a new one
- * goes at the end, before a done stamp.
+ * `text` (a task line) with its reminder at `due`, or without one (nor its repeat: a repeat repeats a time) for
+ * `null`: the store's `set_todo_due` for the open note's editor. A time it has is replaced where it is written; a
+ * new one goes at the end, before a repeat and a done stamp.
  */
 export function withDue(text: string, due: Date | null): string {
   const task = taskLine(text);
   if (!task) return text;
   const written = due ? `⏰ ${absolute(due)}` : null;
+  if (!written) {
+    // The later part first, so the earlier one's place holds.
+    const spans = [task.due, task.repeat].filter((s): s is NonNullable<typeof s> => s !== null).sort((a, b) => b.start - a.start);
+    return spans.reduce((line, span) => cut(line, task.rest.start, span), text);
+  }
   if (task.due) {
     // The reminder's span starts at ⏰; the space before it goes with it.
     const start = task.due.start > task.rest.start && text[task.due.start - 1] === " " ? task.due.start - 1 : task.due.start;
-    const head = text.slice(0, start);
-    const tail = text.slice(task.due.end);
-    if (written) return `${head}${start === task.rest.start ? "" : " "}${written}${tail}`;
-    // A time right after the box leaves no space at the text's start; one at the end, none after the text.
-    const rest = start === task.rest.start ? tail.replace(/^[ \t]+/, "") : tail;
-    return rest ? head + rest : head.replace(/[ \t]+$/, "");
+    return `${text.slice(0, start)}${start === task.rest.start ? "" : " "}${written}${text.slice(task.due.end)}`;
   }
-  if (!written) return text;
-  const end = task.stamp ? task.stamp.start - (text[task.stamp.start - 1] === " " ? 1 : 0) : text.length;
+  const marks = [task.repeat, task.stamp].filter((s): s is Span => s !== null).map((s) => s.start - (text[s.start - 1] === " " ? 1 : 0));
+  const end = Math.min(text.length, ...marks);
   const head = text.slice(0, end).replace(/[ \t]+$/, "");
   const space = head.length < task.rest.start ? "" : " ";
-  return `${head.length < task.rest.start ? text.slice(0, task.rest.start) : head}${space}${written}${text.slice(end)}`;
+  const tail = text.slice(end);
+  // A repeat right after the box had no space before it.
+  const gap = tail && !/^[ \t]/.test(tail) ? " " : "";
+  return `${head.length < task.rest.start ? text.slice(0, task.rest.start) : head}${space}${written}${gap}${tail}`;
 }
 
 /**
@@ -104,6 +134,7 @@ export function plainSnippet(text: string): string {
       // Reminders and stamps, also when the snippet's end cuts into one.
       .replace(/⏰ ?\d{0,4}(?:-\d{0,2}){0,2}(?: \d{0,2}(?::\d{0,2})?)?/g, " ")
       .replace(/✅ ?\d{0,4}(?:-\d{0,2}){0,2}/g, " ")
+      .replace(/🔁 ?(?:every(?: (?:day|weekday|week|month|year))?)?/gi, " ")
       // List, quote and heading markers at a line's start, nested ones too (`> - `); the store's preview is one line
       // already, so a marker after any space. Not a sign between numbers: `2 * 3`, `5 - 3`, `1 + 1` stay.
       .replace(/(^|[\s…])(?:(?:#{1,6}|>+|[-*+])(?: +|$))+/g, (markers, lead: string, at: number, all: string) =>

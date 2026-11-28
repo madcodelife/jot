@@ -7,7 +7,8 @@ use nsh_core::prelude::*;
 use crate::notes::format_due;
 
 /// Reminder times written in words, in Chinese, English or Japanese:
-/// `明天 9:00`, `下週五`, `tomorrow 3pm`, `in 30 min`, `来週の金曜`, ...
+/// `明天 9:00`, `下週五`, `tomorrow 3pm`, `in 30 min`, `来週の金曜`, ...,
+/// and how often a to-do repeats: `每月1号`, `every monday`, `毎日9時`.
 #[module]
 pub struct When;
 
@@ -27,6 +28,7 @@ impl When {
             end: utf16_offset(&text, found.range.end),
             due: format_due(found.at),
             label: found.label,
+            repeat: found.repeat.map(|repeat| repeat.name().to_owned()),
         }))
     }
 
@@ -40,6 +42,15 @@ impl When {
     ) -> Result<Option<String>, JsError> {
         let options = options.unwrap_or_default().resolve()?;
         Ok(when::normalize_line_with(&line, now(), &options))
+    }
+
+    /// The open line that follows `line`, a repeating to-do with a time
+    /// (`🔁 every month`), once it is checked off now: the same line
+    /// unchecked, due at the rule's next time after now; `null` for any
+    /// other line. The store writes it above the checked line; the editor
+    /// does the same.
+    pub fn next_line(line: String) -> Option<String> {
+        jot_store::repeated_line(&line, now())
     }
 }
 
@@ -93,8 +104,12 @@ pub struct WhenMatch {
     /// The time it means, in local time (`"2026-11-14T09:00"`).
     pub due: String,
     /// A short label for it in the options' language (`"明天 09:00"`,
-    /// `"Tomorrow 9:00 AM"`).
+    /// `"Tomorrow 9:00 AM"`; `"明天 09:00 · 每天"` with a rule).
     pub label: String,
+    /// How often it comes back, when the phrase says (`每月`, `every
+    /// day`): `"day"`, `"weekday"`, `"week"`, `"month"` or `"year"`, or
+    /// `null`.
+    pub repeat: Option<String>,
 }
 
 /// The local wall-clock time.

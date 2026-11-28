@@ -929,3 +929,121 @@ async fn every_write_is_recorded_for_the_app() {
         records.len()
     );
 }
+
+#[tokio::test]
+async fn repeating_todos() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Store::open(dir.path()).unwrap();
+    let activity = dir.path().join(".activity.jsonl");
+    let settings = dir.path().join(".ai.json");
+    let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
+    let server = tokio::spawn(async move {
+        JotServer::new(store)
+            .with_activity_file(activity)
+            .with_settings_file(settings)
+            .with_clock(friday_morning)
+            .serve(server_transport)
+            .await
+            .unwrap()
+            .waiting()
+            .await
+            .unwrap();
+    });
+    let client = Client("claude-ai").serve(client_transport).await.unwrap();
+    let todo_note = dir.path().join("待办.md");
+
+    // `repeat` with a time; a rule in the text; `repeat` alone, first due at the next 09:00 it allows.
+    let (is_error, text) = call(
+        &client,
+        "add_todo",
+        serde_json::json!({ "text": "交房租", "due": "2026-12-01T09:00", "repeat": "month" }),
+    )
+    .await;
+    assert!(!is_error, "{text}");
+    assert!(
+        text.contains("due Tue 2026-12-01 09:00, repeating every month."),
+        "{text}"
+    );
+    let (is_error, text) = call(
+        &client,
+        "add_todo",
+        serde_json::json!({ "text": "吃药 每天 8点" }),
+    )
+    .await;
+    assert!(!is_error, "{text}");
+    assert!(text.contains("\"吃药\""), "{text}");
+    assert!(
+        text.contains("due Sat 2026-11-14 08:00, repeating every day."),
+        "{text}"
+    );
+    let (is_error, text) = call(
+        &client,
+        "add_todo",
+        serde_json::json!({ "text": "standup", "repeat": "weekday" }),
+    )
+    .await;
+    assert!(!is_error, "{text}");
+    assert!(
+        text.contains("due Mon 2026-11-16 09:00, repeating every weekday."),
+        "{text}"
+    );
+    assert_eq!(
+        fs::read_to_string(&todo_note).unwrap(),
+        "---\nsource: claude\n---\n- [ ] 交房租 ⏰ 2026-12-01 09:00 🔁 every month\n\
+         - [ ] 吃药 ⏰ 2026-11-14 08:00 🔁 every day\n- [ ] standup ⏰ 2026-11-16 09:00 🔁 every weekday\n"
+    );
+
+    let (_, text) = call(&client, "list_todos", serde_json::json!({ "range": "all" })).await;
+    assert!(
+        text.contains("- 交房租 · due Tue 2026-12-01 09:00 · repeats every month · note \"待办\""),
+        "{text}"
+    );
+
+    // Checking one off writes the next one above it, and says when it is due.
+    let (is_error, text) = call(
+        &client,
+        "complete_todo",
+        serde_json::json!({ "note": "待办", "text": "吃药" }),
+    )
+    .await;
+    assert!(!is_error, "{text}");
+    assert!(
+        text.contains("It repeats every day: the next one is due Sun 2026-11-15 08:00."),
+        "{text}"
+    );
+    assert!(fs::read_to_string(&todo_note).unwrap().contains(
+        "- [ ] 吃药 ⏰ 2026-11-15 08:00 🔁 every day\n\
+             - [x] 吃药 ⏰ 2026-11-14 08:00 🔁 every day ✅ 2026-11-13\n"
+    ));
+
+    // A new time keeps the rule; no time takes it away.
+    let (is_error, text) = call(
+        &client,
+        "reschedule_todo",
+        serde_json::json!({ "note": "待办", "text": "交房租", "due": "2026-12-02T09:00" }),
+    )
+    .await;
+    assert!(!is_error, "{text}");
+    assert!(text.contains("It still repeats every month."), "{text}");
+    assert!(
+        fs::read_to_string(&todo_note)
+            .unwrap()
+            .contains("- [ ] 交房租 ⏰ 2026-12-02 09:00 🔁 every month\n")
+    );
+    let (is_error, text) = call(
+        &client,
+        "reschedule_todo",
+        serde_json::json!({ "note": "待办", "text": "交房租", "due": null }),
+    )
+    .await;
+    assert!(!is_error, "{text}");
+    assert!(text.contains("and its repeat (every month)"), "{text}");
+    assert!(
+        fs::read_to_string(&todo_note)
+            .unwrap()
+            .contains("- [ ] 交房租\n")
+    );
+
+    client.cancel().await.unwrap();
+    server.await.unwrap();
+}

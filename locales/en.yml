@@ -71,6 +71,7 @@ todo:
   tick: Complete “%{text}”
   row: "%{text}, %{note}"
   due_tip: "%{when} · reminder"
+  due_repeat_tip: "%{when} · reminder · %{repeat}"
   due_change: "Change the reminder time of “%{text}”"
 
 note:
@@ -368,6 +369,13 @@ trash:
   restore_taken: "A note named “%{title}” already exists; the other one is still in the %{bin}"
   restore_failed: "Couldn’t restore “%{title}”: %{error}"
 
+repeat:
+  day: Daily
+  weekday: Weekdays
+  week: Weekly
+  month: Monthly
+  year: Yearly
+
 due:
   title: Reminder Time
   none: No reminder
@@ -379,6 +387,7 @@ due:
   time: Time
   set: Set
   remove: Remove Reminder
+  remove_repeat: Remove Repeat
   previous_month: Previous month
   next_month: Next month
   changed: The to-do just changed; its reminder time stays as it was

@@ -9,9 +9,10 @@ use jiff::ToSpan as _;
 use jiff::civil::{Date, Weekday};
 
 use super::{
-    Clock, DateHit, Period, Week, day_of_month_date, digits, eat, eat_any, month_day_date, number,
-    skip_spaces, weekday_date,
+    Clock, DateHit, Period, Week, at_word_start, day_of_month_date, digits, eat, eat_any,
+    month_day_date, number, skip_spaces, weekday_date,
 };
+use crate::repeat::Repeat;
 
 /// `text` with the traditional characters of Chinese time phrases folded to their simplified forms. Each pair
 /// is three bytes in UTF-8, so byte offsets stay the same.
@@ -91,6 +92,46 @@ pub(super) fn relative(text: &str, start: usize) -> Option<(usize, i64)> {
     };
     let end = eat_any(text, end, &["之后", "以后", "后"])?;
     Some((end, minutes))
+}
+
+/// A rule: `每天` / `每日`, `每个工作日` / `工作日`, `每周` / `每星期` / `每礼拜`, `每月`, `每年`, as its end, the rule
+/// and whether a date follows that belongs to it: `每周一` is `每` before the date `周一` (Monday's week), and
+/// `每月1号` / `每年3月5日` are `每月` / `每年` before a date read as any other.
+pub(super) fn rule(text: &str, start: usize) -> Option<(usize, Repeat, bool)> {
+    let Some(after) = eat(text, start, "每") else {
+        // `工作日` on its own, as a word: not `下个工作日` (the next working day).
+        let end = eat(text, start, "工作日")?;
+        return at_word_start(text, start).then_some((end, Repeat::Weekday, false));
+    };
+    // `每两周`, `每隔一天`, `每3天` are no rule here: only the words below.
+    if let Some(end) = eat_any(text, after, &["天", "日"]) {
+        return Some((end, Repeat::Day, false));
+    }
+    if let Some(end) = eat_any(text, after, &["个工作日", "工作日"]) {
+        return Some((end, Repeat::Weekday, false));
+    }
+    if let Some(end) = eat_any(text, after, &["个星期", "个礼拜", "星期", "礼拜", "周"])
+    {
+        // `每周末` (weekends) is no rule.
+        if text[end..].starts_with('末') {
+            return None;
+        }
+        // `每周一`: `周一` is the date.
+        if text[end..].starts_with([
+            '一', '二', '三', '四', '五', '六', '日', '天', '1', '2', '3', '4', '5', '6', '7',
+        ]) {
+            return Some((after, Repeat::Week, true));
+        }
+        return Some((end, Repeat::Week, false));
+    }
+    // `每月底`, `每月初`, `每年底` are no rule.
+    let (end, repeat) = eat_any(text, after, &["个月", "月"])
+        .map(|end| (end, Repeat::Month))
+        .or_else(|| eat(text, after, "年").map(|end| (end, Repeat::Year)))?;
+    if text[end..].starts_with(['底', '末', '初']) {
+        return None;
+    }
+    Some((end, repeat, false))
 }
 
 /// A date: `今天`, `明晚`, `周五`, `下周五`, `11月20日`, `20号`.

@@ -166,6 +166,15 @@ test("a quick note with a time is a to-do with its reminder; the lead-in and the
   expect(n.read("收件箱")).toBeNull();
 });
 
+test("a quick note that says a rule is a repeating to-do", () => {
+  const n = new Notes(folder("quick-repeat"));
+  const filed = fileQuickNote(n, "每天早上8点提醒我吃药", { inbox: "收件箱", when: { locale: "zh-Hans" }, now: new Date() });
+  expect(filed).toMatchObject({ kind: "todo", text: "吃药" });
+  expect(filed.kind === "todo" ? filed.label : "").toMatch(/ · 每天$/);
+  expect(n.read("待办")?.body ?? "").toMatch(/^- \[ \] 吃药 ⏰ \d{4}-\d\d-\d\d 08:00 🔁 every day\n$/);
+  expect(n.todos()[0]?.repeat).toBe("day");
+});
+
 test("a quick note without a time is a line of the inbox, with when it was said", () => {
   const n = new Notes(folder("quick-inbox"));
   const at = new Date(2026, 10, 14, 8, 5);

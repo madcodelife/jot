@@ -15,10 +15,10 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use jiff::civil::{Date, DateTime};
+use jiff::civil::{Date, DateTime, Time};
 use jot_store::{
-    Action, Activity, AiSettings, DEFAULT_TODO_NOTE, NoteMeta, Source, Store, StoreError, Todo,
-    when,
+    Action, Activity, AiSettings, DEFAULT_TODO_NOTE, NoteMeta, Repeat, Source, Store, StoreError,
+    Todo, when,
 };
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
@@ -54,7 +54,9 @@ Before creating a note, search for one on the same subject and append to it inst
 
 To-dos are Markdown task lines (`- [ ] …`) in any note, with an optional reminder time; the Jot app notifies the \
 user when one comes due. Add one when the user asks to be reminded of something or to put something on their \
-list, list them when the user asks what they have to do, check one off when the user says it is done, and move one's reminder time (or remove it) when the user asks to reschedule it.
+list, list them when the user asks what they have to do, check one off when the user says it is done, and move one's reminder time (or remove it) when the user asks to reschedule it. A to-do can repeat every day, \
+weekday, week, month or year (add_todo's `repeat`, for \"remind me every month\"); checking one off schedules its \
+next time, and nothing more complex is possible.
 
 Notes the user locked in Jot (marked \"locked\" in listings) can be read but not changed, moved to the Trash or \
 rewritten; you cannot unlock them: the user unlocks a note in Jot.";
@@ -148,6 +150,39 @@ pub struct AddTodoParams {
     /// The note to add it to (case-insensitive); created if missing. Defaults to the note "待办".
     #[serde(default)]
     pub note: Option<String>,
+    /// How often it comes back, when the user asks for a repeating reminder: "day", "weekday" (Monday to
+    /// Friday), "week" (the weekday of `due`), "month" (the day of the month of `due`) or "year". Checking it off
+    /// schedules the next one. Without `due` it is first due at the next 09:00 the rule allows.
+    #[serde(default)]
+    pub repeat: Option<RepeatParam>,
+}
+
+/// How often a to-do comes back.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum RepeatParam {
+    /// Every day.
+    Day,
+    /// Monday to Friday.
+    Weekday,
+    /// Every week, on the weekday of its time.
+    Week,
+    /// Every month, on the day of the month of its time.
+    Month,
+    /// Every year.
+    Year,
+}
+
+impl From<RepeatParam> for Repeat {
+    fn from(param: RepeatParam) -> Repeat {
+        match param {
+            RepeatParam::Day => Repeat::Day,
+            RepeatParam::Weekday => Repeat::Weekday,
+            RepeatParam::Week => Repeat::Week,
+            RepeatParam::Month => Repeat::Month,
+            RepeatParam::Year => Repeat::Year,
+        }
+    }
 }
 
 /// Which open to-dos `list_todos` returns.
@@ -418,8 +453,10 @@ impl JotServer {
             user when it comes due. Use it when the user asks to be reminded of something (\"提醒我周五交周报\", \
             \"remind me to call mom at 8\") or to put something on their to-do list. Pass the task as `text` and \
             the time as `due` (ISO local time such as 2026-11-14T09:00, or a phrase in Chinese, English or Japanese \
-            such as 明天 9点 / 下週五 / tomorrow 3pm / in 30 min / 明日の午後3時). The to-do goes \
-            to the note \"待办\" unless the user names another note. Confirm the resolved time back to the user.",
+            such as 明天 9点 / 下週五 / tomorrow 3pm / in 30 min / 明日の午後3時). For a repeating reminder \
+            (\"每月1号提醒我交房租\", \"remind me every monday\") also pass `repeat`: day, weekday, week, month or \
+            year; nothing more complex. The to-do goes to the note \"待办\" unless the user names another note. \
+            Confirm the resolved time (and the repeat) back to the user.",
         annotations(
             title = "Add to-do",
             read_only_hint = false,
@@ -435,14 +472,14 @@ impl JotServer {
     ) -> CallToolResult {
         let now = (self.now)();
         let mut task = params.text.trim().to_owned();
-        let due = match params
+        let (due, said) = match params
             .due
             .as_deref()
             .map(str::trim)
             .filter(|due| !due.is_empty())
         {
-            Some(due) => match parse_due(due, now) {
-                Some(at) => Some(at),
+            Some(due) => match parse_when(due, now) {
+                Some((at, repeat)) => (Some(at), repeat),
                 None => {
                     return error(format!(
                         "Jot cannot read the time \"{due}\". Pass ISO local time such as \
@@ -451,11 +488,21 @@ impl JotServer {
                     ));
                 }
             },
-            // The time may be in the text ("交房租 明天 9:00"): keep it as a reminder, not as words.
-            None => when::parse(&task, now).map(|found| {
-                task = without(&task, found.range);
-                found.at
-            }),
+            // The time may be in the text ("交房租 明天 9:00", "每月1号 交房租"): keep it as a reminder, not as words.
+            None => match when::parse(&task, now) {
+                Some(found) => {
+                    task = without(&task, found.range);
+                    (Some(found.at), found.repeat)
+                }
+                None => (None, None),
+            },
+        };
+        let repeat = params.repeat.map(Repeat::from).or(said);
+        // A repeating to-do needs a time; a weekday's falls on a weekday.
+        let due = match (due, repeat) {
+            (None, Some(repeat)) => Some(repeat.first(now, Time::constant(9, 0, 0, 0))),
+            (Some(at), Some(repeat)) => Some(repeat.align(at)),
+            (due, None) => due,
         };
         if task.is_empty() {
             return error("The to-do has no text: say what is to be done.".to_owned());
@@ -472,7 +519,10 @@ impl JotServer {
             Ok(Some(_))
         );
         match self
-            .downloaded(|| self.store.add_todo(note, &task, due, source.clone()))
+            .downloaded(|| {
+                self.store
+                    .add_todo(note, &task, due, repeat, source.clone())
+            })
             .await
         {
             Ok(todo) => {
@@ -488,7 +538,11 @@ impl JotServer {
                 );
                 match todo.due {
                     Some(at) => {
-                        out.push_str(&format!(", due {}.", format_due(at)));
+                        out.push_str(&format!(", due {}", format_due(at)));
+                        if let Some(repeat) = todo.repeat {
+                            out.push_str(&format!(", repeating {repeat}"));
+                        }
+                        out.push('.');
                         if at < now {
                             out.push_str(" That time has already passed.");
                         }
@@ -506,7 +560,8 @@ impl JotServer {
             note each is in. Use it when the user asks what they have to do (\"我今天有什么要做的\", \"what's on my \
             list\", \"anything overdue?\"). `range`: \"overdue\" (due before now), \"today\" (due today), \
             \"upcoming\" (due after today) or \"all\" (every open to-do, also those without a time); by default \
-            today's and overdue ones. The reply starts with the user's current local time.",
+            today's and overdue ones. A repeating to-do shows its rule (\"repeats every month\"). The reply \
+            starts with the user's current local time.",
         annotations(title = "List to-dos", read_only_hint = true, open_world_hint = false)
     )]
     async fn list_todos(&self, Parameters(params): Parameters<ListTodosParams>) -> CallToolResult {
@@ -570,7 +625,8 @@ impl JotServer {
 
     #[tool(
         description = "Check off one of the user's Jot to-dos: only its box changes (it becomes `- [x]` with \
-            today's date); nothing is deleted. Use it when the user says a to-do is done (\"交房租做完了\", \
+            today's date); nothing is deleted. A repeating to-do also gets its next one, an open copy due at its \
+            next time, which the reply gives. Use it when the user says a to-do is done (\"交房租做完了\", \
             \"I sent the report\"). Takes the note and the to-do's text as list_todos showed them; a unique part \
             of the text is enough. Fails, listing the candidates, when no open to-do or several match: then ask \
             the user which one.",
@@ -604,20 +660,30 @@ impl JotServer {
             }
             Err(result) => return result,
         };
-        let today = (self.now)().date();
+        let now = (self.now)();
         match self
             .downloaded(|| {
                 self.store
-                    .set_todo_done(&todo.note, todo.line, &todo.text, true, today)
+                    .set_todo_done(&todo.note, todo.line, &todo.text, true, now)
             })
             .await
         {
             Ok(meta) => {
                 self.record(&context, Action::Complete, &meta.title, |a| a);
-                text(format!(
+                let mut out = format!(
                     "Checked off \"{}\" in the note \"{}\".",
                     todo.text, todo.note
-                ))
+                );
+                // The store wrote the next one by the same rule.
+                if let (Some(repeat), Some(due)) = (todo.repeat, todo.due)
+                    && let Some(next) = repeat.next(due, now)
+                {
+                    out.push_str(&format!(
+                        " It repeats {repeat}: the next one is due {}.",
+                        format_due(next)
+                    ));
+                }
+                text(out)
             }
             Err(StoreError::Changed) => error(format!(
                 "The note \"{}\" changed while Jot was checking off the to-do. Call complete_todo again.",
@@ -629,7 +695,7 @@ impl JotServer {
 
     #[tool(
         description = "Move the reminder time of one of the user's open Jot to-dos, or remove it: only the \
-            to-do's `⏰` time changes; its text stays. Use it when the user asks to reschedule a to-do \
+            to-do's `⏰` time changes; its text and its repeat stay (removing the time removes a repeat too). Use it when the user asks to reschedule a to-do \
             (\"把交房租改到周五\", \"push the dentist to next monday 9am\", \"不用提醒我交周报了\"). Takes the \
             note and the to-do's text as list_todos showed them (a unique part of the text is enough) and `due`: \
             ISO local time such as 2026-11-20T09:00, or a phrase in Chinese, English or Japanese \
@@ -717,10 +783,17 @@ impl JotServer {
                         format_due(at)
                     ),
                     None => format!(
-                        "Removed the reminder of \"{}\" in the note \"{}\"{was}.",
-                        todo.text, todo.note
+                        "Removed the reminder of \"{}\" in the note \"{}\"{was}{}.",
+                        todo.text,
+                        todo.note,
+                        todo.repeat
+                            .map(|repeat| format!(", and its repeat ({repeat})"))
+                            .unwrap_or_default()
                     ),
                 };
+                if let (Some(repeat), Some(_)) = (todo.repeat, due) {
+                    out.push_str(&format!(" It still repeats {repeat}."));
+                }
                 if due.is_some_and(|at| at < now) {
                     out.push_str(" That time has already passed.");
                 }
@@ -1186,23 +1259,29 @@ fn local_now() -> DateTime {
 /// A tool's `due`: ISO local time (`2026-11-14T09:00`, `2026-11-14 09:00`), an instant with an offset (shown
 /// in local time), a date alone (09:00), or a phrase `when::parse` reads.
 fn parse_due(due: &str, now: DateTime) -> Option<DateTime> {
+    parse_when(due, now).map(|(at, _)| at)
+}
+
+/// [`parse_due`], and the rule a phrase says (`每月1号`, `every monday 9am`).
+fn parse_when(due: &str, now: DateTime) -> Option<(DateTime, Option<Repeat>)> {
     // A date alone would parse as a midnight `DateTime`.
     if !due.contains(['T', 't', ' ', ':'])
         && let Ok(day) = due.parse::<Date>()
     {
-        return Some(day.at(9, 0, 0, 0));
+        return Some((day.at(9, 0, 0, 0), None));
     }
     if let Ok(instant) = due.parse::<jiff::Timestamp>() {
-        return Some(
+        return Some((
             instant
                 .to_zoned_datetime(jiff::tz::TimeZone::system())
                 .datetime(),
-        );
+            None,
+        ));
     }
     if let Ok(at) = due.parse::<DateTime>() {
-        return Some(at);
+        return Some((at, None));
     }
-    when::parse(due, now).map(|found| found.at)
+    when::parse(due, now).map(|found| (found.at, found.repeat))
 }
 
 /// `text` without the bytes in `range`, the words on either side kept apart by one space when the phrase had
@@ -1247,6 +1326,9 @@ fn push_todo(out: &mut String, todo: &Todo) {
     out.push_str(&format!("- {}", todo.text));
     if let Some(due) = todo.due {
         out.push_str(&format!(" · due {}", format_due(due)));
+    }
+    if let Some(repeat) = todo.repeat {
+        out.push_str(&format!(" · repeats {repeat}"));
     }
     out.push_str(&format!(" · note \"{}\"\n", todo.note));
 }

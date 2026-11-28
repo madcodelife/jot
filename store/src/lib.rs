@@ -28,6 +28,7 @@ mod icon;
 mod import;
 mod lock;
 mod moving;
+mod repeat;
 mod settings;
 mod source;
 mod todo;
@@ -40,9 +41,10 @@ pub use icon::Icon;
 pub use import::{APPLE_NOTES_ID, ImportNote, Imported};
 pub use jiff::civil::DateTime;
 pub use moving::Moved;
+pub use repeat::Repeat;
 pub use settings::AiSettings;
 pub use source::Source;
-pub use todo::{DEFAULT_TODO_NOTE, Todo};
+pub use todo::{DEFAULT_TODO_NOTE, Todo, repeated_line};
 pub use trash::{Replaced, Trashed};
 
 /// How many characters of a note's body `NoteMeta::preview` and `SearchHit::snippet` hold.

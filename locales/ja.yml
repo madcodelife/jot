@@ -70,6 +70,7 @@ todo:
   tick: 「%{text}」を完了
   row: "%{text}、%{note}"
   due_tip: "%{when} · リマインダー"
+  due_repeat_tip: "%{when} · リマインダー · %{repeat}"
   due_change: 「%{text}」のリマインダーの時刻を変更
 
 note:
@@ -367,6 +368,13 @@ trash:
   restore_taken: 「%{title}」というメモがすでにあるため、元のメモは%{bin}に残っています
   restore_failed: 「%{title}」を戻せませんでした：%{error}
 
+repeat:
+  day: 毎日
+  weekday: 平日
+  week: 毎週
+  month: 毎月
+  year: 毎年
+
 due:
   title: リマインダーの時刻
   none: リマインダーなし
@@ -378,6 +386,7 @@ due:
   time: 時刻
   set: 設定
   remove: リマインダーを削除
+  remove_repeat: 繰り返しを削除
   previous_month: 前の月
   next_month: 次の月
   changed: このやることは直前に変更されたため、リマインダーの時刻はそのままです
