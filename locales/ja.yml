@@ -105,6 +105,8 @@ time:
     one: "%{count} 分前"
     other: "%{count} 分前"
   today_at: 今日 %{time}
+  yesterday_at: 昨日 %{time}
+  day_at: "%{day} %{time}"
   today: 今日
   tomorrow: 明日
   day_after: 明後日
@@ -117,9 +119,10 @@ island:
   todo_added: "%{agent} · やることを追加しました"
   todo_done: "%{agent} · やることを完了にしました"
   rescheduled: "%{agent} · リマインダーの時刻を変更しました"
-  replaced: "%{agent} · 書き換えました · 以前の版はゴミ箱に"
+  replaced: "%{agent} · 書き換えました · 以前の版はバージョン履歴に"
   trashed: "%{agent} · ゴミ箱に入れました"
   open_note: 「%{title}」を開く
+  open_history: 「%{title}」のバージョン履歴を表示
   show_trashed: ゴミ箱で「%{title}」を表示
   done: 完了
   remind: リマインダー · %{time} · %{note}
@@ -279,7 +282,7 @@ settings:
     then: あとはアプリに「Jot にメモして」「今日やることは？」と話しかけるだけです。
     access: 権限
     trash_rewrite: AI アプリにメモのゴミ箱への移動と書き換えを許可
-    trash_rewrite_hint: AI アプリが削除したメモも、書き換える前のメモもゴミ箱に入るので、そこから戻せます。ロックしたメモはそのままです。
+    trash_rewrite_hint: AI アプリが削除したメモはゴミ箱に、書き換える前の内容はメモのバージョン履歴に残るので、そこから戻せます。ロックしたメモはそのままです。
     trash_rewrite_failed: この設定を保存できませんでした：%{error}
   about:
     title: Jot について
@@ -353,6 +356,7 @@ actions:
   unlock: ロックを解除
   emoji: 絵文字を設定…
   emoji_remove: 絵文字を削除
+  history: バージョン履歴…
 
 trash:
   bin:
@@ -437,3 +441,21 @@ update:
   restart: 再起動してアップデート
   restart_to: 再起動して %{version} にアップデート
   ready_short: アップデート準備完了 · 再起動
+
+history:
+  title: バージョン履歴
+  empty: 以前のバージョンはまだありません
+  empty_hint: メモが変わる前に、Jot は元の内容をこの Mac に 30 日間残します。
+  empty_paper: 「%{title}」が変わると、以前のバージョンがここに表示されます。
+  of: 当時の「%{title}」
+  row: "%{time} のバージョン"
+  restore: このバージョンに戻す
+  locked: メモのロックを解除すると戻せます
+  back: 戻る
+  same: 今と同じ
+  spacing: 空白だけが違います
+  fewer:
+    one: 今より 1 行少ない
+    other: 今より %{count} 行少ない
+  restored: "%{time} のバージョンに戻しました"
+  restore_failed: 「%{title}」を戻せませんでした：%{error}

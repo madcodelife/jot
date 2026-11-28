@@ -38,15 +38,22 @@ with the arguments written in its configuration, so the setting cannot be an arg
 rewriting every app's configuration and restarting the apps) nor in NSH's Storage (the app's alone). It is a file
 outside the notes folder that the app writes and `jot-mcp` reads on every call of the two tools (and as it starts,
 for its instructions): `~/Library/Application Support/Jot/ai.json`, `{"allowTrashAndRewrite": true, "language":
-"zh-Hans"}` (`AiSettings`; missing or unreadable is off). The language is the one Jot shows, which names a
-rewritten note's previous version: `Plan (before rewrite · 2026-11-25 14.30)`, `计划（改写前 · …）`, `計劃（改寫前 · …）`,
-`計画（書き換え前 · …）` (no colon: Finder shows one as a slash; the title shortened to fit 255 bytes).
+"zh-Hans"}` (`AiSettings`; missing or unreadable is off). The language is the one Jot shows; `jot-mcp` reads nothing
+from it now (it named a rewritten note's previous version in the Trash, before the version history kept it).
+
+What the tools take away can be had back. `trash_note` moves the note to the system Trash. `replace_note` keeps the
+note's text as it was in its version history first ([storage.md](storage.md#a-notes-version-history-storesrchistoryrs),
+whenever the last version was saved: two rewrites in a row keep both texts), and the user restores it from "Version
+History…" in Jot ([app.md](app.md#a-notes-version-history-apphistoryts-appuihistoryviewtsx)); if the version cannot
+be kept the note stays as it was and the tool fails. The other writes (`append_note`, the to-do tools) keep the text
+before them too, as every write of jot-store does. `jot-mcp` keeps its versions in the user's history folder
+(`Store::default_history_folder`), the app's, so both see one history per note.
 
 The tools stay listed while the setting is off and refuse with where to turn it on: a changing tool list needs the
 client to follow `notifications/tools/list_changed`, which not every client does, and `jot-mcp` would have to watch
 the file; a listed tool that explains itself lets the model tell the user how to allow it. Both are annotated
 `destructiveHint: true`, `readOnlyHint: false`, `openWorldHint: false` and `idempotentHint: true` (`trash_note`
-again finds nothing to trash; `replace_note` with the same body changes nothing and trashes nothing). The server's
+again finds nothing to trash; `replace_note` with the same body changes nothing and keeps nothing). The server's
 instructions say how the setting stood as the app connected, to use the tools only when asked, and to list the
 notes and ask before removing many at once. `replace_note` refuses an empty body and a body that starts with a `---`
 frontmatter block (it would become the note's frontmatter); the note's own frontmatter is kept.
@@ -85,15 +92,16 @@ neither who wrote it nor on which Mac (one an AI app made on another Mac arrives
   nothing writes none):
 
   ```json
-  {"at":"2026-11-26T14:30:05","dir":"/Users/me/Documents/Jot","agent":"Claude Code","action":"replace","title":"Plan","previous":"Plan (before rewrite · 2026-11-26 14.30)","inTrash":"/Users/me/.Trash/Plan (before rewrite · 2026-11-26 14.30).md"}
+  {"at":"2026-11-26T14:30:05","dir":"/Users/me/Documents/Jot","agent":"Claude Code","action":"trash","title":"Plan","inTrash":"/Users/me/.Trash/Plan.md"}
   ```
 
   `at` is the local time; `dir` the notes folder, absolute with links resolved; `agent` the app's name as Jot shows it
   (`Source::label` of the `initialize` handshake's `clientInfo.name`: "Claude Code", "Cursor", or the name an unknown
   app gave); `title` the note's. `action`: `create` (`create_note`, and `add_todo` into a note it made), `append`
   (`append_note`), `todo` (`add_todo` into a note that was there), `complete` (`complete_todo`), `reschedule`
-  (`reschedule_todo`), `replace` (`replace_note`; `previous` is the name the old version took in the Trash) or `trash`
-  (`trash_note`). `inTrash` is where the trashed note (or the old version) went, when the system says.
+  (`reschedule_todo`), `replace` (`replace_note`: the old text is in the note's version history) or `trash`
+  (`trash_note`). `inTrash` is where the trashed note went, when the system says. `previous` (with `inTrash`) is what
+  an older `jot-mcp` wrote for a rewrite whose old version went to the Trash; it is still read.
 - **Writing**: each line is one `write` to the file opened for appending (`O_APPEND`), so lines from several
   `jot-mcp` processes (one per AI app) never mix. Past about 256 KB (`ROTATE_AT`) the file is renamed
   `activity.1.jsonl`, over the one before, and a new one is started. A record that cannot be written is left out
@@ -107,5 +115,7 @@ neither who wrote it nor on which Mac (one an AI app made on another Mac arrives
 
 Tests never touch the user's `~/Library/Application Support/Jot`: the server's tests give it a log and a settings file
 of their own (`JotServer::with_activity_file`, `with_settings_file`); the app's tests start from the stand-ins in
-`app/tests/native.ts`, which give it no log and no settings file (`ActivityLog.path`, `AiAccess`), and the island's
-tests give it a log of their own.
+`app/tests/native.ts`, which give it no log, no settings file and no version history (`ActivityLog.path`,
+`AiAccess`, `VersionHistory.path`), and the island's tests give it a log of their own, the history's tests a history
+folder. The server's tests that rewrite give their store a history folder of their own
+(`Store::with_history_folder`).

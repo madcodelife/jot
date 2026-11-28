@@ -106,6 +106,8 @@ time:
     one: 1 min ago
     other: "%{count} min ago"
   today_at: Today %{time}
+  yesterday_at: Yesterday %{time}
+  day_at: "%{day} %{time}"
   today: Today
   tomorrow: Tomorrow
   day_after: In 2 days
@@ -118,9 +120,10 @@ island:
   todo_added: "%{agent} · Added a to-do to"
   todo_done: "%{agent} · Completed a to-do in"
   rescheduled: "%{agent} · Changed a reminder in"
-  replaced: "%{agent} · Rewrote · the old version is in the Trash"
+  replaced: "%{agent} · Rewrote · the old version is in Version History"
   trashed: "%{agent} · Moved to the Trash"
   open_note: "Open “%{title}”"
+  open_history: "Show the version history of “%{title}”"
   show_trashed: "Show “%{title}” in the Trash"
   done: Done
   remind: Reminder · %{time} · %{note}
@@ -280,7 +283,7 @@ settings:
     then: Then tell the app to “jot this down,” or ask “what’s on my list today?”
     access: Permissions
     trash_rewrite: Allow AI apps to move notes to the Trash and rewrite notes
-    trash_rewrite_hint: "Notes they remove, and each note as it was before a rewrite, go to the Trash, where you can get them back. Locked notes stay as they are."
+    trash_rewrite_hint: "Notes they remove go to the Trash, and a note as it was before a rewrite to its Version History, where you can get them back. Locked notes stay as they are."
     trash_rewrite_failed: "Couldn’t save this setting: %{error}"
   about:
     title: About Jot
@@ -354,6 +357,7 @@ actions:
   unlock: Unlock
   emoji: Set Emoji…
   emoji_remove: Remove Emoji
+  history: Version History…
 
 trash:
   bin:
@@ -438,3 +442,21 @@ update:
   restart: Restart to Update
   restart_to: Restart to update to %{version}
   ready_short: Update ready · Restart
+
+history:
+  title: Version History
+  empty: No earlier versions yet
+  empty_hint: Before a note changes, Jot keeps its text as it was, on this Mac, for 30 days.
+  empty_paper: "Earlier versions of “%{title}” show here once it changes."
+  of: "“%{title}” as it was then"
+  row: Version from %{time}
+  restore: Restore This Version
+  locked: Unlock the note to restore
+  back: Back
+  same: Same as now
+  spacing: Only the spacing differs
+  fewer:
+    one: 1 line fewer than now
+    other: "%{count} lines fewer than now"
+  restored: Restored the version from %{time}
+  restore_failed: "Couldn’t restore “%{title}”: %{error}"

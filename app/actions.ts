@@ -6,6 +6,7 @@ import { t } from "nsh/i18n";
 import type { Todo } from "jot/native";
 import { keyCaps, T } from "./ui/tokens";
 import { caretOnTodo, openDueAtCaret, openTodoDue, writeTodoDue } from "./due";
+import { openHistory } from "./history";
 import {
   activate,
   binName,
@@ -85,7 +86,8 @@ const action = (id: string, label: string, shortcut: string, run: () => void, de
 /**
  * The actions of `target`, in the panel's order; the one on Return first (none in the open note). No to-do, "today"
  * or "new" row can be trashed. A locked note has "Unlock" instead of "Lock", and nothing that changes it but its
- * trash key, which says to unlock it first. "Remove Emoji" shows only for a note with one.
+ * trash key, which says to unlock it first (its version history it keeps, to look at). "Remove Emoji" shows only for
+ * a note with one.
  */
 export function actionsFor(target: ActionTarget): Action[] {
   switch (target.kind) {
@@ -103,6 +105,7 @@ export function actionsFor(target: ActionTarget): Action[] {
         ...(locked ? [] : [action("rename", t("actions.rename"), T.keys.rename, () => startRename(title))]),
         ...(locked ? [] : [action("emoji", t("actions.emoji"), "", () => startEmoji(title))]),
         ...(locked || iconOf(title) === null ? [] : [action("emoji-remove", t("actions.emoji_remove"), "", () => removeEmoji(title))]),
+        action("history", t("actions.history"), "", () => openHistory(title)),
         action("copy-title", t("actions.copy_title"), T.keys.copyTitle, () => copy(title)),
         action("copy-body", t("actions.copy_body"), T.keys.copyBody, () => copy(untracked(notes)?.read(title)?.body ?? "")),
         locked

@@ -53,6 +53,8 @@ notarized by Apple, so run `xattr -dr com.apple.quarantine /Applications/Jot.app
   notes by title and body; when nothing matches, Return creates a note with that title.
 - **Act on a note**: ⌘K on a row to open, rename, give it an emoji, copy, show in Finder, lock or move it to the Trash
   (with undo).
+- **Version history**: ⌘K → Version History… lists a note's earlier texts from the last 30 days (kept on this Mac
+  before each change) and restores one.
 - **To-dos**: type `todo` (or `/todo`) for every open to-do, grouped by when it is due; ⇧⌘D changes a reminder's time.
 - **Dictation**: hold ⌥ to talk into the search field or a note; double-press and hold ⌥ in any app for a quick note.
 - **Lock a note**: ⌘K → Lock makes it read-only for Jot, your AI apps and every other program (Finder's "Locked").
@@ -118,10 +120,11 @@ that page shows, or write it by hand:
 | `complete_todo(note, text)` | Check off a to-do |
 | `reschedule_todo(note, text, due)` | Change a to-do's reminder time; `null` removes it |
 | `trash_note(title)` | Move a note to the Trash (only while you allow it) |
-| `replace_note(title, body)` | Rewrite a note, its previous version going to the Trash (only while you allow it) |
+| `replace_note(title, body)` | Rewrite a note, its previous version kept in its version history (only while you allow it) |
 
 Removing and rewriting stay off until you turn on Settings → AI Apps → "Allow AI apps to move notes to the Trash and
-rewrite notes"; what an app takes away goes to the Trash, where you can get it back. No tool changes a locked note.
+rewrite notes"; a note an app removes goes to the Trash, and a note's text before a rewrite to its version history,
+where you can get it back. No tool changes a locked note.
 How connecting, the switch and locks work: [docs/mcp.md](docs/mcp.md) and [docs/locks.md](docs/locks.md).
 
 ## Building

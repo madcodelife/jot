@@ -75,6 +75,13 @@ Not doing: projects, priorities, tag-style contexts, complex recurrence rules, a
   one iCloud moved off the Mac is still listed and searchable by title, downloads when needed and is read-only till
   then; nothing waits on a download. A note changed on two devices at once shows both versions' choice: keep this
   Mac's, use the other, or keep both.
+- Every note has a version history on this Mac: before a change of its text (typed, an AI app's, another device's
+  version taken in a conflict) Jot keeps the text it had, at most one version per 10 minutes of typing, always before
+  a whole-note rewrite or a restore; versions go after 30 days, and a note keeps at most 50. "Version History…" (⌘K)
+  lists them, newest first, with what each has that the note no longer has, shows one read-only, and restores it
+  ("Restore This Version"); in the open note that is one edit ⌘Z takes back. A locked note's history can be read,
+  not restored. The history is kept outside the notes folder and is not synced: it is a safety net on this Mac, not
+  a second copy of the notes.
 - Notes from Apple Notes come in from Settings in one step (macOS): every account and folder, each note a Markdown
   file with its date, and importing again adds only the new ones (and brings back one deleted in Jot), changing
   nothing already in Jot. Nothing touches Notes until the user asks. Not imported: locked notes (their text is
@@ -104,7 +111,7 @@ model tries usernames.
 | `complete_todo(note, text)` | Checks off a to-do (only its checkbox changes; nothing is deleted) |
 | `reschedule_todo(note, text, due)` | Changes the reminder time of an open to-do (only its `⏰` part); `due` is an ISO time or a phrase such as 周五 9点 ("Friday 9 o'clock"), `null` removes the reminder |
 | `trash_note(title)` | Moves a note to the system Trash (not a permanent delete); needs the user's permission |
-| `replace_note(title, body)` | Rewrites a note's whole body, its frontmatter kept; the note as it was goes to the Trash first, as "Title (before rewrite · 2026-11-25 14.30)" in Jot's language; needs the user's permission |
+| `replace_note(title, body)` | Rewrites a note's whole body, its frontmatter kept; the note as it was goes to its version history in Jot first; needs the user's permission |
 
 The first version offered no delete or overwrite. Now an AI app may take something away, on two conditions:
 
@@ -112,8 +119,9 @@ The first version offered no delete or overwrite. Now an AI app may take somethi
   default. While off, the two tools are listed but refuse, saying where to turn them on; the change applies to every
   connected app at its next call. The MCP instructions say how the setting stands, and tell the model to use the
   tools only when asked and, before removing many notes at once ("全部清掉"), to list them and ask the user.
-- **Nothing is lost.** What a tool takes away goes to the Trash, the note itself (`trash_note`) or the note as it
-  was before a rewrite (`replace_note`); the user gets it back from there. No tool deletes for good.
+- **Nothing is lost.** A note a tool takes away goes to the Trash (`trash_note`), and the user gets it back from
+  there; the note as it was before a rewrite (`replace_note`) goes to the note's version history, and the user
+  restores it from "Version History…" in Jot. No tool deletes for good.
 
 Notes the user locked stay out of reach of every tool, whatever the setting.
 
@@ -151,8 +159,8 @@ any other MCP app the page gives the command and the JSON entry to copy; by hand
 A note an AI app creates records which app it was (`source: cursor`, from the name the app gives when it connects), and
 the list and the note show that name: "By Cursor". The notch island says what an AI app does on this Mac, by name: a new
 note is written and saved ("Claude · Saved to Jot"), and, more lightly, text added to a note, a to-do added, completed or
-given a new time, a note rewritten (its old version in the Trash) or moved to the Trash; a click on it opens the note,
-or shows the trashed one in the Trash. Two of these make a short, soft sound as the island says them, quieter than the
+given a new time, a note rewritten (its old version in its version history) or moved to the Trash; a click on it opens
+the note (a rewritten one with its version history), or shows the trashed one in the Trash. Two of these make a short, soft sound as the island says them, quieter than the
 reminder's chime: a new note, a bright tap as the island opens on it, and a completed to-do, a softer one as its check
 pops in. Everything else an AI app does is silent, and so is everything the user does. Settings › General › Sound
 Effects turns them off (on by default), as does the system's "Play user interface sound effects"; the reminders' sound
@@ -161,7 +169,8 @@ is the notifications' and stays the system's to govern.
 ## What the first version does and doesn't do
 
 Does: the macOS desktop (NSH's AppKit backend), resident in the tray, the floating panel summoned by double-pressing ⌥,
-search-to-create, editing with autosave, watching the folder for changes, to-dos and desktop reminders, `jot-mcp`
+search-to-create, editing with autosave and a local version history, watching the folder for changes, to-dos and
+desktop reminders, `jot-mcp`
 and one-click connection to the AI apps on the Mac, light and dark themes, locked notes, (allowed in Settings) AI
 apps moving notes to the Trash and rewriting them, and importing from Apple Notes.
 

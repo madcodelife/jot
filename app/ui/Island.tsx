@@ -18,6 +18,7 @@ import { Button } from "nsh/base";
 import { displays, Window, type Display, type WindowRef } from "nsh/desktop";
 import { t } from "nsh/i18n";
 import { Folder, type AgentAction, type AgentActivity, type Todo } from "jot/native";
+import { openHistory } from "../history";
 import { inkFrames, playInk } from "../ink";
 import { errorCode, errorMessage, notes, open, refresh, summon } from "../store";
 import { playDone, playNew } from "../sounds";
@@ -138,13 +139,15 @@ function sound(event: IslandEvent | null) {
 /** A new note: the island shows it being written inside the glow. Other writes are lighter. */
 const isCreate = (event: IslandEvent | null | undefined) => event?.kind === "write" && event.action === "create";
 
-/** A click on an AI app's write: the note opens in the panel; a trashed one shows in the Trash. */
+/** A click on an AI app's write: the note opens in the panel; a rewritten one with its version history over it (the
+ * text it had is there); a trashed one shows in the Trash. */
 function openWrite(event: WriteEvent) {
   if (event.action === "trash") {
     void Folder.showInTrash(event.inTrash).catch((error: unknown) => console.warn(`cannot show the Trash: ${errorMessage(error)}`));
   } else {
     summon();
     open(event.title);
+    if (event.action === "replace") openHistory(event.title);
   }
   clearTimers();
   close();
@@ -1042,14 +1045,14 @@ function Rim(props: { aurora: AuroraValues; radius: number }) {
 /**
  * The island as an AI app writes to a note: its avatar, what it does, the note's title, and the check once it is in.
  * A new note's title comes in letter by letter while it is written; any other write says what was done at once. A
- * click opens the note (a trashed one: shows it in the Trash).
+ * click opens the note (a rewritten one: its version history; a trashed one: shows it in the Trash).
  */
 function WriteContent(props: { event: WriteEvent }) {
   const trashed = () => props.event.action === "trash";
   return (
     <Button
       testID="island-write"
-      accessibilityLabel={t(trashed() ? "island.show_trashed" : "island.open_note", { title: props.event.title })}
+      accessibilityLabel={t(trashed() ? "island.show_trashed" : props.event.action === "replace" ? "island.open_history" : "island.open_note", { title: props.event.title })}
       onPress={() => openWrite(props.event)}
       class="flex-1 flex-row items-center"
       style={{ gap: 15, alignSelf: "stretch" }}

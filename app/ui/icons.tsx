@@ -13,6 +13,7 @@ import {
   Contrast,
   Copy,
   ExternalLink,
+  History,
   Lock,
   Mic,
   Option,
@@ -34,6 +35,8 @@ const ICONS = {
   cloud: CloudDownload,
   // A locked note.
   lock: Lock,
+  // A note's version history.
+  history: History,
   // The open note's "Add Emoji".
   smile: SmilePlus,
   gear: Settings,

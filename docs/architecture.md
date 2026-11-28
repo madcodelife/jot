@@ -25,7 +25,9 @@ The root `Cargo.toml` is the app crate and the workspace (`members = ["store", "
 
 The app and `jot-mcp` never talk to each other: both work on the same notes folder through jot-store, and beside it
 share two files outside the folder: the setting the app writes and `jot-mcp` reads, and the log of what AI apps wrote,
-which `jot-mcp` writes and the app reads for the island ([mcp.md](mcp.md)).
+which `jot-mcp` writes and the app reads for the island ([mcp.md](mcp.md)). Next to those, jot-store keeps the notes'
+version history, which both write as they change notes and the app reads ([storage.md](storage.md)); it is local and
+not synced.
 
 ## Paths
 
@@ -35,12 +37,12 @@ which `jot-mcp` writes and the app reads for the island ([mcp.md](mcp.md)).
 | `Cargo.toml`, `Cargo.lock` | The app's Rust crate and the workspace; `Cargo.lock` pins the NSH crates, and so the `nsh` CLI to use. |
 | `app/tsconfig.json` | The client's TypeScript project; it extends the `app/.nsh/tsconfig.json` the `nsh` CLI writes. |
 | `app/App.tsx` | The client's entry: the menu bar app's windows (the panel, settings, the island), the tray, summoning, reminders and dictation. |
-| `app/*.ts` | The client's logic, no components: `store.ts` (Jot's state: the notes folder, the panel's stage, the query and the selection), `settings.ts`, `i18n.ts`, `time.ts`, `tasks.ts`, `due.ts`, `markdown.ts`, `actions.ts`, `voice.ts`, `speechlang.ts`, `spoken.ts`, `quicknote.ts`, `connections.ts`, `ink.ts` (Jot's logo written by one pen stroke), `trayink.ts`, `updates.ts`, `sounds.ts` (the sounds of AI apps' writes), `importing.ts`. |
-| `app/ui/` | Components (`Panel.tsx`, `Paper.tsx`, `NoteList.tsx`, `Emoji.tsx`, `TodoView.tsx`, `Settings.tsx`, `Island.tsx`, …), design tokens (`tokens.ts`), motion (`motion.ts`), themes (`theme.json`, `themes.json`, `themes.ts`) and the app's SVGs. |
+| `app/*.ts` | The client's logic, no components: `store.ts` (Jot's state: the notes folder, the panel's stage, the query and the selection), `settings.ts`, `i18n.ts`, `time.ts`, `tasks.ts`, `due.ts`, `history.ts` (a note's version history in the panel), `markdown.ts`, `actions.ts`, `voice.ts`, `speechlang.ts`, `spoken.ts`, `quicknote.ts`, `connections.ts`, `ink.ts` (Jot's logo written by one pen stroke), `trayink.ts`, `updates.ts`, `sounds.ts` (the sounds of AI apps' writes), `importing.ts`. |
+| `app/ui/` | Components (`Panel.tsx`, `Paper.tsx`, `NoteList.tsx`, `Emoji.tsx`, `TodoView.tsx`, `HistoryView.tsx`, `Settings.tsx`, `Island.tsx`, …), design tokens (`tokens.ts`), motion (`motion.ts`), themes (`theme.json`, `themes.json`, `themes.ts`) and the app's SVGs. |
 | `app/tests/` | The client's TSX tests (`*.test.tsx`), which `nsh test` runs headless. |
 | `locales/` | The client's translations (`en`, `zh`, `zh-Hant`, `ja`), read by `nsh/i18n`. |
 | `src/` | `nsh-app-jot`, the Rust that `App.tsx` imports as `jot/native` ([app.md](app.md)); platform code in `src/platform/<os>.rs` (and `src/platform/apple-notes.js`, the script macOS reads Apple Notes with). |
-| `store/` | `jot-store`: the notes folder, iCloud Drive, locks, to-dos and time phrases (`store/src/when/`), importing notes, the AI apps' setting and activity log, in plain Rust. |
+| `store/` | `jot-store`: the notes folder, iCloud Drive, locks, to-dos and time phrases (`store/src/when/`), importing notes, the notes' version history, the AI apps' setting and activity log, in plain Rust. |
 | `mcp/` | `jot-mcp`, the MCP server AI apps start ([mcp.md](mcp.md)). |
 | `install.sh` | Installs `Jot.app` from the latest GitHub release (`curl … \| sh`; README's "Install"); published at `https://madcodelife.github.io/jot/install.sh`. |
 | `scripts/install-nsh.sh` | Installs the `nsh` CLI that `Cargo.lock` pins (CI uses it too). |
@@ -91,11 +93,12 @@ which `jot-mcp` writes and the app reads for the island ([mcp.md](mcp.md)).
 
 ## Topics
 
-- [storage.md](storage.md): the notes folder format, a synced folder (iCloud Drive), jot-store's API, the app and a
-  synced folder.
+- [storage.md](storage.md): the notes folder format, a note's version history, a synced folder (iCloud Drive),
+  jot-store's API, the app and a synced folder.
 - [locks.md](locks.md): locked notes, in the store and in the app.
 - [todos.md](todos.md): to-dos, time phrases (`when`) and the reminder time picker.
 - [mcp.md](mcp.md): `jot-mcp`'s tools, AI apps removing and rewriting notes, and the activity log.
 - [app.md](app.md): the app's Rust face (`jot/native`), the list's rows, the open note's Return and ⌘↩, its live
-  Markdown preview, a note's emoji, row actions, importing from Apple Notes, updates, packaging.
+  Markdown preview, a note's emoji, row actions, a note's version history, importing from Apple Notes, updates,
+  packaging.
 - [product.md](product.md): the product definition.

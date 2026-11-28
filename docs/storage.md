@@ -34,6 +34,45 @@ the list keeps its order: an emoji is no change of the note. Like every write, b
 `NotDownloaded` and `Locked`, the file untouched. Body writes keep the line, as they keep the whole frontmatter.
 `frontmatter.rs` reads and writes one top-level key on its own, for `locked` and `icon`.
 
+## A note's version history (store/src/history.rs)
+
+Every note has a history of its earlier texts, so a bad edit (the user's, an AI app's, another device's) can be taken
+back later. It is kept on this Mac only, outside the notes folder, and is not synced: another Mac has its own, and a
+note's history does not follow it to another device.
+
+- **Where**: beside the AI apps' setting and their activity log ([mcp.md](mcp.md)),
+  `~/Library/Application Support/Jot/history` (`Store::history_folder`; `~/.config/jot/history` elsewhere). In it, one
+  folder per notes folder, named by the folder's name and a hash (FNV-1a) of its path, links resolved (in lowercase
+  on macOS): changing the notes folder, or moving the notes into iCloud Drive, starts another history, and the old
+  one ages out. In that, one folder per note, a hash of its title in lowercase (titles compare case-insensitively).
+  A version is one file, `<when it was saved, ms since 1970>.md`: the note's whole file as it was (frontmatter
+  included), modified at the time the note had then.
+- **When**: before every write of jot-store that changes the text of a note that exists (`write`, the editor's
+  autosave; `append`; `add_todo` into a note that was there; `set_todo_done`, `set_todo_due`), its file as it is goes
+  to its history if the newest version there was saved more than 10 minutes ago (`QUIET`): a session of typing keeps
+  the text from before it, and a long one a version every 10 minutes. A write that leaves the text as it was keeps
+  nothing; a new note has nothing before it. A whole-note rewrite (`replace`), taking another device's version in a
+  conflict (`resolve` with `UseOther`) and a restore (`restore_version`) always keep the text first, whenever the
+  last version was saved. Changes of the frontmatter alone (a lock, an emoji) keep nothing. Anything that writes the
+  notes folder goes through jot-store, so the app and `jot-mcp` keep versions alike; a program that edits the files
+  itself keeps none.
+- **How long**: versions saved more than 30 days ago go (`KEPT_FOR`), and a note keeps at most 50 (`KEPT`), the
+  oldest going first. Saving a version prunes that note's history; at most once a day (a `.swept` file's
+  modification time says when) it also prunes every note's of the folder and removes the folders left empty. A
+  trashed note's history stays (restoring the note finds it) until it ages out. `rename` moves the note's history to
+  its new title (onto a title whose note was trashed, the two histories become one).
+- **Never in the way**: a history that cannot be written (a full disk, no permission) does not stop or fail a write:
+  the error goes to stderr and the note is written. Only `replace` and `restore_version` stop instead (the error
+  returned, the note as it was), since they would otherwise lose the text they replace.
+- **Reading and restoring**: `versions` lists a note's versions, newest first, with when each was saved, when its
+  text is from and its body. `restore_version` puts one back as the note's body; the frontmatter (its lock, its
+  emoji, its source) stays as it is now, a locked note refuses (`Locked`), and a body the note has already changes
+  nothing. `save_version` keeps the text now whatever the last version's time: the app calls it before putting a
+  version back in the open note through its editor ([app.md](app.md#a-notes-version-history-apphistoryts-appuihistoryviewtsx)).
+- **Off by default**: a `Store` keeps no history until `with_history_folder` names the folder; the app
+  (`Notes.keepHistory(VersionHistory.path())`) and `jot-mcp` name the user's (`Store::default_history_folder`), tests
+  a folder of their own. `with_history_clock` sets the clock (tests).
+
 ## A synced folder (iCloud Drive; store/src/cloud.rs)
 
 Jot does no syncing itself; the folder may sit in iCloud Drive (Settings › General › iCloud Drive moves it there,
@@ -140,10 +179,18 @@ impl Store {
     pub fn trash(&self, title: &str) -> Result<Trashed, StoreError>;
     /// The trash a plain folder instead of the system's (tests: nothing reaches the user's trash).
     pub fn with_trash_folder(self, dir: impl Into<PathBuf>) -> Store;
-    /// Rewrites the whole body, the frontmatter kept. The file as it was (frontmatter included, mtime kept) is written
-    /// under `previous(title)` in a temporary folder outside the notes folder and trashed from there first; if that
-    /// fails the note stays. The same body changes nothing (`previous: None`). `replace_note` calls it.
-    pub fn replace(&self, title: &str, body: &str, previous: impl FnOnce(&str) -> String) -> Result<Replaced, StoreError>;
+    /// Rewrites the whole body, the frontmatter kept. The file as it was goes to the note's version history first
+    /// (above); if that fails (or there is no history) the note stays. The same body changes nothing
+    /// (`previous: None`). `replace_note` calls it.
+    pub fn replace(&self, title: &str, body: &str) -> Result<Replaced, StoreError>;
+    /// The version history (above): its folder, the clock, the versions newest first, keeping one now, restoring one.
+    pub fn history_folder(home: &Path) -> PathBuf;
+    pub fn default_history_folder() -> Option<PathBuf>;
+    pub fn with_history_folder(self, dir: impl Into<PathBuf>) -> Store;
+    pub fn with_history_clock(self, now: impl Fn() -> SystemTime + Send + Sync + 'static) -> Store;
+    pub fn versions(&self, title: &str) -> Result<Vec<Version>, StoreError>;
+    pub fn save_version(&self, title: &str) -> Result<Version, StoreError>;
+    pub fn restore_version(&self, title: &str, id: &str) -> Result<NoteMeta, StoreError>;
     /// Locks / unlocks (locks.md). `settle_locks` puts back a missing half of each lock; returns the titles it changed.
     pub fn lock(&self, title: &str) -> Result<NoteMeta, StoreError>;
     pub fn unlock(&self, title: &str) -> Result<NoteMeta, StoreError>;
@@ -191,7 +238,9 @@ impl Icon { pub fn parse(text: &str) -> Option<Icon>; pub fn as_str(&self) -> &s
 pub struct Note { pub meta: NoteMeta, pub body: String }
 pub struct SearchHit { pub meta: NoteMeta, pub snippet: String /* ~120 chars around the first body match, or the preview */, pub title_match: bool }
 pub struct Trashed { pub title: String, pub in_trash: Option<PathBuf>, pub content: String, pub modified: SystemTime }  // non_exhaustive
-pub struct Replaced { pub note: NoteMeta, pub previous: Option<Trashed> }  // non_exhaustive
+pub struct Replaced { pub note: NoteMeta, pub previous: Option<Version> }  // non_exhaustive
+pub struct Version { pub id: String /* ms since 1970 it was saved at */, pub saved: SystemTime, pub modified: SystemTime /* when its text is from */, pub body: String }  // non_exhaustive
+pub const QUIET: Duration /* 10 min */; pub const KEPT_FOR: Duration /* 30 days */; pub const KEPT: usize /* 50 */;
 /// Jot's settings for AI apps, a file the app writes and jot-mcp reads (mcp.md).
 pub struct AiSettings { pub allow_trash_and_rewrite: bool, pub language: Option<String> }  // non_exhaustive
 impl AiSettings { pub fn path(home: &Path) -> PathBuf; pub fn default_path() -> Option<PathBuf>; pub fn read(path: &Path) -> AiSettings /* missing, broken: off */; pub fn write(&self, path: &Path) -> io::Result<()>; }
@@ -226,7 +275,7 @@ the apps were told apart say `claude`), `agent:<name>` the app of that name, and
 The list shows a note not downloaded with "Downloading…" for its snippet; opened, the editor is read-only and empty,
 says so, and takes the text when it lands. A note with conflict versions shows a bar over its text: "Keep This
 Mac's", "Use the Other", "Keep Both" (the other as `Title (iPhone)`), one version at a time, the open note's edits
-saved first. Settings › General › iCloud Drive: "Move to iCloud Drive…" (disabled, saying why, while iCloud Drive
+saved first; "Use the Other" keeps this Mac's text in the note's version history first. Settings › General › iCloud Drive: "Move to iCloud Drive…" (disabled, saying why, while iCloud Drive
 is off: `Folder.icloud`), asks first (`AlertDialog`), moves the notes to `~/Library/Mobile
 Documents/com~apple~CloudDocs/Jot` (`moveNotesTo` in app/store.ts: `Folder.moveNotes`, then `changeFolder`, which
 the connected AI apps follow), and says what it did; a folder already in iCloud Drive shows "In iCloud Drive".

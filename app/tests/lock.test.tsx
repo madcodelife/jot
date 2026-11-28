@@ -195,7 +195,7 @@ test("the AI page's switch lets AI apps move notes to the Trash and rewrite them
   const app = await openJot(folder("switch"), stand.modules);
   await openAiPage(app);
   expect(app.texts()).toContain("允许 AI 应用把笔记移到废纸篓和改写笔记");
-  expect(app.texts()).toContain("它们移走的笔记、改写前的笔记都会放进废纸篓，可以从那里找回。锁定的笔记不受影响。");
+  expect(app.texts()).toContain("它们移走的笔记会放进废纸篓，改写前的内容留在笔记的版本历史里，都可以找回。锁定的笔记不受影响。");
   await app.press("id:settings-ai-trash-rewrite");
   await app.waitUntil(() => stand.calls.length === 1);
   // On, with the language Jot shows (what a rewritten note's old version is named in).

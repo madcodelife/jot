@@ -4,7 +4,7 @@
 // them, so every change goes through one place.
 import { batch, computed, platform, signal, Storage, untracked } from "nsh";
 import { t } from "nsh/i18n";
-import { ActivityLog, Folder, Notes, Reminders, Summon, type AgentActivity, type DueEvent, type ICloudDrive, type MovedNotes, type NoteMeta, type Todo, type TrashedNote } from "jot/native";
+import { ActivityLog, Folder, Notes, Reminders, Summon, VersionHistory, type AgentActivity, type DueEvent, type ICloudDrive, type MovedNotes, type NoteMeta, type Todo, type TrashedNote } from "jot/native";
 import { morphNext } from "./ui/motion";
 import { T } from "./ui/tokens";
 import { syncClients } from "./connections";
@@ -105,6 +105,8 @@ export const renaming = signal<{ title: string; place: RenamePlace } | null>(nul
 export type EmojiPlace = "list" | "row" | "paper";
 /** The note whose emoji is being chosen, and where ("Set Emoji…", the header's emoji or its button). */
 export const emojiPicking = signal<{ title: string; place: EmojiPlace } | null>(null);
+/** The note whose version history shows in the panel ("Version History…", app/history.ts). */
+export const history = signal<{ title: string } | null>(null);
 /** A row's title or emoji, or the header's emoji, is being edited in place: the list's keys and the actions wait. Tracked. */
 export const editingInPlace = () => renaming() !== null || emojiPicking() !== null;
 
@@ -143,6 +145,11 @@ export function showFlash(text: string) {
 /** The editor's way to save its pending edits at once, before its note goes to the trash; `null` as it closes. */
 export function setEditorFlush(flush: (() => void) | null) {
   flushEditor = flush;
+}
+
+/** Saves the open note's pending edits now (before its history is read, or a version put back). */
+export function flushOpenNote() {
+  flushEditor?.();
 }
 
 /** The platform's own words (the trash's name, the file manager's) come in one form per desktop. */
@@ -298,6 +305,7 @@ export async function openFolder(): Promise<Notes | null> {
 /** Makes `n` the notes folder: watched, its reminders running; the folder before it lets go of its watchers. */
 function useFolder(n: Notes): Notes {
   const before = untracked(notes);
+  keepHistory(n);
   settleLocks(n);
   known = new Set(n.list().map((m) => m.title));
   createdHere.clear();
@@ -318,6 +326,7 @@ function useFolder(n: Notes): Notes {
     leaving.set([]);
     renaming.set(null);
     emojiPicking.set(null);
+    history.set(null);
   });
   if (before && before !== n) before.dispose();
   restartReminders();
@@ -381,6 +390,15 @@ export async function firstRun(): Promise<boolean> {
 }
 
 /** Listeners to what AI apps write to the notes folder on this Mac (the island shows it). */
+/**
+ * Keeps the notes' earlier versions (`VersionHistory`, outside the notes folder, where `jot-mcp` keeps them too):
+ * before a change of a note's text, its text as it was goes there. Without a home folder there is none.
+ */
+function keepHistory(n: Notes) {
+  const folder = VersionHistory.path();
+  if (folder) n.keepHistory(folder);
+}
+
 const activities = new Set<(activity: AgentActivity) => void>();
 export function onAgentActivity(listener: (activity: AgentActivity) => void): () => void {
   activities.add(listener);
@@ -461,6 +479,7 @@ export function summon(start: { query?: string } = {}) {
     // Nothing is being edited in place in a new panel: the list's keys and ⌘K are its own (`editingInPlace`).
     renaming.set(null);
     emojiPicking.set(null);
+    history.set(null);
     startEntrance();
     stage.set("list");
   });
@@ -514,6 +533,8 @@ export function setQuery(value: string) {
     query.set(value);
     selected.set(0);
     notice.set(null);
+    // Typing over a note's history goes back to the list, as typing over an open note does.
+    history.set(null);
     if (s === "capsule" || s === "editor") {
       opened.set(null);
       stage.set("list");

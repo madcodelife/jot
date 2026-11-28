@@ -1,7 +1,9 @@
 // The floating panel: a popup window that shows over everything, on every
 // desktop, below the top of the screen. It is one glass surface that morphs
 // between the summoned capsule (the field alone), the list under it, the
-// to-do view, and a note open beside the list, each change a spring.
+// to-do view, and a note open beside the list, each change a spring. A
+// note's version history takes the panel's body at a note's width (the open
+// note stays under it, hidden, with its undo).
 // Holding ⌥ (or the field's microphone) dictates into the field, or into
 // the open note when it has the focus.
 import { Animated, computed, createAnimatedValue, effect, keymap, reduceMotion, signal, Text, token, untracked, View, type AnimatedValue, type InputRef } from "nsh";
@@ -36,6 +38,8 @@ import { ActionPanel, actionsHeight } from "./ActionPanel";
 import { DuePicker } from "./DuePicker";
 import { emojiInPanel, EmojiPane, emojiPaneHeight, EmojiPopover } from "./Emoji";
 import { duePicker } from "../due";
+import { closeHistory, historyShown, moveVersion, restoreSelected } from "../history";
+import { HistoryView } from "./HistoryView";
 import { Icon } from "./icons";
 import { fadeTo, springConfig } from "./motion";
 import { NoteList, noteListHeight } from "./NoteList";
@@ -90,7 +94,7 @@ const panelSize = computed(() => {
   return shownSize;
 });
 function visibleSize(s: Exclude<ReturnType<typeof stage>, "hidden">) {
-  if (s === "editor") return { width: T.size.editorWidth, height: T.size.editorHeight };
+  if (s === "editor" || (s === "list" && historyShown())) return { width: T.size.editorWidth, height: T.size.editorHeight };
   if (s === "capsule") return { width: T.size.panelWidth, height: T.size.field };
   // "Set Emoji…" from the list: the emoji picker in the list's place, its own height.
   const body = emojiInPanel()
@@ -110,7 +114,7 @@ function visibleSize(s: Exclude<ReturnType<typeof stage>, "hidden">) {
 function actionsPlace(all: readonly Action[]) {
   const size = panelSize();
   const panelLeft = (WINDOW.width - size.width) / 2;
-  const bottom = T.size.windowMargin + size.height - (stage() === "editor" ? T.size.inset : T.size.footer + 6);
+  const bottom = T.size.windowMargin + size.height - (stage() === "editor" || historyShown() ? T.size.inset : T.size.footer + 6);
   return {
     left: panelLeft + size.width - T.size.actionsWidth - 8,
     top: Math.max(T.size.windowMargin + 8, bottom - actionsHeight(all)),
@@ -233,19 +237,22 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
   // the note's text focused, the note's own ⌘↩ comes before the editor's and this one: app/ui/Paper.tsx).
   keymap.bind(
     {
-      // Escape while dictating takes back what was said; otherwise one step back.
+      // Escape while dictating takes back what was said; otherwise one step back (out of a note's history first).
       escape: () => {
-        if (!cancelVoice("field") && !cancelVoice("editor")) back();
+        if (cancelVoice("field") || cancelVoice("editor")) return;
+        if (untracked(historyShown)) closeHistory();
+        else back();
       },
       // ⌘,: the settings, as in every Mac app (the panel hides as the settings window takes the focus).
       "mod+,": () => openSettings(),
       // ⌘K: the row's actions (Raycast's action panel); again, it closes.
       [T.keys.actions]: () => {
-        if (untracked(editingInPlace) || untracked(duePicker)) return;
+        if (untracked(editingInPlace) || untracked(duePicker) || untracked(historyShown)) return;
         toggleActions(untracked(stage) === "editor" && !untracked(fieldFocused) ? "editor" : "field");
       },
       // The action panel, open, closes first: what ⌘↩ does is one of its items.
       "mod+enter": () => {
+        if (untracked(historyShown)) return;
         if (untracked(actionsTarget)) closeActions();
         if (untracked(stage) === "editor" && !untracked(fieldFocused)) toggleTaskAtCaret();
         else if (untracked(todoMode)) checkSelected();
@@ -263,7 +270,7 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
   // The actions' own keys, with the action panel closed too. Ctrl+D (Windows, Linux) stays the note text's
   // "select the next occurrence" while the text has the focus; macOS's ⌃X is no text key.
   effect(() => {
-    if (editingInPlace() || duePicker()) return;
+    if (editingInPlace() || duePicker() || historyShown()) return;
     const inText = editing() && !fieldFocused();
     const keys = actionShortcuts().filter((k) => !(inText && k === T.keys.trashShortcut && !T.keys.trashInText));
     const stop = keymap.bind(Object.fromEntries(keys.map((k) => [k, () => runShortcut(k)])), { when: "always" });
@@ -271,16 +278,22 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
   });
   // ⌘Z takes the last trashed note back while "Moved to the trash" shows; then it is the field's undo again.
   effect(() => {
-    if (!trashed().length || editing() || editingInPlace()) return;
+    if (!trashed().length || editing() || editingInPlace() || historyShown()) return;
     const stop = keymap.bind(T.keys.undoShortcut, () => undoTrash(), { when: "always" });
     return stop;
   });
   // The arrow keys move the selection, except in the note's text, where they move the caret, a title being
   // renamed, and the action panel's and the reminder time picker's own lists.
   effect(() => {
-    if (editingInPlace() || actionsTarget() || duePicker()) return;
+    if (editingInPlace() || actionsTarget() || duePicker() || historyShown()) return;
     if (editing() && !fieldFocused()) return;
     const stop = keymap.bind({ up: () => move(-1), down: () => move(1) }, { when: "always", repeat: true });
+    return stop;
+  });
+  // In a note's history the arrows step through its versions.
+  effect(() => {
+    if (!historyShown()) return;
+    const stop = keymap.bind({ up: () => moveVersion(-1), down: () => moveVersion(1) }, { when: "always", repeat: true });
     return stop;
   });
 
@@ -310,35 +323,41 @@ function Panel(props: { opacity: AnimatedValue; lift: AnimatedValue; scale: Anim
     >
       <Field onFocusChange={(focused) => fieldFocused.set(focused)} />
       <If when={expanded()}>
-        <If
-          when={emojiInPanel()}
-          else={
-            <If
-              when={todoMode()}
-              else={
-                <View class="flex-1 flex-row">
-                  <View style={{ width: editing() ? T.size.sidebar : T.size.panelWidth - 2 }}>
-                    <If when={listRows().length > 0 || query().trim()} else={<EmptyNotes />}>
-                      <NoteList compact={editing()} />
+        {/* A note's history hides what is under it rather than closing it: the open note keeps its text and its undo. */}
+        <View class="flex-1" style={{ display: historyShown() ? "none" : "flex", flexDirection: "column" }}>
+          <If
+            when={emojiInPanel()}
+            else={
+              <If
+                when={todoMode()}
+                else={
+                  <View class="flex-1 flex-row">
+                    <View style={{ width: editing() ? T.size.sidebar : T.size.panelWidth - 2 }}>
+                      <If when={listRows().length > 0 || query().trim()} else={<EmptyNotes />}>
+                        <NoteList compact={editing()} />
+                      </If>
+                    </View>
+                    <If when={editing()}>
+                      <View class="flex-1" style={{ paddingLeft: T.size.inset * 2, paddingRight: T.size.inset, paddingBottom: T.size.inset }}>
+                        <Paper />
+                      </View>
                     </If>
                   </View>
-                  <If when={editing()}>
-                    <View class="flex-1" style={{ paddingLeft: T.size.inset * 2, paddingRight: T.size.inset, paddingBottom: T.size.inset }}>
-                      <Paper />
-                    </View>
-                  </If>
+                }
+              >
+                <View class="flex-1">
+                  <TodoView />
                 </View>
-              }
-            >
-              <View class="flex-1">
-                <TodoView />
-              </View>
-            </If>
-          }
-        >
-          <EmojiPane />
+              </If>
+            }
+          >
+            <EmojiPane />
+          </If>
+        </View>
+        <If when={historyShown()}>
+          <HistoryView />
         </If>
-        <If when={!editing()}>
+        <If when={!editing() && !historyShown()}>
           <Footer />
         </If>
       </If>
@@ -376,7 +395,7 @@ function Field(props: { onFocusChange: (focused: boolean) => void }) {
         autoCapitalize="none"
         submitBehavior="submit"
         onChange={({ value }) => setQuery(value)}
-        onSubmit={() => activate()}
+        onSubmit={() => (untracked(historyShown) ? restoreSelected() : activate())}
         onFocus={() => props.onFocusChange(true)}
         onBlur={() => props.onFocusChange(false)}
       />
